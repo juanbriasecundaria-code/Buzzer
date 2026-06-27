@@ -4596,7 +4596,7 @@ function renderImpHistoryHtml() {
 function renderImpSetup() {
   impGame.phase = 'setup';
   saveImpGame();
-  const cats = [...Object.keys(IMP_WORDS), ...(impGame.userCats||[])];
+  const cats = [...Object.keys(IMP_WORDS), ...(impGame.userCats||[]).filter(c => !IMP_WORDS[c])];
   const catHtml = cats.map(c => `
     <button onclick="toggleCat(this,'${c}')" data-cat="${c}" class="imp-cat-btn ${impGame.activeCategory===c?'sel':''}">${c}</button>
   `).join('');
@@ -4641,7 +4641,7 @@ function renderImpSetup() {
           <!-- Selector de categoría -->
           <div style="display:flex;gap:0.5rem;margin-bottom:0.85rem">
             <select id="imp-manage-cat" style="flex:1;padding:0.6rem 0.75rem;border-radius:var(--radius);border:1px solid var(--border2);background:var(--surface);color:var(--text);font-size:13px" onchange="renderManageWords()">
-              ${[...Object.keys(IMP_WORDS), ...(impGame.userCats||[]), '➕ Palabras propias'].map(c=>`<option value="${c}" ${(impGame._manageCat||Object.keys(IMP_WORDS)[0])===c?'selected':''}>${c}</option>`).join('')}
+              ${[...Object.keys(IMP_WORDS), ...(impGame.userCats||[]).filter(c => !IMP_WORDS[c]), '➕ Palabras propias'].map(c=>`<option value="${c}" ${(impGame._manageCat||Object.keys(IMP_WORDS)[0])===c?'selected':''}>${c}</option>`).join('')}
             </select>
           </div>
 
@@ -4712,8 +4712,8 @@ function addCustomWord() {
   if (!cat || cat === '➕ Palabras propias') {
     const detected = detectWordCategory(val);
     cat = detected || OTRAS;
-    // Si es "Otras", crearla como userCat si no existe
-    if (cat === OTRAS) {
+    // Si es "Otras", crearla como userCat solo si no existe ya en IMP_WORDS
+    if (cat === OTRAS && !IMP_WORDS[OTRAS]) {
       if (!impGame.userCats) impGame.userCats = [];
       if (!impGame.userCats.includes(OTRAS)) {
         impGame.userCats.push(OTRAS);
