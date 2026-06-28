@@ -1001,13 +1001,20 @@
 
   /* TV BUTTON */
   #tv-btn {
-    margin-left: auto;
     flex-shrink: 0;
     transition: color 0.15s, border-color 0.15s, background 0.15s;
   }
   #tv-btn:hover { color: var(--accent) !important; border-color: var(--accent) !important; background: var(--accent-dim) !important; }
   .tv-btn-txt { display: none; }
   @media (min-width: 640px) { .tv-btn-txt { display: inline; } }
+
+  /* RELOAD BUTTON */
+  #reload-btn { transition: color 0.15s, border-color 0.15s, background 0.15s; }
+  #reload-btn:hover { color: var(--info) !important; border-color: var(--info) !important; background: rgba(96,180,240,0.12) !important; }
+  #reload-btn.spinning { animation: spinOnce 0.6s ease; }
+  @keyframes spinOnce { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+  .reload-btn-txt { display: none; }
+  @media (min-width: 640px) { .reload-btn-txt { display: inline; } }
   /* CONFETTI */
   #confetti-canvas {
     position: fixed; inset: 0;
@@ -2249,7 +2256,10 @@ body.started .velada-bg-scrim { display: block; }
     <div class="nav-tab" data-tab="impostor" onclick="goTab('impostor')">Impostor</div>
     <div class="nav-tab" data-tab="final" onclick="goTab('final')">Final</div>
   </div>
-  <button onclick="openTVMode()" title="Modo TV" id="tv-btn" style="margin-left:auto;flex-shrink:0;display:flex;align-items:center;gap:0.4rem;padding:0.45rem 0.85rem;border-radius:var(--radius);border:1px solid var(--border2);background:transparent;color:var(--muted);cursor:pointer;font-size:12px;font-weight:600;white-space:nowrap">📺 <span class="tv-btn-txt">Modo TV</span></button>
+  <div style="margin-left:auto;display:flex;align-items:center;gap:0.5rem;flex-shrink:0;">
+    <button onclick="hardReload()" title="Forzar actualización (hard reload)" id="reload-btn" style="flex-shrink:0;display:flex;align-items:center;gap:0.4rem;padding:0.45rem 0.85rem;border-radius:var(--radius);border:1px solid var(--border2);background:transparent;color:var(--muted);cursor:pointer;font-size:12px;font-weight:600;white-space:nowrap">↻ <span class="reload-btn-txt">Actualizar</span></button>
+    <button onclick="openTVMode()" title="Modo TV" id="tv-btn" style="flex-shrink:0;display:flex;align-items:center;gap:0.4rem;padding:0.45rem 0.85rem;border-radius:var(--radius);border:1px solid var(--border2);background:transparent;color:var(--muted);cursor:pointer;font-size:12px;font-weight:600;white-space:nowrap">📺 <span class="tv-btn-txt">Modo TV</span></button>
+  </div>
 
 </nav>
 <div class="toast" id="toast"><span class="toast-icon" id="toast-icon"></span><span id="toast-msg"></span><button class="toast-undo" id="toast-undo" style="display:none" onclick="undoLastResult()">Deshacer</button></div>
@@ -8065,6 +8075,27 @@ function finishMotesReveal() {
   if (list) list.style.display = '';
 }
 
+
+function hardReload() {
+  const btn = document.getElementById('reload-btn');
+  if (btn) btn.classList.add('spinning');
+  // Unregister service workers if any
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.getRegistrations().then(regs => {
+      regs.forEach(r => r.unregister());
+    });
+  }
+  // Clear caches if available
+  if ('caches' in window) {
+    caches.keys().then(keys => keys.forEach(k => caches.delete(k)));
+  }
+  // Hard reload with cache-busting query param
+  setTimeout(() => {
+    const url = new URL(location.href);
+    url.searchParams.set('v', Date.now());
+    location.replace(url.toString());
+  }, 350);
+}
 
 function openTVMode() {
   // Detect which phase is currently active (fall back to 'both')
