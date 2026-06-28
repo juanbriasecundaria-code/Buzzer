@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
+<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no,viewport-fit=cover">
+<title>Buzzer — La Velada del Año</title>
+<!-- ── PWA / Agregar a pantalla de inicio ── -->
+<meta name="theme-color" content="#c8f060">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Buzzer">
+<meta name="application-name" content="Buzzer">
+<link rel="apple-touch-icon" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAALQAAAC0CAYAAAA9zQYyAAAFR0lEQVR4nO3dy3UTQRBG4ZIOKy8IgHAIgUAJgXAIwAttYQHjI43n0T39rL/ut8dqTV+X2rLw3GwSb29f/4xeA8o8Hu+30WsYtgAC1jci8K4PSMRx9Yq7+YMQMdZaxt3sCxMyzrQIu/oXJGTkqhn2vdYXMiNmXFOzmyrfGYSMWkqndfGEJmbUVNpTUdDEjBZKuro03gkZveQeQbInNDGjp9zesoImZoyQ011y0MSMkVL7q/o+NDBaUtBMZ8wgpcPToIkZMznr8TBoYsaMjrrkDA0pu0EznTGzvT43gyZmeLDVKUcOSPkUNNMZnqx7ZUJDykvQTGd49NwtExpSCBpSPoLmuAHPln6Z0JBC0JByM+O4AR1MaEghaEghaEi5c36GEiY0pBA0pBA0pBA0pBA0pBA0pBA0pBA0pBA0pBA0pHwZvQA1v37/yP4337/9bLCSmG58luO6K/GmIvJrCDpTy4j3EHc6gk4wIuI9xH2MoA/MFPIaYW8j6A0zh7xG2K8I+omnkNcI+x/eh/7Pc8xm/tdfS/gJrRhC5GkdekIrxmym+7xShA1afdPVn9+ecEeOiBsd6QgSakJHjNks1vMOE3SkTd0S5fmHCDrKZp6JcB3kg46wiTnUr4d80IhFOmj1aXSV8nWRDVp502pQvT6SQatuVm2K10kyaMQlF7Ti1GlJ7XpJBa22Ob0oXTf+jEEjKZ+fUAppFjIfTpohjpIPAXlf/yyY0IVqRfD8dWaI2yuJM/SoAFpNtFGTUuEbiQl9QY/glsdQiKwn9xO694b3np69H8/7N5D7oHsadRRQ+GGtF4JONDqq0Y/vheuge708zhJTr3V4Pna4DrqHWWJezLae2RA0pLgNusfL4qzTsMe6vB473Abd2qwxL2Zf3ygEDSkEDSkEvcHLy7mXdfbkMmivP7B44/E6uwwa2EPQK95exr2ttzWChhSChhSChhSChhSChhSChhSChhSChhSCXvH2615v622NoCHFZdD8urcPj9fZZdCteXkZ97LOnggaUggaUgh6x+wv57OvbxS3QUf+r/yR/4TDGbdBA1sI+sRsU3q29czGddDR/nhhtD9OeYXroHsaHfXox/eCoDOMioqY07kPWv2WDeq33KiNmwZdsETWcvOZyte4n9BmerdBU7tNXU9M6ELP8Xm/k6wCmVsjm80Vhbd7fStMZzMmdDMzxRqJxBl6oTJlelO6blJBm2ltTg9q10suaMQmGbTa1GlF8TpJBm2muVk1qV4f2aDNdDetlPJ1kQ4a8cgHrTyNrlC/HvJBm+lvYqoI1yFE0GYxNvNIlOcfJmizOJu6Ful5S304KUeEz1pECnkRakI/U99s9ee3J2zQZrqbrvq8UoQ9cqwpHEEih7wIPaGfeY/B+/prYUJv8DStCfkVQR+YOWxC3kbQCWYKm5CPEXSmEXETcTqCLtAybiK+hqAruxI58dZD0JDC+9CQQtCQQtCQQtCQQtCQQtCQQtCQQtCQQtCQQtCQcn883m+jFwHUwoSGFIKGFIKGlLuZGedoKHg83m9MaEghaEj5CJpjBzxb+mVCQwpBQ8pL0Bw74NFzt0xoSPkUNFManqx7ZUJDymbQTGl4sNXp7oQmasxsr0+OHJByGDRTGjM66vJ0QhM1ZnLWY9KRg6gxg5QOOUNDSnLQTGmMlNpf1oQmaoyQ0132kYOo0VNub0VxcjsLtHJ1cBb9UMi0RgslXRW/y0HUqKm0p6oxcgTBVbUGY9X3oZnWuKJmN80CZFrjTIsB2HyiEjbWWr6Sdz0iEHdcvY6jw868xK1vxM9UfwH1NcGsbt/HlgAAAABJRU5ErkJggg==">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20width%3D%22180%22%20height%3D%22180%22%20viewBox%3D%220%200%20180%20180%22%3E%3Crect%20width%3D%22180%22%20height%3D%22180%22%20rx%3D%2240%22%20fill%3D%22%230a0a0e%22/%3E%3Ctext%20x%3D%2250%25%22%20y%3D%2250%25%22%20font-size%3D%22110%22%20text-anchor%3D%22middle%22%20dominant-baseline%3D%22central%22%3E%F0%9F%94%94%3C/text%3E%3C/svg%3E">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🔔</text></svg>">
+<script>
+window._fbScriptsLoaded=0;window._fbScriptsDone=false;
+function _onFbLoad(){window._fbScriptsLoaded++;if(window._fbScriptsLoaded>=2){window._fbScriptsDone=true;if(window._fbReadyCb)window._fbReadyCb();}}
+function _onFbError(){window._fbScriptsDone=true;window._fbError='No se pudo cargar Firebase. Verificá tu conexión a internet.';if(typeof showError==='function')showError(window._fbError);if(window._fbReadyCb)window._fbReadyCb();}
+</script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js" onload="_onFbLoad()" onerror="_onFbError()"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js" onload="_onFbLoad()" onerror="_onFbError()"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+:root{
+  --bg:#0a0a0e;--surface:#14141c;--surface2:#1e1e2a;
+  --border:rgba(255,255,255,.07);--border2:rgba(255,255,255,.13);
+  --text:#f0efe8;--muted:#666;
+  --accent:#c8f060;--accent-dim:rgba(200,240,96,.12);
+  --gold:#f5c842;--gold-dim:rgba(245,200,66,.14);
+  --red:#ff5f5f;--red-dim:rgba(255,95,95,.13);
+  --blue:#60b4f0;--blue-dim:rgba(96,180,240,.13);
+  --green:#4cdb7a;--green-dim:rgba(76,219,122,.14);
+  --purple:#c060e8;--purple-dim:rgba(192,96,232,.15);
+  --radius:14px;
+}
+html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;overscroll-behavior:none}
+
+/* ── SCREENS ── */
+.screen{display:none;min-height:100dvh;flex-direction:column;align-items:center;justify-content:center;padding:2rem 1.5rem;gap:1.5rem;text-align:center}
+.screen.active{display:flex}
+
+/* ── BACK BUTTON ── */
+.back-btn{position:absolute;top:max(1rem,env(safe-area-inset-top));left:1rem;z-index:10;display:flex;align-items:center;gap:.4rem;padding:.5rem .85rem;border-radius:99px;border:1.5px solid var(--border2);background:var(--surface2);color:var(--muted);font-family:inherit;font-size:13px;font-weight:700;cursor:pointer;transition:opacity .15s}
+.back-btn:active{opacity:.7}
+
+/* ── GAME SELECT ── */
+.velada-label{font-size:11px;font-weight:700;letter-spacing:.32em;text-transform:uppercase;color:var(--gold);opacity:.8}
+.velada-title{font-size:2.4rem;font-weight:900;letter-spacing:-.03em;line-height:1}
+.velada-sub{font-size:13px;color:var(--muted);font-weight:600}
+.game-list{display:flex;flex-direction:column;gap:.75rem;width:100%;max-width:320px}
+.game-btn{padding:1.1rem 1.25rem;border-radius:var(--radius);border:2px solid;font-family:inherit;font-size:16px;font-weight:800;cursor:pointer;transition:opacity .15s,transform .12s;display:flex;align-items:center;gap:.75rem;text-align:left}
+.game-btn:active{opacity:.85;transform:scale(.97)}
+.game-btn-icon{font-size:26px;line-height:1;flex-shrink:0}
+.game-btn-info{display:flex;flex-direction:column;gap:.1rem}
+.game-btn-name{font-size:15px;font-weight:800}
+.game-btn-sub{font-size:11px;opacity:.65;font-weight:600}
+.game-movies{background:var(--gold-dim);border-color:var(--gold);color:var(--gold)}
+.game-arg{background:var(--blue-dim);border-color:var(--blue);color:var(--blue)}
+
+/* ── TEAM SELECT ── */
+.game-header{display:flex;flex-direction:column;align-items:center;gap:.3rem}
+.game-icon{font-size:3rem;line-height:1}
+.game-name{font-size:1.4rem;font-weight:900;letter-spacing:-.02em}
+.section-label{font-size:11px;font-weight:700;letter-spacing:.2em;text-transform:uppercase;color:var(--muted)}
+.team-list{display:flex;flex-direction:column;gap:.6rem;width:100%;max-width:300px}
+.team-btn{padding:1.1rem;border-radius:var(--radius);border:2px solid;font-family:inherit;font-size:17px;font-weight:800;cursor:pointer;transition:opacity .15s,transform .12s;letter-spacing:-.01em}
+.team-btn:active{transform:scale(.97);opacity:.85}
+.team-a{background:var(--blue-dim);border-color:var(--blue);color:var(--blue)}
+.team-b{background:var(--gold-dim);border-color:var(--gold);color:var(--gold)}
+
+/* ── BUZZ SCREEN ── */
+#buzz-screen{position:relative}
+.bz-game-tag{font-size:10px;font-weight:700;letter-spacing:.2em;text-transform:uppercase;color:var(--muted);position:absolute;top:max(1rem,env(safe-area-inset-top));right:1rem}
+.bz-team-name{font-size:1.1rem;font-weight:800;margin-bottom:.25rem}
+.bz-status{font-size:14px;color:var(--muted);font-weight:600;min-height:1.4em;transition:color .2s}
+.bz-status.open{color:var(--accent)}
+.bz-status.won{color:var(--green);font-size:17px;font-weight:900}
+.bz-status.lost{color:var(--muted)}
+
+.bz-buzz-btn{width:min(280px,74vw);height:min(280px,74vw);border-radius:50%;border:3px solid;font-family:inherit;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.5rem;transition:transform .1s,box-shadow .2s;-webkit-tap-highlight-color:transparent;margin:.5rem 0}
+.bz-buzz-btn:active{transform:scale(.91)}
+.bz-buzz-btn.locked{opacity:.25;cursor:default;pointer-events:none}
+.bz-buzz-btn.team-a{border-color:var(--blue);background:var(--blue-dim);color:var(--blue);box-shadow:0 0 0 1px rgba(96,180,240,.3),0 12px 40px rgba(96,180,240,.15)}
+.bz-buzz-btn.team-b{border-color:var(--gold);background:var(--gold-dim);color:var(--gold);box-shadow:0 0 0 1px rgba(245,200,66,.3),0 12px 40px rgba(245,200,66,.15)}
+.bz-buzz-btn.open.team-a{box-shadow:0 0 0 1px rgba(96,180,240,.8),0 12px 60px rgba(96,180,240,.4)}
+.bz-buzz-btn.open.team-b{box-shadow:0 0 0 1px rgba(245,200,66,.8),0 12px 60px rgba(245,200,66,.4)}
+.bz-buzz-btn.won-me{animation:bzPulseWin .6s ease}
+@keyframes bzPulseWin{0%{transform:scale(1)}40%{transform:scale(1.08)}100%{transform:scale(1)}}
+.bz-buzz-icon{font-size:56px;line-height:1;pointer-events:none}
+.bz-buzz-text{font-size:24px;font-weight:900;letter-spacing:-.02em;pointer-events:none}
+
+/* ── RESULT OVERLAY ── */
+.bz-result{position:absolute;inset:0;z-index:5;display:none;flex-direction:column;align-items:center;justify-content:center;gap:.7rem;padding:2rem 1.5rem;text-align:center;
+  background:radial-gradient(120% 80% at 50% 35%,rgba(0,0,0,.3),transparent 70%),rgba(10,10,14,.74);
+  -webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px)}
+.bz-result.show{display:flex;animation:resultIn .4s cubic-bezier(.22,1,.36,1)}
+@keyframes resultIn{from{opacity:0;transform:scale(.85)}to{opacity:1;transform:scale(1)}}
+.bz-result-icon{font-size:5.5rem;line-height:1}
+.bz-result-title{font-size:1.9rem;font-weight:900;letter-spacing:-.02em}
+.bz-result-sub{font-size:14px;color:var(--muted);font-weight:600;max-width:260px;line-height:1.4}
+.bz-result.won{background:radial-gradient(120% 80% at 50% 35%,rgba(76,219,122,.18),transparent 65%),rgba(10,10,14,.8)}
+.bz-result.won .bz-result-title{color:var(--green)}
+.bz-result.won .bz-result-icon{filter:drop-shadow(0 0 26px rgba(76,219,122,.55));animation:bzTrophy .6s ease}
+@keyframes bzTrophy{0%{transform:scale(.4) rotate(-12deg)}55%{transform:scale(1.16) rotate(7deg)}100%{transform:scale(1) rotate(0)}}
+.bz-result.lost .bz-result-title{color:var(--text)}
+.bz-result.lost .bz-result-icon{opacity:.7}
+
+/* ── CONNECTING ── */
+.connecting-dot{width:10px;height:10px;border-radius:50%;background:var(--gold);animation:connPulse 1s ease-in-out infinite}
+@keyframes connPulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.3;transform:scale(.8)}}
+.connecting-text{font-size:14px;color:var(--muted);font-weight:600}
+
+/* ── ERROR ── */
+.error-box{background:var(--red-dim);border:1.5px solid var(--red);border-radius:var(--radius);padding:1rem 1.25rem;max-width:300px;font-size:13px;color:var(--red);font-weight:700;display:none}
+.error-box.show{display:block}
+
+/* ── PASSWORD MODAL ── */
+.pw-overlay{position:fixed;inset:0;z-index:100;display:none;align-items:center;justify-content:center;padding:1.5rem;background:rgba(10,10,14,.85);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px)}
+.pw-overlay.show{display:flex;animation:resultIn .3s cubic-bezier(.22,1,.36,1)}
+.pw-modal{background:var(--surface);border:1.5px solid var(--border2);border-radius:18px;padding:2rem 1.75rem;width:100%;max-width:300px;display:flex;flex-direction:column;align-items:center;gap:1.1rem;text-align:center}
+.pw-modal-icon{font-size:2.4rem;line-height:1}
+.pw-modal-title{font-size:1.1rem;font-weight:900;letter-spacing:-.02em;color:var(--accent)}
+.pw-modal-sub{font-size:12px;color:var(--muted);font-weight:600}
+.pw-input{width:100%;padding:.85rem 1rem;border-radius:var(--radius);border:2px solid var(--border2);background:var(--surface2);color:var(--text);font-family:inherit;font-size:1.3rem;font-weight:800;text-align:center;letter-spacing:.15em;outline:none;transition:border-color .2s}
+.pw-input:focus{border-color:var(--accent)}
+.pw-input.error{border-color:var(--red);animation:pwShake .35s ease}
+@keyframes pwShake{0%,100%{transform:translateX(0)}20%{transform:translateX(-7px)}40%{transform:translateX(7px)}60%{transform:translateX(-5px)}80%{transform:translateX(5px)}}
+.pw-btn{width:100%;padding:.9rem;border-radius:var(--radius);border:none;background:var(--accent);color:#0a0a0e;font-family:inherit;font-size:15px;font-weight:900;cursor:pointer;transition:opacity .15s,transform .12s}
+.pw-btn:active{opacity:.85;transform:scale(.97)}
+.pw-error{font-size:12px;color:var(--red);font-weight:700;min-height:1em}
+.pw-cancel{background:none;border:none;color:var(--muted);font-family:inherit;font-size:12px;font-weight:700;cursor:pointer;padding:.3rem .6rem;border-radius:99px;transition:color .15s}
+.pw-cancel:hover{color:var(--text)}
+</style>
+</head>
+<body>
+
+<!-- ① SELECCIÓN DE JUEGO -->
+<div class="screen active" id="game-select-screen">
+  <div class="velada-label">🎮 La Velada del Año</div>
+  <div class="velada-title">🔔 Buzzer</div>
+  <div class="velada-sub">¿En qué juego estás participando?</div>
+  <div class="game-list">
+    <button class="game-btn game-movies" onclick="selectGame('movies')">
+      <span class="game-btn-icon">🎬</span>
+      <div class="game-btn-info">
+        <span class="game-btn-name">Guess Movies &amp; Songs</span>
+        <span class="game-btn-sub">Adiviná la película o la canción</span>
+      </div>
+    </button>
+    <button class="game-btn game-arg" onclick="selectGame('argentinos')">
+      <span class="game-btn-icon">🎤</span>
+      <div class="game-btn-info">
+        <span class="game-btn-name">100 Argentinos Dicen</span>
+        <span class="game-btn-sub">Las respuestas más populares</span>
+      </div>
+    </button>
+  </div>
+  <div class="error-box" id="error-box"></div>
+  <div style="width:100%;max-width:320px;margin-top:.25rem">
+    <div style="font-size:10px;font-weight:700;letter-spacing:.2em;text-transform:uppercase;color:var(--muted);text-align:center;margin-bottom:.6rem">también</div>
+    <a href="#" onclick="openPwModal(event)" style="display:flex;align-items:center;gap:.75rem;padding:1rem 1.25rem;border-radius:var(--radius);border:2px solid rgba(200,240,96,.35);background:rgba(200,240,96,.07);color:var(--accent);text-decoration:none;transition:opacity .15s,transform .12s;-webkit-tap-highlight-color:transparent" ontouchstart="" onmousedown="this.style.opacity='.8';this.style.transform='scale(.97)'" onmouseup="this.style.opacity='';this.style.transform=''" ontouchend="this.style.opacity='';this.style.transform=''">
+      <span style="font-size:26px;line-height:1;flex-shrink:0">🎮</span>
+      <div style="display:flex;flex-direction:column;gap:.1rem">
+        <span style="font-size:15px;font-weight:800">La Velada del Año</span>
+        <span style="font-size:11px;opacity:.6;font-weight:600">Panel principal del evento</span>
+      </div>
+      <span style="margin-left:auto;font-size:18px;opacity:.5">›</span>
+    </a>
+  </div>
+  <button onclick="location.reload(true)" style="background:none;border:none;color:var(--muted);font-family:inherit;font-size:11px;font-weight:600;cursor:pointer;padding:.4rem .8rem;border-radius:99px;transition:color .15s" onmouseover="this.style.color='var(--text)'" onmouseout="this.style.color='var(--muted)'">↺ Actualizar versión</button>
+</div>
+
+<!-- ② SELECCIÓN DE EQUIPO -->
+<div class="screen" id="team-select-screen" style="position:relative">
+  <button class="back-btn" onclick="goBack('game')">← Volver</button>
+  <div class="game-header">
+    <div class="game-icon" id="ts-icon">🎬</div>
+    <div class="game-name" id="ts-name">Guess Movies &amp; Songs</div>
+  </div>
+  <div class="section-label">¿Cuál es tu equipo?</div>
+  <div class="team-list">
+    <button class="team-btn team-a" id="team-btn-a" onclick="selectTeam('a')">🔵 <span id="ts-na">Equipo 1</span></button>
+    <button class="team-btn team-b" id="team-btn-b" onclick="selectTeam('b')">🟡 <span id="ts-nb">Equipo 2</span></button>
+  </div>
+  <div class="connecting-dot" id="connecting-dot" style="display:none"></div>
+  <div class="connecting-text" id="connecting-text" style="display:none">Conectando…</div>
+</div>
+
+<!-- ③ PANTALLA DE BUZZER -->
+<div class="screen" id="buzz-screen" style="position:relative">
+  <button class="back-btn" onclick="goBack('team')">← Cambiar equipo</button>
+  <div class="bz-game-tag" id="bz-game-tag">Guess Movies &amp; Songs</div>
+  <div class="bz-team-name" id="bz-team-name">🔵 Equipo 1</div>
+  <div class="bz-status" id="bz-status">Esperando al conductor…</div>
+  <button class="bz-buzz-btn locked team-a" id="bz-buzz-btn" onclick="doBuzz()">
+    <span class="bz-buzz-icon">🔔</span>
+    <span class="bz-buzz-text">¡BUZZ!</span>
+  </button>
+  <div class="bz-result" id="bz-result">
+    <div class="bz-result-icon" id="bz-result-icon">🏆</div>
+    <div class="bz-result-title" id="bz-result-title">¡Buzzaste primero!</div>
+    <div class="bz-result-sub" id="bz-result-sub"></div>
+  </div>
+</div>
+
+<!-- ── MODAL DE CONTRASEÑA ── -->
+<div class="pw-overlay" id="pw-overlay" onclick="if(event.target===this)closePwModal()">
+  <div class="pw-modal">
+    <div class="pw-modal-icon">🔒</div>
+    <div class="pw-modal-title">La Velada del Año</div>
+    <div class="pw-modal-sub">Panel principal del evento — ingresá la contraseña</div>
+    <input class="pw-input" id="pw-input" type="password" inputmode="numeric" maxlength="10" placeholder="••••" autocomplete="off" onkeydown="if(event.key==='Enter')checkPw()">
+    <div class="pw-error" id="pw-error"></div>
+    <button class="pw-btn" onclick="checkPw()">Ingresar</button>
+    <button class="pw-cancel" onclick="closePwModal()">Cancelar</button>
+  </div>
+</div>
+
+<script>
+// ── FIREBASE CONFIG ──────────────────────────────────────────────
+const FB_CFG = {
+  apiKey:"AIzaSyB37WkRQqBWVYkZ84AE2u17pAOs_9ZCgCg",
+  authDomain:"guessmovie-905e2.firebaseapp.com",
+  databaseURL:"https://guessmovie-905e2-default-rtdb.firebaseio.com",
+  projectId:"guessmovie-905e2",
+  storageBucket:"guessmovie-905e2.firebasestorage.app",
+  messagingSenderId:"313601369235",
+  appId:"1:313601369235:web:f8b28a2ec187a934fa1966"
+};
+
+// Ruta en Firebase según el juego
+const GAME_PATHS = {
+  movies:     'velada/buzzer',
+  argentinos: 'argentinos/buzzer'
+};
+
+const GAME_META = {
+  movies:     { icon:'🎬', name:'Guess Movies & Songs' },
+  argentinos: { icon:'🎤', name:'100 Argentinos Dicen' }
+};
+
+// ── STATE ────────────────────────────────────────────────────────
+let fbDb = null, fbRef = null, fbInited = false;
+let currentGame = null;   // 'movies' | 'argentinos'
+let bzTeam = null;        // 'a' | 'b'
+let bzListener = null;
+let nameA = 'Equipo 1', nameB = 'Equipo 2';
+
+// ── HELPERS ─────────────────────────────────────────────────────
+function show(id){ document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active')); document.getElementById(id).classList.add('active'); }
+function showError(msg){ const b=document.getElementById('error-box'); b.textContent=msg; b.classList.add('show'); }
+function hideError(){ document.getElementById('error-box').classList.remove('show'); }
+// Si Firebase falló antes de que showError existiera, mostrarlo ahora
+if(window._fbError) showError(window._fbError);
+
+// ── FIREBASE ─────────────────────────────────────────────────────
+function initFirebase(cb){
+  if(fbInited){ cb(); return; }
+  if(!window._fbScriptsDone){ window._fbReadyCb=()=>initFirebase(cb); return; }
+  if(typeof firebase==='undefined'){ showError('Firebase no disponible. Verificá tu conexión.'); return; }
+  try{
+    if(!firebase.apps.length) firebase.initializeApp(FB_CFG);
+    fbDb = firebase.database();
+    fbInited = true;
+    cb();
+  } catch(e){ showError('Error al conectar: '+e.message); }
+}
+
+// ── NAVIGATION ───────────────────────────────────────────────────
+function selectGame(gameId){
+  hideError();
+  currentGame = gameId;
+  const meta = GAME_META[gameId];
+
+  // Actualizar UI de selección de equipo
+  document.getElementById('ts-icon').textContent = meta.icon;
+  document.getElementById('ts-name').textContent = meta.name;
+
+  // Mostrar "conectando" mientras Firebase inicia
+  document.getElementById('connecting-dot').style.display = '';
+  document.getElementById('connecting-text').style.display = '';
+  document.getElementById('connecting-text').textContent = 'Conectando a Firebase…';
+
+  show('team-select-screen');
+
+  initFirebase(()=>{
+    // Conectar al nodo del juego para leer nombres de equipos
+    if(bzListener){ fbRef && fbRef.off('value', bzListener); bzListener=null; }
+    fbRef = fbDb.ref(GAME_PATHS[gameId]);
+    fbRef.once('value', snap=>{
+      const d = snap.val()||{};
+      if(d.names){
+        if(d.names.a){ nameA=d.names.a; document.getElementById('ts-na').textContent=nameA; }
+        if(d.names.b){ nameB=d.names.b; document.getElementById('ts-nb').textContent=nameB; }
+      }
+      document.getElementById('connecting-dot').style.display = 'none';
+      document.getElementById('connecting-text').style.display = 'none';
+    }, ()=>{
+      document.getElementById('connecting-dot').style.display = 'none';
+      document.getElementById('connecting-text').textContent = '⚠️ Sin conexión — podés seguir igual';
+    });
+  });
+}
+
+function selectTeam(team){
+  bzTeam = team;
+  const tName = team==='a' ? nameA : nameB;
+  const teamColor = team==='a' ? '🔵' : '🟡';
+
+  // Actualizar pantalla de buzzer
+  document.getElementById('bz-game-tag').textContent = GAME_META[currentGame].name;
+  document.getElementById('bz-team-name').textContent = teamColor + ' ' + tName;
+
+  const btn = document.getElementById('bz-buzz-btn');
+  btn.className = 'bz-buzz-btn locked team-' + team;
+  document.getElementById('bz-status').textContent = 'Esperando al conductor…';
+  document.getElementById('bz-status').className = 'bz-status';
+  hideResult(); _resultShownFor = null;
+
+  show('buzz-screen');
+  startBuzzListener();
+}
+
+function goBack(to){
+  // Detener listener activo
+  if(bzListener && fbRef){ fbRef.off('value', bzListener); bzListener=null; }
+
+  if(to==='game'){
+    bzTeam=null; currentGame=null;
+    show('game-select-screen');
+  } else if(to==='team'){
+    bzTeam=null;
+    // Restaurar nombres en selección de equipo
+    document.getElementById('ts-na').textContent = nameA;
+    document.getElementById('ts-nb').textContent = nameB;
+    show('team-select-screen');
+    // Re-arrancar listener de nombres
+    if(fbRef) fbRef.once('value', snap=>{
+      const d=snap.val()||{};
+      if(d.names){
+        if(d.names.a){ nameA=d.names.a; document.getElementById('ts-na').textContent=nameA; }
+        if(d.names.b){ nameB=d.names.b; document.getElementById('ts-nb').textContent=nameB; }
+      }
+    });
+  }
+}
+
+// ── RESULT OVERLAY ───────────────────────────────────────────────
+let _resultShownFor = null; // recuerda para qué winner ya animamos
+function showResult(won, winnerName){
+  const ov = document.getElementById('bz-result');
+  document.getElementById('bz-result-icon').textContent  = won ? '🏆' : '⏱️';
+  document.getElementById('bz-result-title').textContent = won ? '¡Buzzaste primero!' : 'Te ganaron de mano';
+  document.getElementById('bz-result-sub').textContent   = won
+    ? 'El conductor te va a dar la palabra'
+    : (winnerName || 'El otro equipo') + ' fue más rápido';
+  ov.classList.remove('won','lost','show');
+  void ov.offsetWidth;                 // reinicia la animación cada vez
+  ov.classList.add(won ? 'won' : 'lost', 'show');
+}
+function hideResult(){
+  document.getElementById('bz-result').classList.remove('show');
+}
+
+// ── BUZZER LISTENER ──────────────────────────────────────────────
+function startBuzzListener(){
+  if(!fbRef) return;
+  bzListener = fbRef.on('value', snap=>{
+    const d = snap.val()||{};
+    const state = d.state||'locked';
+
+    // Sync nombres en caso de que el conductor los haya cambiado
+    if(d.names){
+      if(d.names.a) nameA=d.names.a;
+      if(d.names.b) nameB=d.names.b;
+    }
+
+    const btn = document.getElementById('bz-buzz-btn');
+    const statusEl = document.getElementById('bz-status');
+
+    if(d.winner){
+      const wonByMe = d.winner.team === bzTeam;
+      const winnerName = d.winner.name || (d.winner.team==='a'?nameA:nameB);
+      btn.classList.add('locked');
+      btn.classList.remove('open');
+      if(wonByMe){
+        btn.classList.add('won-me');
+        statusEl.textContent = '🏆 ¡Buzzaste primero!';
+        statusEl.className = 'bz-status won';
+        if(navigator.vibrate) navigator.vibrate([80,40,80,40,80]);
+      } else {
+        statusEl.textContent = winnerName + ' fue más rápido';
+        statusEl.className = 'bz-status lost';
+        if(navigator.vibrate) navigator.vibrate(120); // pulso seco para el que perdió
+      }
+      // Overlay a pantalla completa — solo animamos una vez por ganador
+      if(_resultShownFor !== d.winner.team){
+        showResult(wonByMe, winnerName);
+        _resultShownFor = d.winner.team;
+      }
+    } else if(state==='open'){
+      hideResult(); _resultShownFor = null;
+      btn.classList.remove('locked','won-me');
+      btn.classList.add('open');
+      statusEl.textContent = '¡Tocá cuando sepas la respuesta!';
+      statusEl.className = 'bz-status open';
+      if(navigator.vibrate) navigator.vibrate(30);
+    } else {
+      hideResult(); _resultShownFor = null;
+      btn.classList.add('locked');
+      btn.classList.remove('open','won-me');
+      statusEl.textContent = 'Esperando al conductor…';
+      statusEl.className = 'bz-status';
+    }
+  });
+}
+
+// ── BUZZ ACTION ──────────────────────────────────────────────────
+// ── SFX: "tin" corto al ganar el buzz ──
+let _buzzAudio=null;
+function _bac(){ try{ if(!_buzzAudio) _buzzAudio=new (window.AudioContext||window.webkitAudioContext)(); if(_buzzAudio.state==='suspended') _buzzAudio.resume(); return _buzzAudio; }catch(e){ return null; } }
+document.addEventListener('pointerdown',()=>{ _bac(); },{once:true});
+function sfxTin(){ const ctx=_bac(); if(!ctx) return; try{ const now=ctx.currentTime; [[988,0],[1319,0.07]].forEach(([f,t])=>{ const o=ctx.createOscillator(),g=ctx.createGain(); o.type='triangle'; o.frequency.value=f; o.connect(g); g.connect(ctx.destination); const s=now+t; g.gain.setValueAtTime(0.0001,s); g.gain.exponentialRampToValueAtTime(0.6,s+0.01); g.gain.exponentialRampToValueAtTime(0.0001,s+0.45); o.start(s); o.stop(s+0.5); }); }catch(e){} }
+
+function doBuzz(){
+  if(!fbRef || !bzTeam) return;
+  const tName = bzTeam==='a' ? nameA : nameB;
+  if(navigator.vibrate) navigator.vibrate(60);
+
+  // Transacción atómica — solo gana el primero en llegar
+  fbRef.transaction(current=>{
+    if(!current) return;
+    // Movies & Songs usa { state:'open', winner:null }
+    // 100 Argentinos usa { state:'open', winner:null } también
+    if(current.state==='open' && !current.winner){
+      return Object.assign({}, current, {
+        winner: { team:bzTeam, name:tName },
+        state: 'won'
+      });
+    }
+    return; // abort — ya hay ganador o está bloqueado
+  }, (err, committed)=>{
+    if(!err && committed) sfxTin(); // sonó solo si este celular ganó
+  });
+}
+
+// ── PASSWORD MODAL ───────────────────────────────────────────────
+function openPwModal(e){
+  if(e) e.preventDefault();
+  const ov = document.getElementById('pw-overlay');
+  const inp = document.getElementById('pw-input');
+  document.getElementById('pw-error').textContent = '';
+  inp.value = '';
+  inp.classList.remove('error');
+  ov.classList.add('show');
+  setTimeout(()=>inp.focus(), 120);
+}
+function closePwModal(){
+  document.getElementById('pw-overlay').classList.remove('show');
+}
+function checkPw(){
+  const inp = document.getElementById('pw-input');
+  const errEl = document.getElementById('pw-error');
+  if(inp.value.trim() === '100'){
+    closePwModal();
+    window.location.href = 'velada.html';
+  } else {
+    errEl.textContent = 'Contraseña incorrecta, intentá de nuevo.';
+    inp.classList.remove('error');
+    void inp.offsetWidth;
+    inp.classList.add('error');
+    inp.select();
+  }
+}
+
+// Permite enlace directo: buzzer.html?game=movies&team=a
+(function(){
+  const p = new URLSearchParams(window.location.search);
+  const g = p.get('game'), t = p.get('team');
+  if(g && GAME_PATHS[g]){
+    selectGame(g);
+    if(t==='a'||t==='b') setTimeout(()=>selectTeam(t), 800);
+  }
+})();
+</script>
+</body>
+</html>
