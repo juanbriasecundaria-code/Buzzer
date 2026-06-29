@@ -311,7 +311,13 @@
     line-height: 1.05;
     margin: 1.4rem 0 0.4rem;
     min-height: 40px;
-    max-width: 360px;
+    width: 100%;
+    max-width: min(92vw, 560px);
+    padding: 0 0.5rem;
+    text-align: center;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+    hyphens: auto;
     background: linear-gradient(105deg, var(--accent), #eaffa0 45%, var(--gold));
     -webkit-background-clip: text; background-clip: text;
     color: transparent; -webkit-text-fill-color: transparent;
@@ -1356,7 +1362,9 @@ function revealCategory() {
 
 function launchRoulette(pool, winnerIdx, winner) {
   isSpinning = true;
-  document.getElementById('roulette-result').textContent = '';
+  const _rr = document.getElementById('roulette-result');
+  _rr.textContent = '';
+  _rr.style.fontSize = '';
   document.getElementById('roulette-sub').textContent = '';
   document.getElementById('team-comodin-row').classList.remove('visible');
   const closeBtn = document.getElementById('roulette-close-btn');
@@ -1457,6 +1465,7 @@ function launchRoulette(pool, winnerIdx, winner) {
 
         const resultEl = document.getElementById('roulette-result');
         resultEl.textContent = winner;
+        fitRouletteResult(resultEl);
         resultEl.classList.remove('revealed');
         void resultEl.offsetWidth; // reiniciar animación
         resultEl.classList.add('revealed');
@@ -1714,6 +1723,53 @@ function fireRevealFlash() {
   void f.offsetWidth;
   f.classList.add('fire');
 }
+
+// Ajusta el tamaño del nombre de categoría para que la palabra más larga
+// entre siempre, en PC y en celular, sin cortarse ni desbordar.
+function fitRouletteResult(el) {
+  if (!el) return;
+  const text = (el.textContent || '').trim();
+  if (!text) return;
+
+  const cs = getComputedStyle(el);
+  const padL = parseFloat(cs.paddingLeft) || 0;
+  const padR = parseFloat(cs.paddingRight) || 0;
+  const avail = el.clientWidth - padL - padR;
+  if (avail <= 0) return;
+
+  // Tamaño base = lo que daría el clamp del CSS: clamp(1.7rem, 8vw, 3rem)
+  const clampMid = 0.08 * window.innerWidth;
+  let size = Math.max(27.2, Math.min(clampMid, 48)); // px
+  const minSize = 17;
+
+  // Medimos la palabra más ancha con un span oculto
+  const meas = document.createElement('span');
+  meas.style.cssText =
+    'position:absolute;visibility:hidden;white-space:nowrap;left:-9999px;' +
+    'font-weight:' + cs.fontWeight + ';letter-spacing:' + cs.letterSpacing +
+    ';text-transform:' + cs.textTransform + ';font-family:' + cs.fontFamily;
+  document.body.appendChild(meas);
+
+  const words = text.split(/\s+/);
+  const widestAt = (px) => {
+    meas.style.fontSize = px + 'px';
+    let max = 0;
+    for (const w of words) { meas.textContent = w; if (meas.offsetWidth > max) max = meas.offsetWidth; }
+    return max;
+  };
+
+  let guard = 0;
+  while (size > minSize && widestAt(size) > avail && guard++ < 200) size -= 1;
+
+  document.body.removeChild(meas);
+  el.style.fontSize = size + 'px';
+}
+
+// Re-ajustar al rotar / cambiar tamaño de ventana (PC ↔ celular)
+window.addEventListener('resize', () => {
+  const el = document.getElementById('roulette-result');
+  if (el && (el.textContent || '').trim()) fitRouletteResult(el);
+});
 
 // ── CONFETI (reveal) ─────────────────────────
 let _patConfettiAF = null;
