@@ -592,7 +592,7 @@ function _onFbScriptError(){ window._fbScriptsDone = true; console.warn('[Fireba
   <div class="wait-note" id="game-foot"></div>
   <div class="escape-row" style="margin-top:0.2rem">
     <button class="escape-btn finish" onclick="finishDuelNow()">⏹ Finalizar duelo</button>
-    <a class="escape-btn home" href="#" onclick="goHome(event)">🏠 Página principal</a>
+    <a class="escape-btn home" href="#" onclick="goHome(event)">🏠 Página Principal</a>
   </div>
 </div>
 
@@ -632,7 +632,7 @@ function _onFbScriptError(){ window._fbScriptsDone = true; console.warn('[Fireba
   </div>
   <div class="escape-row">
     <button class="escape-btn finish" onclick="finishDuelNow()">⏹ Finalizar duelo</button>
-    <a class="escape-btn home" href="#" onclick="goHome(event)">🏠 Página principal</a>
+    <a class="escape-btn home" href="#" onclick="goHome(event)">🏠 El Erudito</a>
   </div>
 </div>
 
@@ -1246,8 +1246,20 @@ function finishDuelNow(){
 // Volver al hub (index)
 function goHome(e){
   if(e) e.preventDefault();
-  ccConfirm('¿Volver a la página principal? Vas a salir de este duelo.', ()=>{
-    window.location.href = 'index.html';
+  ccConfirm('¿Volver al inicio de El Erudito? Vas a salir de este duelo.', ()=>{
+    // cerrar overlays activos
+    closeRevealOverlay();
+    document.getElementById('win-overlay').classList.remove('open');
+    document.getElementById('config-overlay').classList.remove('open');
+    document.getElementById('correct-overlay').classList.remove('open');
+    // salir del equipo y volver a la pantalla de inicio (título de El Erudito)
+    myTeam = null;
+    try { localStorage.removeItem('erudito_team'); } catch(err){}
+    showScreen('team');
+    // re-mostrar el splash con el título principal
+    const s = document.getElementById('er-splash');
+    if(s){ s.style.display=''; s.classList.remove('out'); try{ s.focus({preventScroll:true}); }catch(err){} }
+    if(navigator.vibrate) navigator.vibrate(20);
   });
 }
 
