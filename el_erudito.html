@@ -1,0 +1,1445 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>El Erudito</title>
+<!-- ── PWA / Agregar a pantalla de inicio ── -->
+<meta name="theme-color" content="#ff5f5f">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Erudito">
+<meta name="application-name" content="Erudito">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20width%3D%22180%22%20height%3D%22180%22%20viewBox%3D%220%200%20180%20180%22%3E%3Crect%20width%3D%22180%22%20height%3D%22180%22%20rx%3D%2240%22%20fill%3D%22%230a0a0e%22/%3E%3Ctext%20x%3D%2250%25%22%20y%3D%2250%25%22%20font-size%3D%22110%22%20text-anchor%3D%22middle%22%20dominant-baseline%3D%22central%22%3E%F0%9F%A7%A0%3C/text%3E%3C/svg%3E">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🧠</text></svg>">
+<script>
+// Carga Firebase de forma deferida para no bloquear el juego si falla la red
+window._fbScriptsLoaded = 0;
+window._fbScriptsDone = false;
+function _onFbScriptLoad(){
+  window._fbScriptsLoaded++;
+  if(window._fbScriptsLoaded >= 2){ window._fbScriptsDone = true; if(window._fbReadyCb) window._fbReadyCb(); }
+}
+function _onFbScriptError(){ window._fbScriptsDone = true; console.warn('[Firebase] script load failed — running offline'); if(window._fbReadyCb) window._fbReadyCb(); }
+</script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js" onload="_onFbScriptLoad()" onerror="_onFbScriptError()"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js" onload="_onFbScriptLoad()" onerror="_onFbScriptError()"></script>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  :root {
+    --bg: #0a0a0e;
+    --surface: #14141c;
+    --surface2: #1e1e2a;
+    --border: rgba(255,255,255,0.07);
+    --border2: rgba(255,255,255,0.13);
+    --text: #f0efe8;
+    --muted: #666;
+    --accent: #c8f060;
+    --accent-dim: rgba(200,240,96,0.12);
+    --gold: #f5c842;
+    --gold-dim: rgba(245,200,66,0.14);
+    --red: #ff5f5f;
+    --red-dim: rgba(255,95,95,0.13);
+    --blue: #60b4f0;
+    --blue-dim: rgba(96,180,240,0.13);
+    --success: #4ecb7e;
+    --radius: 14px;
+  }
+
+  html { background: var(--bg); }
+  html, body {
+    height: 100%;
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    overscroll-behavior: none;
+  }
+  body { background: transparent; }
+
+  /* ── FONDO ANIMADO (lluvia de números) ── */
+  .num-rain { position: fixed; inset: 0; z-index: 0; overflow: hidden; pointer-events: none; }
+  .num-rain::after {
+    content: ''; position: absolute; inset: 0; z-index: 2;
+    background:
+      radial-gradient(ellipse 55% 60% at 50% 50%, rgba(10,10,14,.82) 0%, rgba(10,10,14,.3) 65%, transparent 100%),
+      linear-gradient(to bottom, rgba(10,10,14,.7) 0%, transparent 20%, transparent 80%, rgba(10,10,14,.7) 100%);
+  }
+  .nrain-col { position: absolute; top: 0; display: flex; flex-direction: column; gap: 18px; will-change: transform; overflow: hidden; }
+  .nrain-word { font-size: 13px; font-weight: 800; letter-spacing: .12em; white-space: nowrap; line-height: 1; opacity: 0; transition: opacity .4s; }
+  .nrain-word.vis { opacity: 1; }
+
+  /* ── TÍTULO COMPARTIDO ── */
+  .er-eyebrow {
+    font-size: 11px; font-weight: 700; letter-spacing: 0.34em; text-transform: uppercase;
+    color: var(--gold); opacity: 0.85; padding-left: 0.34em;
+  }
+  .er-title {
+    display: flex; flex-direction: column; align-items: center; line-height: 0.92;
+    font-weight: 800; letter-spacing: -0.03em; text-transform: uppercase; margin: 0.1rem 0;
+  }
+  .er-title .et-1 {
+    font-size: clamp(2.4rem, 13vw, 3.6rem);
+    background: linear-gradient(105deg, var(--red), #ff9a7a 40%, var(--gold));
+    -webkit-background-clip: text; background-clip: text; color: transparent; -webkit-text-fill-color: transparent;
+    text-shadow: 0 0 50px rgba(255,95,95,0.14);
+  }
+  .er-title .et-2 {
+    font-size: clamp(1.9rem, 10vw, 2.9rem); color: transparent;
+    -webkit-text-fill-color: transparent; -webkit-text-stroke: 1.3px var(--gold); letter-spacing: 0.01em;
+  }
+  @supports not ((-webkit-text-stroke: 1px red)) { .er-title .et-2 { color: var(--gold); -webkit-text-fill-color: currentColor; } }
+
+  /* ── SPLASH ── */
+  .er-splash {
+    position: fixed; inset: 0; z-index: 200;
+    display: flex; align-items: center; justify-content: center;
+    background: var(--bg);
+    transition: opacity 0.6s ease, transform 0.6s ease, filter 0.6s ease;
+  }
+  .er-splash.out { opacity: 0; transform: scale(1.06); filter: blur(5px); pointer-events: none; }
+  .er-splash-bloom {
+    position: absolute; width: 70vw; height: 70vw; max-width: 520px; max-height: 520px;
+    background: radial-gradient(circle, rgba(255,95,95,0.30), transparent 65%); filter: blur(60px);
+    opacity: 0; animation: erBloomIn 1.1s ease forwards;
+  }
+  @keyframes erBloomIn { to { opacity: 1; } }
+  .er-splash-inner { position: relative; z-index: 2; display: flex; flex-direction: column; align-items: center; gap: 0.6rem; padding: 2rem; text-align: center; }
+  .er-splash-eyebrow {
+    font-size: 11px; font-weight: 700; letter-spacing: 0.34em; text-transform: uppercase;
+    color: var(--gold); opacity: 0; padding-left: 0.34em; animation: erRise 0.6s ease 0.2s forwards;
+  }
+  .er-splash .er-title { opacity: 0; animation: erRise 0.7s cubic-bezier(.2,.7,.2,1) 0.35s forwards; }
+  .er-splash-start {
+    margin-top: 1.4rem; display: inline-flex; align-items: center; gap: 0.5rem;
+    font-size: 16px; font-weight: 800; letter-spacing: 0.1em; text-transform: uppercase; color: #0f0f13;
+    background: linear-gradient(180deg, #ff8a7a, var(--red)); border: none; border-radius: 99px;
+    padding: 0.8rem 2rem; cursor: pointer; opacity: 0;
+    box-shadow: 0 0 0 1px rgba(255,95,95,0.5), 0 8px 28px rgba(255,95,95,0.25);
+    animation: erRise 0.55s cubic-bezier(.2,.9,.3,1.2) 0.7s forwards, erGlow 2.2s ease-in-out 1.3s infinite;
+    transition: transform 0.14s ease;
+  }
+  .er-splash-start:active { transform: scale(0.96); }
+  @keyframes erRise { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: translateY(0); } }
+  @keyframes erGlow {
+    0%,100% { box-shadow: 0 0 0 1px rgba(255,95,95,0.5), 0 8px 28px rgba(255,95,95,0.25); }
+    50%     { box-shadow: 0 0 0 1px rgba(255,95,95,0.8), 0 8px 42px rgba(255,95,95,0.5); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .er-splash *, .er-splash-bloom { animation: none !important; opacity: 1 !important; transform: none !important; }
+  }
+
+  /* ── SCREENS ── */
+  .screen { display: none; }
+  .screen.active { display: flex; }
+
+  .pad {
+    min-height: 100dvh; position: relative; z-index: 1;
+    flex-direction: column; align-items: center; justify-content: center;
+    padding: max(2rem, env(safe-area-inset-top)) max(1.5rem, env(safe-area-inset-right)) max(2rem, env(safe-area-inset-bottom)) max(1.5rem, env(safe-area-inset-left));
+    gap: 1.1rem; text-align: center;
+  }
+
+  .er-header { display: flex; flex-direction: column; align-items: center; gap: 0.45rem; margin-bottom: 0.3rem; }
+
+  /* ── SELECCIÓN DE EQUIPO ── */
+  .team-pick {
+    display: flex; flex-direction: column; gap: 0.7rem; width: 100%; max-width: 320px; margin-top: 0.5rem;
+  }
+  .team-pick-sub { font-size: 13px; color: var(--muted); font-weight: 600; margin-bottom: 0.2rem; }
+  .team-pick-btn {
+    padding: 1.15rem 1.25rem; border-radius: var(--radius); border: 2px solid;
+    font-family: inherit; font-size: 16px; font-weight: 800; cursor: pointer;
+    transition: opacity .15s, transform .12s; display: flex; align-items: center; gap: 0.75rem;
+    text-align: left; background: var(--surface);
+  }
+  .team-pick-btn:active { opacity: 0.85; transform: scale(0.97); }
+  .team-pick-btn .tp-emoji { font-size: 24px; line-height: 1; }
+  .team-pick-btn.tp-a { border-color: var(--blue); color: var(--blue); background: var(--blue-dim); }
+  .team-pick-btn.tp-b { border-color: var(--gold); color: var(--gold); background: var(--gold-dim); }
+  .team-pick-btn .tp-arrow { margin-left: auto; font-size: 18px; opacity: 0.55; }
+  .team-pick-btn[disabled] { opacity: 0.3; pointer-events: none; }
+  .tp-occupied { font-size: 10px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); margin-left: auto; }
+
+  /* ── STATUS FIREBASE ── */
+  .fb-status {
+    display: inline-flex; align-items: center; gap: 0.45rem;
+    background: rgba(10,10,14,0.62); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+    border: 1px solid var(--border); border-radius: 99px; padding: 0.3rem 0.85rem;
+    font-size: 11px; font-weight: 600; color: var(--muted);
+  }
+  .fb-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--muted); flex-shrink: 0; }
+  .fb-dot.ok { background: var(--success); box-shadow: 0 0 7px rgba(78,203,126,0.6); }
+  .fb-dot.connecting { background: var(--gold); box-shadow: 0 0 7px rgba(245,200,66,0.6); animation: fbPulse 1s infinite; }
+  .fb-dot.error { background: var(--red); box-shadow: 0 0 7px rgba(255,95,95,0.6); }
+  @keyframes fbPulse { 0%,100%{ opacity: 1; } 50%{ opacity: 0.35; } }
+
+  /* ── MARCADOR ── */
+  .scoreboard { display: flex; align-items: stretch; justify-content: center; gap: 0.5rem; width: 100%; max-width: 360px; }
+  .sb-team {
+    flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: center; gap: 0.2rem;
+    padding: 0.75rem 0.5rem 0.65rem; border-radius: var(--radius);
+    background: var(--surface); border: 1.5px solid var(--border2);
+  }
+  .sb-team.sb-a { border-color: rgba(96,180,240,0.5); }
+  .sb-team.sb-b { border-color: rgba(245,200,66,0.5); }
+  .sb-team.you { box-shadow: 0 0 0 1.5px currentColor inset; }
+  .sb-name { font-size: 12px; font-weight: 800; letter-spacing: -0.01em; line-height: 1.15; text-align: center; overflow-wrap: anywhere; }
+  .sb-team.sb-a .sb-name { color: var(--blue); }
+  .sb-team.sb-b .sb-name { color: var(--gold); }
+  .sb-score { font-size: 2.2rem; font-weight: 900; line-height: 1; color: var(--text); }
+  .sb-score.bump { animation: scoreBump 0.4s cubic-bezier(.2,.9,.3,1.4); }
+  @keyframes scoreBump { 0% { transform: scale(1); } 40% { transform: scale(1.4); } 100% { transform: scale(1); } }
+  .sb-you-tag { font-size: 9px; font-weight: 800; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); margin-top: 0.1rem; min-height: 11px; }
+  .sb-vs { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.15rem; font-size: 11px; font-weight: 800; letter-spacing: 0.1em; color: var(--muted); }
+  .sb-target { font-size: 9px; color: var(--muted); opacity: 0.8; }
+
+  .sb-controls {
+    display: flex; align-items: center; gap: 0.5rem; margin-top: -0.1rem;
+    background: rgba(10,10,14,0.62); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+    border: 1px solid var(--border); border-radius: 99px; padding: 0.3rem 0.85rem;
+  }
+  .link-btn {
+    font-size: 11px; color: var(--text); background: none; border: none; cursor: pointer;
+    letter-spacing: 0.04em; text-decoration: underline; text-underline-offset: 3px; opacity: 0.82;
+    font-family: inherit; padding: 0.2rem 0.1rem;
+  }
+  .link-btn:active { opacity: 1; }
+  .footer-sep { color: var(--muted); opacity: 0.5; }
+
+  /* ── ROUND CARD ── */
+  .round-card {
+    width: 100%; max-width: 360px; border-radius: var(--radius);
+    border: 1.5px solid var(--border2); background: var(--surface);
+    padding: 1.1rem 1.1rem 1.2rem; display: flex; flex-direction: column; gap: 0.85rem;
+  }
+  .round-label { font-size: 10px; font-weight: 800; letter-spacing: 0.16em; text-transform: uppercase; color: var(--red); }
+  .round-hint { font-size: 12px; color: var(--muted); line-height: 1.4; }
+
+  .answer-input {
+    width: 100%; padding: 0.95rem 1rem; border-radius: calc(var(--radius) - 2px);
+    border: 1.5px solid var(--border2); background: var(--surface2); color: var(--text);
+    font-family: inherit; font-size: 22px; font-weight: 800; text-align: center; letter-spacing: 0.01em;
+    -webkit-appearance: none; appearance: none;
+  }
+  .answer-input:focus { outline: none; border-color: var(--red); }
+  .answer-input::placeholder { color: var(--muted); font-weight: 600; font-size: 16px; letter-spacing: 0; }
+  .answer-input:disabled { opacity: 0.5; }
+
+  .big-btn {
+    width: 100%; padding: 1.1rem; border-radius: var(--radius); border: none;
+    font-size: 16px; font-weight: 800; cursor: pointer; letter-spacing: -0.01em;
+    transition: opacity 0.15s, transform 0.12s; display: flex; align-items: center; justify-content: center; gap: 0.5rem;
+    font-family: inherit;
+  }
+  .big-btn:active { opacity: 0.85; transform: scale(0.97); }
+  .big-btn:disabled { opacity: 0.35; cursor: default; transform: none; pointer-events: none; }
+  .big-btn.primary { background: var(--red); color: #0f0f13; }
+  .big-btn.gold { background: var(--gold); color: #0f0f13; }
+  .big-btn.ghost { background: var(--surface2); color: var(--text); border: 1.5px solid var(--border2); }
+  .big-btn.success { background: var(--success); color: #07120b; }
+
+  .wait-note {
+    font-size: 13px; color: var(--muted); font-weight: 600; text-align: center; line-height: 1.4;
+    display: flex; align-items: center; justify-content: center; gap: 0.4rem; min-height: 20px;
+  }
+  .wait-dots span { animation: waitBlink 1s infinite; }
+  .wait-dots span:nth-child(2) { animation-delay: 0.18s; }
+  .wait-dots span:nth-child(3) { animation-delay: 0.36s; }
+  @keyframes waitBlink { 0%, 100% { opacity: 0.2; } 50% { opacity: 1; } }
+
+  .ready-chips { display: flex; gap: 0.5rem; width: 100%; }
+  .ready-chip {
+    flex: 1; padding: 0.55rem 0.4rem; border-radius: 10px; border: 1.5px solid var(--border2);
+    background: var(--surface2); display: flex; flex-direction: column; align-items: center; gap: 0.2rem;
+  }
+  .ready-chip-name { font-size: 11px; font-weight: 800; line-height: 1.1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%; }
+  .ready-chip.a .ready-chip-name { color: var(--blue); }
+  .ready-chip.b .ready-chip-name { color: var(--gold); }
+  .ready-chip-state { font-size: 10px; font-weight: 700; color: var(--muted); }
+  .ready-chip.is-ready { border-color: var(--success); }
+  .ready-chip.is-ready .ready-chip-state { color: var(--success); }
+
+  /* ── REVEAL OVERLAY ── */
+  .reveal-overlay {
+    position: fixed; inset: 0; z-index: 300; display: none;
+    flex-direction: column; align-items: center; justify-content: center;
+    gap: 1.1rem; text-align: center; overflow-y: auto;
+    padding: max(2rem, env(safe-area-inset-top)) 1.25rem max(2rem, env(safe-area-inset-bottom));
+    background: radial-gradient(120% 90% at 50% 38%, rgba(255,95,95,0.14), rgba(0,0,0,0.94));
+    -webkit-backdrop-filter: blur(3px); backdrop-filter: blur(3px);
+  }
+  .reveal-overlay.open { display: flex; animation: rvFade 0.25s ease-out; }
+  @keyframes rvFade { from { opacity: 0; } to { opacity: 1; } }
+
+  .reveal-suspense {
+    font-size: 13px; font-weight: 800; letter-spacing: 0.22em; text-transform: uppercase;
+    color: var(--muted); min-height: 18px;
+  }
+  .reveal-correct-wrap {
+    display: flex; flex-direction: column; align-items: center; gap: 0.25rem;
+    opacity: 0; transform: translateY(8px); transition: opacity 0.4s ease, transform 0.4s ease;
+  }
+  .reveal-correct-wrap.show { opacity: 1; transform: none; }
+  .reveal-correct-label { font-size: 11px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); }
+  .reveal-correct-val {
+    font-size: clamp(2.2rem, 12vw, 3.4rem); font-weight: 900; letter-spacing: -0.02em; line-height: 1;
+    color: var(--text);
+  }
+
+  .reveal-result {
+    font-size: clamp(1.7rem, 8vw, 2.9rem); font-weight: 900; letter-spacing: -0.02em;
+    text-transform: uppercase; line-height: 1.05; padding: 0 0.5rem; min-height: 40px;
+    width: 100%; max-width: min(92vw, 560px); overflow-wrap: anywhere;
+    background: linear-gradient(105deg, var(--red), #ff9a7a 45%, var(--gold));
+    -webkit-background-clip: text; background-clip: text; color: transparent; -webkit-text-fill-color: transparent;
+    opacity: 0; transform: scale(0.7);
+  }
+  .reveal-result.show { animation: revealPop 0.55s cubic-bezier(.2,.9,.3,1.25) forwards; filter: drop-shadow(0 0 26px rgba(255,95,95,0.32)); }
+  .reveal-result.tie {
+    background: linear-gradient(105deg, var(--gold), #fff0b0 45%, var(--gold));
+    -webkit-background-clip: text; background-clip: text;
+  }
+  @keyframes revealPop { 0% { opacity: 0; transform: scale(0.7); } 60% { transform: scale(1.08); } 100% { opacity: 1; transform: scale(1); } }
+
+  .reveal-answers {
+    display: flex; gap: 0.6rem; width: 100%; max-width: 360px;
+    opacity: 0; transform: translateY(8px); transition: opacity 0.4s ease 0.1s, transform 0.4s ease 0.1s;
+  }
+  .reveal-answers.show { opacity: 1; transform: none; }
+  .reveal-ans {
+    flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: center; gap: 0.25rem;
+    padding: 0.75rem 0.4rem; border-radius: var(--radius); border: 2px solid var(--border2); background: var(--surface);
+  }
+  .reveal-ans.a { border-color: var(--blue); }
+  .reveal-ans.b { border-color: var(--gold); }
+  .reveal-ans.win { box-shadow: 0 0 22px rgba(255,95,95,0.3); }
+  .reveal-ans-name { font-size: 11px; font-weight: 800; line-height: 1.1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%; }
+  .reveal-ans.a .reveal-ans-name { color: var(--blue); }
+  .reveal-ans.b .reveal-ans-name { color: var(--gold); }
+  .reveal-ans-val { font-size: 1.5rem; font-weight: 900; line-height: 1; color: var(--text); }
+  .reveal-ans-tag { font-size: 9px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; min-height: 11px; }
+  .reveal-ans.win .reveal-ans-tag { color: var(--red); }
+
+  .reveal-next {
+    width: 100%; max-width: 360px;
+    opacity: 0; transform: translateY(8px); transition: opacity 0.4s ease 0.2s, transform 0.4s ease 0.2s;
+  }
+  .reveal-next.show { opacity: 1; transform: none; }
+
+  /* ── WIN OVERLAY ── */
+  .win-overlay {
+    position: fixed; inset: 0; z-index: 320; display: none;
+    flex-direction: column; align-items: center; justify-content: center; gap: 1.2rem; text-align: center;
+    padding: max(2rem, env(safe-area-inset-top)) 1.5rem max(2rem, env(safe-area-inset-bottom));
+    background: radial-gradient(120% 90% at 50% 40%, rgba(245,200,66,0.18), rgba(0,0,0,0.96));
+  }
+  .win-overlay.open { display: flex; animation: rvFade 0.3s ease-out; }
+  .win-trophy { font-size: 4rem; line-height: 1; animation: winBounce 0.7s cubic-bezier(.2,.9,.3,1.3); }
+  @keyframes winBounce { 0% { transform: scale(0) rotate(-20deg); } 60% { transform: scale(1.2) rotate(6deg); } 100% { transform: scale(1) rotate(0); } }
+  .win-label { font-size: 12px; font-weight: 800; letter-spacing: 0.22em; text-transform: uppercase; color: var(--gold); }
+  .win-name {
+    font-size: clamp(2.2rem, 13vw, 3.6rem); font-weight: 900; letter-spacing: -0.02em; line-height: 1; padding: 0 0.5rem;
+    background: linear-gradient(105deg, var(--gold), #fff0b0 45%, var(--red));
+    -webkit-background-clip: text; background-clip: text; color: transparent; -webkit-text-fill-color: transparent;
+  }
+  .win-score { font-size: 1.1rem; font-weight: 800; color: var(--text); opacity: 0.85; }
+
+  /* ── OVERLAYS GENÉRICOS (nombre / config) ── */
+  .sheet-overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.78); z-index: 480;
+    display: none; align-items: center; justify-content: center;
+    padding: 1.25rem; -webkit-tap-highlight-color: transparent;
+  }
+  .sheet-overlay.open { display: flex; }
+  .sheet-box {
+    background: var(--surface); border: 1px solid var(--border2); border-radius: 20px;
+    padding: 1.5rem 1.4rem 1.3rem; width: min(340px, 100%);
+    display: flex; flex-direction: column; gap: 0.85rem;
+  }
+  .sheet-title { font-size: 15px; font-weight: 800; letter-spacing: -0.01em; text-align: center; }
+  .sheet-sub { font-size: 12px; color: var(--muted); text-align: center; margin-top: -0.5rem; line-height: 1.4; }
+  .sheet-field { display: flex; flex-direction: column; gap: 0.35rem; }
+  .sheet-field label { font-size: 11px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); text-align: left; }
+  .sheet-input {
+    width: 100%; padding: 0.8rem 0.9rem; border-radius: 12px; border: 1.5px solid var(--border2);
+    background: var(--surface2); color: var(--text); font-family: inherit; font-size: 15px; font-weight: 700;
+    -webkit-appearance: none; appearance: none;
+  }
+  .sheet-input:focus { outline: none; border-color: var(--red); }
+  .sheet-row { display: flex; gap: 0.6rem; }
+
+  /* ── CUSTOM CONFIRM ── */
+  #cc-overlay { display: none; position: fixed; inset: 0; z-index: 9999; background: rgba(0,0,0,0.7); align-items: center; justify-content: center; }
+  #cc-overlay.show { display: flex; }
+  #cc-box { background: #1a1a2e; border: 1px solid rgba(255,255,255,0.15); border-radius: 16px; padding: 1.5rem 1.5rem 1.2rem; max-width: 300px; width: 88%; text-align: center; color: #eee; font-size: 15px; line-height: 1.5; }
+  #cc-box .cc-msg { margin-bottom: 1.2rem; }
+  #cc-box .cc-btns { display: flex; gap: 0.7rem; }
+  #cc-box button { flex: 1; padding: 0.65rem; border-radius: 10px; border: none; font-size: 14px; font-weight: 600; cursor: pointer; min-height: 44px; font-family: inherit; }
+  #cc-box .cc-cancel { background: rgba(255,255,255,0.1); color: #ccc; }
+  #cc-box .cc-ok { background: #c0392b; color: #fff; }
+
+  /* ── PIN OVERLAY ── */
+  #pin-overlay {
+    display: none; position: fixed; inset: 0; z-index: 8000; background: rgba(0,0,0,0.88);
+    align-items: center; justify-content: center;
+    padding: max(2rem, env(safe-area-inset-top)) 1.5rem max(2rem, env(safe-area-inset-bottom));
+  }
+  #pin-overlay.open { display: flex; animation: rvFade 0.2s ease-out; }
+  .pin-box {
+    background: var(--surface); border: 1px solid var(--border2); border-radius: 20px;
+    padding: 1.75rem 1.5rem 1.5rem; width: min(320px, 100%);
+    display: flex; flex-direction: column; align-items: center; gap: 1rem;
+    box-shadow: 0 0 60px rgba(255,95,95,0.12);
+  }
+  .pin-title { font-size: 13px; font-weight: 800; letter-spacing: 0.22em; text-transform: uppercase; color: var(--red); text-align: center; }
+  .pin-sub { font-size: 12px; color: var(--muted); text-align: center; margin-top: -0.5rem; line-height: 1.4; }
+  .pin-dots { display: flex; gap: 0.75rem; justify-content: center; align-items: center; height: 14px; }
+  .pin-dot { width: 12px; height: 12px; border-radius: 50%; border: 2px solid rgba(255,95,95,0.5); background: transparent; transition: background 0.12s, border-color 0.12s; }
+  .pin-dot.filled { background: var(--red); border-color: var(--red); }
+  .pin-dot.error { background: var(--red); border-color: var(--red); animation: pinShake 0.32s ease; }
+  .pin-keypad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.55rem; width: 100%; max-width: 240px; }
+  .pin-key {
+    padding: 0; height: 56px; border-radius: 12px; border: 1.5px solid var(--border2); background: var(--surface2);
+    color: var(--text); font-size: 20px; font-weight: 700; cursor: pointer;
+    display: flex; align-items: center; justify-content: center; font-family: inherit;
+    transition: background 0.1s, border-color 0.1s, transform 0.09s; touch-action: manipulation;
+  }
+  .pin-key:active { background: var(--red-dim); border-color: var(--red); transform: scale(0.93); }
+  .pin-key.del { font-size: 18px; color: var(--muted); }
+  .pin-cancel-btn { font-size: 12px; color: var(--muted); background: none; border: none; cursor: pointer; padding: 0.5rem 1rem; letter-spacing: 0.04em; text-decoration: underline; text-underline-offset: 3px; opacity: 0.65; font-family: inherit; }
+  @keyframes pinShake { 0%,100%{ transform: translateX(0); } 20%{ transform: translateX(-6px); } 40%{ transform: translateX(6px); } 60%{ transform: translateX(-4px); } 80%{ transform: translateX(4px); } }
+
+  /* ── BACK / TOP LINKS ── */
+  .back-link {
+    position: fixed; top: max(0.9rem, env(safe-area-inset-top)); left: 0.9rem; z-index: 50;
+    font-size: 12px; font-weight: 700; color: var(--muted); background: rgba(10,10,14,0.55);
+    border: 1px solid var(--border); border-radius: 99px; padding: 0.4rem 0.85rem;
+    text-decoration: none; backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+  }
+  .config-link {
+    position: fixed; top: max(0.9rem, env(safe-area-inset-top)); right: 0.9rem; z-index: 50;
+    font-size: 16px; color: var(--muted); background: rgba(10,10,14,0.55);
+    border: 1px solid var(--border); border-radius: 99px; width: 34px; height: 34px;
+    display: flex; align-items: center; justify-content: center; cursor: pointer;
+    backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+  }
+
+  canvas#er-confetti { position: fixed; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 330; }
+</style>
+</head>
+<body>
+
+<!-- ── FONDO ANIMADO ── -->
+<div class="num-rain" id="num-rain"></div>
+
+<canvas id="er-confetti"></canvas>
+
+<!-- ── SPLASH ── -->
+<div id="er-splash" class="er-splash" onclick="dismissSplash()" role="button" tabindex="0" aria-label="Entrar">
+  <div class="er-splash-bloom"></div>
+  <div class="er-splash-inner">
+    <div class="er-splash-eyebrow">🧠 La Velada del Año</div>
+    <h1 class="er-title"><span class="et-1">El</span><span class="et-2">Erudito</span></h1>
+    <button class="er-splash-start" onclick="dismissSplash()"><span style="font-size:0.8em">▶</span> Comenzar</button>
+  </div>
+</div>
+
+<!-- ① SELECCIÓN DE EQUIPO -->
+<div class="screen pad" id="screen-team">
+  <div class="er-header">
+    <div class="er-eyebrow">🧠 La Velada del Año</div>
+    <h1 class="er-title"><span class="et-1">El</span><span class="et-2">Erudito</span></h1>
+  </div>
+  <div class="fb-status"><span class="fb-dot" id="fb-dot"></span><span id="fb-txt">Conectando…</span></div>
+  <div class="team-pick">
+    <div class="team-pick-sub">¿En qué equipo estás participando?</div>
+    <button class="team-pick-btn tp-a" id="pick-a" onclick="pickTeam('a')">
+      <span class="tp-emoji">🔵</span>
+      <span id="pick-a-name">Equipo 1</span>
+      <span class="tp-arrow" id="pick-a-arrow">›</span>
+    </button>
+    <button class="team-pick-btn tp-b" id="pick-b" onclick="pickTeam('b')">
+      <span class="tp-emoji">🟡</span>
+      <span id="pick-b-name">Equipo 2</span>
+      <span class="tp-arrow" id="pick-b-arrow">›</span>
+    </button>
+  </div>
+  <a class="back-link" href="index.html">← Volver</a>
+</div>
+
+<!-- ② JUEGO -->
+<div class="screen pad" id="screen-game">
+  <a class="back-link" href="#" onclick="leaveGame(event)">← Cambiar equipo</a>
+  <div class="config-link" id="config-gear" onclick="openConfig()">⚙️</div>
+
+  <div class="er-header">
+    <div class="er-eyebrow">🧠 El Erudito</div>
+  </div>
+
+  <!-- Marcador -->
+  <div class="scoreboard" id="scoreboard">
+    <div class="sb-team sb-a" id="sb-team-a">
+      <div class="sb-name" id="sb-name-a">Equipo 1</div>
+      <div class="sb-score" id="sb-score-a">0</div>
+      <div class="sb-you-tag" id="sb-you-a"></div>
+    </div>
+    <div class="sb-vs">VS<div class="sb-target" id="sb-target">a 7</div></div>
+    <div class="sb-team sb-b" id="sb-team-b">
+      <div class="sb-name" id="sb-name-b">Equipo 2</div>
+      <div class="sb-score" id="sb-score-b">0</div>
+      <div class="sb-you-tag" id="sb-you-b"></div>
+    </div>
+  </div>
+  <div class="sb-controls">
+    <button class="link-btn" onclick="openNameEditor()">✏️ mi nombre</button>
+    <span class="footer-sep">·</span>
+    <span style="font-size:11px;color:var(--muted)" id="round-counter">Ronda 1</span>
+  </div>
+
+  <!-- Tarjeta de ronda -->
+  <div class="round-card">
+    <div class="round-label" id="round-label">Tu respuesta</div>
+    <div class="round-hint" id="round-hint">Leé la pregunta del papel y anotá tu número.</div>
+
+    <input class="answer-input" id="answer-input" type="text" inputmode="decimal" autocomplete="off" placeholder="Tu número">
+
+    <button class="big-btn primary" id="ready-btn" onclick="submitReady()">✓ Listo</button>
+
+    <div class="ready-chips" id="ready-chips">
+      <div class="ready-chip a" id="chip-a"><span class="ready-chip-name" id="chip-a-name">Equipo 1</span><span class="ready-chip-state" id="chip-a-state">Anotando…</span></div>
+      <div class="ready-chip b" id="chip-b"><span class="ready-chip-name" id="chip-b-name">Equipo 2</span><span class="ready-chip-state" id="chip-b-state">Anotando…</span></div>
+    </div>
+
+    <button class="big-btn gold" id="correct-btn" style="display:none" onclick="grabCorrectLock()">🔓 Colocar respuesta correcta</button>
+    <div class="wait-note" id="correct-wait" style="display:none"></div>
+  </div>
+
+  <div class="wait-note" id="game-foot"></div>
+</div>
+
+<!-- CARGAR CORRECTO (overlay simple) -->
+<div class="sheet-overlay" id="correct-overlay">
+  <div class="sheet-box">
+    <div class="sheet-title">🔒 Respuesta correcta</div>
+    <div class="sheet-sub">Cargala a ciegas — no se ven las respuestas de los equipos hasta revelar.</div>
+    <div class="sheet-field">
+      <label>Valor correcto</label>
+      <input class="sheet-input answer-input" id="correct-input" type="text" inputmode="decimal" autocomplete="off" placeholder="Ej: 206" style="font-size:22px;text-align:center">
+    </div>
+    <button class="big-btn gold" onclick="submitCorrect()">🎭 Revelar</button>
+    <button class="big-btn ghost" onclick="cancelCorrect()">Cancelar</button>
+  </div>
+</div>
+
+<!-- REVEAL -->
+<div class="reveal-overlay" id="reveal-overlay">
+  <div class="reveal-suspense" id="reveal-suspense">Calculando…</div>
+  <div class="reveal-correct-wrap" id="reveal-correct-wrap">
+    <div class="reveal-correct-label">Respuesta correcta</div>
+    <div class="reveal-correct-val" id="reveal-correct-val">—</div>
+  </div>
+  <div class="reveal-result" id="reveal-result"></div>
+  <div class="reveal-answers" id="reveal-answers">
+    <div class="reveal-ans a" id="rv-ans-a"><span class="reveal-ans-name" id="rv-ans-a-name">Equipo 1</span><span class="reveal-ans-val" id="rv-ans-a-val">—</span><span class="reveal-ans-tag" id="rv-ans-a-tag"></span></div>
+    <div class="reveal-ans b" id="rv-ans-b"><span class="reveal-ans-name" id="rv-ans-b-name">Equipo 2</span><span class="reveal-ans-val" id="rv-ans-b-val">—</span><span class="reveal-ans-tag" id="rv-ans-b-tag"></span></div>
+  </div>
+  <div class="reveal-next" id="reveal-next">
+    <button class="big-btn success" id="next-btn" onclick="submitNext()">→ Siguiente ronda</button>
+    <div class="wait-note" id="next-wait" style="margin-top:0.6rem"></div>
+  </div>
+</div>
+
+<!-- WIN -->
+<div class="win-overlay" id="win-overlay">
+  <div class="win-trophy">🏆</div>
+  <div class="win-label">Ganador del duelo</div>
+  <div class="win-name" id="win-name">—</div>
+  <div class="win-score" id="win-score">—</div>
+  <button class="big-btn gold" style="max-width:300px" onclick="newDuel()">↺ Nuevo duelo</button>
+  <a class="big-btn ghost" style="max-width:300px;text-decoration:none" href="index.html">← Volver al hub</a>
+</div>
+
+<!-- EDITOR DE NOMBRE -->
+<div class="sheet-overlay" id="names-overlay">
+  <div class="sheet-box">
+    <div class="sheet-title">✏️ Nombre del equipo</div>
+    <div class="sheet-sub" id="names-sub">Cambiá el nombre de tu equipo.</div>
+    <div class="sheet-field">
+      <label id="names-label">Tu equipo</label>
+      <input class="sheet-input" id="name-input" type="text" maxlength="22" autocomplete="off" placeholder="Equipo 1">
+    </div>
+    <div class="sheet-row">
+      <button class="big-btn ghost" onclick="closeNameEditor()">Cancelar</button>
+      <button class="big-btn primary" onclick="saveMyName()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- CONFIG (PIN) -->
+<div class="sheet-overlay" id="config-overlay">
+  <div class="sheet-box">
+    <div class="sheet-title">⚙️ Configuración del duelo</div>
+    <div class="sheet-sub">Protegido — solo el creador de la noche.</div>
+    <div class="sheet-field">
+      <label>Puntos para ganar el duelo</label>
+      <input class="sheet-input" id="limit-input" type="number" min="1" max="50" inputmode="numeric" placeholder="7">
+    </div>
+    <button class="big-btn primary" onclick="saveLimit()">Guardar límite</button>
+    <button class="big-btn ghost" onclick="resetDuel()">↺ Reiniciar puntaje y rondas</button>
+    <button class="big-btn ghost" onclick="changePin()">🔑 Cambiar PIN</button>
+    <button class="big-btn ghost" onclick="closeConfig()">Cerrar</button>
+  </div>
+</div>
+
+<!-- CUSTOM CONFIRM -->
+<div id="cc-overlay">
+  <div id="cc-box">
+    <div class="cc-msg" id="cc-msg-text"></div>
+    <div class="cc-btns">
+      <button class="cc-cancel" onclick="ccAnswer(false)">Cancelar</button>
+      <button class="cc-ok" onclick="ccAnswer(true)">Aceptar</button>
+    </div>
+  </div>
+</div>
+
+<!-- PIN -->
+<div id="pin-overlay">
+  <div class="pin-box">
+    <div class="pin-title">🔒 Código del creador</div>
+    <div class="pin-sub" id="pin-sub">Ingresá el PIN para abrir la configuración</div>
+    <div class="pin-dots" id="pin-dots">
+      <span class="pin-dot" id="pin-d-0"></span>
+      <span class="pin-dot" id="pin-d-1"></span>
+      <span class="pin-dot" id="pin-d-2"></span>
+      <span class="pin-dot" id="pin-d-3"></span>
+    </div>
+    <div class="pin-keypad">
+      <button class="pin-key" onclick="pinKey('1')">1</button>
+      <button class="pin-key" onclick="pinKey('2')">2</button>
+      <button class="pin-key" onclick="pinKey('3')">3</button>
+      <button class="pin-key" onclick="pinKey('4')">4</button>
+      <button class="pin-key" onclick="pinKey('5')">5</button>
+      <button class="pin-key" onclick="pinKey('6')">6</button>
+      <button class="pin-key" onclick="pinKey('7')">7</button>
+      <button class="pin-key" onclick="pinKey('8')">8</button>
+      <button class="pin-key" onclick="pinKey('9')">9</button>
+      <button class="pin-key" style="visibility:hidden" disabled></button>
+      <button class="pin-key" onclick="pinKey('0')">0</button>
+      <button class="pin-key del" onclick="pinDel()">⌫</button>
+    </div>
+    <button class="pin-cancel-btn" onclick="closePinOverlay()">Cancelar</button>
+  </div>
+</div>
+
+<script>
+// ════════════════════════════════════════════════════════════════
+//  EL ERUDITO — modo aproximación, 2 equipos sincronizados
+// ════════════════════════════════════════════════════════════════
+
+// ─── FIREBASE (misma config que el resto de la suite) ────────────
+const FB_CFG = {
+  apiKey:"AIzaSyB37WkRQqBWVYkZ84AE2u17pAOs_9ZCgCg",
+  authDomain:"guessmovie-905e2.firebaseapp.com",
+  databaseURL:"https://guessmovie-905e2-default-rtdb.firebaseio.com",
+  projectId:"guessmovie-905e2",
+  storageBucket:"guessmovie-905e2.firebasestorage.app",
+  messagingSenderId:"313601369235",
+  appId:"1:313601369235:web:f8b28a2ec187a934fa1966"
+};
+let fbDb=null, fbRef=null, fbInited=false;
+const FB_PATH = 'velada/erudito';
+
+// Estado local de este dispositivo
+let myTeam = null;           // 'a' | 'b' | null
+let G = null;                // último snapshot del estado compartido
+let _prevPhase = null;
+let _revealAnimating = false;
+
+const DEFAULT_STATE = {
+  phase: 'answering',        // answering | correct_locked | revealed | finished
+  round: 1,
+  limit: 7,
+  teams: {
+    a: { name: 'Equipo 1', answer: null, ready: false, score: 0, next: false },
+    b: { name: 'Equipo 2', answer: null, ready: false, score: 0, next: false }
+  },
+  correct: { value: null, lockedBy: null },
+  winner: null               // 'a' | 'b' | null (ganador del duelo)
+};
+
+function initFirebase(){
+  if(fbInited) return;
+  if(!window._fbScriptsDone){ window._fbReadyCb = initFirebase; return; }
+  if(typeof firebase === 'undefined'){
+    console.warn('[Firebase] not available — offline');
+    setFbStatus('error', '⚠️ Sin conexión — revisá el WiFi');
+    return;
+  }
+  try{
+    if(!firebase.apps.length) firebase.initializeApp(FB_CFG);
+    fbDb = firebase.database();
+    fbRef = fbDb.ref(FB_PATH);
+    fbInited = true;
+    fbDb.ref('.info/connected').on('value', snap=>{
+      const ok = snap.val();
+      if(ok) setFbStatus('ok', 'Conectado');
+      else   setFbStatus('connecting', 'Reconectando…');
+    });
+    // Listener principal
+    fbRef.on('value', snap=>{
+      G = snap.val();
+      if(!G){ G = JSON.parse(JSON.stringify(DEFAULT_STATE)); }
+      onState();
+    }, e=>{ setFbStatus('error', 'Error: '+e.message); });
+    console.log('[Firebase] Erudito init OK');
+  }catch(e){
+    console.error('[Firebase] init error', e);
+    setFbStatus('error', 'Error Firebase: '+e.message);
+  }
+}
+
+function setFbStatus(state, msg){
+  const dot = document.getElementById('fb-dot');
+  const txt = document.getElementById('fb-txt');
+  if(dot) dot.className = 'fb-dot ' + (state==='ok'?'ok':state==='connecting'?'connecting':state==='error'?'error':'');
+  if(txt) txt.textContent = msg;
+}
+
+// Crea el estado base si no existe (transacción para evitar pisar)
+function ensureState(cb){
+  if(!fbRef){ if(cb) cb(); return; }
+  fbRef.transaction(cur=>{
+    if(cur === null) return JSON.parse(JSON.stringify(DEFAULT_STATE));
+    return cur;          // ya existe, no tocar
+  }, ()=>{ if(cb) cb(); });
+}
+
+// ─── SELECCIÓN DE EQUIPO ─────────────────────────────────────────
+function pickTeam(t){
+  if(!fbRef){ alert('Sin conexión a Firebase. Revisá el WiFi e intentá de nuevo.'); return; }
+  ensureState(()=>{
+    myTeam = t;
+    try { localStorage.setItem('erudito_team', t); } catch(e){}
+    showScreen('game');
+    syncMyInputs();
+    if(navigator.vibrate) navigator.vibrate(25);
+  });
+}
+
+function leaveGame(e){
+  if(e) e.preventDefault();
+  myTeam = null;
+  try { localStorage.removeItem('erudito_team'); } catch(e){}
+  showScreen('team');
+}
+
+// ─── RENDER PRINCIPAL (cada vez que cambia el estado) ────────────
+function onState(){
+  if(!G) return;
+  const a = G.teams.a, b = G.teams.b;
+
+  // Cabecera de selección: mostrar nombres / ocupado
+  _setText('pick-a-name', a.name || 'Equipo 1');
+  _setText('pick-b-name', b.name || 'Equipo 2');
+
+  // Marcador
+  _setText('sb-name-a', a.name || 'Equipo 1');
+  _setText('sb-name-b', b.name || 'Equipo 2');
+  bumpScore('a', a.score||0);
+  bumpScore('b', b.score||0);
+  _setText('sb-target', 'a ' + (G.limit||7));
+  _setText('round-counter', 'Ronda ' + (G.round||1));
+
+  // Marca de "vos sos este equipo"
+  document.getElementById('sb-team-a').classList.toggle('you', myTeam==='a');
+  document.getElementById('sb-team-b').classList.toggle('you', myTeam==='b');
+  _setText('sb-you-a', myTeam==='a' ? '◆ vos' : '');
+  _setText('sb-you-b', myTeam==='b' ? '◆ vos' : '');
+
+  // Chips de "listo"
+  _setText('chip-a-name', a.name || 'Equipo 1');
+  _setText('chip-b-name', b.name || 'Equipo 2');
+  syncReadyChip('a', a);
+  syncReadyChip('b', b);
+
+  // Reaccionar a cambios de fase
+  if(G.phase !== _prevPhase){
+    handlePhaseChange(G.phase);
+    _prevPhase = G.phase;
+  } else {
+    refreshPhaseUI();
+  }
+}
+
+function syncReadyChip(t, team){
+  const chip = document.getElementById('chip-'+t);
+  const st = document.getElementById('chip-'+t+'-state');
+  if(!chip) return;
+  chip.classList.toggle('is-ready', !!team.ready);
+  st.textContent = team.ready ? '✓ Listo' : 'Anotando…';
+}
+
+function handlePhaseChange(phase){
+  // cerrar overlays que no correspondan
+  if(phase !== 'revealed'){ closeRevealOverlay(); }
+  if(phase === 'answering'){
+    closeRevealOverlay();
+    document.getElementById('win-overlay').classList.remove('open');
+    syncMyInputs();
+  }
+  if(phase === 'correct_locked'){
+    closeRevealOverlay();
+  }
+  if(phase === 'revealed'){
+    doReveal();
+  }
+  if(phase === 'finished'){
+    showWin();
+  }
+  refreshPhaseUI();
+}
+
+// Sincroniza la tarjeta de ronda según la fase (sin re-animar el reveal)
+function refreshPhaseUI(){
+  if(!G || !myTeam) return;
+  const me = G.teams[myTeam];
+  const other = G.teams[myTeam==='a'?'b':'a'];
+  const phase = G.phase;
+  const input = document.getElementById('answer-input');
+  const readyBtn = document.getElementById('ready-btn');
+  const correctBtn = document.getElementById('correct-btn');
+  const correctWait = document.getElementById('correct-wait');
+  const foot = document.getElementById('game-foot');
+
+  // Estado por defecto: ocultar lo de "correcto"
+  correctBtn.style.display = 'none';
+  correctWait.style.display = 'none';
+  foot.textContent = '';
+
+  if(phase === 'answering'){
+    _setText('round-label', 'Tu respuesta');
+    _setText('round-hint', 'Leé la pregunta del papel y anotá tu número.');
+    if(me.ready){
+      input.disabled = true;
+      readyBtn.disabled = true;
+      readyBtn.textContent = '✓ Respuesta enviada';
+      if(other.ready){
+        foot.innerHTML = 'Ambos listos — cargá el correcto abajo';
+      } else {
+        foot.innerHTML = 'Esperando al otro equipo <span class="wait-dots"><span>.</span><span>.</span><span>.</span></span>';
+      }
+    } else {
+      input.disabled = false;
+      readyBtn.disabled = false;
+      readyBtn.textContent = '✓ Listo';
+    }
+    // Si ambos respondieron, mostrar botón de cargar correcto
+    if(me.ready && other.ready){
+      correctBtn.style.display = '';
+      correctBtn.disabled = false;
+    }
+  }
+  else if(phase === 'correct_locked'){
+    input.disabled = true;
+    readyBtn.disabled = true;
+    readyBtn.textContent = '✓ Respuesta enviada';
+    const who = G.correct.lockedBy;
+    const whoName = who ? (G.teams[who].name || 'Un equipo') : 'Un equipo';
+    if(who === myTeam){
+      correctBtn.style.display = 'none';
+      correctWait.style.display = '';
+      correctWait.innerHTML = 'Cargando la respuesta correcta…';
+      // este dispositivo tiene abierto el overlay para cargar
+    } else {
+      correctBtn.style.display = 'none';
+      correctWait.style.display = '';
+      correctWait.innerHTML = whoName + ' está cargando la respuesta correcta <span class="wait-dots"><span>.</span><span>.</span><span>.</span></span>';
+    }
+  }
+  else if(phase === 'revealed'){
+    input.disabled = true;
+    readyBtn.disabled = true;
+  }
+}
+
+function syncMyInputs(){
+  if(!G || !myTeam) return;
+  const me = G.teams[myTeam];
+  const input = document.getElementById('answer-input');
+  // Si estoy en answering y todavía no marqué listo, dejo lo que tenga escrito
+  if(G.phase === 'answering' && !me.ready){
+    input.disabled = false;
+    if(input.value === '' && me.answer != null) input.value = me.answer;
+  }
+  refreshPhaseUI();
+}
+
+// ─── ACCIONES DEL JUGADOR ────────────────────────────────────────
+function submitReady(){
+  if(!fbRef || !myTeam || !G) return;
+  if(G.phase !== 'answering') return;
+  const raw = (document.getElementById('answer-input').value || '').trim();
+  if(raw === ''){ pulseInput(); return; }
+  const num = parseNum(raw);
+  if(num === null){ pulseInput(); return; }
+  fbRef.child('teams/'+myTeam).update({ answer: num, ready: true });
+  if(navigator.vibrate) navigator.vibrate(30);
+}
+
+function grabCorrectLock(){
+  if(!fbRef || !myTeam || !G) return;
+  // Transacción: el primero que llega gana el lock
+  fbRef.transaction(cur=>{
+    if(!cur) return cur;
+    if(cur.phase !== 'answering') return; // ya cambió, abortar
+    if(!cur.teams.a.ready || !cur.teams.b.ready) return; // seguridad
+    cur.phase = 'correct_locked';
+    cur.correct = { value: null, lockedBy: myTeam };
+    return cur;
+  }, (err, committed, snap)=>{
+    if(committed){
+      const v = snap.val();
+      if(v && v.correct && v.correct.lockedBy === myTeam){
+        openCorrectOverlay();
+      }
+    }
+  });
+}
+
+function openCorrectOverlay(){
+  const inp = document.getElementById('correct-input');
+  inp.value = '';
+  document.getElementById('correct-overlay').classList.add('open');
+  setTimeout(()=>{ try{ inp.focus(); }catch(e){} }, 60);
+}
+
+function cancelCorrect(){
+  // Libera el lock y vuelve a answering (ambos siguen "listos")
+  document.getElementById('correct-overlay').classList.remove('open');
+  if(!fbRef) return;
+  fbRef.transaction(cur=>{
+    if(!cur) return cur;
+    if(cur.phase === 'correct_locked' && cur.correct && cur.correct.lockedBy === myTeam){
+      cur.phase = 'answering';
+      cur.correct = { value: null, lockedBy: null };
+    }
+    return cur;
+  });
+}
+
+function submitCorrect(){
+  const raw = (document.getElementById('correct-input').value || '').trim();
+  if(raw === ''){ pulseEl('correct-input'); return; }
+  const num = parseNum(raw);
+  if(num === null){ pulseEl('correct-input'); return; }
+  document.getElementById('correct-overlay').classList.remove('open');
+
+  // Calcular ganador y comprometer todo en una transacción
+  fbRef.transaction(cur=>{
+    if(!cur) return cur;
+    if(cur.phase !== 'correct_locked') return; // seguridad
+    const av = cur.teams.a.answer, bv = cur.teams.b.answer;
+    const da = deviation(av, num);
+    const db = deviation(bv, num);
+    let winner = 'tie';
+    if(da < db) winner = 'a';
+    else if(db < da) winner = 'b';
+    // sumar puntos
+    if(winner === 'a') cur.teams.a.score = (cur.teams.a.score||0) + 1;
+    else if(winner === 'b') cur.teams.b.score = (cur.teams.b.score||0) + 1;
+    else { cur.teams.a.score = (cur.teams.a.score||0) + 1; cur.teams.b.score = (cur.teams.b.score||0) + 1; }
+    cur.correct.value = num;
+    cur.correct.winner = winner;
+    cur.phase = 'revealed';
+    cur.teams.a.next = false;
+    cur.teams.b.next = false;
+    return cur;
+  });
+}
+
+function submitNext(){
+  if(!fbRef || !myTeam || !G) return;
+  if(G.phase !== 'revealed') return;
+  fbRef.child('teams/'+myTeam+'/next').set(true);
+  if(navigator.vibrate) navigator.vibrate(20);
+  // Cuando ambos pusieron next, el primero que lo detecta avanza (transacción)
+  fbRef.transaction(cur=>{
+    if(!cur) return cur;
+    if(cur.phase !== 'revealed') return;
+    if(cur.teams.a.next && cur.teams.b.next){
+      // ¿Alguien llegó al límite?
+      const lim = cur.limit || 7;
+      const sa = cur.teams.a.score||0, sb = cur.teams.b.score||0;
+      if(sa >= lim || sb >= lim){
+        cur.phase = 'finished';
+        cur.winner = sa >= sb ? 'a' : 'b';
+        if(sa === sb) cur.winner = sa>=lim ? 'a' : 'b'; // borde raro
+      } else {
+        cur.round = (cur.round||1) + 1;
+        cur.phase = 'answering';
+        cur.teams.a.answer = null; cur.teams.a.ready = false; cur.teams.a.next = false;
+        cur.teams.b.answer = null; cur.teams.b.ready = false; cur.teams.b.next = false;
+        cur.correct = { value: null, lockedBy: null };
+      }
+    }
+    return cur;
+  });
+  // feedback de espera
+  refreshNextWait();
+}
+
+function refreshNextWait(){
+  if(!G || !myTeam) return;
+  const me = G.teams[myTeam], other = G.teams[myTeam==='a'?'b':'a'];
+  const w = document.getElementById('next-wait');
+  const nb = document.getElementById('next-btn');
+  if(me.next){
+    nb.disabled = true; nb.textContent = '✓ Listo para seguir';
+    if(!other.next) w.innerHTML = 'Esperando al otro equipo <span class="wait-dots"><span>.</span><span>.</span><span>.</span></span>';
+    else w.textContent = '';
+  } else {
+    nb.disabled = false; nb.textContent = '→ Siguiente ronda'; w.textContent = '';
+  }
+}
+
+// ─── REVEAL (showcito de tensión) ────────────────────────────────
+function doReveal(){
+  if(_revealAnimating) return;
+  _revealAnimating = true;
+  const ov = document.getElementById('reveal-overlay');
+  const susp = document.getElementById('reveal-suspense');
+  const cw = document.getElementById('reveal-correct-wrap');
+  const cv = document.getElementById('reveal-correct-val');
+  const res = document.getElementById('reveal-result');
+  const ans = document.getElementById('reveal-answers');
+  const next = document.getElementById('reveal-next');
+
+  // reset
+  cw.classList.remove('show'); res.classList.remove('show','tie'); ans.classList.remove('show'); next.classList.remove('show');
+  res.textContent=''; susp.textContent='Calculando';
+  ov.classList.add('open');
+
+  const a = G.teams.a, b = G.teams.b;
+  const correct = G.correct.value;
+  const winner = G.correct.winner;
+
+  // tensión: puntos parpadeando
+  let dots = 0;
+  const suspTimer = setInterval(()=>{ dots=(dots+1)%4; susp.textContent='Calculando'+'.'.repeat(dots); playTick(); }, 230);
+
+  // Tras 1.6s: revelar el correcto
+  setTimeout(()=>{
+    clearInterval(suspTimer);
+    susp.textContent = '';
+    cv.textContent = fmt(correct);
+    cw.classList.add('show');
+    playDrum();
+    if(navigator.vibrate) navigator.vibrate([20,40,20]);
+  }, 1600);
+
+  // Tras 2.6s: el veredicto
+  setTimeout(()=>{
+    // respuestas
+    _setText('rv-ans-a-name', a.name||'Equipo 1');
+    _setText('rv-ans-b-name', b.name||'Equipo 2');
+    _setText('rv-ans-a-val', fmt(a.answer));
+    _setText('rv-ans-b-val', fmt(b.answer));
+    const ea = document.getElementById('rv-ans-a'), eb = document.getElementById('rv-ans-b');
+    ea.classList.remove('win'); eb.classList.remove('win');
+    _setText('rv-ans-a-tag',''); _setText('rv-ans-b-tag','');
+
+    if(winner === 'tie'){
+      res.textContent = '¡Empate! Punto para ambos';
+      res.classList.add('tie','show');
+      ea.classList.add('win'); eb.classList.add('win');
+      _setText('rv-ans-a-tag','+1'); _setText('rv-ans-b-tag','+1');
+    } else {
+      const wName = G.teams[winner].name || (winner==='a'?'Equipo 1':'Equipo 2');
+      res.textContent = wName + ' adivinó';
+      res.classList.add('show');
+      const we = winner==='a'?ea:eb;
+      we.classList.add('win');
+      _setText('rv-ans-'+winner+'-tag','✓ +1');
+    }
+    ans.classList.add('show');
+    playDing();
+    launchConfetti();
+    if(navigator.vibrate) navigator.vibrate([20,20,60]);
+  }, 2600);
+
+  // Tras 3.4s: botón siguiente
+  setTimeout(()=>{
+    next.classList.add('show');
+    refreshNextWait();
+    _revealAnimating = false;
+  }, 3400);
+}
+
+function closeRevealOverlay(){
+  document.getElementById('reveal-overlay').classList.remove('open');
+  _revealAnimating = false;
+}
+
+// ─── WIN ─────────────────────────────────────────────────────────
+function showWin(){
+  closeRevealOverlay();
+  const w = G.winner;
+  const wName = w ? (G.teams[w].name || (w==='a'?'Equipo 1':'Equipo 2')) : '—';
+  _setText('win-name', wName);
+  _setText('win-score', (G.teams.a.score||0) + ' – ' + (G.teams.b.score||0));
+  document.getElementById('win-overlay').classList.add('open');
+  launchConfetti();
+  playDing();
+  if(navigator.vibrate) navigator.vibrate([40,40,40,40,80]);
+}
+
+function newDuel(){
+  if(!fbRef) return;
+  const lim = (G && G.limit) || 7;
+  const na = (G && G.teams.a.name) || 'Equipo 1';
+  const nb = (G && G.teams.b.name) || 'Equipo 2';
+  const fresh = JSON.parse(JSON.stringify(DEFAULT_STATE));
+  fresh.limit = lim;
+  fresh.teams.a.name = na; fresh.teams.b.name = nb;
+  fbRef.set(fresh);
+  document.getElementById('win-overlay').classList.remove('open');
+}
+
+// ─── NOMBRES ─────────────────────────────────────────────────────
+function openNameEditor(){
+  if(!myTeam) return;
+  const cur = G ? (G.teams[myTeam].name || '') : '';
+  document.getElementById('name-input').value = cur;
+  _setText('names-label', myTeam==='a' ? '🔵 Tu equipo' : '🟡 Tu equipo');
+  document.getElementById('names-overlay').classList.add('open');
+  setTimeout(()=>{ try{ document.getElementById('name-input').focus(); }catch(e){} }, 50);
+}
+function closeNameEditor(){ document.getElementById('names-overlay').classList.remove('open'); }
+function saveMyName(){
+  if(!fbRef || !myTeam) return;
+  const v = (document.getElementById('name-input').value || '').trim();
+  const name = v || (myTeam==='a' ? 'Equipo 1' : 'Equipo 2');
+  fbRef.child('teams/'+myTeam+'/name').set(name);
+  closeNameEditor();
+  if(navigator.vibrate) navigator.vibrate(30);
+}
+
+// ─── CONFIG + PIN ────────────────────────────────────────────────
+const PIN_KEY = 'erudito_pin_v1';
+let _pinBuffer = '';
+let _pinMode = null;   // 'open_config' | 'set_pin'
+
+function getStoredPin(){ try { return localStorage.getItem(PIN_KEY) || '1227'; } catch(e){ return '1227'; } }
+function setStoredPin(p){ try { if(p) localStorage.setItem(PIN_KEY, p); } catch(e){} }
+
+function openConfig(){
+  _pinMode = 'open_config';
+  openPin('Ingresá el PIN para abrir la configuración');
+}
+function _reallyOpenConfig(){
+  document.getElementById('limit-input').value = (G && G.limit) || 7;
+  document.getElementById('config-overlay').classList.add('open');
+}
+function closeConfig(){ document.getElementById('config-overlay').classList.remove('open'); }
+
+function saveLimit(){
+  if(!fbRef) return;
+  let v = parseInt(document.getElementById('limit-input').value, 10);
+  if(isNaN(v) || v < 1) v = 7;
+  if(v > 50) v = 50;
+  fbRef.child('limit').set(v);
+  closeConfig();
+  if(navigator.vibrate) navigator.vibrate(30);
+}
+function resetDuel(){
+  ccConfirm('¿Reiniciar puntaje y rondas a cero? (mantiene los nombres)', ()=>{
+    newDuel();
+    closeConfig();
+  });
+}
+function changePin(){
+  _pinMode = 'set_pin';
+  openPin('Ingresá un NUEVO PIN de 4 dígitos');
+}
+
+function openPin(sub){
+  _pinBuffer = '';
+  _setText('pin-sub', sub);
+  updatePinDots();
+  document.getElementById('pin-overlay').classList.add('open');
+}
+function closePinOverlay(){
+  document.getElementById('pin-overlay').classList.remove('open');
+  _pinBuffer=''; _pinMode=null; updatePinDots();
+}
+function updatePinDots(){
+  for(let i=0;i<4;i++){
+    const d = document.getElementById('pin-d-'+i);
+    if(d){ d.classList.remove('filled','error'); if(i<_pinBuffer.length) d.classList.add('filled'); }
+  }
+}
+function pinKey(dig){
+  if(_pinBuffer.length>=4) return;
+  _pinBuffer += dig; updatePinDots();
+  if(navigator.vibrate) navigator.vibrate(8);
+  if(_pinBuffer.length===4) setTimeout(resolvePin, 90);
+}
+function pinDel(){ if(_pinBuffer.length){ _pinBuffer=_pinBuffer.slice(0,-1); updatePinDots(); } }
+function resolvePin(){
+  if(_pinMode === 'set_pin'){
+    setStoredPin(_pinBuffer);
+    closePinOverlay();
+    if(navigator.vibrate) navigator.vibrate([20,20,40]);
+    return;
+  }
+  // open_config: validar
+  const stored = getStoredPin();
+  if(_pinBuffer === stored){
+    closePinOverlay();
+    _reallyOpenConfig();
+  } else {
+    for(let i=0;i<4;i++){ const d=document.getElementById('pin-d-'+i); if(d){ d.classList.remove('filled'); d.classList.add('error'); } }
+    if(navigator.vibrate) navigator.vibrate([50,30,80]);
+    setTimeout(()=>{ _pinBuffer=''; updatePinDots(); }, 520);
+  }
+}
+document.addEventListener('keydown', e=>{
+  const ov = document.getElementById('pin-overlay');
+  if(!ov || !ov.classList.contains('open')) return;
+  if(e.key>='0'&&e.key<='9'){ e.preventDefault(); pinKey(e.key); }
+  else if(e.key==='Backspace'||e.key==='Delete'){ e.preventDefault(); pinDel(); }
+  else if(e.key==='Escape'){ e.preventDefault(); closePinOverlay(); }
+});
+
+// ─── HELPERS NUMÉRICOS ───────────────────────────────────────────
+// Acepta "1.200", "1,200", "1200,5", "1.200,50" → número JS
+function parseNum(raw){
+  if(raw == null) return null;
+  let s = String(raw).trim().replace(/\s+/g,'');
+  if(s === '') return null;
+  // Si tiene coma y punto, asumimos punto = miles, coma = decimal (formato AR)
+  if(s.indexOf(',') > -1 && s.indexOf('.') > -1){
+    s = s.replace(/\./g,'').replace(',', '.');
+  } else if(s.indexOf(',') > -1){
+    // solo coma → decimal
+    s = s.replace(',', '.');
+  }
+  const n = parseFloat(s);
+  return isNaN(n) ? null : n;
+}
+// Desvío respecto al correcto: porcentual, con fallback absoluto si correcto≈0
+function deviation(val, correct){
+  if(val == null) return Infinity;
+  if(Math.abs(correct) < 1e-9) return Math.abs(val - correct);
+  return Math.abs(val - correct) / Math.abs(correct);
+}
+// Formato lindo para mostrar números (sin decimales innecesarios)
+function fmt(n){
+  if(n == null) return '—';
+  if(Number.isInteger(n)) return n.toLocaleString('es-AR');
+  return Number(n.toFixed(2)).toLocaleString('es-AR');
+}
+
+// ─── UI HELPERS ──────────────────────────────────────────────────
+function _setText(id, v){ const el=document.getElementById(id); if(el) el.textContent = v; }
+function showScreen(name){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  const el = document.getElementById('screen-'+name);
+  if(el) el.classList.add('active');
+}
+function bumpScore(t, val){
+  const el = document.getElementById('sb-score-'+t);
+  if(!el) return;
+  const prev = parseInt(el.textContent,10);
+  el.textContent = val;
+  if(!isNaN(prev) && prev !== val){
+    el.classList.remove('bump'); void el.offsetWidth; el.classList.add('bump');
+  }
+}
+function pulseInput(){ pulseEl('answer-input'); }
+function pulseEl(id){
+  const el = document.getElementById(id);
+  if(!el) return;
+  el.style.borderColor = 'var(--red)';
+  if(navigator.vibrate) navigator.vibrate([40,30,40]);
+  setTimeout(()=>{ el.style.borderColor=''; }, 500);
+}
+
+// Enter para enviar respuesta
+document.getElementById('answer-input').addEventListener('keydown', e=>{
+  if(e.key === 'Enter'){ e.preventDefault(); submitReady(); }
+});
+document.getElementById('correct-input').addEventListener('keydown', e=>{
+  if(e.key === 'Enter'){ e.preventDefault(); submitCorrect(); }
+});
+
+// ─── CUSTOM CONFIRM ──────────────────────────────────────────────
+let _ccCb = null;
+function ccConfirm(msg, onOk){ _ccCb = onOk; _setText('cc-msg-text', msg); document.getElementById('cc-overlay').classList.add('show'); }
+function ccAnswer(ok){ document.getElementById('cc-overlay').classList.remove('show'); if(ok && _ccCb) _ccCb(); _ccCb=null; }
+
+// ─── SPLASH ──────────────────────────────────────────────────────
+function dismissSplash(){
+  const s = document.getElementById('er-splash');
+  if(!s || s.classList.contains('out')) return;
+  s.classList.add('out');
+  setTimeout(()=>{ if(s) s.style.display='none'; }, 650);
+  setTimeout(()=>{
+    // entrar a selección de equipo (o reconectar al equipo guardado)
+    let saved = null;
+    try { saved = localStorage.getItem('erudito_team'); } catch(e){}
+    if(saved === 'a' || saved === 'b'){
+      myTeam = saved;
+      showScreen('game');
+      syncMyInputs();
+    } else {
+      showScreen('team');
+    }
+  }, 600);
+}
+
+// ─── AUDIO (Web Audio sintetizado, igual que Palabras a Tiempo) ──
+let _audioCtx = null;
+function getAudioCtx(){ if(!_audioCtx) _audioCtx = new (window.AudioContext||window.webkitAudioContext)(); return _audioCtx; }
+function _unlockAudio(){ getAudioCtx(); document.removeEventListener('touchstart',_unlockAudio); document.removeEventListener('pointerdown',_unlockAudio); }
+document.addEventListener('touchstart', _unlockAudio, { once:true, passive:true });
+document.addEventListener('pointerdown', _unlockAudio, { once:true, passive:true });
+
+function playTick(){
+  try{
+    const ctx=getAudioCtx(); const osc=ctx.createOscillator(); const g=ctx.createGain();
+    osc.type='square'; osc.frequency.value=1500;
+    osc.connect(g); g.connect(ctx.destination);
+    const t=ctx.currentTime;
+    g.gain.setValueAtTime(0.0001,t); g.gain.exponentialRampToValueAtTime(0.1,t+0.004); g.gain.exponentialRampToValueAtTime(0.0001,t+0.05);
+    osc.start(t); osc.stop(t+0.06);
+  }catch(e){}
+}
+// Redoble grave de tensión al revelar el correcto
+function playDrum(){
+  try{
+    const ctx=getAudioCtx(); const now=ctx.currentTime;
+    for(let i=0;i<3;i++){
+      const t=now+i*0.07;
+      const osc=ctx.createOscillator(); const g=ctx.createGain();
+      osc.type='sine'; osc.frequency.setValueAtTime(110,t); osc.frequency.exponentialRampToValueAtTime(55,t+0.12);
+      osc.connect(g); g.connect(ctx.destination);
+      g.gain.setValueAtTime(0.0001,t); g.gain.exponentialRampToValueAtTime(0.4,t+0.01); g.gain.exponentialRampToValueAtTime(0.0001,t+0.18);
+      osc.start(t); osc.stop(t+0.2);
+    }
+  }catch(e){}
+}
+function playDing(){
+  try{
+    const ctx=getAudioCtx(); const now=ctx.currentTime;
+    [[988,0],[1319,0.09]].forEach(([f,t])=>{
+      const osc=ctx.createOscillator(); const g=ctx.createGain();
+      osc.type='triangle'; osc.frequency.value=f;
+      osc.connect(g); g.connect(ctx.destination);
+      const s=now+t;
+      g.gain.setValueAtTime(0.0001,s); g.gain.exponentialRampToValueAtTime(0.5,s+0.012); g.gain.exponentialRampToValueAtTime(0.0001,s+0.5);
+      osc.start(s); osc.stop(s+0.55);
+    });
+  }catch(e){}
+}
+
+// ─── CONFETTI ────────────────────────────────────────────────────
+let _confAF = null;
+function launchConfetti(){
+  const canvas = document.getElementById('er-confetti');
+  if(!canvas) return;
+  const ctx = canvas.getContext('2d');
+  canvas.width = window.innerWidth; canvas.height = window.innerHeight;
+  const colors = ['#ff5f5f','#f5c842','#c8f060','#60b4f0','#f0efe8'];
+  const pieces = Array.from({length:90}, ()=>({
+    x: canvas.width/2 + (Math.random()-0.5)*140,
+    y: canvas.height*0.36 + (Math.random()-0.5)*40,
+    vx: (Math.random()-0.5)*9, vy: -6-Math.random()*7,
+    size: 5+Math.random()*6, color: colors[Math.floor(Math.random()*colors.length)],
+    rot: Math.random()*Math.PI, vr: (Math.random()-0.5)*0.3, life: 1
+  }));
+  if(_confAF) cancelAnimationFrame(_confAF);
+  function draw(){
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    let alive=0;
+    pieces.forEach(p=>{
+      p.vy+=0.25; p.vx*=0.99; p.x+=p.vx; p.y+=p.vy; p.rot+=p.vr; p.life-=0.008;
+      if(p.life>0 && p.y<canvas.height+20){
+        alive++; ctx.save(); ctx.globalAlpha=Math.max(0,Math.min(1,p.life));
+        ctx.translate(p.x,p.y); ctx.rotate(p.rot); ctx.fillStyle=p.color;
+        ctx.fillRect(-p.size/2,-p.size/2,p.size,p.size*0.6); ctx.restore();
+      }
+    });
+    if(alive>0){ _confAF=requestAnimationFrame(draw); }
+    else { ctx.clearRect(0,0,canvas.width,canvas.height); _confAF=null; }
+  }
+  draw();
+}
+
+// ─── FONDO: LLUVIA DE NÚMEROS ────────────────────────────────────
+(function initNumRain(){
+  const container = document.getElementById('num-rain');
+  if(!container) return;
+  const NUMS = [];
+  // genera "cifras" variadas con onda numérica/aproximación
+  const samples = ['206','7,4','1.927','42','3,14','99','12.500','365','1.000.000','2026','88','0,5','451','321','9.000','64','10⁹','÷','%','≈','±5%','150','2.500','37°','100','50/50','π','√','1.609','60','24','4K','180°','f1.8','ISO','215','290','70'];
+  for(let i=0;i<80;i++) NUMS.push(samples[i % samples.length]);
+  const COLORS = ['rgba(255,95,95,IDX)','rgba(245,200,66,IDX)','rgba(96,180,240,IDX)','rgba(240,239,232,IDX)'];
+  function randColor(o){ return COLORS[Math.floor(Math.random()*COLORS.length)].replace('IDX', o.toFixed(2)); }
+  function shuffle(arr){ const a=[...arr]; for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; }
+
+  const COL_W=92, ROW_H=34;
+  const cols = Math.ceil(window.innerWidth/COL_W)+1;
+  const visRows = Math.ceil(window.innerHeight/ROW_H)+4;
+  const halfRows = visRows+3;
+  const colEls=[], colData=[];
+  let pool = shuffle(NUMS), pi=0;
+
+  for(let c=0;c<cols;c++){
+    const x=c*COL_W, dir=c%2===0?1:-1, speed=0.25+(c%5)*0.055;
+    const col=document.createElement('div'); col.className='nrain-col'; col.style.left=x+'px'; col.style.width=COL_W+'px';
+    const colWords=[];
+    for(let r=0;r<halfRows;r++){ colWords.push(pool[pi%pool.length]); pi++; }
+    for(let half=0;half<2;half++){
+      for(let r=0;r<halfRows;r++){
+        const span=document.createElement('span'); span.className='nrain-word'; span.textContent=colWords[r];
+        const sz=10+Math.floor(Math.random()*7), op=0.08+Math.random()*0.30;
+        span.style.fontSize=sz+'px'; span.style.color=randColor(op);
+        col.appendChild(span);
+        setTimeout(()=>span.classList.add('vis'), 100+Math.random()*600);
+      }
+    }
+    const loopH=halfRows*ROW_H, stagger=-(Math.random()*loopH), startY=dir===1?stagger:stagger-loopH;
+    col.style.transform=`translateY(${startY}px)`;
+    container.appendChild(col); colEls.push(col); colData.push({y:startY,dir,speed,loopH});
+  }
+  let last=null;
+  document.addEventListener('visibilitychange',()=>{ if(!document.hidden) last=null; });
+  function tick(ts){
+    if(!last){ last=ts; requestAnimationFrame(tick); return; }
+    const dt=Math.min(ts-last,32); last=ts;
+    for(let c=0;c<cols;c++){
+      const d=colData[c]; d.y+=d.dir*d.speed*dt*0.05;
+      if(d.dir===1 && d.y>=0) d.y-=d.loopH;
+      else if(d.dir===-1 && d.y<=-d.loopH) d.y+=d.loopH;
+      colEls[c].style.transform=`translateY(${d.y}px)`;
+    }
+    requestAnimationFrame(tick);
+  }
+  requestAnimationFrame(tick);
+})();
+
+// ─── INIT ────────────────────────────────────────────────────────
+initFirebase();
+(function initSplash(){
+  const s=document.getElementById('er-splash');
+  if(!s) return;
+  s.addEventListener('keydown', e=>{ if(e.key==='Enter'||e.key===' '||e.key==='Escape'){ e.preventDefault(); dismissSplash(); } });
+  try { s.focus({ preventScroll:true }); } catch(e){}
+})();
+</script>
+</body>
+</html>
