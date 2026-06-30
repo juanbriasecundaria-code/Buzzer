@@ -2180,7 +2180,7 @@ body.started .velada-bg-scrim { display: block; }
 @keyframes prRiseChamp {
   0% { opacity: 0; transform: translateY(60px) scale(0.85); }
   65% { opacity: 1; transform: translateY(-6px) scale(1.06); }
-  100% { transform: translateY(0) scale(1); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
 }
 .pr-fig { position: relative;
   filter: drop-shadow(0 8px 24px rgba(0,0,0,0.45));
@@ -3148,6 +3148,22 @@ function regenerateF2Fixture() {
 // mismo roster y el MISMO fixture ya generado (no se vuelve a sortear de
 // nuevo en cada recarga, porque eso desincronizaría los resultados ya cargados).
 function restoreRosterAndFixtures() {
+  // Solo restauramos el snapshot si el torneo YA arrancó (hay resultados cargados).
+  // Si todavía no empezó, usamos la lista de jugadores/equipos actual, así los
+  // nombres editados antes de arrancar no quedan pisados por un snapshot viejo.
+  const torneoArranco = (state.f1 && Object.keys(state.f1).length > 0)
+                     || (state.f2 && Object.keys(state.f2).length > 0);
+  if (!torneoArranco) {
+    // limpiar snapshots viejos que pudieran haber quedado de una sesión anterior
+    if (state.playersSnapshot || state.teamsSnapshot) {
+      state.playersSnapshot = null;
+      state.teamsSnapshot = null;
+      state.f1FixtureSnapshot = null;
+      state.f2FixtureSnapshot = null;
+      try { saveState(); } catch(e){}
+    }
+    return;
+  }
   if (Array.isArray(state.playersSnapshot) && state.playersSnapshot.length) {
     PLAYERS.length = 0;
     state.playersSnapshot.forEach(n => PLAYERS.push(n));
@@ -6723,6 +6739,7 @@ const FINAL_CONFIG_DEFAULT = {
   formato: 'A definir por el organizador. Se recomienda un juego que permita participación simultánea de todos (ej: trivia con buzzer, Kahoot, Carrera de Mentes grupal o desafío especial creado para la ocasión).',
   puntos: 'El puntaje de la final se define según el juego elegido. El primero en llegar al objetivo gana la noche.',
   nota: 'El formato de la final lo define el organizador. Sugerencias: trivia con buzzer, Kahoot, Carrera de Mentes grupal o desafío especial.',
+  ganador: '',
 };
 let FINAL_CONFIG = null;
 let _finalEditMode = false;
@@ -6770,10 +6787,12 @@ function saveFinalEdits() {
   const formato = document.getElementById('final-edit-formato')?.value?.trim();
   const puntos = document.getElementById('final-edit-puntos')?.value?.trim();
   const nota = document.getElementById('final-edit-nota')?.value?.trim();
+  const ganador = document.getElementById('final-edit-ganador')?.value?.trim();
   if (juego !== undefined) FINAL_CONFIG.juego = juego;
   if (formato) FINAL_CONFIG.formato = formato;
   if (puntos) FINAL_CONFIG.puntos = puntos;
   if (nota) FINAL_CONFIG.nota = nota;
+  if (ganador !== undefined) FINAL_CONFIG.ganador = ganador;
   saveFinalConfig();
   _finalEditMode = false;
   showToast('✓', 'Final guardada', false);
@@ -6789,6 +6808,7 @@ const TERCER_CONFIG_DEFAULT = {
   puntos: 'El puntaje del 3er puesto se define según el juego elegido. El primero en llegar al objetivo se queda con el bronce.',
   nota: 'El 2° de la fase individual elige compañero (no puede ser alguien que juegue la final). Pelea contra el 2° equipo de la fase grupal.',
   companero: '',
+  ganador: '',
 };
 let TERCER_CONFIG = null;
 let _tercerEditMode = false;
@@ -6813,14 +6833,26 @@ function saveTercerEdits() {
   const puntos = document.getElementById('tercer-edit-puntos')?.value?.trim();
   const nota = document.getElementById('tercer-edit-nota')?.value?.trim();
   const companero = document.getElementById('tercer-edit-companero')?.value?.trim();
+  const ganador = document.getElementById('tercer-edit-ganador')?.value?.trim();
   if (juego !== undefined) TERCER_CONFIG.juego = juego;
   if (formato) TERCER_CONFIG.formato = formato;
   if (puntos) TERCER_CONFIG.puntos = puntos;
   if (nota) TERCER_CONFIG.nota = nota;
   if (companero !== undefined) TERCER_CONFIG.companero = companero;
+  if (ganador !== undefined) TERCER_CONFIG.ganador = ganador;
   saveTercerConfig();
   _tercerEditMode = false;
   showToast('🥉', '3er puesto guardado', false);
+  renderFinal();
+}
+
+// Guarda los dos campeones desde la card directa del cierre
+function saveCampeones() {
+  const cf = document.getElementById('campeon-final-input')?.value?.trim();
+  const ct = document.getElementById('campeon-tercer-input')?.value?.trim();
+  if (FINAL_CONFIG) { FINAL_CONFIG.ganador = (cf || ''); saveFinalConfig(); }
+  if (typeof TERCER_CONFIG !== 'undefined' && TERCER_CONFIG) { TERCER_CONFIG.ganador = (ct || ''); saveTercerConfig(); }
+  showToast('🏆', 'Campeones guardados', false);
   renderFinal();
 }
 
@@ -6945,6 +6977,10 @@ function renderFinal() {
       <label class="final-edit-label">Nota al pie (debajo de clasificados)</label>
       <input class="final-edit-input" id="final-edit-nota" value="${fc.nota.replace(/"/g,'&quot;')}">
     </div>
+    <div class="final-edit-field">
+      <label class="final-edit-label">🏆 Ganador de la final (cargalo cuando termine)</label>
+      <input class="final-edit-input" id="final-edit-ganador" placeholder="Equipo o jugador que ganó la final…" value="${(fc.ganador||'').replace(/"/g,'&quot;')}">
+    </div>
     <button class="final-edit-save" onclick="saveFinalEdits()">Guardar cambios</button>
   ` : `
     <div class="rule-label" style="margin-top:0">Juego</div>
@@ -7031,6 +7067,10 @@ function renderFinal() {
     <div class="final-edit-field">
       <label class="final-edit-label">Nota al pie (debajo de clasificados)</label>
       <input class="final-edit-input" id="tercer-edit-nota" value="${tc.nota.replace(/"/g,'&quot;')}">
+    </div>
+    <div class="final-edit-field">
+      <label class="final-edit-label">🥉 Ganador del 3er puesto (cargalo cuando termine)</label>
+      <input class="final-edit-input" id="tercer-edit-ganador" placeholder="Equipo o dupla que ganó el bronce…" value="${(tc.ganador||'').replace(/"/g,'&quot;')}">
     </div>
     <button class="final-edit-save" onclick="saveTercerEdits()">Guardar cambios</button>
   ` : `
@@ -7119,6 +7159,21 @@ function renderFinal() {
         </div>
       </div>
       <input type="file" id="fn-file" accept="image/*" style="display:none" onchange="fnLoad(this)">
+    </div>
+
+    <!-- CAMPEONES (carga directa para los créditos) -->
+    <div class="card">
+      <div style="font-size:15px;font-weight:600;margin-bottom:0.3rem"><span class="dot-indicator" style="background:var(--gold);box-shadow:0 0 8px rgba(245,200,66,0.6)"></span>Campeones de la noche</div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:1rem;line-height:1.5">Cargá quién ganó cada partido. Aparecen en los créditos del cierre.</div>
+      <div class="final-edit-field">
+        <label class="final-edit-label">🏆 Campeón de la gran final</label>
+        <input class="final-edit-input" id="campeon-final-input" placeholder="Equipo o jugador que ganó la final…" value="${(FINAL_CONFIG && FINAL_CONFIG.ganador ? FINAL_CONFIG.ganador : '').replace(/"/g,'&quot;')}">
+      </div>
+      <div class="final-edit-field">
+        <label class="final-edit-label">🥉 Ganador del 3er puesto</label>
+        <input class="final-edit-input" id="campeon-tercer-input" placeholder="Equipo o dupla que ganó el bronce…" value="${(typeof TERCER_CONFIG!=='undefined' && TERCER_CONFIG && TERCER_CONFIG.ganador ? TERCER_CONFIG.ganador : '').replace(/"/g,'&quot;')}">
+      </div>
+      <button class="final-edit-save" onclick="saveCampeones()">Guardar campeones</button>
     </div>
 
     <!-- CIERRE / CRÉDITOS -->
@@ -7247,6 +7302,12 @@ function rollCredits() {
 
   const finalGame = (FINAL_CONFIG && FINAL_CONFIG.juego)
     ? `<div class="cr-divider"></div><div class="cr-role">La gran final</div><div class="cr-name" style="color:var(--gold)">🏆 ${esc(FINAL_CONFIG.juego)}</div>`
+      + (FINAL_CONFIG.ganador ? `<div class="cr-role" style="margin-top:0.6rem">Campeón de la gran final</div><div class="cr-name champ" style="color:var(--gold)">🏆 ${esc(FINAL_CONFIG.ganador)}</div>` : '')
+    : '';
+
+  const tercerGame = (typeof TERCER_CONFIG !== 'undefined' && TERCER_CONFIG && TERCER_CONFIG.juego)
+    ? `<div class="cr-role">Disputa por el 3er puesto</div><div class="cr-name" style="color:#cd7f32">🥉 ${esc(TERCER_CONFIG.juego)}</div>`
+      + (TERCER_CONFIG.ganador ? `<div class="cr-role" style="margin-top:0.6rem">Ganador del 3er puesto</div><div class="cr-name champ" style="color:#cd7f32">🥉 ${esc(TERCER_CONFIG.ganador)}</div>` : '')
     : '';
 
   const html = `
@@ -7277,6 +7338,7 @@ function rollCredits() {
       <div class="cr-role">Los juegos</div>
       <div class="cr-games">${games}</div>
       ${finalGame}
+      ${tercerGame}
 
       ${motesHtml}
 
@@ -7676,19 +7738,33 @@ function openPlayerCeremony() {
   });
 }
 
-// ── CIERRE: podio animado 3°→2°→1° con redoble, y después los créditos ──
+// ── CIERRE: podio individual → grupal → créditos ──
 function grandFinale() {
-  podiumReveal(() => rollCredits());
+  // Primero el podio de la fase individual, después el grupal, después créditos
+  podiumReveal('individual', () => {
+    podiumReveal('grupal', () => rollCredits());
+  });
 }
 
-function podiumReveal(onContinue) {
+function podiumReveal(phaseKind, onContinue) {
+  // compatibilidad: si lo llaman con un solo argumento (función), asumimos grupal
+  if (typeof phaseKind === 'function') { onContinue = phaseKind; phaseKind = 'grupal'; }
   const overlay = document.getElementById('podium-reveal');
   if (!overlay) { if (onContinue) onContinue(); return; }
   _resumeAudio();
 
-  const tpts = (typeof getTeamPoints === 'function') ? getTeamPoints() : TEAMS.map(() => ({ total: 0 }));
-  const sorted = TEAMS.map((n, i) => ({ n, i, pts: (tpts[i] ? tpts[i].total : 0) }))
-    .sort((a, b) => b.pts - a.pts);
+  let sorted, eyebrow;
+  if (phaseKind === 'individual') {
+    const ppts = (typeof getPlayerPoints === 'function') ? getPlayerPoints() : PLAYERS.map(() => ({ total: 0 }));
+    sorted = PLAYERS.map((n, i) => ({ n, i, pts: (ppts[i] ? ppts[i].total : 0) }))
+      .sort((a, b) => b.pts - a.pts);
+    eyebrow = 'Fase Individual · Podio final';
+  } else {
+    const tpts = (typeof getTeamPoints === 'function') ? getTeamPoints() : TEAMS.map(() => ({ total: 0 }));
+    sorted = TEAMS.map((n, i) => ({ n, i, pts: (tpts[i] ? tpts[i].total : 0) }))
+      .sort((a, b) => b.pts - a.pts);
+    eyebrow = 'Fase Grupal · Podio final';
+  }
   const top3 = sorted.slice(0, 3); // [1°, 2°, 3°]
   if (!top3.length) { if (onContinue) onContinue(); return; }
 
@@ -7709,7 +7785,7 @@ function podiumReveal(onContinue) {
     return `<div class="pr-slot pr-place-${place}" style="--accent-team:${m.color}">`
       + `<div class="pr-fig">${place === 1 ? '<div class="pr-crown">👑</div>' : ''}${fig}</div>`
       + `<div class="pr-medal">${m.medal}</div>`
-      + `<div class="pr-name">${_escC(entry.n)}</div>`
+      + `<div class="pr-name">${_escC(phaseKind === 'individual' && typeof fullName === 'function' ? fullName(entry.n) : entry.n)}</div>`
       + `<div class="pr-pts">${entry.pts} pts</div>`
       + `<div class="pr-block" style="--h:${m.h}px"><span>${place}°</span></div>`
       + `</div>`;
@@ -7717,7 +7793,7 @@ function podiumReveal(onContinue) {
 
   overlay.innerHTML =
     '<button class="ceremony-close" onclick="closeCeremony(\'podium-reveal\')">✕ Salir</button>'
-    + '<div class="pr-eyebrow">Fase Grupal · Podio final</div>'
+    + '<div class="pr-eyebrow">' + eyebrow + '</div>'
     + '<div class="pr-stage"><div class="pr-row">'
     + slotFor(2) + slotFor(1) + slotFor(3)
     + '</div></div>'
