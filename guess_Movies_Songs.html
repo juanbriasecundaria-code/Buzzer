@@ -1116,6 +1116,37 @@ function startHeartbeat(){if(_hb)clearInterval(_hb);_hb=setInterval(sendState,20
 function onLive(raw){try{const d=typeof raw==='string'?JSON.parse(raw):raw;if(d.type==='state')renderParticipant(d);else if(d.type==='yt_play')partPlaySong({youtubeId:d.youtubeId,startAt:d.startAt||0});else if(d.type==='yt_stop')partStopSong();else if(d.type==='local_play'||d.type==='local_stop'){/* audio local: suena solo en la compu del conductor */};}catch(e){}}
 
 // ─── STORAGE ─────────────────────────────────────────────────────
+function ensureRevealModes(forceShuffle){
+  // forceShuffle=true: barajado único y autoritativo — aleatoriza el
+  // revealMode de TODAS las cartas de película (sin importar si ya tenían
+  // uno), una sola vez en la vida del mazo. Se marca con _rmShuffled en
+  // localStorage Y esa marca viaja también por Firebase (revealModesShuffled),
+  // así si abrís el juego en otra PC, esa PC ve que ya se barajeó y NO
+  // vuelve a tirar el dado con un resultado distinto — usa el que ya quedó
+  // guardado en Firebase.
+  // forceShuffle=false (o sin argumento): solo completa el modo de cartas
+  // que no tengan ninguno asignado (comportamiento "de relleno", usado en
+  // la carga inicial sincrónica antes de fusionar con IDB/Firebase, para no
+  // pisar datos buenos con un barajado prematuro basado en info incompleta).
+  let changed=false;
+  if(forceShuffle && !localStorage.getItem(SK.DECK+'_rmShuffled')){
+    deck.forEach(c=>{
+      if(c.type==='movie'){
+        c.revealMode=randomRevealMode();
+        changed=true;
+      }
+    });
+    try{localStorage.setItem(SK.DECK+'_rmShuffled','1');}catch(e){}
+  } else {
+    deck.forEach(c=>{
+      if(c.type==='movie'&&!c.revealMode){
+        c.revealMode=randomRevealMode();
+        changed=true;
+      }
+    });
+  }
+  return changed;
+}
 function loadDeck(){
   // Sincrónico de arranque: intenta localStorage (decks chicos sin imágenes).
   // El deck pesado con imágenes se carga después con loadDeckIDB() (async).
@@ -1164,7 +1195,8 @@ function saveDeckToFirebase(){
   if(!fbDeckRef) return;
   clearTimeout(_deckSaveTimer);
   _deckSaveTimer=setTimeout(()=>{
-    fbDeckRef.set({ cards: deckForFirebase(), updatedAt: firebase.database.ServerValue.TIMESTAMP })
+    let rmShuffled=false; try{rmShuffled=!!localStorage.getItem(SK.DECK+'_rmShuffled');}catch(e){}
+    fbDeckRef.set({ cards: deckForFirebase(), revealModesShuffled:rmShuffled, updatedAt: firebase.database.ServerValue.TIMESTAMP })
       .then(()=>{ flashSaved(); })
       .catch(e=>{ console.error('[deck save]',e); showToast('⚠️ No se pudo guardar: '+e.message,3000); });
   }, 800);
@@ -1199,6 +1231,12 @@ function loadDeckFromFirebase(cb){
   fbDeckRef.once('value', snap=>{
     const d=snap.val();
     if(d && Array.isArray(d.cards) && d.cards.length){
+      // Si otro dispositivo ya barajeó los modos de revelado, marcamos la
+      // bandera local para que ensureRevealModes() NO vuelva a tirar el
+      // dado con un resultado distinto: usamos el que ya viene en Firebase.
+      if(d.revealModesShuffled){
+        try{localStorage.setItem(SK.DECK+'_rmShuffled','1');}catch(e){}
+      }
       // Mapa de blobs locales por id (para no perderlos al traer de Firebase)
       const localBlobs={};
       deck.forEach(c=>{ if(c.audioData||c.imgData||(c.frames&&c.frames.some(f=>f.startsWith('data:')))) localBlobs[c.id]={audioData:c.audioData,imgData:c.imgData,frames:c.frames}; });
@@ -1285,6 +1323,7 @@ function applyMode(m){
   if(m==='conductor'){
     document.getElementById('conductor').classList.add('active');
     loadDeck();loadScore();loadNames();loadOrder();
+    if(ensureRevealModes(false))saveDeck();
     syncNamesUI();syncScoreUI();syncRevealUI();renderCondCard();updateCount();
     startHeartbeat();
     startCondListener();
@@ -1294,12 +1333,14 @@ function applyMode(m){
     // 1. Cargar desde IndexedDB (tiene las imágenes locales pesadas)
     loadDeckIDB().then(foundIDB=>{
       if(foundIDB){
+        if(ensureRevealModes(true))saveDeck();
         if(order.length!==deck.length){ order=deck.map((_,i)=>i); cardIdx=0; saveOrder(); }
         renderCondCard(); updateCount(); sendState();
       }
       // 2. Traer de Firebase (metadata sin blobs) y fusionar con lo local
       loadDeckFromFirebase(found=>{
         if(found){
+          if(ensureRevealModes(true))saveDeck();
           if(order.length!==deck.length){ order=deck.map((_,i)=>i); cardIdx=0; saveOrder(); }
           renderCondCard(); updateCount(); sendState();
           idbSet('deck', deck); // re-guardar el merge en IndexedDB
@@ -1461,7 +1502,8 @@ function resetGame(){if(!confirm('¿Reiniciar puntaje y cartas?'))return;scoreA=
 function saveDeckNow(){
   if(!fbDeckRef){ showToast('⚠️ Firebase no conectado',2500); return; }
   clearTimeout(_deckSaveTimer);
-  fbDeckRef.set({ cards: deckForFirebase(), updatedAt: firebase.database.ServerValue.TIMESTAMP })
+  let rmShuffled=false; try{rmShuffled=!!localStorage.getItem(SK.DECK+'_rmShuffled');}catch(e){}
+  fbDeckRef.set({ cards: deckForFirebase(), revealModesShuffled:rmShuffled, updatedAt: firebase.database.ServerValue.TIMESTAMP })
     .then(()=>{
       flashSaved();
       if(hasLocalBlobs()) showToast('☁️ Guardado en Firebase. ⚠️ Las imágenes/audios subidos como archivo quedan solo en esta compu — usá URL de Wikipedia o YouTube para que aparezcan en otros dispositivos.',5000);
@@ -1608,7 +1650,8 @@ function editCard(i){
   else{showAddForm('song');document.getElementById('ns-title').value=c.title;if(c.audioData){setAudioSrc('file');_audioData=c.audioData;document.getElementById('audio-file-preview').textContent='✓ audio guardado';document.getElementById('ns-start-local').value=c.startAt||0;}else{setAudioSrc('yt');document.getElementById('ns-url').value=c.youtubeId?`https://youtu.be/${c.youtubeId}`:'';document.getElementById('ns-start').value=c.startAt||0;}document.getElementById('add-song-form').dataset.ei=i;}
   setTimeout(()=>{document.getElementById('deck-panel').scrollTop=0;},80);
 }
-function showAddForm(type){hideAddForms();document.getElementById(type==='movie'?'add-movie-form':'add-song-form').style.display='';setTimeout(()=>document.getElementById('deck-panel').scrollTop=0,50);}
+function showAddForm(type){hideAddForms();document.getElementById(type==='movie'?'add-movie-form':'add-song-form').style.display='';if(type==='movie')setRevealMode(randomRevealMode());setTimeout(()=>document.getElementById('deck-panel').scrollTop=0,50);}
+function randomRevealMode(){const opts=['full','grid','crop'];return opts[Math.floor(Math.random()*opts.length)];}
 function hideAddForms(){['add-movie-form','add-song-form'].forEach(id=>{const f=document.getElementById(id);f.style.display='none';f.dataset.ei='';});document.getElementById('nm-title').value='';document.getElementById('nm-url').value='';document.getElementById('ns-title').value='';document.getElementById('ns-url').value='';document.getElementById('ns-start').value='';document.getElementById('ns-start-local').value='';_fileData=null;document.getElementById('file-preview').textContent='';_audioData=null;document.getElementById('audio-file-preview').textContent='';setAudioSrc('yt');_frameFiles=[];document.getElementById('nm-frame-urls').value='';document.getElementById('frame-preview').textContent='';setImgKind('poster');setRevealMode('full');}
 function setImgKind(k){_imgKind=k;document.getElementById('ik-poster').classList.toggle('on',k==='poster');document.getElementById('ik-frame').classList.toggle('on',k==='frame');document.getElementById('poster-fields').style.display=k==='poster'?'':'none';document.getElementById('frame-fields').style.display=k==='frame'?'':'none';}
 function setRevealMode(m){_revealMode=m;['full','grid','crop'].forEach(x=>document.getElementById('rv-'+x).classList.toggle('on',x===m));}
