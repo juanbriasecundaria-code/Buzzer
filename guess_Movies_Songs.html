@@ -296,9 +296,11 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
 .part-poster.is-frame{height:auto;width:min(92vw,1000px);max-width:92vw;aspect-ratio:16/9;object-fit:cover;max-height:62vh}
 /* Crop reveal mode: zoomed random crop hasta revelar */
 .part-poster.crop-mode{object-fit:cover;height:62vh;max-height:62vh;width:min(78vw,640px);transform:scale(1.55)}
-.part-poster.crop-mode.is-frame{height:auto;aspect-ratio:16/9;transform:scale(1.6)}
+/* Para frames (ya son 16:9): si la ventana de recorte también fuera 16:9 no recortaría nada,
+   por eso usamos una ventana más angosta y SIN aspect-ratio fijo para que sí corte la escena */
+.part-poster.crop-mode.is-frame{height:46vh;max-height:46vh;width:min(58vw,460px);aspect-ratio:auto;transform:scale(1.35)}
 .part-poster.crop-mode.crop-revealed{object-fit:contain;transform:scale(1);width:auto;height:72vh;max-height:72vh}
-.part-poster.crop-mode.is-frame.crop-revealed{height:auto;width:min(92vw,1000px);aspect-ratio:16/9}
+.part-poster.crop-mode.is-frame.crop-revealed{height:auto;width:min(92vw,1000px);max-height:62vh;aspect-ratio:16/9;transform:scale(1)}
 /* Grid reveal mode: 3x3 cuadros que se destapan de a uno */
 .grid-overlay{position:absolute;inset:0;display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(3,1fr);border-radius:14px;overflow:hidden;z-index:4}
 .grid-tile{background:linear-gradient(150deg,var(--surface2),var(--surface));border:1px solid rgba(0,0,0,.45);opacity:1;transition:opacity .55s cubic-bezier(.22,1,.36,1)}
