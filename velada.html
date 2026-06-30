@@ -7274,9 +7274,9 @@ const CREDITS_MUSIC = {
   fadeInMs:  2500, // entra suave en 2.5s
   fadeOutMs: 3500, // fade out final (sobre el contador)
   // ── Outro "mama-say" sobre el contador ──
-  outroAt:      340,   // 5:40 — entrada limpia al "mama-say mama-sa"
+  outroAt:      339,   // 5:39 — arranca un toque antes para que el cruce caiga en plena frase
   outroHoldMs:  13000, // cuánto suena el mama-say sobre el contador (~13s)
-  crossfadeMs:  1400,  // duración del crossfade entre el groove y el mama-say
+  crossfadeMs:  2600,  // crossfade real largo (2.6s) entre groove y mama-say — bien suave
 };
 const CREDITS_FAST_SPEED = 95; // px/seg si no hay música (más rápido que antes)
 
@@ -7362,6 +7362,11 @@ function startCountdownTicker(target) {
 function rollCredits() {
   const overlay = document.getElementById('credits');
   if (!overlay) return;
+
+  // Cerrar el podio al instante (sin fade) justo cuando aparecen los créditos,
+  // así no se ve el menú de fondo entre el último podio y los créditos.
+  const _pod = document.getElementById('podium-reveal');
+  if (_pod) { _pod.classList.remove('show', 'ceremony-out'); _pod.innerHTML = ''; _pod.setAttribute('aria-hidden', 'true'); }
 
   const esc = (s) => String(s == null ? '' : s)
     .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
@@ -7528,39 +7533,54 @@ function creditsEnded() {
     return;
   }
 
-  // ── CROSSFADE al "mama-say" ──
+  // ── CROSSFADE REAL al "mama-say" (dos audios solapados, sin corte seco) ──
   const target  = (CREDITS_MUSIC.volume != null) ? CREDITS_MUSIC.volume : 0.85;
-  const xfMs    = CREDITS_MUSIC.crossfadeMs || 1400;
+  const xfMs    = CREDITS_MUSIC.crossfadeMs || 2600;
   const holdMs  = CREDITS_MUSIC.outroHoldMs || 13000;
   const outroAt = CREDITS_MUSIC.outroAt;
-  const stepMs  = 70;
-  const half    = xfMs / 2;
-  const downSteps = Math.max(1, half / stepMs);
-  const dec = target / downSteps;
+  const stepMs  = 50;
+  const steps   = Math.max(1, xfMs / stepMs);
 
-  // 1) baja el groove
-  const fadeDown = () => {
-    if (!_creditsAudio) return;
-    if (a.volume > dec) { try { a.volume = Math.max(0, a.volume - dec); } catch (e) {} setTimeout(fadeDown, stepMs); }
+  // Segundo audio: el "mama-say", arranca en silencio desde outroAt
+  let b = null;
+  try {
+    b = new Audio(CREDITS_MUSIC.src);
+    b.preload = 'auto';
+    b.volume = 0;
+    b.currentTime = outroAt;
+    b.play().catch(() => {});
+  } catch (e) { b = null; }
+
+  // Si no se pudo crear el segundo audio, fallback: fade out simple + contador
+  if (!b) {
+    fadeOutCreditsAudio();
+    showCountdown();
+    return;
+  }
+
+  // El "mama-say" entra junto con el contador
+  showCountdown();
+
+  // Crossfade: A (groove) baja de target→0 mientras B (mama-say) sube de 0→target, a la vez
+  let i = 0;
+  const stepFn = () => {
+    i++;
+    const r = Math.min(1, i / steps);
+    // curva suave (ease-in-out) para que el cruce no se note
+    const ease = r < 0.5 ? 2*r*r : 1 - Math.pow(-2*r+2, 2)/2;
+    try { if (_creditsAudio) _creditsAudio.volume = Math.max(0, target * (1 - ease)); } catch (e) {}
+    try { b.volume = Math.min(target, target * ease); } catch (e) {}
+    if (i < steps) { setTimeout(stepFn, stepMs); }
     else {
-      // 2) en el punto más bajo, salta al mama-say
-      try { a.volume = 0; a.currentTime = outroAt; } catch (e) {}
-      // 3) aparece el contador justo cuando entra el mama-say
-      showCountdown();
-      // 4) sube el mama-say
-      const inc = target / downSteps;
-      const fadeUp = () => {
-        if (!_creditsAudio) return;
-        if (a.volume < target - inc) { try { a.volume = Math.min(target, a.volume + inc); } catch (e) {} setTimeout(fadeUp, stepMs); }
-        else { try { a.volume = target; } catch (e) {} }
-      };
-      fadeUp();
-      // 5) tras unos segundos de mama-say, fade out final
+      // termina el cruce: A se apaga, B queda como audio principal
+      try { if (_creditsAudio) _creditsAudio.pause(); } catch (e) {}
+      _creditsAudio = b;
+      // tras unos segundos de mama-say, fade out final suave
       if (_creditsEndTimer) clearTimeout(_creditsEndTimer);
       _creditsEndTimer = setTimeout(() => fadeOutCreditsAudio(), holdMs);
     }
   };
-  fadeDown();
+  stepFn();
 }
 
 function showCountdown() {
@@ -7983,8 +8003,9 @@ function podiumReveal(phaseKind, onContinue) {
     if (advanced) return; advanced = true;
     if (_podiumTimer) { clearTimeout(_podiumTimer); _podiumTimer = null; }
     if (_ceremonyTimer) { clearTimeout(_ceremonyTimer); _ceremonyTimer = null; }
-    closeCeremony('podium-reveal');
-    if (onContinue) setTimeout(onContinue, 520);
+    // NO cerramos el overlay acá: el siguiente paso (otro podio o los créditos)
+    // reemplaza el contenido directamente, así nunca se ve el menú de fondo entre medio.
+    if (onContinue) onContinue();
   };
   // El botón "saltar" adelanta la ceremonia manualmente (emergencia)
   cta.onclick = (e) => { e.stopPropagation(); advance(); };
