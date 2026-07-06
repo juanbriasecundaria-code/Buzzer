@@ -722,7 +722,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
   <div class="kb-dock-body">
     <div class="kb-group-title">Audio</div>
     <div class="kb-row"><div class="kb-label">▶ Reproducir</div><div class="kb-keys"><span class="kbd">Play</span><span class="kb-or">/</span><span class="kbd">Espacio</span></div></div>
-    <div class="kb-row"><div class="kb-label">⏹ Detener</div><div class="kb-keys"><span class="kbd">Stop</span><span class="kb-or">/</span><span class="kbd">S</span></div></div>
+    <div class="kb-row"><div class="kb-label">⏸ Pausar</div><div class="kb-keys"><span class="kbd">Stop</span><span class="kb-or">/</span><span class="kbd">S</span></div></div>
     <div class="kb-row"><div class="kb-label">↩ Reiniciar</div><div class="kb-keys"><span class="kbd">⏭</span><span class="kb-or">/</span><span class="kbd">R</span></div></div>
 
     <div class="kb-group-title">Cartas</div>
@@ -858,8 +858,10 @@ function createCondPlayer(c){
   w.innerHTML='<div id="yt-ci"></div>';
   ytCond=new YT.Player('yt-ci',{videoId:c.youtubeId,height:'110',width:'100%',playerVars:{start:c.startAt||0,autoplay:0,controls:1,modestbranding:1,rel:0}});
 }
-function condPlay(c){try{ytCond&&(ytCond.seekTo(c.startAt||0,true),ytCond.playVideo());}catch(e){}}
-function condStop(){try{ytCond&&ytCond.stopVideo();}catch(e){}}
+function condPlay(c){try{ytCond&&ytCond.playVideo();}catch(e){}}            // reanuda desde donde estaba
+function condPause(){try{ytCond&&ytCond.pauseVideo();}catch(e){}}           // pausa sin perder la posición
+function condRestart(c){try{ytCond&&(ytCond.seekTo(c.startAt||0,true),ytCond.playVideo());}catch(e){}} // vuelve al inicio (startAt)
+function condStop(){condPause();}                                          // \"stop\" ahora pausa (compat)
 function createPartPlayer(c,auto){
   if(!ytReady)return;
   if(ytPart){try{ytPart.destroy();}catch(e){}ytPart=null;}
@@ -872,6 +874,11 @@ function partPlaySong(c){
   try{if(ytPart){ytPart.seekTo(c.startAt||0,true);ytPart.playVideo();}else createPartPlayer(c,true);}catch(e){createPartPlayer(c,true);}
 }
 function partStopSong(){try{ytPart&&ytPart.stopVideo();}catch(e){}}
+function partResumeSong(c){
+  if(!audioUnlocked){pendingPartPlay=c;return;}
+  try{if(ytPart){ytPart.playVideo();}else createPartPlayer(c,true);}catch(e){createPartPlayer(c,true);}
+}
+function partPauseSong(){try{ytPart&&ytPart.pauseVideo();}catch(e){}}
 function partPlayLocalAudio(audioData,startAt){
   if(!audioUnlocked){pendingPartPlay={_local:true,audioData,startAt};return;}
   let au=document.getElementById('local-audio-part');
@@ -1163,7 +1170,7 @@ function sendState(){
     cardTitle:cur?.title||null,cardNum:order.length?cardIdx+1:0,totalCards:order.length,t:Date.now()});
 }
 function startHeartbeat(){if(_hb)clearInterval(_hb);_hb=setInterval(sendState,200);sendState();}
-function onLive(raw){try{const d=typeof raw==='string'?JSON.parse(raw):raw;if(d.type==='state')renderParticipant(d);else if(d.type==='yt_play')partPlaySong({youtubeId:d.youtubeId,startAt:d.startAt||0});else if(d.type==='yt_stop')partStopSong();else if(d.type==='local_play'||d.type==='local_stop'){/* audio local: suena solo en la compu del conductor */};}catch(e){}}
+function onLive(raw){try{const d=typeof raw==='string'?JSON.parse(raw):raw;if(d.type==='state')renderParticipant(d);else if(d.type==='yt_play')partResumeSong({youtubeId:d.youtubeId,startAt:d.startAt||0});else if(d.type==='yt_restart')partPlaySong({youtubeId:d.youtubeId,startAt:d.startAt||0});else if(d.type==='yt_pause')partPauseSong();else if(d.type==='yt_stop')partStopSong();else if(d.type==='local_play'||d.type==='local_stop'){/* audio local: suena solo en la compu del conductor */};}catch(e){}}
 
 // ─── STORAGE ─────────────────────────────────────────────────────
 function ensureRevealModes(forceShuffle){
@@ -1459,9 +1466,9 @@ function renderCondCard(){
     const hy=!!c.youtubeId;
     const ha=!!c.audioData;
     if(hy){
-      inner=`<div class="cond-song-inner"><div id="yt-cond-el" style="width:100%;padding:0 .5rem"></div><div class="song-ctrl-row"><button class="scb scb-play" onclick="doCondPlay()">▶ Play</button><button class="scb scb-restart" onclick="doCondRestart()">↩ Restart</button><button class="scb scb-stop" onclick="doCondStop()">⏹ Stop</button></div></div>`;
+      inner=`<div class="cond-song-inner"><div id="yt-cond-el" style="width:100%;padding:0 .5rem"></div><div class="song-ctrl-row"><button class="scb scb-play" onclick="doCondPlay()">▶ Play</button><button class="scb scb-restart" onclick="doCondRestart()">↩ Restart</button><button class="scb scb-stop" onclick="doCondStop()">⏸ Pausa</button></div></div>`;
     } else if(ha){
-      inner=`<div class="cond-song-inner"><audio id="local-audio-cond" class="local-audio-player" controls src="${c.audioData}"></audio><div class="song-ctrl-row"><button class="scb scb-play" onclick="doCondPlayLocal()">▶ Play</button><button class="scb scb-restart" onclick="doCondRestartLocal()">↩ Restart</button><button class="scb scb-stop" onclick="doCondStopLocal()">⏹ Stop</button></div></div>`;
+      inner=`<div class="cond-song-inner"><audio id="local-audio-cond" class="local-audio-player" controls src="${c.audioData}"></audio><div class="song-ctrl-row"><button class="scb scb-play" onclick="doCondPlayLocal()">▶ Play</button><button class="scb scb-restart" onclick="doCondRestartLocal()">↩ Restart</button><button class="scb scb-stop" onclick="doCondStopLocal()">⏸ Pausa</button></div></div>`;
     } else {
       inner=`<div class="cond-song-inner"><div style="font-size:36px;margin-bottom:.25rem">🎵</div><div class="song-no-yt">⚠️ Sin audio cargado</div></div>`;
     }
@@ -1476,10 +1483,10 @@ function renderCondCard(){
   sendState();
 }
 function doCondPlay(){const c=currentCard();if(!c||!c.youtubeId)return;condPlay(c);broadcast({type:'yt_play',youtubeId:c.youtubeId,startAt:c.startAt||0});}
-function doCondStop(){condStop();broadcast({type:'yt_stop'});}
-function doCondRestart(){const c=currentCard();if(!c||!c.youtubeId)return;condPlay(c);broadcast({type:'yt_play',youtubeId:c.youtubeId,startAt:c.startAt||0});}
+function doCondStop(){condPause();broadcast({type:'yt_pause'});}
+function doCondRestart(){const c=currentCard();if(!c||!c.youtubeId)return;condRestart(c);broadcast({type:'yt_restart',youtubeId:c.youtubeId,startAt:c.startAt||0});}
 function doCondPlayLocal(){const au=document.getElementById('local-audio-cond');if(au){au.play();broadcast({type:'local_play',startAt:currentCard()?.startAt||0});}}
-function doCondStopLocal(){const au=document.getElementById('local-audio-cond');if(au){au.pause();au.currentTime=currentCard()?.startAt||0;}broadcast({type:'local_stop'});}
+function doCondStopLocal(){const au=document.getElementById('local-audio-cond');if(au){au.pause();}broadcast({type:'local_stop'});}
 function doCondRestartLocal(){const au=document.getElementById('local-audio-cond');if(au){au.currentTime=currentCard()?.startAt||0;au.play();}broadcast({type:'local_play',startAt:currentCard()?.startAt||0});}
 
 // ─── CONDUCTOR: ATAJOS DE TECLADO ────────────────────────────────
