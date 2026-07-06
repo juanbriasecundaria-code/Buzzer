@@ -267,6 +267,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
 .sm-btn:hover,.sm-btn:active{background:var(--surface)}
 .sm-divider{height:1px;background:var(--border2);margin:.2rem 0}
 .sm-btn-danger{color:var(--red)}
+.sm-btn-muted{color:var(--muted)}
 
 /* PARTICIPANT */
 #participant{display:none;min-height:100dvh;flex-direction:column;position:relative;overflow:hidden}
@@ -526,6 +527,9 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
         <button class="sm-btn" onclick="openDeckEditor();closeSettingsMenu()">✏️ Editar mazo</button>
         <button class="sm-btn" onclick="openNameEditor();closeSettingsMenu()">👥 Nombres de equipos</button>
         <div class="sm-divider"></div>
+        <button class="sm-btn" id="sm-mute-general" onclick="toggleMuteGeneral()">🔊 Sonido general</button>
+        <button class="sm-btn" id="sm-mute-tick" onclick="toggleMuteTick()">🔊 Tic-tac (5s finales)</button>
+        <div class="sm-divider"></div>
         <button class="sm-btn" id="sm-save" onclick="saveDeckNow();closeSettingsMenu()">☁️ Guardar ahora</button>
         <div class="sm-divider"></div>
         <button class="sm-btn sm-btn-danger" onclick="resetGame();closeSettingsMenu()">↺ Reiniciar juego</button>
@@ -560,7 +564,6 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
         <button class="timer-btn tbtn-reset" onclick="resetTimer()">↺</button>
         <button class="timer-btn tbtn-reset" onclick="adjTimer(-5)" title="−5 seg">−5</button>
         <button class="timer-btn tbtn-reset" onclick="adjTimer(5)"  title="+5 seg">+5</button>
-        <button class="timer-btn tbtn-reset" id="mute-btn" onclick="toggleMute()" title="Sonido" style="margin-left:auto">🔊</button>
       </div>
     </div>
     <div class="phase-banner" id="phase-banner"></div>
@@ -1320,31 +1323,51 @@ function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').repl
 function showToast(msg,ms=2200){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),ms);}
 
 // ─── AUDIO / SFX (sintetizado, sin archivos) ─────────────────────
-let _sfxMuted = (localStorage.getItem('gms_muted')==='1');
+// Dos controles de sonido independientes:
+//  · _sfxMutedGeneral → el "tin" del buzzer y el pitido de fin de tiempo
+//  · _sfxMutedTick    → el tic-tac de los últimos 5 segundos del contador
+// (Se migra la preferencia del mute único anterior 'gms_muted' si existía.)
+const _oldMuted = localStorage.getItem('gms_muted')==='1';
+function _readMute(key, fallback){ const v=localStorage.getItem(key); return v!==null ? v==='1' : fallback; }
+let _sfxMutedGeneral = _readMute('gms_muted_general', _oldMuted);
+let _sfxMutedTick    = _readMute('gms_muted_tick',    _oldMuted);
 let _audioCtx = null;
 function _ac(){ try{ if(!_audioCtx) _audioCtx = new (window.AudioContext||window.webkitAudioContext)(); if(_audioCtx.state==='suspended') _audioCtx.resume(); return _audioCtx; }catch(e){ return null; } }
 document.addEventListener('pointerdown', ()=>{ _ac(); }, { once:true });
 // "tin" corto y brillante al buzzear
-function sfxBuzz(){ if(_sfxMuted) return; const ctx=_ac(); if(!ctx) return; try{
+function sfxBuzz(){ if(_sfxMutedGeneral) return; const ctx=_ac(); if(!ctx) return; try{
   const now=ctx.currentTime;
   [[988,0],[1319,0.07]].forEach(([f,t])=>{ const o=ctx.createOscillator(),g=ctx.createGain(); o.type='triangle'; o.frequency.value=f; o.connect(g); g.connect(ctx.destination); const s=now+t; g.gain.setValueAtTime(0.0001,s); g.gain.exponentialRampToValueAtTime(0.5,s+0.01); g.gain.exponentialRampToValueAtTime(0.0001,s+0.45); o.start(s); o.stop(s+0.5); });
 }catch(e){} }
 // tic-tac de los últimos segundos (alterna agudo/grave)
 let _tickHigh=false;
-function sfxTick(){ if(_sfxMuted) return; const ctx=_ac(); if(!ctx) return; try{
+function sfxTick(){ if(_sfxMutedTick) return; const ctx=_ac(); if(!ctx) return; try{
   const now=ctx.currentTime; const o=ctx.createOscillator(),g=ctx.createGain();
   o.type='square'; o.frequency.value=_tickHigh?1400:1050; _tickHigh=!_tickHigh;
   o.connect(g); g.connect(ctx.destination);
   g.gain.setValueAtTime(0.0001,now); g.gain.exponentialRampToValueAtTime(0.18,now+0.005); g.gain.exponentialRampToValueAtTime(0.0001,now+0.07);
   o.start(now); o.stop(now+0.08);
 }catch(e){} }
-function toggleMute(){
-  _sfxMuted=!_sfxMuted;
-  localStorage.setItem('gms_muted', _sfxMuted?'1':'0');
-  syncMuteBtn();
-  if(!_sfxMuted) sfxBuzz(); // feedback al reactivar
+function toggleMuteGeneral(){
+  _sfxMutedGeneral=!_sfxMutedGeneral;
+  localStorage.setItem('gms_muted_general', _sfxMutedGeneral?'1':'0');
+  syncMuteBtns();
+  showToast(_sfxMutedGeneral?'🔇 Sonido general apagado':'🔊 Sonido general activado');
+  if(!_sfxMutedGeneral) sfxBuzz(); // feedback al reactivar
 }
-function syncMuteBtn(){ const b=document.getElementById('mute-btn'); if(!b) return; b.textContent=_sfxMuted?'🔇':'🔊'; b.title=_sfxMuted?'Sonido apagado':'Sonido activado'; b.style.color=_sfxMuted?'var(--muted)':'var(--accent)'; b.style.borderColor=_sfxMuted?'var(--border2)':'rgba(200,240,96,.4)'; }
+function toggleMuteTick(){
+  _sfxMutedTick=!_sfxMutedTick;
+  localStorage.setItem('gms_muted_tick', _sfxMutedTick?'1':'0');
+  syncMuteBtns();
+  showToast(_sfxMutedTick?'🔇 Tic-tac apagado':'🔊 Tic-tac activado');
+  if(!_sfxMutedTick) sfxTick(); // feedback al reactivar
+}
+function syncMuteBtns(){
+  const g=document.getElementById('sm-mute-general');
+  if(g){ g.textContent=(_sfxMutedGeneral?'🔇':'🔊')+' Sonido general'; g.classList.toggle('sm-btn-muted',_sfxMutedGeneral); }
+  const t=document.getElementById('sm-mute-tick');
+  if(t){ t.textContent=(_sfxMutedTick?'🔇':'🔊')+' Tic-tac (5s finales)'; t.classList.toggle('sm-btn-muted',_sfxMutedTick); }
+}
 function bump(id){const el=document.getElementById(id);if(!el)return;el.classList.remove('bump');void el.offsetWidth;el.classList.add('bump');}
 
 // ─── SPLASH & GATE ───────────────────────────────────────────────
@@ -1374,7 +1397,7 @@ function applyMode(m){
     syncNamesUI();syncScoreUI();syncRevealUI();renderCondCard();updateCount();
     startHeartbeat();
     startCondListener();
-    syncMuteBtn();
+    syncMuteBtns();
     initShortcutsDock();
     if(fbRef){ fbRef.child('names').set({a:nameA,b:nameB}); fbLock(); }
     setFbStatus('ready','🔒 Bloqueado — mostrá la carta para habilitar');
@@ -1609,7 +1632,17 @@ function toggleReveal(){
   syncRevealUI();
   syncGridHintUI();
   sendState();
-  if(revealed){ fbOpenBuzzer(); } else { fbLock(); }
+  if(revealed){
+    fbOpenBuzzer();
+    // Si la carta es una canción, se reproduce sola al habilitar el buzzer
+    const c=currentCard();
+    if(c&&c.type==='song') kbPlaySong();
+  } else {
+    fbLock();
+    // Al ocultar la carta se corta la canción
+    const c=currentCard();
+    if(c&&c.type==='song') kbStopSong();
+  }
   showToast(revealed?'👁 Carta visible — 🔓 buzzer habilitado':'🙈 Carta oculta — 🔒 buzzer bloqueado');
 }
 function syncRevealUI(){
