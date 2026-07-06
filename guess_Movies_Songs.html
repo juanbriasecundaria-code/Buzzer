@@ -386,6 +386,20 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
 .sheet-sub{font-size:12px;color:var(--muted);line-height:1.55}
 .sheet-close{width:100%;padding:.85rem;border-radius:var(--radius);border:1.5px solid var(--border2);background:var(--surface2);color:var(--muted);font-family:inherit;font-size:14px;font-weight:700;cursor:pointer}
 .sheet-btn{width:100%;padding:.85rem;border-radius:var(--radius);border:none;background:var(--accent);color:#0f0f13;font-family:inherit;font-size:14px;font-weight:800;cursor:pointer}
+.kb-group-title{font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-top:.5rem}
+.kb-group-title:first-child{margin-top:0}
+.kb-row{display:flex;align-items:center;justify-content:space-between;gap:.5rem;padding:.32rem 0;border-bottom:1px solid var(--border)}
+.kb-row:last-child{border-bottom:none}
+.kb-label{font-size:12px;color:var(--text);display:flex;align-items:center;gap:.3rem}
+.kb-keys{display:flex;align-items:center;gap:.25rem;flex-shrink:0;flex-wrap:wrap;justify-content:flex-end}
+.kbd{display:inline-flex;align-items:center;justify-content:center;min-width:20px;height:20px;padding:0 6px;border-radius:6px;background:var(--surface2);border:1.5px solid var(--border2);border-bottom-width:2px;font-family:inherit;font-size:10.5px;font-weight:800;color:var(--text)}
+.kb-or{font-size:10px;color:var(--muted)}
+.kb-dock{position:fixed;top:64px;right:14px;width:186px;max-height:calc(100dvh - 90px);overflow-y:auto;background:rgba(20,20,28,.94);backdrop-filter:blur(8px);border:1.5px solid var(--border2);border-radius:var(--radius);padding:.6rem .7rem .7rem;z-index:150;box-shadow:0 8px 28px rgba(0,0,0,.4);display:none}
+.kb-dock.show{display:block}
+.kb-dock-head{display:flex;align-items:center;justify-content:space-between;font-size:11px;font-weight:800;letter-spacing:.03em;color:var(--muted);margin-bottom:.3rem;padding-bottom:.4rem;border-bottom:1px solid var(--border2);cursor:move;user-select:none;touch-action:none}
+.kb-dock-close{background:none;border:none;color:var(--muted);font-size:13px;cursor:pointer;padding:2px 4px;line-height:1}
+.kb-dock-close:active{opacity:.6}
+@media (max-width:980px),(max-height:640px){.kb-dock{display:none !important}}
 .fl{display:flex;gap:.5rem}
 .fc{display:flex;flex-direction:column;gap:.35rem;flex:1;min-width:0}
 .form-label{font-size:11px;font-weight:700;color:var(--muted)}
@@ -505,6 +519,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
     <button class="cta-btn cta-btn-shuffle" onclick="shuffleDeck()">🔀 Barajar</button>
     <button class="cta-btn cta-btn-split" onclick="openSplitPanel()">🃏 3 Mazos</button>
     <div class="cta-spacer"></div>
+    <button class="cta-settings-btn" onclick="toggleShortcutsHelp()" title="Mostrar/ocultar atajos (H)">⌨️</button>
     <div class="cta-settings-wrap" id="settings-wrap">
       <button class="cta-settings-btn" onclick="toggleSettingsMenu()" title="Configuración">⚙️</button>
       <div class="settings-menu" id="settings-menu">
@@ -692,6 +707,38 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
     <div class="name-row"><div class="name-dot name-dot-a"></div><div class="fc"><div class="form-label">Equipo A</div><input class="form-input" id="ni-a" maxlength="20" placeholder="Equipo 1"></div></div>
     <div class="name-row"><div class="name-dot name-dot-b"></div><div class="fc"><div class="form-label">Equipo B</div><input class="form-input" id="ni-b" maxlength="20" placeholder="Equipo 2"></div></div>
     <div class="fl"><button class="sheet-close" onclick="closeNameEditor()">Cancelar</button><button class="sheet-btn" onclick="saveNames()">Guardar</button></div>
+  </div>
+</div>
+
+<!-- Keyboard shortcuts dock: panel flotante, arrastrable, siempre visible en modo Conductor -->
+<div class="kb-dock" id="kb-dock">
+  <div class="kb-dock-head" id="kb-dock-head" onpointerdown="kbDockPointerDown(event)">
+    <span>⠿ ⌨️ Atajos</span>
+    <button class="kb-dock-close" onclick="toggleShortcutsHelp()" title="Ocultar (H)">✕</button>
+  </div>
+  <div class="kb-dock-body">
+    <div class="kb-group-title">Audio</div>
+    <div class="kb-row"><div class="kb-label">▶ Reproducir</div><div class="kb-keys"><span class="kbd">Play</span><span class="kb-or">/</span><span class="kbd">Espacio</span></div></div>
+    <div class="kb-row"><div class="kb-label">⏹ Detener</div><div class="kb-keys"><span class="kbd">Stop</span><span class="kb-or">/</span><span class="kbd">S</span></div></div>
+    <div class="kb-row"><div class="kb-label">↩ Reiniciar</div><div class="kb-keys"><span class="kbd">⏭</span><span class="kb-or">/</span><span class="kbd">R</span></div></div>
+
+    <div class="kb-group-title">Cartas</div>
+    <div class="kb-row"><div class="kb-label">→ Pasar / Sig.</div><div class="kb-keys"><span class="kbd">→</span></div></div>
+    <div class="kb-row"><div class="kb-label">← Anterior</div><div class="kb-keys"><span class="kbd">←</span></div></div>
+    <div class="kb-row"><div class="kb-label">👁 Mostrar/ocultar</div><div class="kb-keys"><span class="kbd">V</span></div></div>
+
+    <div class="kb-group-title">Buzzer</div>
+    <div class="kb-row"><div class="kb-label">Buzzer Equipo 1</div><div class="kb-keys"><span class="kbd">1</span></div></div>
+    <div class="kb-row"><div class="kb-label">Buzzer Equipo 2</div><div class="kb-keys"><span class="kbd">2</span></div></div>
+    <div class="kb-row"><div class="kb-label">✓ Correcto</div><div class="kb-keys"><span class="kbd">Enter</span><span class="kb-or">/</span><span class="kbd">C</span></div></div>
+    <div class="kb-row"><div class="kb-label">✗ Incorrecto</div><div class="kb-keys"><span class="kbd">X</span></div></div>
+
+    <div class="kb-group-title">Timer</div>
+    <div class="kb-row"><div class="kb-label">Iniciar/Detener</div><div class="kb-keys"><span class="kbd">T</span></div></div>
+    <div class="kb-row"><div class="kb-label">↺ Reiniciar</div><div class="kb-keys"><span class="kbd">0</span></div></div>
+
+    <div class="kb-group-title">Panel</div>
+    <div class="kb-row"><div class="kb-label">Mostrar/ocultar</div><div class="kb-keys"><span class="kbd">H</span></div></div>
   </div>
 </div>
 
@@ -1080,7 +1127,7 @@ async function idbGet(key){
   });
 }
 
-const SK={DECK:'gms_deck',ORDER:'gms_order',IDX:'gms_idx',SCORE:'gms_score',NAMES:'gms_names'};
+const SK={DECK:'gms_deck',ORDER:'gms_order',IDX:'gms_idx',SCORE:'gms_score',NAMES:'gms_names',KBDOCK:'gms_kbdock',KBDOCK_POS:'gms_kbdock_pos'};
 let deck=[],order=[],cardIdx=0,scoreA=0,scoreB=0,nameA='Equipo 1',nameB='Equipo 2';
 let timerLeft=15,timerActive=false,timerInterval=null;
 let phase='idle',activeBuzzer=null,revealed=false;
@@ -1328,6 +1375,7 @@ function applyMode(m){
     startHeartbeat();
     startCondListener();
     syncMuteBtn();
+    initShortcutsDock();
     if(fbRef){ fbRef.child('names').set({a:nameA,b:nameB}); fbLock(); }
     setFbStatus('ready','🔒 Bloqueado — mostrá la carta para habilitar');
     // 1. Cargar desde IndexedDB (tiene las imágenes locales pesadas)
@@ -1410,6 +1458,95 @@ function doCondRestart(){const c=currentCard();if(!c||!c.youtubeId)return;condPl
 function doCondPlayLocal(){const au=document.getElementById('local-audio-cond');if(au){au.play();broadcast({type:'local_play',startAt:currentCard()?.startAt||0});}}
 function doCondStopLocal(){const au=document.getElementById('local-audio-cond');if(au){au.pause();au.currentTime=currentCard()?.startAt||0;}broadcast({type:'local_stop'});}
 function doCondRestartLocal(){const au=document.getElementById('local-audio-cond');if(au){au.currentTime=currentCard()?.startAt||0;au.play();}broadcast({type:'local_play',startAt:currentCard()?.startAt||0});}
+
+// ─── CONDUCTOR: ATAJOS DE TECLADO ────────────────────────────────
+// Pensados para no tener que tocar el mouse durante la partida.
+// Funcionan solo en modo Conductor, con ningún panel/overlay abierto
+// y sin estar escribiendo en un input.
+function kbAudioKind(){const c=currentCard();if(!c||c.type!=='song')return null;if(c.youtubeId)return'yt';if(c.audioData)return'local';return null;}
+function kbPlaySong(){const k=kbAudioKind();if(k==='yt')doCondPlay();else if(k==='local')doCondPlayLocal();}
+function kbStopSong(){const k=kbAudioKind();if(k==='yt')doCondStop();else if(k==='local')doCondStopLocal();}
+function kbRestartSong(){const k=kbAudioKind();if(k==='yt')doCondRestart();else if(k==='local')doCondRestartLocal();}
+function kbIsTypingTarget(el){if(!el)return false;const tag=el.tagName;return tag==='INPUT'||tag==='TEXTAREA'||tag==='SELECT'||el.isContentEditable;}
+function kbOverlayOpen(){
+  const ids=['deck-ov','name-ov','split-ov'];
+  if(ids.some(id=>document.getElementById(id)?.classList.contains('open')))return true;
+  if(document.getElementById('settings-menu')?.classList.contains('open'))return true;
+  return false;
+}
+function showShortcutsDock(){const d=document.getElementById('kb-dock');if(d)d.classList.add('show');try{localStorage.setItem(SK.KBDOCK,'1');}catch(e){}}
+function hideShortcutsDock(){const d=document.getElementById('kb-dock');if(d)d.classList.remove('show');try{localStorage.setItem(SK.KBDOCK,'0');}catch(e){}}
+function toggleShortcutsHelp(){const d=document.getElementById('kb-dock');if(!d)return;d.classList.contains('show')?hideShortcutsDock():showShortcutsDock();}
+function applyKbDockPosition(){
+  const dock=document.getElementById('kb-dock');if(!dock)return;
+  let pos=null;try{pos=JSON.parse(localStorage.getItem(SK.KBDOCK_POS)||'null');}catch(e){}
+  if(pos&&typeof pos.left==='number'&&typeof pos.top==='number'){
+    const maxX=Math.max(4,window.innerWidth-190),maxY=Math.max(4,window.innerHeight-60);
+    dock.style.left=Math.max(4,Math.min(pos.left,maxX))+'px';
+    dock.style.top=Math.max(4,Math.min(pos.top,maxY))+'px';
+    dock.style.right='auto';
+  }
+}
+function initShortcutsDock(){
+  applyKbDockPosition();
+  let pref='1';try{pref=localStorage.getItem(SK.KBDOCK)??'1';}catch(e){}
+  if(pref==='1')showShortcutsDock();
+}
+// ── arrastrar el panel de atajos por toda la pantalla ──
+let _kbDrag=null;
+function kbDockPointerDown(e){
+  if(e.target.closest('.kb-dock-close'))return;
+  const dock=document.getElementById('kb-dock');if(!dock)return;
+  const rect=dock.getBoundingClientRect();
+  _kbDrag={offsetX:e.clientX-rect.left,offsetY:e.clientY-rect.top};
+  dock.style.left=rect.left+'px';dock.style.top=rect.top+'px';dock.style.right='auto';
+  try{document.getElementById('kb-dock-head').setPointerCapture(e.pointerId);}catch(err){}
+  e.preventDefault();
+}
+function kbDockPointerMove(e){
+  if(!_kbDrag)return;
+  const dock=document.getElementById('kb-dock');if(!dock)return;
+  const maxX=window.innerWidth-dock.offsetWidth-4,maxY=window.innerHeight-dock.offsetHeight-4;
+  const x=Math.max(4,Math.min(e.clientX-_kbDrag.offsetX,maxX));
+  const y=Math.max(4,Math.min(e.clientY-_kbDrag.offsetY,maxY));
+  dock.style.left=x+'px';dock.style.top=y+'px';
+}
+function kbDockPointerUp(){
+  if(!_kbDrag)return;
+  _kbDrag=null;
+  const dock=document.getElementById('kb-dock');if(!dock)return;
+  try{localStorage.setItem(SK.KBDOCK_POS,JSON.stringify({left:parseInt(dock.style.left),top:parseInt(dock.style.top)}));}catch(e){}
+}
+document.addEventListener('pointermove',kbDockPointerMove);
+document.addEventListener('pointerup',kbDockPointerUp);
+document.addEventListener('pointercancel',kbDockPointerUp);
+document.addEventListener('keydown',function(e){
+  if(MODE!=='conductor')return;
+  if(kbIsTypingTarget(e.target))return;
+  const k=e.key;
+  if(k==='h'||k==='H'){e.preventDefault();toggleShortcutsHelp();return;}
+  if(kbOverlayOpen())return;
+  // Teclas multimedia del teclado (▶ / ⏯ / ⏹ / ⏸ / ⏭)
+  if(k==='MediaPlay'){e.preventDefault();kbPlaySong();return;}
+  if(k==='MediaPlayPause'){e.preventDefault();kbPlaySong();return;}
+  if(k==='MediaStop'||k==='MediaPause'){e.preventDefault();kbStopSong();return;}
+  if(k==='MediaTrackNext'){e.preventDefault();kbRestartSong();return;}
+  // Atajos de letras/flechas (para teclados sin teclas multimedia)
+  switch(k){
+    case' ':e.preventDefault();kbPlaySong();break;
+    case's':case'S':kbStopSong();break;
+    case'r':case'R':kbRestartSong();break;
+    case'ArrowRight':e.preventDefault();if(phase==='reveal')nextAfterReveal();else if(phase==='idle')passCard();break;
+    case'ArrowLeft':e.preventDefault();navigate(-1);break;
+    case'1':if(phase==='idle')setBuzzer('a');break;
+    case'2':if(phase==='idle')setBuzzer('b');break;
+    case'Enter':case'c':case'C':if(phase==='playing_a'||phase==='playing_b')markCorrect();break;
+    case'x':case'X':if(phase==='playing_a'||phase==='playing_b')markWrong();break;
+    case'v':case'V':toggleReveal();break;
+    case't':case'T':if(timerActive)stopTimer();else startTimer();break;
+    case'0':resetTimer();break;
+  }
+});
 
 // ─── CONDUCTOR: PHASE ────────────────────────────────────────────
 function setBuzzer(team){phase='playing_'+team;activeBuzzer=team;syncPhaseUI();sendState();fbLock();sfxBuzz();}
