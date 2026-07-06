@@ -593,6 +593,23 @@ body.is-participant .cad-bg-scrim { display: block; }
   .fm-result-cell { font-size: 13px; font-weight: 800; padding: 0.3rem 0.5rem; border-radius: 7px; line-height: 1.2; }
   .fm-result-cell.hit { background: var(--accent-dim); color: var(--accent); border: 1px solid rgba(200,240,96,0.3); }
   .fm-result-cell.miss { background: transparent; color: var(--muted); opacity: 0.6; font-style: italic; font-weight: 600; }
+
+  /* ── ATAJOS DE TECLADO (panel flotante) ── */
+  .kb-dock-btn { background: none; border: none; color: var(--muted); font-size: 15px; cursor: pointer; padding: 4px 6px; line-height: 1; }
+  .kb-group-title { font-size: 10px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); margin-top: 0.5rem; }
+  .kb-group-title:first-child { margin-top: 0; }
+  .kb-row { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; padding: 0.32rem 0; border-bottom: 1px solid var(--border); }
+  .kb-row:last-child { border-bottom: none; }
+  .kb-label { font-size: 12px; color: var(--text); display: flex; align-items: center; gap: 0.3rem; }
+  .kb-keys { display: flex; align-items: center; gap: 0.25rem; flex-shrink: 0; flex-wrap: wrap; justify-content: flex-end; }
+  .kbd { display: inline-flex; align-items: center; justify-content: center; min-width: 20px; height: 20px; padding: 0 6px; border-radius: 6px; background: var(--surface2); border: 1.5px solid var(--border2); border-bottom-width: 2px; font-family: inherit; font-size: 10.5px; font-weight: 800; color: var(--text); }
+  .kb-or { font-size: 10px; color: var(--muted); }
+  .kb-dock { position: fixed; top: 64px; right: 14px; width: 190px; max-height: calc(100dvh - 90px); overflow-y: auto; background: rgba(20,20,28,.94); backdrop-filter: blur(8px); border: 1.5px solid var(--border2); border-radius: var(--radius); padding: 0.6rem 0.7rem 0.7rem; z-index: 600; box-shadow: 0 8px 28px rgba(0,0,0,.4); display: none; }
+  .kb-dock.show { display: block; }
+  .kb-dock-head { display: flex; align-items: center; justify-content: space-between; font-size: 11px; font-weight: 800; letter-spacing: 0.03em; color: var(--muted); margin-bottom: 0.3rem; padding-bottom: 0.4rem; border-bottom: 1px solid var(--border2); cursor: move; user-select: none; touch-action: none; }
+  .kb-dock-close { background: none; border: none; color: var(--muted); font-size: 13px; cursor: pointer; padding: 2px 4px; line-height: 1; }
+  .kb-dock-close:active { opacity: 0.6; }
+  @media (max-width: 980px), (max-height: 640px) { .kb-dock { display: none !important; } }
 </style>
 <style>.hub-link{position:fixed;top:max(0.75rem,env(safe-area-inset-top));left:max(0.75rem,env(safe-area-inset-left));z-index:99999;font-size:11px;font-weight:700;color:rgba(240,239,232,0.7);background:rgba(10,10,14,0.6);border:1px solid rgba(255,255,255,0.1);border-radius:99px;padding:0.38rem 0.85rem;text-decoration:none;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);letter-spacing:0.04em;transition:color 0.15s,border-color 0.15s;white-space:nowrap}.hub-link:hover{color:#f0efe8;border-color:rgba(255,255,255,0.25)}</style></head>
 <body>
@@ -707,7 +724,10 @@ body.is-participant .cad-bg-scrim { display: block; }
 <div class="cover-overlay" id="round-cover">
   <div class="round-top">
     <span class="round-eyebrow">100 Argentinos Dicen</span>
-    <button class="round-x" onclick="closeRound()" aria-label="cerrar">✕</button>
+    <div style="display:flex;align-items:center;gap:0.15rem">
+      <button class="kb-dock-btn" onclick="toggleShortcutsHelp()" title="Mostrar/ocultar atajos (H)">⌨️</button>
+      <button class="round-x" onclick="closeRound()" aria-label="cerrar">✕</button>
+    </div>
   </div>
 
   <!-- Marcador + pozo -->
@@ -799,6 +819,37 @@ body.is-participant .cad-bg-scrim { display: block; }
   <div class="round-end" id="round-end">
     <div class="round-end-msg" id="round-end-msg">Ronda terminada</div>
     <button class="btn-primary" onclick="closeRound()">Siguiente ronda →</button>
+  </div>
+</div>
+
+<!-- ── ATAJOS DE TECLADO: panel flotante y arrastrable ── -->
+<div class="kb-dock" id="kb-dock">
+  <div class="kb-dock-head" id="kb-dock-head" onpointerdown="kbDockPointerDown(event)">
+    <span>⠿ ⌨️ Atajos</span>
+    <button class="kb-dock-close" onclick="toggleShortcutsHelp()" title="Ocultar (H)">✕</button>
+  </div>
+  <div class="kb-dock-body">
+    <div class="kb-group-title">Tablero</div>
+    <div class="kb-row"><div class="kb-label">Revelar opción 1–6</div><div class="kb-keys"><span class="kbd">1</span>–<span class="kbd">6</span></div></div>
+
+    <div class="kb-group-title">Duelo (buzzer)</div>
+    <div class="kb-row"><div class="kb-label">🔔 Buzzer Equipo 1</div><div class="kb-keys"><span class="kbd">Q</span></div></div>
+    <div class="kb-row"><div class="kb-label">🔔 Buzzer Equipo 2</div><div class="kb-keys"><span class="kbd">P</span></div></div>
+
+    <div class="kb-group-title">Jugada</div>
+    <div class="kb-row"><div class="kb-label">✕ Erró / Strike</div><div class="kb-keys"><span class="kbd">X</span></div></div>
+    <div class="kb-row"><div class="kb-label">JUGAR</div><div class="kb-keys"><span class="kbd">→</span></div></div>
+    <div class="kb-row"><div class="kb-label">PASAR</div><div class="kb-keys"><span class="kbd">←</span></div></div>
+    <div class="kb-row"><div class="kb-label">🏳 Rendirse</div><div class="kb-keys"><span class="kbd">R</span></div></div>
+
+    <div class="kb-group-title">Deshacer</div>
+    <div class="kb-row"><div class="kb-label">↩ Deshacer acierto</div><div class="kb-keys"><span class="kbd">U</span></div></div>
+    <div class="kb-row"><div class="kb-label">↩ Deshacer strike</div><div class="kb-keys"><span class="kbd">⇧</span><span class="kb-or">+</span><span class="kbd">U</span></div></div>
+
+    <div class="kb-group-title">Otros</div>
+    <div class="kb-row"><div class="kb-label">📺 Abrir VAR</div><div class="kb-keys"><span class="kbd">V</span></div></div>
+    <div class="kb-row"><div class="kb-label">Siguiente ronda</div><div class="kb-keys"><span class="kbd">Enter</span></div></div>
+    <div class="kb-row"><div class="kb-label">Mostrar/ocultar panel</div><div class="kb-keys"><span class="kbd">H</span></div></div>
   </div>
 </div>
 
@@ -1866,6 +1917,107 @@ function closeVAR() {
   setTimeout(() => ov.classList.remove('open', 'closing', 'reviewing'), 400);
 }
 
+// ── ATAJOS DE TECLADO (modo Conductor) ──────────────────────────
+// Pensados para no tener que tocar el mouse/tablet durante la ronda.
+const SK_KBDOCK = 'cad_kbdock';
+const SK_KBDOCK_POS = 'cad_kbdock_pos';
+
+function kbIsTypingTarget(el) { if (!el) return false; const tag = el.tagName; return tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || el.isContentEditable; }
+
+function kbBlockingOverlayOpen() {
+  const ids = ['names-overlay', 'qpick-overlay', 'deck-overlay', 'meta-overlay', 'win-overlay', 'mode-gate', 'member-overlay', 'fm-overlay'];
+  return ids.some(id => document.getElementById(id)?.classList.contains('open'));
+}
+
+document.addEventListener('keydown', function (e) {
+  if (MODE !== 'conductor') return;
+  if (kbIsTypingTarget(e.target)) return;
+  const k = e.key;
+
+  // El panel de atajos se puede mostrar/ocultar siempre
+  if (k === 'h' || k === 'H') { e.preventDefault(); toggleShortcutsHelp(); return; }
+
+  // Mientras el VAR está en pantalla, solo valen sus propias teclas
+  const varOpen = document.getElementById('var-overlay')?.classList.contains('open');
+  if (varOpen) {
+    if (k === 'Enter') { e.preventDefault(); varVerdict('valid'); }
+    else if (k === 'x' || k === 'X') { e.preventDefault(); varVerdict('invalid'); }
+    else if (k === 'Escape') { closeVAR(); }
+    return;
+  }
+
+  if (kbBlockingOverlayOpen()) return;
+  if (!round) return; // el resto de los atajos solo aplica dentro de una ronda
+
+  // Revelar opción 1–6
+  if (k >= '1' && k <= '6') {
+    const i = parseInt(k, 10) - 1;
+    if (i < round.a.length) { e.preventDefault(); tapSlot(i); }
+    return;
+  }
+
+  switch (k) {
+    case 'q': case 'Q': buzz('a'); break;
+    case 'p': case 'P': buzz('b'); break;
+    case 'x': case 'X': doStrike(); break;
+    case 'ArrowRight': e.preventDefault(); if (round.phase === 'choice') chooseControl('jugar'); break;
+    case 'ArrowLeft': e.preventDefault(); if (round.phase === 'choice') chooseControl('pasar'); break;
+    case 'r': if (round.phase === 'play') surrender(); break;
+    case 'R': if (round.phase === 'play') surrender(); break;
+    case 'u': if (e.shiftKey) undoStrike(); else undoReveal(); break;
+    case 'U': if (e.shiftKey) undoStrike(); else undoReveal(); break;
+    case 'v': case 'V': openVAR(); break;
+    case 'Enter': if (round.phase === 'over') closeRound(); break;
+  }
+});
+
+// ── Panel flotante de atajos: mostrar / ocultar / arrastrar ──
+function showShortcutsDock() { const d = document.getElementById('kb-dock'); if (d) d.classList.add('show'); try { localStorage.setItem(SK_KBDOCK, '1'); } catch (e) {} }
+function hideShortcutsDock() { const d = document.getElementById('kb-dock'); if (d) d.classList.remove('show'); try { localStorage.setItem(SK_KBDOCK, '0'); } catch (e) {} }
+function toggleShortcutsHelp() { const d = document.getElementById('kb-dock'); if (!d) return; d.classList.contains('show') ? hideShortcutsDock() : showShortcutsDock(); }
+function applyKbDockPosition() {
+  const dock = document.getElementById('kb-dock'); if (!dock) return;
+  let pos = null; try { pos = JSON.parse(localStorage.getItem(SK_KBDOCK_POS) || 'null'); } catch (e) {}
+  if (pos && typeof pos.left === 'number' && typeof pos.top === 'number') {
+    const maxX = Math.max(4, window.innerWidth - 194), maxY = Math.max(4, window.innerHeight - 60);
+    dock.style.left = Math.max(4, Math.min(pos.left, maxX)) + 'px';
+    dock.style.top = Math.max(4, Math.min(pos.top, maxY)) + 'px';
+    dock.style.right = 'auto';
+  }
+}
+function initShortcutsDock() {
+  applyKbDockPosition();
+  let pref = '1'; try { pref = localStorage.getItem(SK_KBDOCK) ?? '1'; } catch (e) {}
+  if (pref === '1') showShortcutsDock();
+}
+let _kbDrag = null;
+function kbDockPointerDown(e) {
+  if (e.target.closest('.kb-dock-close')) return;
+  const dock = document.getElementById('kb-dock'); if (!dock) return;
+  const rect = dock.getBoundingClientRect();
+  _kbDrag = { offsetX: e.clientX - rect.left, offsetY: e.clientY - rect.top };
+  dock.style.left = rect.left + 'px'; dock.style.top = rect.top + 'px'; dock.style.right = 'auto';
+  try { document.getElementById('kb-dock-head').setPointerCapture(e.pointerId); } catch (err) {}
+  e.preventDefault();
+}
+function kbDockPointerMove(e) {
+  if (!_kbDrag) return;
+  const dock = document.getElementById('kb-dock'); if (!dock) return;
+  const maxX = window.innerWidth - dock.offsetWidth - 4, maxY = window.innerHeight - dock.offsetHeight - 4;
+  const x = Math.max(4, Math.min(e.clientX - _kbDrag.offsetX, maxX));
+  const y = Math.max(4, Math.min(e.clientY - _kbDrag.offsetY, maxY));
+  dock.style.left = x + 'px'; dock.style.top = y + 'px';
+}
+function kbDockPointerUp() {
+  if (!_kbDrag) return;
+  _kbDrag = null;
+  const dock = document.getElementById('kb-dock'); if (!dock) return;
+  try { localStorage.setItem(SK_KBDOCK_POS, JSON.stringify({ left: parseInt(dock.style.left), top: parseInt(dock.style.top) })); } catch (e) {}
+}
+document.addEventListener('pointermove', kbDockPointerMove);
+document.addEventListener('pointerup', kbDockPointerUp);
+document.addEventListener('pointercancel', kbDockPointerUp);
+
 // ── EDITOR DE BANCO ──
 function openDeckEditor() { renderDeckList(); document.getElementById('deck-overlay').classList.add('open'); }
 function closeDeckEditor() { document.getElementById('deck-overlay').classList.remove('open'); syncUI(); }
@@ -2731,6 +2883,7 @@ function applyMode(m, team) {
     startHeartbeat();
     syncMuteBtn();
   }
+  if (m !== 'participant') initShortcutsDock();
 }
 function maybeShowGate() { if (!MODE) document.getElementById('mode-gate').classList.add('open'); }
 
