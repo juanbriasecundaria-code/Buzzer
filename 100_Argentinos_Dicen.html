@@ -835,6 +835,7 @@ body.is-participant .cad-bg-scrim { display: block; }
     <div class="kb-group-title">Duelo (buzzer)</div>
     <div class="kb-row"><div class="kb-label">🔔 Buzzer Equipo 1</div><div class="kb-keys"><span class="kbd">Q</span></div></div>
     <div class="kb-row"><div class="kb-label">🔔 Buzzer Equipo 2</div><div class="kb-keys"><span class="kbd">P</span></div></div>
+    <div class="kb-row"><div class="kb-label">🔓 Habilitar buzzer remoto</div><div class="kb-keys"><span class="kbd">B</span></div></div>
 
     <div class="kb-group-title">Jugada</div>
     <div class="kb-row"><div class="kb-label">✕ Erró / Strike</div><div class="kb-keys"><span class="kbd">X</span></div></div>
@@ -1967,6 +1968,7 @@ document.addEventListener('keydown', function (e) {
     case 'u': if (e.shiftKey) undoStrike(); else undoReveal(); break;
     case 'U': if (e.shiftKey) undoStrike(); else undoReveal(); break;
     case 'v': case 'V': openVAR(); break;
+    case 'b': case 'B': if (round.phase === 'faceoff') fbToggle(); break;
     case 'Enter': if (round.phase === 'over') closeRound(); break;
   }
 });
