@@ -586,10 +586,13 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
         <span class="act-label" id="reveal-label">Oculto para participantes</span>
       </button>
     </div>
-    <div class="action-row" id="grid-hint-row" style="display:none;margin-bottom:.25rem">
+    <div class="action-row" id="grid-hint-row" style="display:none;margin-bottom:.25rem;gap:.4rem">
       <button class="act-btn" onclick="revealRandomTile()" style="background:var(--purple-dim);border:1.5px solid var(--purple);color:var(--purple);flex:1">
         <span class="act-icon">💡</span>
         <span class="act-label" id="grid-hint-label">Destapar un cuadro (0/9)</span>
+      </button>
+      <button class="act-btn" id="grid-auto-btn" onclick="toggleGridAuto()" style="background:var(--surface2);border:1.5px solid var(--border2);color:var(--muted);flex:0 0 auto;width:auto;padding:0 .85rem">
+        <span class="act-label" id="grid-auto-label">Auto: OFF</span>
       </button>
     </div>
     <div class="action-row" id="lyric-hint-row" style="display:none;margin-bottom:.25rem">
@@ -1194,6 +1197,7 @@ let gridRevealed=[],_lastGridCardId=null,_cropSeeds={};
 let _songMode='audio',lyricLine=0,_lastLyricCardId=null;
 let _karaokeTimer=null;
 let frameIdx=0,revealProgress=0,_movieAutoTimer=null,_autoStep=0,_lastFrameCardId=null;
+let gridAutoReveal=(()=>{try{return localStorage.getItem('gms_gridAuto')==='1';}catch(e){return false;}})();
 
 // ─── SYNC ────────────────────────────────────────────────────────
 let _bc=null,_hb=null;
@@ -1698,7 +1702,20 @@ function syncGridHintUI(){
     const open=gridRevealed.filter(Boolean).length;
     const lbl=document.getElementById('grid-hint-label');
     if(lbl)lbl.textContent=open>=9?'Todos los cuadros destapados':`Destapar un cuadro (${open}/9)`;
+    const ab=document.getElementById('grid-auto-btn'),al=document.getElementById('grid-auto-label');
+    if(al)al.textContent=gridAutoReveal?'Auto: ON':'Auto: OFF';
+    if(ab){ab.style.borderColor=gridAutoReveal?'var(--accent)':'var(--border2)';ab.style.color=gridAutoReveal?'var(--accent)':'var(--muted)';ab.style.background=gridAutoReveal?'var(--accent-dim)':'var(--surface2)';}
   }
+}
+function toggleGridAuto(){
+  gridAutoReveal=!gridAutoReveal;
+  try{localStorage.setItem('gms_gridAuto',gridAutoReveal?'1':'0');}catch(e){}
+  syncGridHintUI();
+  const c=currentCard();
+  if(c&&c.type==='movie'&&c.revealMode==='grid'&&revealed){
+    if(gridAutoReveal)maybeStartMovieAuto();else stopMovieAuto();
+  }
+  showToast(gridAutoReveal?'🔄 Grid: auto-destape ON':'✋ Grid: destape manual');
 }
 function lyricLinesOf(c){return (c&&c.lyrics?c.lyrics:'').split('\n').map(s=>s.trim()).filter(Boolean);}
 function syncLyricHintUI(){
@@ -1796,7 +1813,8 @@ function movieAutoActive(){
   const c=currentCard();
   if(!c||c.type!=='movie'||!revealed||phase!=='idle')return false;
   const m=c.revealMode||'full';
-  return m==='blur'||m==='crop'||m==='grid'||movieIsMultiFrame(c);
+  // blur/crop siempre auto (es la naturaleza del modo); grid solo si está activado; frames NUNCA (manual).
+  return m==='blur'||m==='crop'||(m==='grid'&&gridAutoReveal);
 }
 function autoRevealTileSilent(){
   const c=currentCard();
@@ -1821,8 +1839,8 @@ function movieAutoTick(){
   _autoStep++;
   let changed=false;
   if(m==='blur'||m==='crop'){revealProgress=Math.min(1,revealProgress+1/20);changed=true;} // ~14s a 700ms
-  if(m==='grid'&&_autoStep%3===0){autoRevealTileSilent();changed=true;}
-  if(movieIsMultiFrame(c)&&_autoStep%4===0){advanceFrameSilent();changed=true;}
+  if(m==='grid'&&gridAutoReveal&&_autoStep%3===0){autoRevealTileSilent();changed=true;}
+  // Frames: se pasan manualmente (tecla F / botón), no automáticamente.
   updateCondProgress();
   if(changed)sendState();
 }
