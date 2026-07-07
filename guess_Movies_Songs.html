@@ -331,6 +331,17 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
 .song-reveal-wrap{display:flex;flex-direction:column;align-items:center;gap:.75rem;animation:revealIn .4s cubic-bezier(.22,1,.36,1)}
 .song-reveal-icon{font-size:clamp(60px,10vw,140px);line-height:1}
 .song-reveal-title{font-size:clamp(1.6rem,5vw,3.5rem);font-weight:900;color:var(--gold);text-align:center;letter-spacing:-.02em;padding:0 1rem}
+/* ── Modos de letra (Guess Song visual) ── */
+.part-lyrics-wrap{display:flex;flex-direction:column;align-items:center;gap:1rem;width:100%;flex:1 1 auto;min-height:0;justify-content:center;position:relative}
+.part-lyrics{display:flex;flex-direction:column;gap:.5rem;width:min(88vw,880px);max-height:64vh;overflow:auto;padding:.5rem .25rem;text-align:center;scrollbar-width:thin}
+.part-lyric-line{font-size:clamp(1.05rem,2.7vw,2rem);font-weight:800;line-height:1.28;color:var(--text);opacity:.92;transition:opacity .45s cubic-bezier(.22,1,.36,1),color .45s,transform .45s;letter-spacing:-.01em}
+.part-lyric-line.line-in{animation:revealIn .45s cubic-bezier(.22,1,.36,1)}
+.part-lyrics.karaoke .part-lyric-line{opacity:.3}
+.part-lyrics.karaoke .part-lyric-line.active{opacity:1;color:var(--accent);transform:scale(1.05);text-shadow:0 2px 24px rgba(200,240,96,.4)}
+.part-lyric-line.is-hidden{visibility:hidden}
+.part-lyric-blank{display:inline-block;min-width:2.2em;border-bottom:3px solid var(--purple);margin:0 .12em;vertical-align:bottom;height:.9em;border-radius:2px}
+.part-lyrics-tag{font-size:clamp(11px,1.6vw,18px);font-weight:800;color:var(--muted);letter-spacing:.12em;text-transform:uppercase;display:flex;align-items:center;gap:.4rem}
+.part-lyrics-yt-hidden{position:absolute;width:1px;height:1px;opacity:0;pointer-events:none;overflow:hidden;left:-9999px}
 .part-timer{display:none;flex-direction:column;align-items:center;gap:.2rem}
 .part-timer.show{display:flex}
 .part-timer-num{font-size:clamp(4rem,18vw,7rem);font-weight:900;line-height:1;color:var(--accent);font-variant-numeric:tabular-nums}
@@ -579,6 +590,12 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
         <span class="act-label" id="grid-hint-label">Destapar un cuadro (0/9)</span>
       </button>
     </div>
+    <div class="action-row" id="lyric-hint-row" style="display:none;margin-bottom:.25rem">
+      <button class="act-btn" onclick="revealNextLine()" style="background:var(--purple-dim);border:1.5px solid var(--purple);color:var(--purple);flex:1">
+        <span class="act-icon">📝</span>
+        <span class="act-label" id="lyric-hint-label">Próxima línea (0/0)</span>
+      </button>
+    </div>
     <div class="action-row" id="act-idle">
       <button class="act-btn act-buzz-a" onclick="setBuzzer('a')"><span class="act-icon">🔔</span><span class="act-label" id="buzz-label-a">Equipo 1 buzzó</span></button>
       <button class="act-btn act-pass" onclick="passCard()"><span class="act-icon">→</span><span class="act-label">Pasar</span></button>
@@ -695,6 +712,19 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
         </div>
         <div class="fc"><div class="form-label">Empezar en (segundos)</div><input class="form-input" id="ns-start-local" placeholder="0" type="number" min="0" inputmode="numeric" style="max-width:120px"></div>
       </div>
+      <div class="fc"><div class="form-label">Letra (una línea por renglón — opcional)</div>
+        <textarea class="form-input" id="ns-lyrics" rows="4" placeholder="Pegá acá la letra de la canción…&#10;Una frase por renglón."></textarea>
+      </div>
+      <div class="fc"><div class="form-label">Cómo se muestra</div>
+        <div class="ist-row" style="flex-wrap:wrap">
+          <button class="ist-btn on" id="sm-audio" style="flex:1 1 30%" onclick="setSongMode('audio')">🎵 Solo audio</button>
+          <button class="ist-btn" id="sm-lyrics" style="flex:1 1 30%" onclick="setSongMode('lyrics')">📄 Solo letra</button>
+          <button class="ist-btn" id="sm-progresiva" style="flex:1 1 30%" onclick="setSongMode('progresiva')">📝 Progresiva</button>
+          <button class="ist-btn" id="sm-huecos" style="flex:1 1 30%" onclick="setSongMode('huecos')">▁ Huecos</button>
+          <button class="ist-btn" id="sm-karaoke" style="flex:1 1 30%" onclick="setSongMode('karaoke')">🎤 Karaoke</button>
+        </div>
+        <div style="font-size:10.5px;color:var(--muted);margin-top:.25rem;line-height:1.4">Progresiva y Karaoke necesitan letra. Karaoke además reproduce el audio.</div>
+      </div>
       <div class="fl"><button class="add-submit" onclick="submitSong()">Guardar canción</button><button class="sheet-close" style="flex:0 0 auto;width:auto;padding:.75rem 1rem;font-size:13px" onclick="hideAddForms()">✕</button></div>
     </div>
     <div class="divider"></div>
@@ -729,6 +759,10 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
     <div class="kb-row"><div class="kb-label">→ Pasar / Sig.</div><div class="kb-keys"><span class="kbd">→</span></div></div>
     <div class="kb-row"><div class="kb-label">← Anterior</div><div class="kb-keys"><span class="kbd">←</span></div></div>
     <div class="kb-row"><div class="kb-label">👁 Mostrar/ocultar</div><div class="kb-keys"><span class="kbd">V</span></div></div>
+
+    <div class="kb-group-title">Pistas</div>
+    <div class="kb-row"><div class="kb-label">📝 Próxima línea (letra)</div><div class="kb-keys"><span class="kbd">L</span></div></div>
+    <div class="kb-row"><div class="kb-label">▦ Destapar cuadro (grid)</div><div class="kb-keys"><span class="kbd">G</span></div></div>
 
     <div class="kb-group-title">Buzzer</div>
     <div class="kb-row"><div class="kb-label">Buzzer Equipo 1</div><div class="kb-keys"><span class="kbd">1</span></div></div>
@@ -1144,6 +1178,8 @@ let phase='idle',activeBuzzer=null,revealed=false;
 let MODE=null,nextId=200,_imgSrc='url',_fileData=null,_audioSrc='yt',_audioData=null;
 let _imgKind='poster',_revealMode='full',_frameFiles=[];
 let gridRevealed=[],_lastGridCardId=null,_cropSeeds={};
+let _songMode='audio',lyricLine=0,_lastLyricCardId=null;
+let _karaokeTimer=null;
 
 // ─── SYNC ────────────────────────────────────────────────────────
 let _bc=null,_hb=null;
@@ -1167,6 +1203,10 @@ function sendState(){
     imgUrl:imgInfo.src,isFrame:imgInfo.isFrame,
     revealMode:cur?.type==='movie'?(cur.revealMode||'full'):'full',
     gridRevealed:gridRevealed,
+    songMode:cur?.type==='song'?(cur.songMode||'audio'):null,
+    lyrics:cur?.type==='song'?(cur.lyrics||''):'',
+    lyricLine:lyricLine,
+    cardKey:cur?.id??null,
     cardTitle:cur?.title||null,cardNum:order.length?cardIdx+1:0,totalCards:order.length,t:Date.now()});
 }
 function startHeartbeat(){if(_hb)clearInterval(_hb);_hb=setInterval(sendState,200);sendState();}
@@ -1191,6 +1231,9 @@ function ensureRevealModes(forceShuffle){
       if(c.type==='movie'){
         c.revealMode=randomRevealMode();
         changed=true;
+      } else if(c.type==='song'){
+        c.songMode=randomSongMode(c);
+        changed=true;
       }
     });
     try{localStorage.setItem(SK.DECK+'_rmShuffled','1');}catch(e){}
@@ -1198,6 +1241,9 @@ function ensureRevealModes(forceShuffle){
     deck.forEach(c=>{
       if(c.type==='movie'&&!c.revealMode){
         c.revealMode=randomRevealMode();
+        changed=true;
+      } else if(c.type==='song'&&!c.songMode){
+        c.songMode=randomSongMode(c);
         changed=true;
       }
     });
@@ -1473,21 +1519,25 @@ function renderCondCard(){
       inner=`<div class="cond-song-inner"><div style="font-size:36px;margin-bottom:.25rem">🎵</div><div class="song-no-yt">⚠️ Sin audio cargado</div></div>`;
     }
   }
-  wrap.innerHTML=`<div class="cond-card-top">${tb}${nb}</div>${inner}<div class="cond-card-title">${esc(c.title)}</div>`;
+  let smBadge='';
+  if(c.type==='song'){const m=c.songMode||'audio';const lbl={audio:'🎵 Solo audio',lyrics:'📄 Solo letra',progresiva:'📝 Progresiva',huecos:'▁ Huecos',karaoke:'🎤 Karaoke'}[m]||m;smBadge=`<span class="num-badge" style="margin-left:.4rem">${lbl}</span>`;}
+  wrap.innerHTML=`<div class="cond-card-top">${tb}${nb}${smBadge}</div>${inner}<div class="cond-card-title">${esc(c.title)}</div>`;
   wrap.className='cond-card';
   if(c.id!==_lastGridCardId){gridRevealed=(c.type==='movie'&&c.revealMode==='grid')?Array(9).fill(false):[];_lastGridCardId=c.id;}
+  if(c.id!==_lastLyricCardId){lyricLine=0;_lastLyricCardId=c.id;stopKaraokeSync();}
   syncGridHintUI();
+  syncLyricHintUI();
   if(c.type==='song'&&c.youtubeId&&c.id!==_lastCondId) createCondPlayer(c);
   if(c.type==='song'&&c.audioData){const au=document.getElementById('local-audio-cond');if(au){au.currentTime=c.startAt||0;}}
   _lastCondId=c.id;
   sendState();
 }
-function doCondPlay(){const c=currentCard();if(!c||!c.youtubeId)return;condPlay(c);broadcast({type:'yt_play',youtubeId:c.youtubeId,startAt:c.startAt||0});}
-function doCondStop(){condPause();broadcast({type:'yt_pause'});}
-function doCondRestart(){const c=currentCard();if(!c||!c.youtubeId)return;condRestart(c);broadcast({type:'yt_restart',youtubeId:c.youtubeId,startAt:c.startAt||0});}
-function doCondPlayLocal(){const au=document.getElementById('local-audio-cond');if(au){au.play();broadcast({type:'local_play',startAt:currentCard()?.startAt||0});}}
-function doCondStopLocal(){const au=document.getElementById('local-audio-cond');if(au){au.pause();}broadcast({type:'local_stop'});}
-function doCondRestartLocal(){const au=document.getElementById('local-audio-cond');if(au){au.currentTime=currentCard()?.startAt||0;au.play();}broadcast({type:'local_play',startAt:currentCard()?.startAt||0});}
+function doCondPlay(){const c=currentCard();if(!c||!c.youtubeId)return;condPlay(c);broadcast({type:'yt_play',youtubeId:c.youtubeId,startAt:c.startAt||0});maybeStartKaraokeSync();}
+function doCondStop(){condPause();broadcast({type:'yt_pause'});stopKaraokeSync();}
+function doCondRestart(){const c=currentCard();if(!c||!c.youtubeId)return;condRestart(c);broadcast({type:'yt_restart',youtubeId:c.youtubeId,startAt:c.startAt||0});lyricLine=0;maybeStartKaraokeSync();}
+function doCondPlayLocal(){const au=document.getElementById('local-audio-cond');if(au){au.play();broadcast({type:'local_play',startAt:currentCard()?.startAt||0});}maybeStartKaraokeSync();}
+function doCondStopLocal(){const au=document.getElementById('local-audio-cond');if(au){au.pause();}broadcast({type:'local_stop'});stopKaraokeSync();}
+function doCondRestartLocal(){const au=document.getElementById('local-audio-cond');if(au){au.currentTime=currentCard()?.startAt||0;au.play();}broadcast({type:'local_play',startAt:currentCard()?.startAt||0});lyricLine=0;maybeStartKaraokeSync();}
 
 // ─── CONDUCTOR: ATAJOS DE TECLADO ────────────────────────────────
 // Pensados para no tener que tocar el mouse durante la partida.
@@ -1573,6 +1623,8 @@ document.addEventListener('keydown',function(e){
     case'Enter':case'c':case'C':if(phase==='playing_a'||phase==='playing_b')markCorrect();break;
     case'x':case'X':if(phase==='playing_a'||phase==='playing_b')markWrong();break;
     case'v':case'V':toggleReveal();break;
+    case'l':case'L':if(revealed)revealNextLine();break;
+    case'g':case'G':if(revealed)revealRandomTile();break;
     case't':case'T':if(timerActive)stopTimer();else startTimer();break;
     case'0':resetTimer();break;
   }
@@ -1622,6 +1674,86 @@ function syncGridHintUI(){
     if(lbl)lbl.textContent=open>=9?'Todos los cuadros destapados':`Destapar un cuadro (${open}/9)`;
   }
 }
+function lyricLinesOf(c){return (c&&c.lyrics?c.lyrics:'').split('\n').map(s=>s.trim()).filter(Boolean);}
+function syncLyricHintUI(){
+  const c=currentCard();
+  const row=document.getElementById('lyric-hint-row');
+  if(!row)return;
+  const m=c&&c.type==='song'?(c.songMode||'audio'):null;
+  const hasLines=!!(c&&c.type==='song'&&lyricLinesOf(c).length>0);
+  // Botón manual: en Progresiva siempre; en Karaoke solo si NO hay audio
+  // (con audio, la línea se mueve sola y no hace falta avanzar a mano).
+  const manualStep=hasLines&&(m==='progresiva'||(m==='karaoke'&&!karaokeHasAudio(c)));
+  row.style.display=(manualStep&&revealed&&phase!=='reveal')?'':'none';
+  if(manualStep){
+    const total=lyricLinesOf(c).length;
+    const lbl=document.getElementById('lyric-hint-label');
+    if(lbl){const shown=Math.min(lyricLine+1,total);lbl.textContent=lyricLine>=total-1?(m==='karaoke'?`Última línea (${total}/${total})`:`Toda la letra (${total}/${total})`):(m==='karaoke'?`Avanzar línea (${shown}/${total})`:`Próxima línea (${shown}/${total})`);}
+  }
+}
+function revealNextLine(){
+  const c=currentCard();
+  if(!c||c.type!=='song')return;
+  // En karaoke con audio, la línea avanza sola: ignoramos el avance manual.
+  if((c.songMode||'audio')==='karaoke'&&karaokeHasAudio(c)&&_karaokeTimer)return;
+  const total=lyricLinesOf(c).length;
+  if(!total)return;
+  if(lyricLine>=total-1){showToast('Ya está toda la letra');return;}
+  lyricLine++;
+  syncLyricHintUI();
+  sendState();
+  showToast('📝 Línea '+(lyricLine+1)+'/'+total);
+}
+// ── Karaoke: sincronización automática de la línea con el audio ──
+function karaokeHasAudio(c){return !!(c&&(c.youtubeId||c.audioData));}
+function condAudioClock(){
+  // Devuelve {t,dur} (segundos) leídos del reproductor del CONDUCTOR, o null.
+  const c=currentCard();
+  if(!c||c.type!=='song')return null;
+  if(c.youtubeId&&ytCond){
+    try{const t=ytCond.getCurrentTime();const dur=ytCond.getDuration();
+      if(typeof t==='number')return {t,dur:(typeof dur==='number'?dur:0)};}catch(e){}
+    return null;
+  }
+  if(c.audioData){
+    const au=document.getElementById('local-audio-cond');
+    if(au)return {t:au.currentTime||0,dur:(au.duration&&!isNaN(au.duration))?au.duration:0};
+  }
+  return null;
+}
+function karaokeActiveLine(){
+  const c=currentCard();
+  if(!c||c.type!=='song'||(c.songMode||'audio')!=='karaoke')return null;
+  const lines=lyricLinesOf(c);
+  if(!lines.length)return null;
+  const clk=condAudioClock();
+  if(!clk)return null;
+  const start=c.startAt||0;
+  // 1) Si la canción tiene tiempos por línea guardados, se usan (preciso).
+  if(Array.isArray(c.lyricTimes)&&c.lyricTimes.length){
+    let idx=0;
+    for(let i=0;i<lines.length;i++){const ts=c.lyricTimes[i];if(typeof ts==='number'&&clk.t>=ts)idx=i;}
+    return Math.min(idx,lines.length-1);
+  }
+  // 2) Si no, reparto parejo a lo largo de la duración (automático, sin carga).
+  if(clk.dur>start+1){
+    const frac=Math.max(0,(clk.t-start))/(clk.dur-start);
+    return Math.min(lines.length-1,Math.max(0,Math.floor(frac*lines.length)));
+  }
+  return null;
+}
+function startKaraokeSync(){
+  const c=currentCard();
+  if(!c||c.type!=='song'||(c.songMode||'audio')!=='karaoke'||!karaokeHasAudio(c))return;
+  stopKaraokeSync();
+  _karaokeTimer=setInterval(()=>{
+    const line=karaokeActiveLine();
+    if(line===null)return;
+    if(line!==lyricLine){lyricLine=line;syncLyricHintUI();sendState();}
+  },350);
+}
+function stopKaraokeSync(){if(_karaokeTimer){clearInterval(_karaokeTimer);_karaokeTimer=null;}}
+function maybeStartKaraokeSync(){const c=currentCard();if(c&&c.type==='song'&&(c.songMode||'audio')==='karaoke'&&karaokeHasAudio(c))startKaraokeSync();}
 function revealRandomTile(){
   const c=currentCard();
   if(!c||c.type!=='movie'||c.revealMode!=='grid')return;
@@ -1636,14 +1768,18 @@ function revealRandomTile(){
 }
 function toggleReveal(){
   revealed=!revealed;
+  if(revealed){const c0=currentCard();if(c0&&c0.type==='song')lyricLine=0;}
   syncRevealUI();
   syncGridHintUI();
+  syncLyricHintUI();
   sendState();
   if(revealed){
     fbOpenBuzzer();
-    // Si la carta es una canción, se reproduce sola al habilitar el buzzer
+    // Si la carta es una canción, se reproduce sola al habilitar el buzzer.
+    // Solo suena en los modos con audio (Solo audio y Karaoke); los modos de
+    // letra pura (Solo letra, Progresiva, Huecos) son silenciosos.
     const c=currentCard();
-    if(c&&c.type==='song') kbPlaySong();
+    if(c&&c.type==='song'){const m=c.songMode||'audio';if(m==='audio'||m==='karaoke')kbPlaySong();}
   } else {
     fbLock();
     // Al ocultar la carta se corta la canción
@@ -1725,7 +1861,7 @@ function importDeckJson(input){
 }
 
 // ─── PARTICIPANT: RENDER ─────────────────────────────────────────
-let _pLastType=null,_pLastId=null,_pLastPhase=null,_pLastGrid=null;
+let _pLastType=null,_pLastId=null,_pLastPhase=null,_pLastGrid=null,_pLastKey=null,_pLastLyricLine=null;
 function updateGridTiles(d){
   const overlay=document.getElementById('part-grid-overlay');
   if(!overlay)return;
@@ -1741,20 +1877,73 @@ function renderParticipant(d){
   const diff=Math.abs((d.scoreA||0)-(d.scoreB||0)),w=(d.scoreA||0)>(d.scoreB||0)?'a':(d.scoreB||0)>(d.scoreA||0)?'b':null;
   const pb=document.getElementById('p-bonus');
   if(diff>=5&&w){pb.textContent='🏆 Bonus: '+(w==='a'?(d.nameA||'Eq 1'):(d.nameB||'Eq 2'));pb.classList.add('show');}else pb.classList.remove('show');
-  if(!d.cardType){document.getElementById('part-main').innerHTML='<div class="part-idle"><div class="part-idle-icon">🎬</div><div class="part-idle-text">Esperando al conductor…</div></div>';_pLastType=null;_pLastId=null;_pLastPhase=null;return;}
+  if(!d.cardType){document.getElementById('part-main').innerHTML='<div class="part-idle"><div class="part-idle-icon">🎬</div><div class="part-idle-text">Esperando al conductor…</div></div>';_pLastType=null;_pLastId=null;_pLastPhase=null;_pLastKey=null;_pLastLyricLine=null;return;}
   // Si el conductor aún no reveló la carta, mostrar pantalla de espera
   if(!d.revealed){
     document.getElementById('part-main').innerHTML='<div class="part-idle"><div class="part-idle-icon" style="animation:auPulse 2s ease-in-out infinite">🎬</div><div class="part-idle-text" style="font-size:18px;font-weight:900;color:var(--text)">¡Listos!</div><div class="part-idle-text" style="margin-top:.35rem">Esperando que el conductor muestre la carta…</div></div>';
-    _pLastType=null;_pLastId=null;_pLastPhase=null;return;
+    _pLastType=null;_pLastId=null;_pLastPhase=null;_pLastKey=null;_pLastLyricLine=null;return;
   }
-  const cc=d.cardType!==_pLastType||(d.cardType==='song'&&d.youtubeId!==_pLastId)||(d.cardType==='movie'&&d.imgUrl!==_pLastId);
+  const cc=d.cardType!==_pLastType||(d.cardKey??null)!==_pLastKey;
   const pc=d.phase!==_pLastPhase;
-  if(cc||pc){buildPartCard(d);_pLastType=d.cardType;_pLastId=d.cardType==='song'?d.youtubeId:d.imgUrl;_pLastPhase=d.phase;_pLastGrid=d.gridRevealed?[...d.gridRevealed]:null;}
+  if(cc||pc){buildPartCard(d);_pLastType=d.cardType;_pLastId=d.cardType==='song'?d.youtubeId:d.imgUrl;_pLastKey=d.cardKey??null;_pLastPhase=d.phase;_pLastGrid=d.gridRevealed?[...d.gridRevealed]:null;_pLastLyricLine=d.lyricLine;}
   else if(d.revealMode==='grid'&&JSON.stringify(d.gridRevealed)!==JSON.stringify(_pLastGrid)){updateGridTiles(d);_pLastGrid=d.gridRevealed?[...d.gridRevealed]:null;}
+  else if((d.songMode==='progresiva'||d.songMode==='karaoke')&&d.lyricLine!==_pLastLyricLine){updateLyricLines(d);_pLastLyricLine=d.lyricLine;}
   const pm=document.getElementById('part-main');
   const pt=pm.querySelector('.part-timer');
   if(pt){pt.classList.toggle('show',d.timerActive||false);const tn=pt.querySelector('.part-timer-num');if(tn){tn.textContent=d.timerLeft;tn.classList.toggle('low',(d.timerLeft||0)<=5);}}
   if(d.cardType==='song'&&d.youtubeId&&!audioUnlocked)document.getElementById('audio-unlock').classList.remove('hidden');
+}
+// ── Modos de letra: helpers de render en pantalla del jugador ──
+function _lyrHash(str){let h=2166136261>>>0;for(let i=0;i<str.length;i++){h^=str.charCodeAt(i);h=Math.imul(h,16777619);}return h>>>0;}
+function _lyrRand(seed){let s=seed>>>0||1;return function(){s=(Math.imul(s,1664525)+1013904223)>>>0;return s/4294967296;};}
+function _blankLyricLine(line,key){
+  const rnd=_lyrRand(_lyrHash((key||'')+'|'+line));
+  let blanked=false;
+  const out=line.split(/(\s+)/).map(tok=>{
+    if(/^\s*$/.test(tok))return tok;
+    let alpha=0;for(const ch of tok){if(/\p{L}/u.test(ch))alpha++;}
+    if(alpha>=4&&rnd()<0.42){blanked=true;const w=Math.min(alpha,12);return `<span class="part-lyric-blank" style="min-width:${(w*0.5).toFixed(1)}em"></span>`;}
+    return esc(tok);
+  });
+  return out.join('');
+}
+function songLyricsData(d){
+  const mode=d.songMode||'audio';
+  if(mode==='audio')return null;
+  const lines=(d.lyrics||'').split('\n').map(s=>s.trim()).filter(Boolean);
+  if(!lines.length)return null;
+  const cur=(typeof d.lyricLine==='number')?d.lyricLine:0;
+  let html='',tag='',karaoke=false;
+  if(mode==='huecos'){
+    html=lines.map(l=>`<div class="part-lyric-line">${_blankLyricLine(l,d.cardKey)}</div>`).join('');
+    tag='▁ Completá los huecos';
+  }else if(mode==='progresiva'){
+    html=lines.slice(0,cur+1).map(l=>`<div class="part-lyric-line line-in">${esc(l)}</div>`).join('');
+    tag='📝 La letra va apareciendo';
+  }else if(mode==='karaoke'){
+    karaoke=true;
+    html=lines.map((l,i)=>`<div class="part-lyric-line${i===cur?' active':''}">${esc(l)}</div>`).join('');
+    tag='🎤 Seguí la letra';
+  }else{ // 'lyrics'
+    html=lines.map(l=>`<div class="part-lyric-line">${esc(l)}</div>`).join('');
+    tag='📄 Adiviná por la letra';
+  }
+  return {html,tag,karaoke,mode};
+}
+function scrollActiveLyric(){const box=document.getElementById('part-lyrics');if(!box)return;const t=box.querySelector('.part-lyric-line.active')||box.lastElementChild;if(t&&t.scrollIntoView){try{t.scrollIntoView({block:'center',behavior:'smooth'});}catch(e){t.scrollIntoView();}}}
+function updateLyricLines(d){
+  const box=document.getElementById('part-lyrics');if(!box)return;
+  const mode=d.songMode||'audio';
+  const lines=(d.lyrics||'').split('\n').map(s=>s.trim()).filter(Boolean);
+  const cur=(typeof d.lyricLine==='number')?d.lyricLine:0;
+  if(mode==='karaoke'){
+    box.querySelectorAll('.part-lyric-line').forEach((el,i)=>el.classList.toggle('active',i===cur));
+    scrollActiveLyric();
+  }else if(mode==='progresiva'){
+    const have=box.querySelectorAll('.part-lyric-line').length;
+    for(let i=have;i<=cur&&i<lines.length;i++){const div=document.createElement('div');div.className='part-lyric-line line-in';div.textContent=lines[i];box.appendChild(div);}
+    scrollActiveLyric();
+  }
 }
 function buildPartCard(d){
   const main=document.getElementById('part-main');
@@ -1782,6 +1971,11 @@ function buildPartCard(d){
   } else {
     if(isRev){cHtml=`<div class="song-reveal-wrap"><div class="song-reveal-icon">🎵✅</div><div class="song-reveal-title">${esc(d.cardTitle||'')}</div></div>`;}
     else{
+      const lyr=songLyricsData(d);
+      if(lyr){
+        const ytHidden=d.youtubeId?'<div id="yt-part-el" class="part-lyrics-yt-hidden"></div>':'';
+        cHtml=`<div class="part-lyrics-wrap">${ytHidden}<div class="part-lyrics${lyr.karaoke?' karaoke':''}" id="part-lyrics">${lyr.html}</div><div class="part-lyrics-tag">${lyr.tag}</div></div>`;
+      } else {
       const hy=!!d.youtubeId;
       const ha=!!d.hasLocalAudio;
       if(hy){
@@ -1791,11 +1985,13 @@ function buildPartCard(d){
       } else {
         cHtml=`<div class="part-song-wrap"><div class="part-song-yt-box" style="background:var(--surface2)"><div class="part-song-overlay"><div class="part-song-icon">🎵</div></div></div><div class="part-song-sublabel">Sin audio</div></div>`;
       }
+      }
     }
   }
   let ansBanner='';
   if(d.phase==='playing_a'||d.phase==='playing_b'){const t=d.phase==='playing_a'?'a':'b';const n=t==='a'?(d.nameA||'Eq 1'):(d.nameB||'Eq 2');ansBanner=`<div class="part-answering show pa-${t}">🔔 Respondiendo: ${esc(n)}</div>`;}
   main.innerHTML=`<div class="part-meta">${tb}${num}</div>${ansBanner}${cHtml}<div class="part-timer"><div class="part-timer-num">${d.timerLeft||15}</div><div class="part-timer-label">segundos</div></div>`;
+  if(d.cardType==='song'&&(d.songMode==='karaoke'||d.songMode==='progresiva'))setTimeout(scrollActiveLyric,60);
 }
 
 // ─── DECK EDITOR ─────────────────────────────────────────────────
@@ -1808,7 +2004,9 @@ function renderDeckList(){
     const thumbSrc=c.type==='movie'?(c.imgKind==='frame'?(c.frames&&c.frames[0]):(c.imgData||c.img)):null;
     const th=c.type==='movie'?`<div class="deck-thumb">${thumbSrc?`<img src="${esc(thumbSrc)}" onerror="this.parentElement.textContent='🎬'" loading="lazy">`:'🎬'}</div>`:`<div class="deck-thumb">🎵</div>`;
     const modeTag=c.type==='movie'?(c.revealMode==='grid'?' · ▦ Grid':c.revealMode==='crop'?' · 🔍 Recorte':''):'';
-    const meta=c.type==='movie'?((c.imgKind==='frame'?`🎞 ${(c.frames||[]).length} frame(s)`:(c.imgData?'📁 Local':c.img?'🔗 URL':'sin póster'))+modeTag):(c.audioData?`📁 Audio local · ${c.startAt||0}s`:c.youtubeId?`▶ ${c.youtubeId} · ${c.startAt||0}s`:'⚠️ sin audio');
+    const songModeTag=c.type==='song'?({audio:'',lyrics:' · 📄 Letra',progresiva:' · 📝 Progresiva',huecos:' · ▁ Huecos',karaoke:' · 🎤 Karaoke'}[c.songMode||'audio']||''):'';
+    const songLyrTag=c.type==='song'&&c.lyrics&&c.lyrics.trim()?' · 🎼':'';
+    const meta=c.type==='movie'?((c.imgKind==='frame'?`🎞 ${(c.frames||[]).length} frame(s)`:(c.imgData?'📁 Local':c.img?'🔗 URL':'sin póster'))+modeTag):((c.audioData?`📁 Audio local · ${c.startAt||0}s`:c.youtubeId?`▶ ${c.youtubeId} · ${c.startAt||0}s`:'⚠️ sin audio')+songModeTag+songLyrTag);
     return `<div class="deck-item">${th}<div class="deck-info"><div class="deck-title">${esc(c.title)}</div><div class="deck-meta">${esc(meta)}</div></div><div class="deck-btns"><button class="deck-btn" onclick="editCard(${i})">✏️</button><button class="deck-btn del" onclick="deleteCard(${i})">✕</button></div></div>`;
   }).join('');
 }
@@ -1824,12 +2022,24 @@ function editCard(i){
     if(c.imgKind==='frame'&&c.frames&&c.frames.length){_frameFiles=c.frames.filter(f=>f.startsWith('data:'));document.getElementById('nm-frame-urls').value=c.frames.filter(f=>!f.startsWith('data:')).join('\n');document.getElementById('frame-preview').textContent='✓ '+c.frames.length+' imagen(es) guardada(s) — subí nuevas para reemplazar';}
     document.getElementById('add-movie-form').dataset.ei=i;
   }
-  else{showAddForm('song');document.getElementById('ns-title').value=c.title;if(c.audioData){setAudioSrc('file');_audioData=c.audioData;document.getElementById('audio-file-preview').textContent='✓ audio guardado';document.getElementById('ns-start-local').value=c.startAt||0;}else{setAudioSrc('yt');document.getElementById('ns-url').value=c.youtubeId?`https://youtu.be/${c.youtubeId}`:'';document.getElementById('ns-start').value=c.startAt||0;}document.getElementById('add-song-form').dataset.ei=i;}
+  else{showAddForm('song');document.getElementById('ns-title').value=c.title;if(c.audioData){setAudioSrc('file');_audioData=c.audioData;document.getElementById('audio-file-preview').textContent='✓ audio guardado';document.getElementById('ns-start-local').value=c.startAt||0;}else{setAudioSrc('yt');document.getElementById('ns-url').value=c.youtubeId?`https://youtu.be/${c.youtubeId}`:'';document.getElementById('ns-start').value=c.startAt||0;}document.getElementById('ns-lyrics').value=c.lyrics||'';setSongMode(c.songMode||'audio');document.getElementById('add-song-form').dataset.ei=i;}
   setTimeout(()=>{document.getElementById('deck-panel').scrollTop=0;},80);
 }
-function showAddForm(type){hideAddForms();document.getElementById(type==='movie'?'add-movie-form':'add-song-form').style.display='';if(type==='movie')setRevealMode(randomRevealMode());setTimeout(()=>document.getElementById('deck-panel').scrollTop=0,50);}
+function showAddForm(type){hideAddForms();document.getElementById(type==='movie'?'add-movie-form':'add-song-form').style.display='';if(type==='movie')setRevealMode(randomRevealMode());else setSongMode('audio');setTimeout(()=>document.getElementById('deck-panel').scrollTop=0,50);}
 function randomRevealMode(){const opts=['full','grid','crop'];return opts[Math.floor(Math.random()*opts.length)];}
-function hideAddForms(){['add-movie-form','add-song-form'].forEach(id=>{const f=document.getElementById(id);f.style.display='none';f.dataset.ei='';});document.getElementById('nm-title').value='';document.getElementById('nm-url').value='';document.getElementById('ns-title').value='';document.getElementById('ns-url').value='';document.getElementById('ns-start').value='';document.getElementById('ns-start-local').value='';_fileData=null;document.getElementById('file-preview').textContent='';_audioData=null;document.getElementById('audio-file-preview').textContent='';setAudioSrc('yt');_frameFiles=[];document.getElementById('nm-frame-urls').value='';document.getElementById('frame-preview').textContent='';setImgKind('poster');setRevealMode('full');}
+function songHasLyrics(c){return !!(c&&c.lyrics&&c.lyrics.trim().length);}
+function songHasAudio(c){return !!(c&&(c.youtubeId||c.audioData));}
+function randomSongMode(c){
+  // Elige un modo válido según lo que tenga cargado la carta:
+  // audio → necesita audio · lyrics/progresiva/huecos → necesitan letra · karaoke → ambos.
+  const pool=[];
+  if(songHasAudio(c))pool.push('audio');
+  if(songHasLyrics(c)){pool.push('lyrics','progresiva','huecos');if(songHasAudio(c))pool.push('karaoke');}
+  if(!pool.length)return 'audio';
+  return pool[Math.floor(Math.random()*pool.length)];
+}
+function setSongMode(m){_songMode=m;['audio','lyrics','progresiva','huecos','karaoke'].forEach(x=>{const b=document.getElementById('sm-'+x);if(b)b.classList.toggle('on',x===m);});}
+function hideAddForms(){['add-movie-form','add-song-form'].forEach(id=>{const f=document.getElementById(id);f.style.display='none';f.dataset.ei='';});document.getElementById('nm-title').value='';document.getElementById('nm-url').value='';document.getElementById('ns-title').value='';document.getElementById('ns-url').value='';document.getElementById('ns-start').value='';document.getElementById('ns-start-local').value='';_fileData=null;document.getElementById('file-preview').textContent='';_audioData=null;document.getElementById('audio-file-preview').textContent='';setAudioSrc('yt');_frameFiles=[];document.getElementById('nm-frame-urls').value='';document.getElementById('frame-preview').textContent='';setImgKind('poster');setRevealMode('full');const nl=document.getElementById('ns-lyrics');if(nl)nl.value='';setSongMode('audio');}
 function setImgKind(k){_imgKind=k;document.getElementById('ik-poster').classList.toggle('on',k==='poster');document.getElementById('ik-frame').classList.toggle('on',k==='frame');document.getElementById('poster-fields').style.display=k==='poster'?'':'none';document.getElementById('frame-fields').style.display=k==='frame'?'':'none';}
 function setRevealMode(m){_revealMode=m;['full','grid','crop'].forEach(x=>document.getElementById('rv-'+x).classList.toggle('on',x===m));}
 function handleFrameFiles(input){const files=[...input.files];if(!files.length)return;let done=0;files.forEach(f=>{const r=new FileReader();r.onload=e=>{_frameFiles.push(e.target.result);done++;if(done===files.length)document.getElementById('frame-preview').textContent='✓ '+_frameFiles.length+' imagen(es) cargada(s)';};r.readAsDataURL(f);});input.value='';}
@@ -1855,7 +2065,7 @@ function submitMovie(){
 }
 function setAudioSrc(s){_audioSrc=s;document.getElementById('ast-yt').classList.toggle('on',s==='yt');document.getElementById('ast-file').classList.toggle('on',s==='file');document.getElementById('audio-yt-wrap').style.display=s==='yt'?'':'none';document.getElementById('audio-file-wrap').style.display=s==='file'?'':'none';}
 function handleAudioFile(input){const f=input.files[0];if(!f)return;const r=new FileReader();r.onload=e=>{_audioData=e.target.result;document.getElementById('audio-file-preview').textContent='✓ '+f.name;};r.readAsDataURL(f);input.value='';}
-function submitSong(){const t=document.getElementById('ns-title').value.trim();if(!t){showToast('Falta el título');return;}const ei=parseInt(document.getElementById('add-song-form').dataset.ei);let youtubeId='',startAt=0,audioData='';if(_audioSrc==='yt'){youtubeId=ytIdFromUrl(document.getElementById('ns-url').value.trim());startAt=parseInt(document.getElementById('ns-start').value)||0;}else{audioData=_audioData||'';startAt=parseInt(document.getElementById('ns-start-local').value)||0;}const card={id:isNaN(ei)?nextId++:deck[ei].id,type:'song',title:t,youtubeId,startAt,audioData};if(!isNaN(ei))deck[ei]=card;else deck.push(card);saveDeck();if(order.length!==deck.length){order=deck.map((_,i)=>i);cardIdx=0;saveOrder();renderCondCard();updateCount();}renderDeckList();hideAddForms();showToast(isNaN(ei)?'Canción agregada ✓':'Actualizada ✓');}
+function submitSong(){const t=document.getElementById('ns-title').value.trim();if(!t){showToast('Falta el título');return;}const ei=parseInt(document.getElementById('add-song-form').dataset.ei);let youtubeId='',startAt=0,audioData='';if(_audioSrc==='yt'){youtubeId=ytIdFromUrl(document.getElementById('ns-url').value.trim());startAt=parseInt(document.getElementById('ns-start').value)||0;}else{audioData=_audioData||'';startAt=parseInt(document.getElementById('ns-start-local').value)||0;}const lyrics=(document.getElementById('ns-lyrics').value||'').replace(/\r/g,'').trim();const card={id:isNaN(ei)?nextId++:deck[ei].id,type:'song',title:t,youtubeId,startAt,audioData,lyrics,songMode:_songMode||'audio'};if(!isNaN(ei))deck[ei]=card;else deck.push(card);saveDeck();if(order.length!==deck.length){order=deck.map((_,i)=>i);cardIdx=0;saveOrder();renderCondCard();updateCount();}renderDeckList();hideAddForms();showToast(isNaN(ei)?'Canción agregada ✓':'Actualizada ✓');}
 function ytIdFromUrl(url){if(!url)return'';url=url.trim();const m=url.match(/(?:v=|youtu\.be\/|embed\/|shorts\/)([A-Za-z0-9_-]{11})/);return m?m[1]:(url.length===11?url:'');}
 
 // ─── NAME EDITOR ─────────────────────────────────────────────────
