@@ -808,7 +808,7 @@ const FB_CFG = {
   messagingSenderId:"313601369235",
   appId:"1:313601369235:web:f8b28a2ec187a934fa1966"
 };
-let fbDb=null, fbRef=null, fbDeckRef=null, fbInited=false;
+let fbDb=null, fbRef=null, fbDeckRef=null, fbStateRef=null, fbInited=false, _lastFbStateJson=null;
 
 function initFirebase(){
   if(fbInited) return;
@@ -828,6 +828,8 @@ function initFirebase(){
     fbDb = firebase.database();
     fbRef = fbDb.ref('velada/buzzer');
     fbDeckRef = fbDb.ref('velada/deck');
+    fbStateRef = fbDb.ref('velada/live');
+    if(MODE==='participant') startPartStateListener();
     fbInited = true;
     // Connection status
     fbDb.ref('.info/connected').on('value', snap => {
@@ -1218,7 +1220,7 @@ function cardImageInfo(c){
 function sendState(){
   const cur=currentCard();
   const imgInfo=cardImageInfo(cur);
-  broadcast({type:'state',cardIdx,scoreA,scoreB,nameA,nameB,timerLeft,timerActive,phase,activeBuzzer,revealed,
+  const st={type:'state',cardIdx,scoreA,scoreB,nameA,nameB,timerLeft,timerActive,phase,activeBuzzer,revealed,
     cardType:cur?.type||null,youtubeId:cur?.youtubeId||null,startAt:cur?.startAt||0,
     // audioData intencionalmente omitido: el audio local queda solo en la compu del conductor
     hasLocalAudio:cur?.type==='song'?!!(cur.audioData):false,
@@ -1231,7 +1233,26 @@ function sendState(){
     lyrics:cur?.type==='song'?(cur.lyrics||''):'',
     lyricLine:lyricLine,
     cardKey:cur?.id??null,
-    cardTitle:cur?.title||null,cardNum:order.length?cardIdx+1:0,totalCards:order.length,t:Date.now()});
+    cardTitle:cur?.title||null,cardNum:order.length?cardIdx+1:0,totalCards:order.length};
+  broadcast({...st,t:Date.now()});  // mismo dispositivo (rápido): incluye imágenes locales
+  fbPushState(st);                  // otros dispositivos vía Firebase: sin data-URLs, deduplicado
+}
+// Publica el estado en vivo por Firebase para que los participantes en OTROS dispositivos
+// (celulares) reciban carta, revelado, blur/zoom, frames, grid, letra y timer, no solo el buzzer.
+function fbPushState(st){
+  if(!fbStateRef)return;
+  const safe={...st};
+  // Las imágenes locales (data URLs) no se mandan por Firebase: son pesadas y ya son solo del conductor.
+  if(typeof safe.imgUrl==='string'&&safe.imgUrl.startsWith('data:')){safe.imgUrl='';safe.imgLocal=true;}
+  if(safe.gridRevealed&&!safe.gridRevealed.length)safe.gridRevealed=null; // RTDB no guarda arrays vacíos
+  const j=JSON.stringify(safe);
+  if(j===_lastFbStateJson)return;  // solo escribe cuando algo cambió
+  _lastFbStateJson=j;
+  try{fbStateRef.set(safe);}catch(e){}
+}
+function startPartStateListener(){
+  if(!fbStateRef)return;
+  fbStateRef.on('value',snap=>{const d=snap.val();if(d&&d.type==='state')renderParticipant(d);});
 }
 function startHeartbeat(){if(_hb)clearInterval(_hb);_hb=setInterval(sendState,200);sendState();}
 function onLive(raw){try{const d=typeof raw==='string'?JSON.parse(raw):raw;if(d.type==='state')renderParticipant(d);else if(d.type==='yt_play')partResumeSong({youtubeId:d.youtubeId,startAt:d.startAt||0});else if(d.type==='yt_restart')partPlaySong({youtubeId:d.youtubeId,startAt:d.startAt||0});else if(d.type==='yt_pause')partPauseSong();else if(d.type==='yt_stop')partStopSong();else if(d.type==='local_play'||d.type==='local_stop'){/* audio local: suena solo en la compu del conductor */};}catch(e){}}
