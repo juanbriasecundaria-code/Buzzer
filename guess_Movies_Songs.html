@@ -190,8 +190,8 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
 .badge-movie{background:var(--gold-dim);color:var(--gold);border:1px solid rgba(245,200,66,.3)}
 .badge-song{background:var(--purple-dim);color:var(--purple);border:1px solid rgba(192,96,232,.3)}
 .num-badge{font-size:10px;font-weight:800;padding:3px 9px;border-radius:99px;background:rgba(0,0,0,.5);color:var(--muted);border:1px solid var(--border2)}
-.cond-poster-wrap{display:flex;justify-content:center;padding:2.8rem 1rem .75rem;background:rgba(0,0,0,.2)}
-.cond-poster{max-height:170px;max-width:100%;object-fit:contain;border-radius:8px}
+.cond-poster-wrap{display:flex;justify-content:center;padding:2.8rem 1rem .75rem;background:rgba(0,0,0,.2);overflow:hidden}
+.cond-poster{max-height:170px;max-width:100%;object-fit:contain;border-radius:8px;transition:filter .55s linear,transform .55s linear}
 .cond-poster-ph{height:120px;display:flex;align-items:center;justify-content:center;font-size:40px;opacity:.3;padding-top:2rem}
 .cond-song-inner{display:flex;flex-direction:column;align-items:center;gap:.5rem;padding:2.5rem 1rem .75rem}
 .cond-card-title{padding:.65rem 1rem;background:rgba(0,0,0,.4);border-top:1px solid var(--border);font-size:15px;font-weight:800;color:var(--text);text-align:center;letter-spacing:-.01em}
@@ -665,6 +665,10 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
       <button class="deck-action-btn" style="border-color:var(--border2);color:var(--muted)" onclick="document.getElementById('import-json-input').click()">📥 Importar JSON</button>
       <button class="deck-action-btn" style="border-color:var(--border2);color:var(--muted)" onclick="exportDeckJson()">📤 Exportar JSON</button>
       <input type="file" id="import-json-input" accept="application/json,.json" onchange="importDeckJson(this)" style="display:none">
+    </div>
+    <div class="deck-actions-row">
+      <button class="deck-action-btn" style="border-color:var(--purple);color:var(--purple)" onclick="randomizeMovieModes()">🎲 Modos pelis</button>
+      <button class="deck-action-btn" style="border-color:var(--purple);color:var(--purple)" onclick="randomizeSongModes()">🎲 Modos canciones</button>
     </div>
     <div class="add-form" id="add-movie-form" style="display:none">
       <div class="add-form-title">🎬 Película</div>
@@ -1549,6 +1553,7 @@ function renderCondCard(){
   syncFrameHintUI();
   if(c.type==='song'&&c.youtubeId&&c.id!==_lastCondId) createCondPlayer(c);
   if(c.type==='song'&&c.audioData){const au=document.getElementById('local-audio-cond');if(au){au.currentTime=c.startAt||0;}}
+  updateCondProgress();
   _lastCondId=c.id;
   sendState();
 }
@@ -1779,6 +1784,14 @@ function maybeStartKaraokeSync(){const c=currentCard();if(c&&c.type==='song'&&(c
 // ── Películas: auto-revelado progresivo (blur/recorte/grid) + rotación de frames ──
 function movieIsMultiFrame(c){return !!(c&&c.type==='movie'&&c.imgKind==='frame'&&(c.frames||[]).length>1);}
 function updateCondPoster(){const img=document.querySelector('#cond-card .cond-poster');if(!img)return;const info=cardImageInfo(currentCard());if(info.src&&img.getAttribute('src')!==info.src)img.src=info.src;}
+// Refleja en el poster del conductor el mismo blur/zoom progresivo que ven los jugadores.
+function updateCondProgress(){
+  const img=document.querySelector('#cond-card .cond-poster');if(!img)return;
+  const c=currentCard();const m=c&&c.type==='movie'?(c.revealMode||'full'):'full';
+  if(revealed&&m==='blur'){img.style.filter=`blur(${(22*(1-revealProgress)).toFixed(1)}px)`;img.style.transform='';}
+  else if(revealed&&m==='crop'){img.style.transform=`scale(${(1.7-0.7*revealProgress).toFixed(3)})`;img.style.filter='';}
+  else{img.style.filter='';img.style.transform='';}
+}
 function movieAutoActive(){
   const c=currentCard();
   if(!c||c.type!=='movie'||!revealed||phase!=='idle')return false;
@@ -1810,6 +1823,7 @@ function movieAutoTick(){
   if(m==='blur'||m==='crop'){revealProgress=Math.min(1,revealProgress+1/20);changed=true;} // ~14s a 700ms
   if(m==='grid'&&_autoStep%3===0){autoRevealTileSilent();changed=true;}
   if(movieIsMultiFrame(c)&&_autoStep%4===0){advanceFrameSilent();changed=true;}
+  updateCondProgress();
   if(changed)sendState();
 }
 function startMovieAuto(){stopMovieAuto();_autoStep=0;if(movieAutoActive())_movieAutoTimer=setInterval(movieAutoTick,700);}
@@ -1862,12 +1876,14 @@ function toggleReveal(){
     if(c&&c.type==='song'){const m=c.songMode||'audio';if(m==='audio'||m==='karaoke')kbPlaySong();}
     // Si la carta es película con modo progresivo o multi-frame, arranca el auto-revelado.
     if(c&&c.type==='movie')maybeStartMovieAuto();
+    updateCondProgress();
   } else {
     fbLock();
     // Al ocultar la carta se corta la canción y el auto-revelado
     const c=currentCard();
     if(c&&c.type==='song') kbStopSong();
     stopMovieAuto();
+    updateCondProgress();
   }
   showToast(revealed?'👁 Carta visible — 🔓 buzzer habilitado':'🙈 Carta oculta — 🔒 buzzer bloqueado');
 }
@@ -1970,16 +1986,20 @@ function renderParticipant(d){
   const diff=Math.abs((d.scoreA||0)-(d.scoreB||0)),w=(d.scoreA||0)>(d.scoreB||0)?'a':(d.scoreB||0)>(d.scoreA||0)?'b':null;
   const pb=document.getElementById('p-bonus');
   if(diff>=5&&w){pb.textContent='🏆 Bonus: '+(w==='a'?(d.nameA||'Eq 1'):(d.nameB||'Eq 2'));pb.classList.add('show');}else pb.classList.remove('show');
-  if(!d.cardType){document.getElementById('part-main').innerHTML='<div class="part-idle"><div class="part-idle-icon">🎬</div><div class="part-idle-text">Esperando al conductor…</div></div>';_pLastType=null;_pLastId=null;_pLastPhase=null;_pLastKey=null;_pLastLyricLine=null;return;}
+  if(!d.cardType){document.getElementById('part-main').innerHTML='<div class="part-idle"><div class="part-idle-icon">🎬</div><div class="part-idle-text">Esperando al conductor…</div></div>';_pLastType=null;_pLastId=null;_pLastPhase=null;_pLastKey=null;_pLastLyricLine=null;_pLastProg=null;_pLastImg=null;return;}
   // Si el conductor aún no reveló la carta, mostrar pantalla de espera
   if(!d.revealed){
     document.getElementById('part-main').innerHTML='<div class="part-idle"><div class="part-idle-icon" style="animation:auPulse 2s ease-in-out infinite">🎬</div><div class="part-idle-text" style="font-size:18px;font-weight:900;color:var(--text)">¡Listos!</div><div class="part-idle-text" style="margin-top:.35rem">Esperando que el conductor muestre la carta…</div></div>';
-    _pLastType=null;_pLastId=null;_pLastPhase=null;_pLastKey=null;_pLastLyricLine=null;return;
+    _pLastType=null;_pLastId=null;_pLastPhase=null;_pLastKey=null;_pLastLyricLine=null;_pLastProg=null;_pLastImg=null;return;
   }
   const cc=d.cardType!==_pLastType||(d.cardKey??null)!==_pLastKey;
   const pc=d.phase!==_pLastPhase;
-  if(cc||pc){buildPartCard(d);_pLastType=d.cardType;_pLastId=d.cardType==='song'?d.youtubeId:d.imgUrl;_pLastKey=d.cardKey??null;_pLastPhase=d.phase;_pLastGrid=d.gridRevealed?[...d.gridRevealed]:null;_pLastLyricLine=d.lyricLine;}
-  else if(d.revealMode==='grid'&&JSON.stringify(d.gridRevealed)!==JSON.stringify(_pLastGrid)){updateGridTiles(d);_pLastGrid=d.gridRevealed?[...d.gridRevealed]:null;}
+  if(cc||pc){buildPartCard(d);_pLastType=d.cardType;_pLastId=d.cardType==='song'?d.youtubeId:d.imgUrl;_pLastKey=d.cardKey??null;_pLastPhase=d.phase;_pLastGrid=d.gridRevealed?[...d.gridRevealed]:null;_pLastLyricLine=d.lyricLine;_pLastProg=d.revealProgress;_pLastImg=d.imgUrl;}
+  else if(d.cardType==='movie'&&d.phase!=='reveal'){
+    if(d.imgUrl!==_pLastImg){updateFrameImg(d);_pLastImg=d.imgUrl;}
+    if((d.revealMode==='blur'||d.revealMode==='crop')&&d.revealProgress!==_pLastProg){updateMovieProgress(d);_pLastProg=d.revealProgress;}
+    if(d.revealMode==='grid'&&JSON.stringify(d.gridRevealed)!==JSON.stringify(_pLastGrid)){updateGridTiles(d);_pLastGrid=d.gridRevealed?[...d.gridRevealed]:null;}
+  }
   else if((d.songMode==='progresiva'||d.songMode==='karaoke')&&d.lyricLine!==_pLastLyricLine){updateLyricLines(d);_pLastLyricLine=d.lyricLine;}
   const pm=document.getElementById('part-main');
   const pt=pm.querySelector('.part-timer');
@@ -2170,6 +2190,26 @@ function randomSongMode(c){
   return pool[Math.floor(Math.random()*pool.length)];
 }
 function setSongMode(m){_songMode=m;['audio','lyrics','progresiva','huecos','karaoke'].forEach(x=>{const b=document.getElementById('sm-'+x);if(b)b.classList.toggle('on',x===m);});}
+// Re-sortea el modo de visualización de cada carta, a pedido (botones del editor).
+function randomizeMovieModes(){
+  let n=0;deck.forEach(c=>{if(c.type==='movie'){c.revealMode=randomRevealMode();n++;}});
+  if(!n){showToast('No hay películas en el mazo');return;}
+  saveDeck();
+  _lastGridCardId=null;_lastFrameCardId=null;stopMovieAuto();
+  renderDeckList();renderCondCard();
+  if(revealed){const c=currentCard();if(c&&c.type==='movie')maybeStartMovieAuto();}
+  sendState();
+  showToast('🎲 '+n+' película(s): modo al azar');
+}
+function randomizeSongModes(){
+  let n=0;deck.forEach(c=>{if(c.type==='song'){c.songMode=randomSongMode(c);n++;}});
+  if(!n){showToast('No hay canciones en el mazo');return;}
+  saveDeck();
+  _lastLyricCardId=null;stopKaraokeSync();
+  renderDeckList();renderCondCard();
+  sendState();
+  showToast('🎲 '+n+' canción(es): modo al azar');
+}
 function hideAddForms(){['add-movie-form','add-song-form'].forEach(id=>{const f=document.getElementById(id);f.style.display='none';f.dataset.ei='';});document.getElementById('nm-title').value='';document.getElementById('nm-url').value='';document.getElementById('ns-title').value='';document.getElementById('ns-url').value='';document.getElementById('ns-start').value='';document.getElementById('ns-start-local').value='';_fileData=null;document.getElementById('file-preview').textContent='';_audioData=null;document.getElementById('audio-file-preview').textContent='';setAudioSrc('yt');_frameFiles=[];document.getElementById('nm-frame-urls').value='';document.getElementById('frame-preview').textContent='';setImgKind('poster');setRevealMode('full');const nl=document.getElementById('ns-lyrics');if(nl)nl.value='';setSongMode('audio');}
 function setImgKind(k){_imgKind=k;document.getElementById('ik-poster').classList.toggle('on',k==='poster');document.getElementById('ik-frame').classList.toggle('on',k==='frame');document.getElementById('poster-fields').style.display=k==='poster'?'':'none';document.getElementById('frame-fields').style.display=k==='frame'?'':'none';}
 function setRevealMode(m){_revealMode=m;['full','grid','crop','blur'].forEach(x=>{const b=document.getElementById('rv-'+x);if(b)b.classList.toggle('on',x===m);});}
