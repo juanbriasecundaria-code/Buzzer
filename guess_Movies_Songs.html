@@ -195,6 +195,17 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
 .cond-poster-ph{height:120px;display:flex;align-items:center;justify-content:center;font-size:40px;opacity:.3;padding-top:2rem}
 .cond-song-inner{display:flex;flex-direction:column;align-items:center;gap:.5rem;padding:2.5rem 1rem .75rem}
 .cond-card-title{padding:.65rem 1rem;background:rgba(0,0,0,.4);border-top:1px solid var(--border);font-size:15px;font-weight:800;color:var(--text);text-align:center;letter-spacing:-.01em}
+.cond-bonus{padding:.6rem .85rem .75rem;background:rgba(0,0,0,.25);border-top:1px solid var(--border)}
+.cond-bonus-label{font-size:11px;font-weight:800;color:var(--accent);text-transform:uppercase;letter-spacing:.05em;margin-bottom:.35rem}
+.cond-bonus-q{font-size:14px;font-weight:700;color:var(--text);margin-bottom:.5rem;line-height:1.3}
+.cond-bonus-opts{display:flex;flex-direction:column;gap:.3rem;margin-bottom:.6rem}
+.cond-bonus-opt{font-size:13px;padding:.4rem .6rem;border-radius:8px;border:1.5px solid var(--border2);background:var(--surface2);color:var(--muted)}
+.cond-bonus-opt.correct{border-color:var(--green);background:var(--green-dim);color:var(--green);font-weight:800}
+.cond-bonus-row{display:flex;gap:.4rem}
+.cond-bonus-verdict{font-size:13px;font-weight:800;color:var(--accent);background:var(--accent-dim);border:1px solid var(--accent);border-radius:8px;padding:.5rem .7rem;text-align:center}
+.bo-row{display:flex;align-items:center;gap:.45rem;margin-bottom:.35rem}
+.bo-row input[type=radio]{flex:0 0 auto;width:18px;height:18px;accent-color:var(--green)}
+.bo-row .form-input{flex:1 1 auto}
 .cond-empty{display:flex;align-items:center;justify-content:center;min-height:120px;color:var(--muted);font-size:14px;text-align:center;padding:1rem}
 .cond-card.phase-a{border-color:rgba(96,180,240,.6)}
 .cond-card.phase-b{border-color:rgba(245,200,66,.6)}
@@ -344,6 +355,20 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
 .part-lyric-blank{display:inline-block;min-width:2.2em;border-bottom:3px solid var(--purple);margin:0 .12em;vertical-align:bottom;height:.9em;border-radius:2px}
 .part-lyrics-tag{font-size:clamp(11px,1.6vw,18px);font-weight:800;color:var(--muted);letter-spacing:.12em;text-transform:uppercase;display:flex;align-items:center;gap:.4rem}
 .part-lyrics-yt-hidden{position:absolute;width:1px;height:1px;opacity:0;pointer-events:none;overflow:hidden;left:-9999px}
+.part-bonus-ov{position:fixed;inset:0;z-index:60;display:none;flex-direction:column;align-items:center;justify-content:center;gap:1.1rem;padding:2.2rem 1.4rem;background:rgba(8,8,12,.62);-webkit-backdrop-filter:blur(22px) saturate(1.1);backdrop-filter:blur(22px) saturate(1.1)}
+.part-bonus-ov.show{display:flex;animation:pboIn .35s cubic-bezier(.22,1,.36,1)}
+@keyframes pboIn{from{opacity:0;transform:scale(.96)}to{opacity:1;transform:scale(1)}}
+.pbo-label{font-size:clamp(13px,2vw,18px);font-weight:900;letter-spacing:.14em;color:var(--accent);text-shadow:0 0 18px rgba(200,240,96,.5)}
+.pbo-q{font-size:clamp(20px,4vw,34px);font-weight:900;color:#fff;text-align:center;line-height:1.25;max-width:900px;text-shadow:0 2px 20px rgba(0,0,0,.5)}
+.pbo-opts{display:grid;grid-template-columns:1fr 1fr;gap:.9rem;width:100%;max-width:820px}
+.pbo-opts.n3 .pbo-opt:nth-child(3),.pbo-opts.n1 .pbo-opt{grid-column:1/-1}
+.pbo-opt{display:flex;align-items:center;gap:.6rem;padding:1.1rem 1.2rem;border-radius:16px;font-size:clamp(15px,2.4vw,21px);font-weight:800;color:#fff;box-shadow:0 6px 0 rgba(0,0,0,.25),0 8px 20px rgba(0,0,0,.35);transition:transform .25s,opacity .25s,box-shadow .25s;line-height:1.2}
+.pbo-opt .pbo-shape{font-size:1.3em;flex:0 0 auto}
+.pbo-opt-0{background:#e21b3c}.pbo-opt-1{background:#1368ce}.pbo-opt-2{background:#d89e00}.pbo-opt-3{background:#26890c}
+.part-bonus-ov.revealed .pbo-opt{opacity:.35;transform:scale(.97);box-shadow:none}
+.part-bonus-ov.revealed .pbo-opt.is-correct{opacity:1;transform:scale(1.04);box-shadow:0 0 0 4px #fff,0 10px 28px rgba(0,0,0,.45)}
+.pbo-status{min-height:1.6em;font-size:clamp(14px,2.2vw,19px);font-weight:800;color:var(--text);text-align:center}
+.pbo-status .win{color:var(--accent)}
 .part-timer{display:none;flex-direction:column;align-items:center;gap:.2rem}
 .part-timer.show{display:flex}
 .part-timer-num{font-size:clamp(4rem,18vw,7rem);font-weight:900;line-height:1;color:var(--accent);font-variant-numeric:tabular-nums}
@@ -633,6 +658,12 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
   <div class="part-main" id="part-main">
     <div class="part-idle"><div class="part-idle-icon">🎬</div><div class="part-idle-text">Esperando al conductor…</div></div>
   </div>
+  <div class="part-bonus-ov" id="part-bonus-ov">
+    <div class="pbo-label">🎯 PREGUNTA BONUS</div>
+    <div class="pbo-q" id="pbo-q"></div>
+    <div class="pbo-opts" id="pbo-opts"></div>
+    <div class="pbo-status" id="pbo-status"></div>
+  </div>
 </div>
 
 <div id="buzzer-view" style="display:none"></div>
@@ -703,6 +734,16 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
       </div>
       <div class="fc"><div class="form-label">Cómo se revela</div>
         <div class="ist-row" style="flex-wrap:wrap"><button class="ist-btn on" id="rv-full" style="flex:1 1 40%" onclick="setRevealMode('full')">🖼 Completo</button><button class="ist-btn" id="rv-grid" style="flex:1 1 40%" onclick="setRevealMode('grid')">▦ Grid</button><button class="ist-btn" id="rv-crop" style="flex:1 1 40%" onclick="setRevealMode('crop')">🔍 Recorte</button><button class="ist-btn" id="rv-blur" style="flex:1 1 40%" onclick="setRevealMode('blur')">🌫 Desenfoque</button></div>
+      </div>
+      <div class="fc"><div class="form-label">🎯 Pregunta bonus (opcional — solo la ve el conductor)</div>
+        <input class="form-input" id="nm-bonusq" placeholder="Ej: ¿Cómo se llama el protagonista?" maxlength="140">
+      </div>
+      <div class="fc" id="nm-bonus-opts">
+        <div class="form-label">Opciones (marcá la correcta con el círculo — se muestra en verde)</div>
+        <div class="bo-row"><input type="radio" name="nm-bonus-correct" id="nm-bonus-r0" value="0"><input class="form-input" id="nm-bonus-opt0" placeholder="Opción A" maxlength="80"></div>
+        <div class="bo-row"><input type="radio" name="nm-bonus-correct" id="nm-bonus-r1" value="1"><input class="form-input" id="nm-bonus-opt1" placeholder="Opción B" maxlength="80"></div>
+        <div class="bo-row"><input type="radio" name="nm-bonus-correct" id="nm-bonus-r2" value="2"><input class="form-input" id="nm-bonus-opt2" placeholder="Opción C (opcional)" maxlength="80"></div>
+        <div class="bo-row"><input type="radio" name="nm-bonus-correct" id="nm-bonus-r3" value="3"><input class="form-input" id="nm-bonus-opt3" placeholder="Opción D (opcional)" maxlength="80"></div>
       </div>
       <div class="fl"><button class="add-submit" onclick="submitMovie()">Guardar película</button><button class="sheet-close" style="flex:0 0 auto;width:auto;padding:.75rem 1rem;font-size:13px" onclick="hideAddForms()">✕</button></div>
     </div>
@@ -1190,7 +1231,7 @@ async function idbGet(key){
 }
 
 const SK={DECK:'gms_deck',ORDER:'gms_order',IDX:'gms_idx',SCORE:'gms_score',NAMES:'gms_names',KBDOCK:'gms_kbdock',KBDOCK_POS:'gms_kbdock_pos'};
-let deck=[],order=[],cardIdx=0,scoreA=0,scoreB=0,nameA='Equipo 1',nameB='Equipo 2';
+let deck=[],order=[],cardIdx=0,scoreA=0,scoreB=0,nameA='Equipo 1',nameB='Equipo 2',bonusShown=false,_bonusCardId=null,bonusRevealed=false,bonusAwardTeam=null,_bonusAdvanceTimer=null;
 let timerLeft=15,timerActive=false,timerInterval=null;
 let phase='idle',activeBuzzer=null,revealed=false;
 let MODE=null,nextId=200,_imgSrc='url',_fileData=null,_audioSrc='yt',_audioData=null;
@@ -1232,6 +1273,13 @@ function sendState(){
     songMode:cur?.type==='song'?(cur.songMode||'audio'):null,
     lyrics:cur?.type==='song'?(cur.lyrics||''):'',
     lyricLine:lyricLine,
+    bonusShown:!!bonusShown,
+    bonusQ:(bonusShown&&cur?.type==='movie')?(cur.bonusQ||null):null,
+    bonusOptions:(bonusShown&&cur?.type==='movie')?(cur.bonusOptions||null):null,
+    bonusRevealed:!!bonusRevealed,
+    // El índice correcto SOLO viaja una vez revelado: antes, ni Firebase ni el estado local lo exponen.
+    bonusCorrect:(bonusShown&&bonusRevealed&&cur?.type==='movie')?(cur.bonusCorrect??null):null,
+    bonusAwardTeam:bonusRevealed?bonusAwardTeam:null,
     cardKey:cur?.id??null,
     cardTitle:cur?.title||null,cardNum:order.length?cardIdx+1:0,totalCards:order.length};
   broadcast({...st,t:Date.now()});  // mismo dispositivo (rápido): incluye imágenes locales
@@ -1535,7 +1583,7 @@ function discardCurrent(){
   if(cardIdx>=order.length)cardIdx=Math.max(0,order.length-1);
   saveOrder();
 }
-function navigate(dir){const nx=cardIdx+dir;if(nx<0||nx>=order.length)return;stopTimer();phase='idle';activeBuzzer=null;revealed=false;cardIdx=nx;saveOrder();renderCondCard();updateCount();syncPhaseUI();syncRevealUI();sendState();fbLock();}
+function navigate(dir){const nx=cardIdx+dir;if(nx<0||nx>=order.length)return;if(_bonusAdvanceTimer){clearTimeout(_bonusAdvanceTimer);_bonusAdvanceTimer=null;}stopTimer();phase='idle';activeBuzzer=null;revealed=false;cardIdx=nx;saveOrder();renderCondCard();updateCount();syncPhaseUI();syncRevealUI();sendState();fbLock();}
 function randomCard(){if(!order.length)return;const nx=Math.floor(Math.random()*order.length);stopTimer();phase='idle';activeBuzzer=null;revealed=false;cardIdx=nx;saveOrder();renderCondCard();updateCount();syncPhaseUI();syncRevealUI();sendState();fbLock();showToast('🎲 Carta '+(nx+1));}
 function jumpTo(){const v=parseInt(document.getElementById('jump-in').value);if(isNaN(v)||v<1||v>order.length){showToast('Número fuera de rango');return;}stopTimer();phase='idle';activeBuzzer=null;revealed=false;cardIdx=v-1;saveOrder();renderCondCard();updateCount();syncPhaseUI();syncRevealUI();sendState();fbLock();document.getElementById('jump-in').value='';}
 function updateCount(){document.getElementById('card-count').textContent=order.length?`${cardIdx+1} / ${order.length}`:'— / —';document.getElementById('nav-prev').disabled=cardIdx<=0;document.getElementById('nav-next').disabled=cardIdx>=order.length-1;}
@@ -1544,7 +1592,8 @@ function updateCount(){document.getElementById('card-count').textContent=order.l
 let _lastCondId=null;
 function renderCondCard(){
   const c=currentCard();const wrap=document.getElementById('cond-card');
-  if(!c){wrap.innerHTML='<div class="cond-empty">Tocá 🔀 Barajar para empezar</div>';wrap.className='cond-card';if(ytCond){try{ytCond.destroy();}catch(e){}ytCond=null;}return;}
+  if(!c){wrap.innerHTML='<div class="cond-empty">Tocá 🔀 Barajar para empezar</div>';wrap.className='cond-card';if(ytCond){try{ytCond.destroy();}catch(e){}ytCond=null;}bonusShown=false;bonusRevealed=false;bonusAwardTeam=null;if(_bonusAdvanceTimer){clearTimeout(_bonusAdvanceTimer);_bonusAdvanceTimer=null;}_bonusCardId=null;return;}
+  if(_bonusCardId!==c.id){bonusShown=false;bonusRevealed=false;bonusAwardTeam=null;if(_bonusAdvanceTimer){clearTimeout(_bonusAdvanceTimer);_bonusAdvanceTimer=null;}_bonusCardId=c.id;}
   const tb=c.type==='movie'?'<span class="type-badge badge-movie">🎬 Película</span>':'<span class="type-badge badge-song">🎵 Canción</span>';
   const nb=`<span class="num-badge">${cardIdx+1}</span>`;
   let inner='';
@@ -1568,7 +1617,20 @@ function renderCondCard(){
   }
   let smBadge='';
   if(c.type==='song'){const m=c.songMode||'audio';const lbl={audio:'🎵 Solo audio',lyrics:'📄 Solo letra',progresiva:'📝 Progresiva',huecos:'▁ Huecos',karaoke:'🎤 Karaoke'}[m]||m;smBadge=`<span class="num-badge" style="margin-left:.4rem">${lbl}</span>`;}
-  wrap.innerHTML=`<div class="cond-card-top">${tb}${nb}${smBadge}</div>${inner}<div class="cond-card-title">${esc(c.title)}</div>`;
+  let bonusHtml='';
+  if(c.type==='movie'&&c.bonusQ&&c.bonusQ.trim()&&c.bonusOptions&&c.bonusOptions.length){
+    const optsHtml=c.bonusOptions.map((o,i)=>`<div class="cond-bonus-opt${i===c.bonusCorrect?' correct':''}">${String.fromCharCode(65+i)}. ${esc(o)}</div>`).join('');
+    let actionsHtml;
+    if(bonusRevealed){
+      const who=bonusAwardTeam?(bonusAwardTeam==='a'?nameA:nameB):'nadie';
+      actionsHtml=`<div class="cond-bonus-verdict">✅ ${bonusAwardTeam?('Punto para '+esc(who)):'Nadie sumó'} · pasando a la próxima…</div>`;
+    } else {
+      const toggleBtn=bonusShown?`<button class="cta-btn" style="border-color:rgba(232,96,96,.4);color:var(--red)" onclick="toggleBonusShown()">🙈 Ocultar a participantes</button>`:`<button class="cta-btn" style="border-color:rgba(200,240,96,.4);color:var(--accent)" onclick="toggleBonusShown()">📣 Mostrar a participantes</button>`;
+      actionsHtml=`<div class="cond-bonus-row">${toggleBtn}<button class="cta-btn" style="border-color:rgba(96,180,240,.4);color:var(--blue)" onclick="bonusAnswer('a')">✓ Acertó ${esc(nameA)}</button><button class="cta-btn" style="border-color:rgba(245,200,66,.4);color:var(--gold)" onclick="bonusAnswer('b')">✓ Acertó ${esc(nameB)}</button></div><div class="cond-bonus-row"><button class="cta-btn" style="border-color:var(--border2);color:var(--muted);flex:1" onclick="bonusAnswer(null)">✕ Nadie acertó</button></div>`;
+    }
+    bonusHtml=`<div class="cond-bonus"><div class="cond-bonus-label">🎯 Pregunta bonus (extra si aciertan)</div><div class="cond-bonus-q">${esc(c.bonusQ)}</div><div class="cond-bonus-opts">${optsHtml}</div>${actionsHtml}</div>`;
+  }
+  wrap.innerHTML=`<div class="cond-card-top">${tb}${nb}${smBadge}</div>${inner}<div class="cond-card-title">${esc(c.title)}</div>${bonusHtml}`;
   wrap.className='cond-card';
   if(c.id!==_lastGridCardId){gridRevealed=(c.type==='movie'&&c.revealMode==='grid')?Array(9).fill(false):[];_lastGridCardId=c.id;}
   if(c.id!==_lastLyricCardId){lyricLine=0;_lastLyricCardId=c.id;stopKaraokeSync();}
@@ -1685,7 +1747,7 @@ document.addEventListener('keydown',function(e){
 function setBuzzer(team){phase='playing_'+team;activeBuzzer=team;syncPhaseUI();sendState();fbLock();sfxBuzz();}
 function markCorrect(){if(!activeBuzzer)return;if(activeBuzzer==='a'){scoreA++;bump('c-sa');}else{scoreB++;bump('c-sb');}saveScore();syncScoreUI();phase='reveal';activeBuzzer=null;stopTimer();syncPhaseUI();sendState();}
 function markWrong(){stopTimer();phase='idle';activeBuzzer=null;syncPhaseUI();sendState();fbOpenBuzzer();showToast('✗ Incorrecto — buzzer reabierto, otro equipo puede intentar');}
-function passCard(){stopTimer();phase='idle';activeBuzzer=null;revealed=false;discardCurrent();fbLock();if(order.length===0){showToast('¡Se acabaron las cartas!');renderCondCard();updateCount();syncPhaseUI();syncRevealUI();sendState();return;}renderCondCard();updateCount();syncPhaseUI();syncRevealUI();sendState();showToast('→ Carta descartada');}
+function passCard(){if(_bonusAdvanceTimer){clearTimeout(_bonusAdvanceTimer);_bonusAdvanceTimer=null;}stopTimer();phase='idle';activeBuzzer=null;revealed=false;discardCurrent();fbLock();if(order.length===0){showToast('¡Se acabaron las cartas!');renderCondCard();updateCount();syncPhaseUI();syncRevealUI();sendState();return;}renderCondCard();updateCount();syncPhaseUI();syncRevealUI();sendState();showToast('→ Carta descartada');}
 function nextAfterReveal(){phase='idle';activeBuzzer=null;revealed=false;discardCurrent();fbLock();if(order.length===0){showToast('🎉 ¡Fin del juego!');renderCondCard();updateCount();syncPhaseUI();syncRevealUI();sendState();return;}renderCondCard();updateCount();syncPhaseUI();syncRevealUI();sendState();}
 function syncPhaseUI(){
   const card=document.getElementById('cond-card');
@@ -1711,6 +1773,26 @@ function syncTimerUI(){const el=document.getElementById('timer-num');if(!el)retu
 
 // ─── CONDUCTOR: SCORE ────────────────────────────────────────────
 function adjScore(t,d){if(t==='a')scoreA=Math.max(0,scoreA+d);else scoreB=Math.max(0,scoreB+d);saveScore();syncScoreUI();sendState();}
+function toggleBonusShown(){
+  bonusShown=!bonusShown;
+  bonusRevealed=false;bonusAwardTeam=null;
+  if(_bonusAdvanceTimer){clearTimeout(_bonusAdvanceTimer);_bonusAdvanceTimer=null;}
+  renderCondCard();
+  sendState();   // faltaba: por esto no le aparecía a los participantes
+}
+// Se llama al elegir qué equipo acertó (o "Nadie") en la pregunta bonus.
+// Revela la correcta unos segundos y después pasa solo a la próxima carta, estilo Kahoot.
+function bonusAnswer(team){
+  if(bonusRevealed)return; // evita doble click durante la cuenta regresiva
+  const c=currentCard();
+  if(!c||c.type!=='movie'||!c.bonusOptions||!c.bonusOptions.length)return;
+  if(team)adjScore(team,1);
+  bonusRevealed=true;bonusAwardTeam=team||null;
+  renderCondCard();
+  sendState();
+  showToast(team?('🎯 +1 · '+(team==='a'?nameA:nameB)):'🎯 Nadie acertó');
+  _bonusAdvanceTimer=setTimeout(()=>{_bonusAdvanceTimer=null;passCard();},2200);
+}
 function syncScoreUI(){document.getElementById('c-sa').textContent=scoreA;document.getElementById('c-sb').textContent=scoreB;const diff=Math.abs(scoreA-scoreB),w=scoreA>scoreB?'a':scoreB>scoreA?'b':null;const bp=document.getElementById('c-bonus');if(diff>=5&&w){bp.textContent='🏆 Bonus: '+(w==='a'?nameA:nameB);bp.classList.add('show');}else bp.classList.remove('show');}
 function syncNamesUI(){['a','b'].forEach(t=>{const n=t==='a'?nameA:nameB;['c-n','p-n'].forEach(p=>{const el=document.getElementById(p+t);if(el)el.textContent=n;});const bl=document.getElementById('buzz-label-'+t);if(bl)bl.textContent=n+' buzzó';});}
 function syncGridHintUI(){
@@ -2016,6 +2098,39 @@ function updateGridTiles(d){
   const tiles=overlay.querySelectorAll('.grid-tile');
   (d.gridRevealed||[]).forEach((o,i)=>{if(tiles[i])tiles[i].classList.toggle('open',!!o);});
 }
+let _pboLastKey=null,_pboLastQ=null;
+function renderPartBonusOverlay(d){
+  const ov=document.getElementById('part-bonus-ov');
+  if(!ov)return;
+  const active=!!(d.bonusShown&&d.cardType==='movie'&&d.bonusQ&&d.bonusOptions&&d.bonusOptions.length);
+  if(!active){
+    ov.classList.remove('show','revealed');
+    _pboLastKey=null;_pboLastQ=null;
+    return;
+  }
+  const shapes=['▲','◆','●','■'];
+  const isNew=(d.cardKey??null)!==_pboLastKey||d.bonusQ!==_pboLastQ;
+  if(isNew){
+    document.getElementById('pbo-q').textContent=d.bonusQ;
+    const opts=document.getElementById('pbo-opts');
+    opts.className='pbo-opts n'+d.bonusOptions.length;
+    opts.innerHTML=d.bonusOptions.map((o,i)=>`<div class="pbo-opt pbo-opt-${i}" data-i="${i}"><span class="pbo-shape">${shapes[i]||'★'}</span><span>${esc(o)}</span></div>`).join('');
+    ov.classList.remove('revealed');
+    document.getElementById('pbo-status').innerHTML='';
+    _pboLastKey=d.cardKey??null;_pboLastQ=d.bonusQ;
+  }
+  ov.classList.add('show');
+  if(d.bonusRevealed){
+    ov.classList.add('revealed');
+    const opts=document.getElementById('pbo-opts').children;
+    for(const el of opts)el.classList.toggle('is-correct',Number(el.dataset.i)===d.bonusCorrect);
+    const who=d.bonusAwardTeam?(d.bonusAwardTeam==='a'?(d.nameA||'Equipo 1'):(d.nameB||'Equipo 2')):null;
+    document.getElementById('pbo-status').innerHTML=who?`<span class="win">✅ Punto para ${esc(who)}</span> · va la próxima…`:'😅 Nadie acertó · va la próxima…';
+  } else {
+    ov.classList.remove('revealed');
+    document.getElementById('pbo-status').textContent='El conductor marca quién acertó…';
+  }
+}
 function renderParticipant(d){
   document.getElementById('p-na').textContent=d.nameA||'Equipo 1';
   document.getElementById('p-nb').textContent=d.nameB||'Equipo 2';
@@ -2025,6 +2140,7 @@ function renderParticipant(d){
   const diff=Math.abs((d.scoreA||0)-(d.scoreB||0)),w=(d.scoreA||0)>(d.scoreB||0)?'a':(d.scoreB||0)>(d.scoreA||0)?'b':null;
   const pb=document.getElementById('p-bonus');
   if(diff>=5&&w){pb.textContent='🏆 Bonus: '+(w==='a'?(d.nameA||'Eq 1'):(d.nameB||'Eq 2'));pb.classList.add('show');}else pb.classList.remove('show');
+  renderPartBonusOverlay(d);
   if(!d.cardType){document.getElementById('part-main').innerHTML='<div class="part-idle"><div class="part-idle-icon">🎬</div><div class="part-idle-text">Esperando al conductor…</div></div>';_pLastType=null;_pLastId=null;_pLastPhase=null;_pLastKey=null;_pLastLyricLine=null;_pLastProg=null;_pLastImg=null;return;}
   // Si el conductor aún no reveló la carta, mostrar pantalla de espera
   if(!d.revealed){
@@ -2210,6 +2326,8 @@ function editCard(i){
     setImgKind(c.imgKind==='frame'?'frame':'poster');
     setRevealMode(c.revealMode||'full');
     if(c.imgKind==='frame'&&c.frames&&c.frames.length){_frameFiles=c.frames.filter(f=>f.startsWith('data:'));document.getElementById('nm-frame-urls').value=c.frames.filter(f=>!f.startsWith('data:')).join('\n');document.getElementById('frame-preview').textContent='✓ '+c.frames.length+' imagen(es) guardada(s) — subí nuevas para reemplazar';}
+    document.getElementById('nm-bonusq').value=c.bonusQ||'';
+    (c.bonusOptions||[]).forEach((v,slot)=>{if(slot<4){document.getElementById('nm-bonus-opt'+slot).value=v;if(slot===c.bonusCorrect)document.getElementById('nm-bonus-r'+slot).checked=true;}});
     document.getElementById('add-movie-form').dataset.ei=i;
   }
   else{showAddForm('song');document.getElementById('ns-title').value=c.title;if(c.audioData){setAudioSrc('file');_audioData=c.audioData;document.getElementById('audio-file-preview').textContent='✓ audio guardado';document.getElementById('ns-start-local').value=c.startAt||0;}else{setAudioSrc('yt');document.getElementById('ns-url').value=c.youtubeId?`https://youtu.be/${c.youtubeId}`:'';document.getElementById('ns-start').value=c.startAt||0;}(function(){const nl=document.getElementById('ns-lyrics');const tms=c.lyricTimes,lns=(c.lyrics||'').split('\n');if(Array.isArray(tms)&&tms.length===lns.length&&tms.length){nl.value=lns.map((l,i)=>`[${fmtLrc(tms[i])}]${l}`).join('\n');}else{nl.value=c.lyrics||'';}})();setSongMode(c.songMode||'audio');document.getElementById('add-song-form').dataset.ei=i;}
@@ -2249,7 +2367,7 @@ function randomizeSongModes(){
   sendState();
   showToast('🎲 '+n+' canción(es): modo al azar');
 }
-function hideAddForms(){['add-movie-form','add-song-form'].forEach(id=>{const f=document.getElementById(id);f.style.display='none';f.dataset.ei='';});document.getElementById('nm-title').value='';document.getElementById('nm-url').value='';document.getElementById('ns-title').value='';document.getElementById('ns-url').value='';document.getElementById('ns-start').value='';document.getElementById('ns-start-local').value='';_fileData=null;document.getElementById('file-preview').textContent='';_audioData=null;document.getElementById('audio-file-preview').textContent='';setAudioSrc('yt');_frameFiles=[];document.getElementById('nm-frame-urls').value='';document.getElementById('frame-preview').textContent='';setImgKind('poster');setRevealMode('full');const nl=document.getElementById('ns-lyrics');if(nl)nl.value='';setSongMode('audio');}
+function hideAddForms(){['add-movie-form','add-song-form'].forEach(id=>{const f=document.getElementById(id);f.style.display='none';f.dataset.ei='';});document.getElementById('nm-title').value='';document.getElementById('nm-url').value='';document.getElementById('nm-bonusq').value='';[0,1,2,3].forEach(slot=>{document.getElementById('nm-bonus-opt'+slot).value='';document.getElementById('nm-bonus-r'+slot).checked=false;});document.getElementById('ns-title').value='';document.getElementById('ns-url').value='';document.getElementById('ns-start').value='';document.getElementById('ns-start-local').value='';_fileData=null;document.getElementById('file-preview').textContent='';_audioData=null;document.getElementById('audio-file-preview').textContent='';setAudioSrc('yt');_frameFiles=[];document.getElementById('nm-frame-urls').value='';document.getElementById('frame-preview').textContent='';setImgKind('poster');setRevealMode('full');const nl=document.getElementById('ns-lyrics');if(nl)nl.value='';setSongMode('audio');}
 function setImgKind(k){_imgKind=k;document.getElementById('ik-poster').classList.toggle('on',k==='poster');document.getElementById('ik-frame').classList.toggle('on',k==='frame');document.getElementById('poster-fields').style.display=k==='poster'?'':'none';document.getElementById('frame-fields').style.display=k==='frame'?'':'none';}
 function setRevealMode(m){_revealMode=m;['full','grid','crop','blur'].forEach(x=>{const b=document.getElementById('rv-'+x);if(b)b.classList.toggle('on',x===m);});}
 function handleFrameFiles(input){const files=[...input.files];if(!files.length)return;let done=0;files.forEach(f=>{const r=new FileReader();r.onload=e=>{_frameFiles.push(e.target.result);done++;if(done===files.length)document.getElementById('frame-preview').textContent='✓ '+_frameFiles.length+' imagen(es) cargada(s)';};r.readAsDataURL(f);});input.value='';}
@@ -2267,7 +2385,15 @@ function submitMovie(){
     imgData=_imgSrc==='file'?_fileData||'':'';
     img=_imgSrc==='url'?document.getElementById('nm-url').value.trim():'';
   }
-  const card={id:isNaN(ei)?nextId++:deck[ei].id,type:'movie',title:t,img,imgData,imgKind:_imgKind,frames,revealMode:_revealMode};
+  const bonusQ=document.getElementById('nm-bonusq').value.trim();
+  const correctRadio=document.querySelector('input[name="nm-bonus-correct"]:checked');
+  const correctSlot=correctRadio?parseInt(correctRadio.value):-1;
+  let bonusOptions=[],bonusCorrect=-1;
+  [0,1,2,3].forEach(slot=>{
+    const v=document.getElementById('nm-bonus-opt'+slot).value.trim();
+    if(v){if(slot===correctSlot)bonusCorrect=bonusOptions.length;bonusOptions.push(v);}
+  });
+  const card={id:isNaN(ei)?nextId++:deck[ei].id,type:'movie',title:t,img,imgData,imgKind:_imgKind,frames,revealMode:_revealMode,bonusQ,bonusOptions,bonusCorrect};
   if(!isNaN(ei))deck[ei]=card;else deck.push(card);
   saveDeck();
   if(order.length!==deck.length){order=deck.map((_,i)=>i);cardIdx=0;saveOrder();renderCondCard();updateCount();}
