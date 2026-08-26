@@ -293,6 +293,15 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
 .au-sub{font-size:12px;color:var(--muted2);font-weight:600}
 @keyframes auPulse2{0%,100%{transform:scale(1)}50%{transform:scale(1.12)}}
 
+/* ── REVEAL CUE OVERLAY (participante) — clip de audio/video al revelar ── */
+.reveal-cue-overlay{position:fixed;inset:0;z-index:9400;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.92);cursor:pointer}
+.reveal-cue-overlay.show{display:flex}
+#reveal-cue-video{max-width:92vw;max-height:80vh;border-radius:12px;box-shadow:0 8px 60px rgba(0,0,0,.6);display:none}
+.reveal-cue-audio-vis{display:none;flex-direction:column;align-items:center;gap:1rem;color:var(--gold)}
+.reveal-cue-audio-vis.show{display:flex}
+.rcv-icon{font-size:4rem;animation:auPulse2 1s ease-in-out infinite}
+.rcv-text{font-size:14px;font-weight:800;letter-spacing:.05em;text-transform:uppercase}
+
 /* ── FB STATUS ── */
 .fb-status{position:fixed;top:max(.6rem,env(safe-area-inset-top));right:.6rem;z-index:50;display:flex;align-items:center;gap:.35rem;padding:.3rem .6rem;background:rgba(20,20,28,.7);border:1px solid var(--border2);border-radius:99px;backdrop-filter:blur(6px);font-size:10px;font-weight:700;color:var(--muted2);letter-spacing:.03em}
 .fb-dot{width:7px;height:7px;border-radius:50%;background:var(--muted)}
@@ -430,6 +439,13 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
     <div class="au-text">Tocá para activar el audio</div>
     <div class="au-sub">Necesario para ver videos con sonido</div>
   </div>
+  <div class="reveal-cue-overlay" id="reveal-cue-overlay" onclick="closeRevealCue()">
+    <video id="reveal-cue-video" playsinline></video>
+    <div class="reveal-cue-audio-vis" id="reveal-cue-audio-vis">
+      <div class="rcv-icon">🔊</div>
+      <div class="rcv-text">Reproduciendo…</div>
+    </div>
+  </div>
   <div class="part-wrap">
     <div class="part-score-strip"><div class="part-score-inner" id="part-score-inner"></div></div>
     <div class="part-main" id="part-main">
@@ -503,6 +519,22 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
         <span class="form-lbl">Pistas (opcional, se revelan de a una)</span>
         <input class="form-in" id="f-hint1" placeholder="Pista 1" style="margin-bottom:.4rem">
         <input class="form-in" id="f-hint2" placeholder="Pista 2">
+      </div>
+      <div class="form-row">
+        <span class="form-lbl">🎬 Clip de revelación (opcional — se ve/escucha en la pantalla de participantes al Revelar)</span>
+        <select class="form-sel" id="f-reveal-type" onchange="edRevealChanged()">
+          <option value="none">Sin clip</option>
+          <option value="audio-url">🔊 Audio — URL pública</option>
+          <option value="audio-upload">🔊 Audio — subir archivo</option>
+          <option value="video-url">🎬 Video — URL pública (mp4/webm)</option>
+          <option value="video-upload">🎬 Video — subir archivo</option>
+        </select>
+        <div id="f-reveal-row" style="display:none;margin-top:.5rem">
+          <input class="form-in" id="f-reveal-url" placeholder="https://…" style="margin-bottom:.4rem">
+          <input type="file" id="f-reveal-file" style="display:none" onchange="edRevealFileChosen(event)">
+          <div class="form-help" id="f-reveal-help"></div>
+          <div class="media-preview" id="f-reveal-preview" style="display:none"></div>
+        </div>
       </div>
       <div class="form-row">
         <span class="form-lbl">Opciones múltiples (opcional)</span>
@@ -732,6 +764,7 @@ let _editCardId = null;
 let _edFilter = 'all';
 let _edSearch = '';
 let _edMediaFileData = null;
+let _edRevealFileData = null;
 
 // ── STORAGE ──
 function loadState(){
@@ -858,6 +891,7 @@ let _lastRenderedCardId = null;
 let condYtPlayer = null;
 let condVideoEl = null;
 let videoSyncState = null; // { videoId|url, playing, t, ts } — se empuja a Firebase para sincronizar a los participantes
+let revealCueState = null; // { src, kind:'audio'|'video', ts } — dispara el clip de revelación en la pantalla de participantes
 
 function destroyCondPlayers(){
   if(condYtPlayer){ try{ condYtPlayer.destroy(); }catch(e){} condYtPlayer = null; }
@@ -931,6 +965,7 @@ function renderCard(){
     `;
     destroyCondPlayers();
     videoSyncState = null;
+    revealCueState = null;
     mountCondMedia(cur);
     _lastRenderedCardId = cur.id;
   } else {
@@ -957,6 +992,7 @@ function renderCondText(cur){
       </div>
       <div><span class="aq">✓ Quién lo dijo</span><div class="av">${escapeHtml(cur.who || '—')}</div></div>
       ${cur.ending ? `<div style="margin-top:.4rem"><span class="aq">✓ Cómo termina</span><div class="av">${escapeHtml(cur.ending)}</div></div>` : ''}
+      ${(cur.revealUrl || cur.revealData) ? `<button class="cta-btn primary" style="margin-top:.6rem;justify-content:center" onclick="replayRevealCue()">${cur.revealType && cur.revealType.startsWith('video') ? '🎬' : '🔊'} Reproducir el clip otra vez</button>` : ''}
     </div>
   `;
   document.getElementById('hint1-btn').textContent = hintsShown[1] ? '🔒 Ocultar pista 1' : '💡 Pista 1';
@@ -1050,8 +1086,26 @@ function toggleHint(n){
   renderCard();
 }
 function toggleReveal(){
+  const wasRevealed = revealed;
   revealed = !revealed;
+  // Al revelar (no al ocultar) disparamos el clip de revelación, si la carta tiene uno cargado
+  if(revealed && !wasRevealed){
+    const cur = currentCard();
+    if(cur && cur.revealType && cur.revealType !== 'none'){
+      const src = cur.revealUrl || cur.revealData;
+      if(src) revealCueState = { src, kind: cur.revealType.startsWith('video') ? 'video' : 'audio', ts: Date.now() };
+    }
+  }
   renderCard();
+}
+function replayRevealCue(){
+  const cur = currentCard();
+  if(!cur){ return; }
+  const src = cur.revealUrl || cur.revealData;
+  if(!src){ toast('Esta carta no tiene clip de revelación cargado'); return; }
+  revealCueState = { src, kind: cur.revealType && cur.revealType.startsWith('video') ? 'video' : 'audio', ts: Date.now() };
+  fbPushLive();
+  toast('▶️ Reproduciendo en pantalla de participantes');
 }
 
 // ── ASSIGN POINTS ──
@@ -1104,6 +1158,7 @@ function liveStateSnapshot(){
     cardIdx, revealed, hintsShown,
     scores, players,
     videoSync: videoSyncState,
+    revealCue: revealCueState,
     card: cur ? {
       id: cur.id, category: cur.category, prompt: cur.prompt || '',
       mediaType: cur.mediaType || 'none',
@@ -1124,6 +1179,10 @@ function applyLive(st){
   if(st.players) players = st.players;
   renderPartScores();
   renderPartCard(st);
+  if(st.revealCue && st.revealCue.ts && st.revealCue.ts !== _lastRevealCueTs){
+    _lastRevealCueTs = st.revealCue.ts;
+    playRevealCue(st.revealCue);
+  }
 }
 let _lastPartCardId = null;
 let partYtPlayer = null;
@@ -1131,6 +1190,41 @@ let partVideoEl = null;
 let _lastVideoSyncTs = 0;
 let _pendingVideoSync = null;
 let _partAudioUnlocked = false;
+let _lastRevealCueTs = 0;
+let _revealAudioEl = null;
+
+function playRevealCue(cue){
+  if(!cue || !cue.src) return;
+  const overlay = document.getElementById('reveal-cue-overlay');
+  const videoEl = document.getElementById('reveal-cue-video');
+  const audioVis = document.getElementById('reveal-cue-audio-vis');
+  if(!overlay || !videoEl || !audioVis) return;
+  overlay.classList.add('show');
+  if(cue.kind === 'video'){
+    audioVis.classList.remove('show');
+    videoEl.style.display = 'block';
+    videoEl.src = cue.src;
+    videoEl.currentTime = 0;
+    videoEl.onended = () => overlay.classList.remove('show');
+    const pr = videoEl.play();
+    if(pr && pr.catch) pr.catch(() => maybeShowAudioUnlock());
+  } else {
+    videoEl.style.display = 'none';
+    audioVis.classList.add('show');
+    if(!_revealAudioEl) _revealAudioEl = new Audio();
+    _revealAudioEl.src = cue.src;
+    _revealAudioEl.currentTime = 0;
+    _revealAudioEl.onended = () => overlay.classList.remove('show');
+    const pr = _revealAudioEl.play();
+    if(pr && pr.catch) pr.catch(() => maybeShowAudioUnlock());
+  }
+}
+function closeRevealCue(){
+  const overlay = document.getElementById('reveal-cue-overlay');
+  if(overlay) overlay.classList.remove('show');
+  try{ document.getElementById('reveal-cue-video').pause(); }catch(e){}
+  try{ if(_revealAudioEl) _revealAudioEl.pause(); }catch(e){}
+}
 
 function destroyPartPlayers(){
   if(partYtPlayer){ try{ partYtPlayer.destroy(); }catch(e){} partYtPlayer = null; }
@@ -1200,6 +1294,8 @@ function unlockPartAudio(){
   if(el) el.style.display = 'none';
   try{ if(partYtPlayer) partYtPlayer.playVideo(); }catch(e){}
   try{ if(partVideoEl) partVideoEl.play().catch(()=>{}); }catch(e){}
+  try{ const v = document.getElementById('reveal-cue-video'); if(v && v.src) v.play().catch(()=>{}); }catch(e){}
+  try{ if(_revealAudioEl) _revealAudioEl.play().catch(()=>{}); }catch(e){}
 }
 function renderPartCard(st){
   const cont = document.getElementById('part-main');
@@ -1223,6 +1319,8 @@ function renderPartCard(st){
     `;
     destroyPartPlayers();
     _lastVideoSyncTs = 0;
+    _lastRevealCueTs = 0;
+    closeRevealCue();
     mountPartMedia(c);
     _lastPartCardId = c.id;
   }
@@ -1306,7 +1404,7 @@ function renderEditorList(){
   list.innerHTML = filtered.map(c => {
     const cat = CAT_BY_ID[c.category] || CATEGORIES[0];
     const label = c.title || (c.prompt ? c.prompt.slice(0, 60) : (c.who || '(sin título)'));
-    const sub = `${c.who || '—'} · ${c.mediaType && c.mediaType !== 'none' ? '📎 ' + c.mediaType : 'solo frase'}`;
+    const sub = `${c.who || '—'} · ${c.mediaType && c.mediaType !== 'none' ? '📎 ' + c.mediaType : 'solo frase'}${c.revealType && c.revealType !== 'none' ? (c.revealType.startsWith('video') ? ' · 🎬 clip' : ' · 🔊 clip') : ''}`;
     return `<div class="ed-item ${c.played?'played':''}">
       <div class="ed-item-icon">${c.played ? '✅' : cat.icon}</div>
       <div class="ed-item-body">
@@ -1347,10 +1445,13 @@ function clearEditorForm(){
   document.getElementById('f-ending').value = '';
   document.getElementById('f-hint1').value = '';
   document.getElementById('f-hint2').value = '';
+  document.getElementById('f-reveal-type').value = 'none';
+  document.getElementById('f-reveal-url').value = '';
+  _edRevealFileData = null;
   ['f-opt1','f-opt2','f-opt3','f-opt4'].forEach(id => document.getElementById(id).value = '');
   document.querySelectorAll('input[name="f-opt-for"]').forEach(r => r.checked = r.value === 'none');
   _edMediaFileData = null;
-  edMediaChanged(); edOptsChanged();
+  edMediaChanged(); edOptsChanged(); edRevealChanged();
 }
 function edMediaChanged(){
   const v = document.getElementById('f-media').value;
@@ -1421,6 +1522,53 @@ function edFileChosen(e){
   r.onerror = () => { toast('Error al leer el archivo'); prev.style.display = 'none'; };
   r.readAsDataURL(f);
 }
+
+// ── VOZ ORIGINAL (audio que suena en la pantalla de participantes al revelar) ──
+function showRevealPreview(type, src){
+  const prev = document.getElementById('f-reveal-preview');
+  prev.style.display = 'flex';
+  if(type.startsWith('video')) prev.innerHTML = `<video src="${escapeHtml(src)}" controls playsinline style="max-width:100%;max-height:180px"></video>`;
+  else prev.innerHTML = `<audio src="${escapeHtml(src)}" controls style="width:100%"></audio>`;
+}
+function edRevealChanged(){
+  const v = document.getElementById('f-reveal-type').value;
+  const row = document.getElementById('f-reveal-row');
+  const url = document.getElementById('f-reveal-url');
+  const file = document.getElementById('f-reveal-file');
+  const help = document.getElementById('f-reveal-help');
+  const prev = document.getElementById('f-reveal-preview');
+  prev.style.display = 'none'; prev.innerHTML = '';
+  if(v === 'none'){ row.style.display = 'none'; return; }
+  row.style.display = 'block';
+  const isUpload = v.endsWith('upload');
+  const isVideo = v.startsWith('video');
+  url.style.display = isUpload ? 'none' : '';
+  file.style.display = isUpload ? '' : 'none';
+  file.accept = isVideo ? 'video/*' : 'audio/*';
+  if(v === 'audio-url'){ help.textContent = 'Link directo a un archivo de audio (mp3, ogg, wav).'; url.placeholder = 'https://…/audio.mp3'; }
+  else if(v === 'video-url'){ help.textContent = 'Link directo a un archivo de video (mp4, webm) — no sirve un link de YouTube.'; url.placeholder = 'https://…/clip.mp4'; }
+  else if(v === 'audio-upload'){ help.innerHTML = 'Se guarda en el mazo y se sincroniza a los participantes. Usá clips cortos (2–10 segundos) para que no pese.'; if(_edRevealFileData) showRevealPreview(v, _edRevealFileData); }
+  else if(v === 'video-upload'){ help.innerHTML = 'Se guarda en el mazo y se sincroniza a los participantes. Un video pesa bastante más que un audio — usá clips de 2–8 segundos.'; if(_edRevealFileData) showRevealPreview(v, _edRevealFileData); }
+  if(!isUpload && url.value.trim()) showRevealPreview(v, url.value.trim());
+  url.oninput = () => { if(url.value.trim()) showRevealPreview(v, url.value.trim()); };
+}
+function edRevealFileChosen(e){
+  const f = e.target.files[0]; if(!f) return;
+  const type = document.getElementById('f-reveal-type').value;
+  const isVideo = type.startsWith('video');
+  if(isVideo && !/^video\//.test(f.type)){ toast('Elegí un archivo de video'); return; }
+  if(!isVideo && !/^audio\//.test(f.type)){ toast('Elegí un archivo de audio'); return; }
+  const maxSize = isVideo ? 8*1024*1024 : 4*1024*1024;
+  if(f.size > maxSize){ toast(`Archivo muy pesado — máx ${isVideo?'8':'4'}MB para que sincronice bien`); return; }
+  const r = new FileReader();
+  r.onload = () => {
+    _edRevealFileData = r.result;
+    showRevealPreview(type, _edRevealFileData);
+    toast(isVideo ? '🎬 Video cargado' : '🔊 Audio cargado');
+  };
+  r.onerror = () => toast('Error al leer el archivo');
+  r.readAsDataURL(f);
+}
 function edOptsChanged(){
   const val = document.querySelector('input[name="f-opt-for"]:checked').value;
   document.getElementById('f-opts-wrap').style.display = val === 'none' ? 'none' : '';
@@ -1442,10 +1590,21 @@ function edEdit(id){
   document.getElementById('f-ending').value = c.ending || '';
   document.getElementById('f-hint1').value = c.hint1 || '';
   document.getElementById('f-hint2').value = c.hint2 || '';
+  // Migración: la versión anterior solo tenía audio bajo voiceType/voiceUrl/voiceData
+  let revealType = c.revealType || 'none';
+  let revealUrl = c.revealUrl || '';
+  let revealData = c.revealData || null;
+  if(revealType === 'none' && c.voiceType && c.voiceType !== 'none'){
+    revealType = c.voiceType === 'upload' ? 'audio-upload' : 'audio-url';
+    revealUrl = c.voiceUrl || ''; revealData = c.voiceData || null;
+  }
+  document.getElementById('f-reveal-type').value = revealType;
+  _edRevealFileData = revealType.endsWith('upload') ? revealData : null;
+  document.getElementById('f-reveal-url').value = revealType.endsWith('url') ? revealUrl : '';
   const opts = c.options || [];
   ['f-opt1','f-opt2','f-opt3','f-opt4'].forEach((id, i) => document.getElementById(id).value = opts[i] || '');
   document.querySelectorAll('input[name="f-opt-for"]').forEach(r => r.checked = r.value === (c.optionsFor || 'none'));
-  edMediaChanged(); edOptsChanged();
+  edMediaChanged(); edOptsChanged(); edRevealChanged();
 }
 function edDelete(id){
   const c = deck.find(x => x.id === id); if(!c) return;
@@ -1467,6 +1626,8 @@ function edSave(){
   const ending = document.getElementById('f-ending').value.trim();
   const hint1 = document.getElementById('f-hint1').value.trim();
   const hint2 = document.getElementById('f-hint2').value.trim();
+  const revealTypeVal = document.getElementById('f-reveal-type').value;
+  const revealUrlVal = document.getElementById('f-reveal-url').value.trim();
   const optsForRaw = document.querySelector('input[name="f-opt-for"]:checked').value;
   let options = null, optionsFor = null;
   if(optsForRaw !== 'none'){
@@ -1489,6 +1650,11 @@ function edSave(){
   if(mediaType !== 'none'){
     if(mediaType === 'image-upload' && _edMediaFileData){ card.mediaData = _edMediaFileData; }
     else if(mediaUrl){ card.mediaUrl = mediaUrl; }
+  }
+  if(revealTypeVal !== 'none'){
+    card.revealType = revealTypeVal;
+    if(revealTypeVal.endsWith('url') && revealUrlVal) card.revealUrl = revealUrlVal;
+    else if(revealTypeVal.endsWith('upload') && _edRevealFileData) card.revealData = _edRevealFileData;
   }
   if(_editCardId){
     const i = deck.findIndex(x => x.id === _editCardId);
