@@ -2418,8 +2418,14 @@ function _applyRulesParsed(parsed) {
   if (parsed.impostor) Object.assign(RULES_CONFIG.impostor, parsed.impostor);
   ['f1','f2'].forEach(phase => {
     if (Array.isArray(parsed[phase])) {
-      parsed[phase].forEach((saved, i) => {
-        if (RULES_CONFIG[phase][i]) Object.assign(RULES_CONFIG[phase][i], saved);
+      // OJO: reemplaza la lista completa (no solo mergear por índice) para que
+      // estaciones agregadas o eliminadas se reflejen tal cual quedaron guardadas.
+      // Mergear por índice contra el default de 6 estaciones hacía que una
+      // estación eliminada "reapareciera" al recargar, y que una agregada
+      // (índice fuera del default) se perdiera.
+      RULES_CONFIG[phase] = parsed[phase].map((saved, i) => {
+        const base = (RULES_DEFAULT[phase][i]) ? RULES_DEFAULT[phase][i] : _newDefaultGame(saved.name || '');
+        return Object.assign(JSON.parse(JSON.stringify(base)), saved);
       });
     }
   });
@@ -2489,9 +2495,11 @@ function syncRulestoRuntime() {
   // Sync empate
   EMPATE_ALLOWED_F2.length = 0;
   RULES_CONFIG.f2.forEach(g => { if (g.allow_draw) EMPATE_ALLOWED_F2.push(g.name); });
-  // Sync longitud de paletas de color (por si se eliminó una estación)
+  // Sync longitud de paletas de color (por si se eliminó o agregó una estación)
   if (GAME_COLORS_F1.length > RULES_CONFIG.f1.length) GAME_COLORS_F1.length = RULES_CONFIG.f1.length;
+  while (GAME_COLORS_F1.length < RULES_CONFIG.f1.length) GAME_COLORS_F1.push(EXTRA_GAME_COLORS[GAME_COLORS_F1.length % EXTRA_GAME_COLORS.length]);
   if (GAME_COLORS_F2.length > RULES_CONFIG.f2.length) GAME_COLORS_F2.length = RULES_CONFIG.f2.length;
+  while (GAME_COLORS_F2.length < RULES_CONFIG.f2.length) GAME_COLORS_F2.push(EXTRA_GAME_COLORS[GAME_COLORS_F2.length % EXTRA_GAME_COLORS.length]);
 }
 
 let _rulesEditMode = false;
@@ -3290,26 +3298,15 @@ function regenerateF2Fixture() {
   F2_BYES = byes;
 }
 
-// Al cargar la página, si en algún momento se agregó gente, se restaura el
-// mismo roster y el MISMO fixture ya generado (no se vuelve a sortear de
-// nuevo en cada recarga, porque eso desincronizaría los resultados ya cargados).
+// Al cargar la página, si en algún momento se agregó/eliminó gente o
+// estaciones, se restaura el mismo roster y el MISMO fixture ya generado
+// (no se vuelve a sortear de nuevo en cada recarga, porque eso desincronizaría
+// los resultados ya cargados).
 function restoreRosterAndFixtures() {
-  // Solo restauramos el snapshot si el torneo YA arrancó (hay resultados cargados).
-  // Si todavía no empezó, usamos la lista de jugadores/equipos actual, así los
-  // nombres editados antes de arrancar no quedan pisados por un snapshot viejo.
-  const torneoArranco = (state.f1 && Object.keys(state.f1).length > 0)
-                     || (state.f2 && Object.keys(state.f2).length > 0);
-  if (!torneoArranco) {
-    // limpiar snapshots viejos que pudieran haber quedado de una sesión anterior
-    if (state.playersSnapshot || state.teamsSnapshot) {
-      state.playersSnapshot = null;
-      state.teamsSnapshot = null;
-      state.f1FixtureSnapshot = null;
-      state.f2FixtureSnapshot = null;
-      try { saveState(); } catch(e){}
-    }
-    return;
-  }
+  // Siempre restauramos el snapshot si existe (se guarda en cada edición de
+  // roster/estaciones, esté o no arrancado el torneo). Antes esto solo se
+  // restauraba si ya había resultados cargados, lo que hacía que agregar o
+  // eliminar jugadores/equipos ANTES de la primera ronda no sobreviviera un F5.
   if (Array.isArray(state.playersSnapshot) && state.playersSnapshot.length) {
     PLAYERS.length = 0;
     state.playersSnapshot.forEach(n => PLAYERS.push(n));
@@ -3321,10 +3318,17 @@ function restoreRosterAndFixtures() {
   if (state.f1FixtureSnapshot) {
     F1_FIXTURE = state.f1FixtureSnapshot.fixture;
     F1_BYES = computeF1Byes(F1_FIXTURE, PLAYERS.length);
+  } else {
+    // Todavía no se guardó ningún snapshot (nunca se tocó el roster ni las
+    // estaciones): igual rearmamos el fixture inicial por si la cantidad de
+    // estaciones cambió respecto al default con el que arrancó la página.
+    regenerateF1Fixture();
   }
   if (state.f2FixtureSnapshot) {
     F2_FIXTURE = state.f2FixtureSnapshot.fixture;
     F2_BYES = state.f2FixtureSnapshot.byes;
+  } else {
+    regenerateF2Fixture();
   }
 }
 
@@ -3945,6 +3949,23 @@ function getPlayerPoints() {
   return pts;
 }
 
+// Para un jugador dado, devuelve qué estaciones ya tiene asignadas en el
+// fixture ANTES de una ronda determinada, y cuáles todavía le faltan. Se usa
+// para mostrar, cuando un jugador descansa, qué le falta cubrir a esa altura
+// del torneo (útil en vivo el día del evento).
+function getF1StationStatus(playerIdx, beforeRound) {
+  const played = new Set();
+  F1_FIXTURE.forEach(([r, a, b, g]) => {
+    if (r < beforeRound && (a === playerIdx || b === playerIdx)) played.add(g);
+  });
+  const playedNames = [];
+  const missingNames = [];
+  for (let g = 0; g < GAMES_F1.length; g++) {
+    (played.has(g) ? playedNames : missingNames).push(GAMES_F1[g]);
+  }
+  return { playedNames, missingNames };
+}
+
 // Para un equipo dado, devuelve qué estaciones ya tiene asignadas en el
 // fixture ANTES de una ronda determinada, y cuáles todavía le faltan. Se usa
 // para mostrar, cuando un equipo descansa, qué le falta cubrir a esa altura
@@ -4139,8 +4160,12 @@ function renderFase1() {
   tbody.innerHTML = sorted.map(({n,i,pts}, pos) => {
     const badgeClass = pos === 0 ? 'gold' : pos === 1 ? 'accent' : '';
     const rowClass = pos < 1 ? 'classifica' : '';
-    const rounds = pts.rounds.map(v =>
-      v === 'bye' ? `<td class="round-pts bye" title="Descansa esta ronda">😴</td>`
+    const rounds = pts.rounds.map((v, ri) =>
+      v === 'bye' ? (() => {
+        const { missingNames } = getF1StationStatus(i, ri + 1);
+        const title = missingNames.length ? `Descansa esta ronda — le falta: ${missingNames.join(', ')}` : 'Descansa esta ronda — ya completó todas las estaciones';
+        return `<td class="round-pts bye" title="${title}">😴</td>`;
+      })()
       : v === null ? `<td class="round-pts pending">—</td>`
       : v >= 4 ? `<td class="round-pts bonus">${v}</td>`
       : v > 0 ? `<td class="round-pts win">${v}</td>`
@@ -4252,7 +4277,11 @@ function renderFixtureF1() {
     const byeArrRaw = F1_BYES[r];
     const byeArr = Array.isArray(byeArrRaw) ? byeArrRaw : (typeof byeArrRaw === 'number' ? [byeArrRaw] : []);
     const byeTag = byeArr.length
-      ? byeArr.map(idx => `<span class="bye-tag">😴 Descansa: ${PLAYERS[idx]}</span>`).join(' ')
+      ? byeArr.map(idx => {
+          const { missingNames } = getF1StationStatus(idx, r);
+          const missingTxt = missingNames.length ? ` (le falta: ${missingNames.join(', ')})` : ' (ya completó todas las estaciones)';
+          return `<span class="bye-tag">😴 Descansa: ${PLAYERS[idx]}${missingTxt}</span>`;
+        }).join(' ')
       : '';
     html += `<div class="fixture-round"><div class="round-label">Ronda ${r} ${byeTag}</div>`;
 
