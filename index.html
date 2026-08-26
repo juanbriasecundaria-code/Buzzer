@@ -58,6 +58,11 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
 .back-btn{position:absolute;top:max(1rem,env(safe-area-inset-top));left:1rem;z-index:10;display:flex;align-items:center;gap:.4rem;padding:.5rem .85rem;border-radius:99px;border:1.5px solid var(--border2);background:var(--surface2);color:var(--muted);font-family:inherit;font-size:13px;font-weight:700;cursor:pointer;transition:opacity .15s}
 .back-btn:active{opacity:.7}
 
+/* ── PARTICIPANTES corner link (esquina, dentro del HUB) ── */
+.participants-corner-link{position:fixed;top:max(1rem,env(safe-area-inset-top));right:max(1rem,env(safe-area-inset-right));z-index:10;display:flex;align-items:center;gap:.35rem;padding:.5rem .8rem;border-radius:99px;border:1.5px solid var(--border2);background:var(--surface2);color:var(--muted);font-family:inherit;font-size:12px;font-weight:700;text-decoration:none;transition:opacity .15s,color .15s,border-color .15s}
+.participants-corner-link:active{opacity:.7}
+.participants-corner-link:hover{color:var(--text);border-color:var(--border2)}
+
 /* ── GAME SELECT ── */
 .velada-label{font-size:11px;font-weight:700;letter-spacing:.32em;text-transform:uppercase;color:var(--gold);opacity:.8}
 .velada-title{font-size:2.4rem;font-weight:900;letter-spacing:-.03em;line-height:1}
@@ -284,6 +289,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
 
 <!-- ① SELECCIÓN DE JUEGO -->
 <div class="screen active" id="game-select-screen" style="position:relative;z-index:1">
+  <a class="participants-corner-link" href="participante.html" style="position:fixed" title="Ver mis stats y ranking">👥 <span>Participantes</span></a>
   <div class="velada-label">🎮 La Velada del Año</div>
   <div class="velada-title">🕹️ HUB</div>
   <div class="velada-sub">Elegí el juego en el que estás participando</div>
