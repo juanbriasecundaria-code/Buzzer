@@ -76,6 +76,8 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
 .game-btn-sub{font-size:11px;opacity:.65;font-weight:600}
 .game-movies{background:var(--gold-dim);border-color:var(--gold);color:var(--gold)}
 .game-arg{background:var(--blue-dim);border-color:var(--blue);color:var(--blue)}
+.game-quien{background:var(--purple-dim);border-color:var(--purple);color:var(--purple)}
+.game-quien .game-arrow{margin-left:auto;font-size:18px;opacity:.55;line-height:1}
 .game-tiempo{background:var(--accent-dim);border-color:var(--accent);color:var(--accent)}
 .game-tiempo .game-arrow{margin-left:auto;font-size:18px;opacity:.55;line-height:1}
 .game-erudito{background:var(--red-dim);border-color:var(--red);color:var(--red)}
@@ -116,6 +118,9 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
 .team-btn:active{transform:scale(.97);opacity:.85}
 .team-a{background:var(--blue-dim);border-color:var(--blue);color:var(--blue)}
 .team-b{background:var(--gold-dim);border-color:var(--gold);color:var(--gold)}
+.team-indiv{background:var(--purple-dim);border-color:var(--purple);color:var(--purple);padding:.85rem;font-size:15px}
+#team-list-individual{display:grid !important;grid-template-columns:1fr 1fr;gap:.6rem}
+@media (max-width:360px){#team-list-individual{grid-template-columns:1fr}}
 
 /* ── BUZZ SCREEN ── */
 #buzz-screen{position:relative}
@@ -131,8 +136,10 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
 .bz-buzz-btn.locked{opacity:.25;cursor:default;pointer-events:none}
 .bz-buzz-btn.team-a{border-color:var(--blue);background:var(--blue-dim);color:var(--blue);box-shadow:0 0 0 1px rgba(96,180,240,.3),0 12px 40px rgba(96,180,240,.15)}
 .bz-buzz-btn.team-b{border-color:var(--gold);background:var(--gold-dim);color:var(--gold);box-shadow:0 0 0 1px rgba(245,200,66,.3),0 12px 40px rgba(245,200,66,.15)}
+.bz-buzz-btn.team-indiv{border-color:var(--purple);background:var(--purple-dim);color:var(--purple);box-shadow:0 0 0 1px rgba(192,96,232,.3),0 12px 40px rgba(192,96,232,.15)}
 .bz-buzz-btn.open.team-a{box-shadow:0 0 0 1px rgba(96,180,240,.8),0 12px 60px rgba(96,180,240,.4)}
 .bz-buzz-btn.open.team-b{box-shadow:0 0 0 1px rgba(245,200,66,.8),0 12px 60px rgba(245,200,66,.4)}
+.bz-buzz-btn.open.team-indiv{box-shadow:0 0 0 1px rgba(192,96,232,.8),0 12px 60px rgba(192,96,232,.4)}
 .bz-buzz-btn.won-me{animation:bzPulseWin .6s ease}
 @keyframes bzPulseWin{0%{transform:scale(1)}40%{transform:scale(1.08)}100%{transform:scale(1)}}
 .bz-buzz-icon{font-size:56px;line-height:1;pointer-events:none}
@@ -311,6 +318,13 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
         <span class="game-btn-sub">Las respuestas más populares</span>
       </div>
     </button>
+    <button class="game-btn game-quien" onclick="selectGame('quien')">
+      <span class="game-btn-icon">🗣️</span>
+      <div class="game-btn-info">
+        <span class="game-btn-name">¿Quién lo dijo?</span>
+        <span class="game-btn-sub">Frases, memes y escenas — todos contra todos</span>
+      </div>
+    </button>
   </div>
 
   <!-- Submenú MINIJUEGOS -->
@@ -356,12 +370,13 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
     <div class="game-icon" id="ts-icon">🎬</div>
     <div class="game-name" id="ts-name">Guess Movies &amp; Songs</div>
   </div>
-  <div class="section-label">¿Cuál es tu equipo?</div>
-  <div class="team-list">
+  <div class="section-label" id="ts-section-label">¿Cuál es tu equipo?</div>
+  <div class="team-list" id="team-list-standard">
     <button class="team-btn team-a" id="team-btn-a" onclick="selectTeam('a')">🔵 <span id="ts-na">Equipo 1</span></button>
     <button class="team-btn team-b" id="team-btn-b" onclick="selectTeam('b')">🟡 <span id="ts-nb">Equipo 2</span></button>
   </div>
-  <button class="edit-names-btn" onclick="openBzNames()">✏️ Editar nombres de los equipos</button>
+  <div class="team-list" id="team-list-individual" style="display:none"></div>
+  <button class="edit-names-btn" id="edit-names-btn" onclick="openBzNames()">✏️ Editar nombres de los equipos</button>
   <div class="connecting-dot" id="connecting-dot" style="display:none"></div>
   <div class="connecting-text" id="connecting-text" style="display:none">Conectando…</div>
 </div>
@@ -431,12 +446,14 @@ const FB_CFG = {
 // Ruta en Firebase según el juego
 const GAME_PATHS = {
   movies:     'velada/buzzer',
-  argentinos: 'argentinos/buzzer'
+  argentinos: 'argentinos/buzzer',
+  quien:      'velada/qld/buzzer'
 };
 
 const GAME_META = {
   movies:     { icon:'🎬', name:'Guess Movies & Songs' },
-  argentinos: { icon:'🎤', name:'100 Argentinos Dicen' }
+  argentinos: { icon:'🎤', name:'100 Argentinos Dicen' },
+  quien:      { icon:'🗣️', name:'¿Quién lo dijo?', individual:true }
 };
 
 // ── STATE ────────────────────────────────────────────────────────
@@ -501,6 +518,11 @@ function selectGame(gameId){
   // Actualizar UI de selección de equipo
   document.getElementById('ts-icon').textContent = meta.icon;
   document.getElementById('ts-name').textContent = meta.name;
+  const isIndividual = !!meta.individual;
+  document.getElementById('ts-section-label').textContent = isIndividual ? '¿Quién sos?' : '¿Cuál es tu equipo?';
+  document.getElementById('team-list-standard').style.display   = isIndividual ? 'none' : '';
+  document.getElementById('team-list-individual').style.display = isIndividual ? '' : 'none';
+  document.getElementById('edit-names-btn').style.display       = isIndividual ? 'none' : '';
 
   // Mostrar "conectando" mientras Firebase inicia
   document.getElementById('connecting-dot').style.display = '';
@@ -514,8 +536,34 @@ function selectGame(gameId){
     if(bzListener){ fbRef && fbRef.off('value', bzListener); bzListener=null; }
     stopNamesListener();
     fbRef = fbDb.ref(GAME_PATHS[gameId]);
-    startNamesListener();
+    if(isIndividual){
+      startIndividualPlayerListener();
+    } else {
+      startNamesListener();
+    }
   });
+}
+
+// Lista de jugadores para el modo individual — se lee del canal live del juego.
+let indivListener = null;
+function stopIndivListener(){ if(indivListener && fbDb){ try{ fbDb.ref('velada/qld/live').off('value', indivListener); }catch(e){} indivListener=null; } }
+function startIndividualPlayerListener(){
+  stopIndivListener();
+  const ref = fbDb.ref('velada/qld/live');
+  indivListener = ref.on('value', snap => {
+    const d = snap.val() || {};
+    // Preferir la lista sincronizada por el conductor; si no hay, usar default
+    let list = Array.isArray(d.players) && d.players.length ? d.players : DEFAULT_QLD_PLAYERS;
+    renderIndividualPlayers(list);
+    document.getElementById('connecting-dot').style.display = 'none';
+    document.getElementById('connecting-text').style.display = 'none';
+  });
+}
+const DEFAULT_QLD_PLAYERS = ['Risu','Totti','Thiago','Mica','Valentín','Laza','Lara','Martin','Cori','Flor','Tomás'];
+function renderIndividualPlayers(list){
+  const wrap = document.getElementById('team-list-individual');
+  if(!wrap) return;
+  wrap.innerHTML = list.map(p => `<button class="team-btn team-indiv" onclick="selectTeam('${p.replace(/'/g,"\\'")}')">🎤 ${p}</button>`).join('');
 }
 
 // ── EDITOR DE NOMBRES (buzzer) ──────────────────────────────────
@@ -547,20 +595,29 @@ function saveBzNames(){
 
 function selectTeam(team){
   bzTeam = team;
-  const tName = team==='a' ? nameA : nameB;
-  const teamColor = team==='a' ? '🔵' : '🟡';
+  const meta = GAME_META[currentGame] || {};
+  const isIndividual = !!meta.individual;
+  let tName, teamColor;
+  if(isIndividual){
+    tName = team; // el team ES el nombre del jugador
+    teamColor = '🎤';
+  } else {
+    tName = team==='a' ? nameA : nameB;
+    teamColor = team==='a' ? '🔵' : '🟡';
+  }
 
   // Actualizar pantalla de buzzer
-  document.getElementById('bz-game-tag').textContent = GAME_META[currentGame].name;
+  document.getElementById('bz-game-tag').textContent = meta.name;
   document.getElementById('bz-team-name').textContent = teamColor + ' ' + tName;
 
   const btn = document.getElementById('bz-buzz-btn');
-  btn.className = 'bz-buzz-btn locked team-' + team;
+  btn.className = 'bz-buzz-btn locked ' + (isIndividual ? 'team-indiv' : 'team-' + team);
   document.getElementById('bz-status').textContent = 'Esperando al conductor…';
   document.getElementById('bz-status').className = 'bz-status';
   hideResult(); _resultShownFor = null;
 
   stopNamesListener();
+  stopIndivListener();
   show('buzz-screen');
   startBuzzListener();
 }
@@ -572,6 +629,7 @@ function goBack(to){
   if(to==='game'){
     bzTeam=null; currentGame=null;
     stopNamesListener();
+    stopIndivListener();
     show('game-select-screen');
   } else if(to==='team'){
     bzTeam=null;
@@ -579,8 +637,10 @@ function goBack(to){
     document.getElementById('ts-na').textContent = nameA;
     document.getElementById('ts-nb').textContent = nameB;
     show('team-select-screen');
-    // Re-arrancar listener de nombres EN VIVO
-    startNamesListener();
+    // Re-arrancar listener según el tipo de juego
+    const meta = GAME_META[currentGame] || {};
+    if(meta.individual) startIndividualPlayerListener();
+    else startNamesListener();
   }
 }
 
@@ -663,7 +723,9 @@ function sfxTin(){ const ctx=_bac(); if(!ctx) return; try{ const now=ctx.current
 
 function doBuzz(){
   if(!fbRef || !bzTeam) return;
-  const tName = bzTeam==='a' ? nameA : nameB;
+  const meta = GAME_META[currentGame] || {};
+  const isIndividual = !!meta.individual;
+  const tName = isIndividual ? bzTeam : (bzTeam==='a' ? nameA : nameB);
   if(navigator.vibrate) navigator.vibrate(60);
 
   // Transacción atómica — solo gana el primero en llegar
