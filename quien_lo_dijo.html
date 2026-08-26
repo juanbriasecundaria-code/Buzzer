@@ -187,6 +187,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
 .assign-tab{flex:1;padding:.5rem;border-radius:10px;border:1.5px solid var(--border2);background:var(--surface2);font-family:inherit;font-size:12px;font-weight:800;color:var(--muted2);cursor:pointer}
 .assign-tab.on{border-color:var(--purple);background:var(--purple-dim);color:var(--purple)}
 .assign-players{display:grid;grid-template-columns:repeat(auto-fill,minmax(90px,1fr));gap:.4rem;max-height:220px;overflow-y:auto}
+.assign-amount-choices{display:none;flex-direction:column;gap:.5rem}
 .assign-player{padding:.55rem .5rem;border-radius:10px;border:1.5px solid var(--border2);background:var(--surface2);font-family:inherit;font-size:12px;font-weight:800;color:var(--text);cursor:pointer;transition:transform .1s,border-color .15s}
 .assign-player:active{transform:scale(.95)}
 .assign-player:hover{border-color:var(--purple);color:var(--purple)}
@@ -415,9 +416,8 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
       <button class="act-btn purple" id="buzzer-btn" onclick="toggleBuzzer()">🔔 Abrir buzzer</button>
       <button class="act-btn ghost" onclick="openPlayers()">👥 Ver jugadores</button>
     </div>
-    <div class="action-grid">
-      <button class="act-btn green" onclick="openAssign('who')">✓ Acertó QUIÉN (+1)</button>
-      <button class="act-btn blue" id="assign-ending-btn" onclick="openAssign('ending')">✓ Acertó FINAL (+1)</button>
+    <div style="display:flex">
+      <button class="act-btn green" style="flex:1" onclick="openAssign(false)">✓ Acertó</button>
     </div>
 
     <div class="assign-panel" id="assign-panel" style="display:none">
@@ -426,6 +426,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
         <button class="assign-close" onclick="closeAssign()">×</button>
       </div>
       <div class="assign-sub" id="assign-sub">Tocá el nombre del jugador que acertó</div>
+      <div class="assign-amount-choices" id="assign-amount-choices" style="display:none"></div>
       <div class="assign-players" id="assign-players"></div>
     </div>
   </div>
@@ -738,9 +739,7 @@ function renderBuzzerBanner(){
 let _winnerName = null;
 function openAssignWithWinner(name){
   _winnerName = name;
-  // Si aún no hay tipo elegido, default a 'who'
-  if(!assignFor) assignFor = 'who';
-  openAssign(assignFor, /*keepWinner=*/true);
+  openAssign(/*keepWinner=*/true);
 }
 
 // SFX buzz — pequeño "tin" para que suene en la compu del conductor
@@ -759,7 +758,8 @@ let scoresRecent = {}; // { playerName: msTimestamp } — para efecto "+1"
 let players = PLAYERS_DEFAULT.slice();
 let revealed = false;
 let hintsShown = { 1: false, 2: false };
-let assignFor = null; // 'who' | 'ending' | null
+let assignAmount = null;   // 0.5 | 1 | null — cuánto vale el punto a asignar
+let assignKeepWinner = false;
 let _editCardId = null;
 let _edFilter = 'all';
 let _edSearch = '';
@@ -878,9 +878,9 @@ function renderPartScores(){
   }).join('');
 }
 function quickAssignPrompt(name){
-  const delta = prompt(`Ajustar puntaje de ${name}\n(actual: ${scores[name]||0})\n\nEscribí +N o -N (ej: +1, -2):`, '+1');
+  const delta = prompt(`Ajustar puntaje de ${name}\n(actual: ${scores[name]||0})\n\nEscribí +N o -N (ej: +1, -0.5):`, '+1');
   if(!delta) return;
-  const n = parseInt(delta);
+  const n = parseFloat(delta);
   if(isNaN(n)) return;
   scores[name] = Math.max(0, (scores[name]||0) + n);
   saveScores(); renderScores(); fbPushLive();
@@ -1000,9 +1000,6 @@ function renderCondText(cur){
   document.getElementById('hint2-btn').textContent = hintsShown[2] ? '🔒 Ocultar pista 2' : '💡 Pista 2';
   document.getElementById('hint2-btn').style.opacity = cur.hint2 ? '1' : '.4';
   document.getElementById('reveal-btn').textContent = revealed ? '🙈 Ocultar respuestas' : '👁 Revelar respuestas';
-  // "Acertó FINAL" no tiene sentido si la carta no tiene un final cargado
-  const endBtn = document.getElementById('assign-ending-btn');
-  if(endBtn) endBtn.style.display = cur.ending ? '' : 'none';
   const markBtn = document.getElementById('mark-played-btn');
   if(markBtn) markBtn.textContent = cur.played ? '↺ Marcar sin jugar' : '✓ Marcar como jugada';
 }
@@ -1109,31 +1106,47 @@ function replayRevealCue(){
 }
 
 // ── ASSIGN POINTS ──
-function openAssign(type, keepWinner){
+function openAssign(keepWinner){
   const cur = currentCard();
   if(!cur){ toast('No hay carta cargada'); return; }
-  if(type === 'ending' && !cur.ending){ toast('Esta carta no tiene un "final" cargado'); return; }
-  assignFor = type;
-  const panel = document.getElementById('assign-panel');
-  const label = type === 'who' ? 'QUIÉN lo dijo' : 'el FINAL';
-  document.getElementById('assign-title').textContent = `+1 por acertar ${label}`;
-  const winnerHint = (keepWinner && _winnerName) ? ` · <b style="color:var(--gold)">🏆 ${escapeHtml(_winnerName)} buzzeó primero</b>` : '';
+  assignKeepWinner = !!keepWinner;
+  document.getElementById('assign-panel').style.display = 'flex';
+  showAssignAmountStep();
+  document.getElementById('assign-panel').scrollIntoView({behavior:'smooth', block:'end'});
+}
+function showAssignAmountStep(){
+  assignAmount = null;
+  document.getElementById('assign-title').textContent = '¿Cuánto acertó?';
+  document.getElementById('assign-sub').textContent = 'Elegí si acertó todo o solo una parte de la frase';
+  document.getElementById('assign-players').innerHTML = '';
+  const wrap = document.getElementById('assign-amount-choices');
+  wrap.style.display = 'flex';
+  wrap.innerHTML = `
+    <button class="act-btn green" onclick="chooseAssignAmount(1)">✅ Acertó todo — 1 pt</button>
+    <button class="act-btn gold" onclick="chooseAssignAmount(0.5)">➗ Acertó una parte — 0.5 pt</button>
+  `;
+}
+function chooseAssignAmount(amount){
+  assignAmount = amount;
+  document.getElementById('assign-amount-choices').style.display = 'none';
+  document.getElementById('assign-title').textContent = `Asignar ${amount === 1 ? '1 pt' : '0.5 pt'}`;
+  const winnerHint = (assignKeepWinner && _winnerName) ? ` · <b style="color:var(--gold)">🏆 ${escapeHtml(_winnerName)} buzzeó primero</b>` : '';
   document.getElementById('assign-sub').innerHTML = 'Tocá el nombre del jugador que acertó' + winnerHint;
   const wrap = document.getElementById('assign-players');
   wrap.innerHTML = players.map(p => {
-    const isWinner = keepWinner && _winnerName && p === _winnerName;
+    const isWinner = assignKeepWinner && _winnerName && p === _winnerName;
     return `<button class="assign-player ${isWinner?'winner':''}" onclick="doAssign('${escapeHtml(p)}')">${isWinner?'🏆 ':''}${escapeHtml(p)}</button>`;
   }).join('');
-  panel.style.display = 'flex';
-  panel.scrollIntoView({behavior:'smooth', block:'end'});
 }
 function closeAssign(){
   document.getElementById('assign-panel').style.display = 'none';
-  assignFor = null;
+  document.getElementById('assign-amount-choices').style.display = 'none';
+  assignAmount = null;
+  assignKeepWinner = false;
 }
 function doAssign(name){
-  if(!assignFor) return;
-  scores[name] = (scores[name]||0) + 1;
+  if(!assignAmount) return;
+  scores[name] = (scores[name]||0) + assignAmount;
   scoresRecent[name] = Date.now();
   saveScores();
   renderScores();
@@ -1142,7 +1155,7 @@ function doAssign(name){
   if(cur && !cur.played){ cur.played = true; saveDeckLocal(); fbPushDeck(); renderEditorList();
     const markBtn = document.getElementById('mark-played-btn'); if(markBtn) markBtn.textContent = '↺ Marcar sin jugar'; }
   fbPushLive();
-  toast(`+1 para ${name} (${assignFor === 'who' ? 'quién' : 'final'})`);
+  toast(`+${assignAmount} para ${name}`);
   closeAssign();
   setTimeout(renderScores, 2600); // limpia el "+1" pin
   // Después de asignar, bloqueamos el buzzer para la próxima ronda
