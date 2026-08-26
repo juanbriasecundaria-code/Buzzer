@@ -8930,6 +8930,9 @@ function openTVMode() {
   // del padre, así que sin esto caía a una lista hardcodeada con nombres equivocados.
   const rulesStr    = RULES_CONFIG ? JSON.stringify(RULES_CONFIG) : (localStorage.getItem('ndj_rules') || 'null');
   const colorsStr   = JSON.stringify(_entityColors || {});
+  // Se calcula acá (en la ventana principal) porque la ventana TV se abre
+  // con window.open('', ...) y su location no apunta al archivo real.
+  const guestUrlJson = JSON.stringify(new URL('participante.html', location.href).href);
 
   const html = `<!DOCTYPE html>
 <html lang="es">
@@ -9477,8 +9480,21 @@ function openTVMode() {
   .f2  .tv-estado-pct { color: var(--info); }
   .tv-estado-pct.done { color: var(--success) !important; }
 </style>
-<style>.hub-link{position:fixed;top:max(0.75rem,env(safe-area-inset-top));left:max(0.75rem,env(safe-area-inset-left));z-index:99999;font-size:11px;font-weight:700;color:rgba(240,239,232,0.7);background:rgba(10,10,14,0.6);border:1px solid rgba(255,255,255,0.1);border-radius:99px;padding:0.38rem 0.85rem;text-decoration:none;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);letter-spacing:0.04em;transition:color 0.15s,border-color 0.15s;white-space:nowrap}.hub-link:hover{color:#f0efe8;border-color:rgba(255,255,255,0.25)}</style></head>
+<style>.hub-link{position:fixed;top:max(0.75rem,env(safe-area-inset-top));left:max(0.75rem,env(safe-area-inset-left));z-index:99999;font-size:11px;font-weight:700;color:rgba(240,239,232,0.7);background:rgba(10,10,14,0.6);border:1px solid rgba(255,255,255,0.1);border-radius:99px;padding:0.38rem 0.85rem;text-decoration:none;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);letter-spacing:0.04em;transition:color 0.15s,border-color 0.15s;white-space:nowrap}.hub-link:hover{color:#f0efe8;border-color:rgba(255,255,255,0.25)}</style>
+<style>
+  .tv-guest-qr{position:fixed;bottom:clamp(10px,2vh,24px);left:clamp(10px,2vw,28px);z-index:50;background:var(--surface);border:1.5px solid var(--border2);border-radius:16px;padding:clamp(8px,1vh,12px);display:flex;flex-direction:column;align-items:center;gap:6px;box-shadow:0 4px 32px rgba(0,0,0,0.4)}
+  .tv-guest-qr-canvas{background:#fff;border-radius:8px;width:clamp(64px,7vw,110px);height:clamp(64px,7vw,110px);display:flex;align-items:center;justify-content:center;overflow:hidden}
+  .tv-guest-qr-canvas img,.tv-guest-qr-canvas canvas{width:100%!important;height:100%!important}
+  .tv-guest-qr-label{font-size:clamp(9px,0.8vw,12px);font-weight:700;color:var(--muted);text-align:center;letter-spacing:.02em;line-height:1.3;max-width:clamp(70px,8vw,130px)}
+</style>
+</head>
 <body>
+
+<!-- ── QR PARA INVITADOS (siempre visible) ── -->
+<div class="tv-guest-qr" id="tv-guest-qr">
+  <div class="tv-guest-qr-canvas" id="tv-guest-qr-canvas"></div>
+  <div class="tv-guest-qr-label">📱 Escaneá para<br>ver tu ranking</div>
+</div>
 
 <!-- ── CRONÓMETRO ── -->
 <div class="tv-timer" id="tv-timer">
@@ -9710,6 +9726,27 @@ const F2_FIXTURE   = ${f2Fix};
 const TV_PHASE     = ${tvPhaseJson}; // 'fase1' | 'fase2' | 'both'
 const RULES_INIT   = ${rulesStr};    // reglas sembradas desde el padre (clave en file://)
 const ENTITY_COLORS_INIT = ${colorsStr}; // colores custom por jugador/equipo
+const GUEST_URL    = ${guestUrlJson}; // link a participante.html (calculado en la ventana principal)
+
+// ── QR de invitados: siempre visible, se dibuja solo al abrir el TV ──
+(function renderTVGuestQR() {
+  const el = document.getElementById('tv-guest-qr-canvas');
+  if (!el) return;
+  function draw() {
+    el.innerHTML = '';
+    try {
+      new QRCode(el, { text: GUEST_URL, width: 200, height: 200, colorDark: '#0f0f13', colorLight: '#ffffff' });
+    } catch (e) {
+      el.innerHTML = '<div style="padding:4px;color:#888;font-size:9px">Error QR</div>';
+    }
+  }
+  if (window.QRCode) { draw(); return; }
+  const s = document.createElement('script');
+  s.src = 'https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js';
+  s.onload = draw;
+  s.onerror = () => { el.innerHTML = '<div style="padding:4px;color:#888;font-size:9px">Sin conexión</div>'; };
+  document.head.appendChild(s);
+})();
 
 // Reglas en el TV: prioriza localStorage (updates en vivo si el origin lo comparte),
 // y si no hay (caso file://), usa lo sembrado al abrir. Nunca cae a hardcode.
