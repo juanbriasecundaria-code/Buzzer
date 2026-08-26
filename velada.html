@@ -2264,6 +2264,7 @@ body.started .velada-bg-scrim { display: block; }
   <div style="margin-left:auto;display:flex;align-items:center;gap:0.5rem;flex-shrink:0;">
     <button onclick="hardReload()" title="Forzar actualización (hard reload)" id="reload-btn" style="flex-shrink:0;display:flex;align-items:center;gap:0.4rem;padding:0.45rem 0.85rem;border-radius:var(--radius);border:1px solid var(--border2);background:transparent;color:var(--muted);cursor:pointer;font-size:12px;font-weight:600;white-space:nowrap">↻ <span class="reload-btn-txt">Actualizar</span></button>
     <button onclick="openTVMode()" title="Modo TV" id="tv-btn" style="flex-shrink:0;display:flex;align-items:center;gap:0.4rem;padding:0.45rem 0.85rem;border-radius:var(--radius);border:1px solid var(--border2);background:transparent;color:var(--muted);cursor:pointer;font-size:12px;font-weight:600;white-space:nowrap">📺 <span class="tv-btn-txt">Modo TV</span></button>
+    <button onclick="openGuestQR()" title="QR para invitados" id="guest-btn" style="flex-shrink:0;display:flex;align-items:center;gap:0.4rem;padding:0.45rem 0.85rem;border-radius:var(--radius);border:1px solid var(--border2);background:transparent;color:var(--muted);cursor:pointer;font-size:12px;font-weight:600;white-space:nowrap">📱 <span class="tv-btn-txt">Invitados</span></button>
   </div>
 
 </nav>
@@ -10104,6 +10105,71 @@ function renderTicker(state, PLAYERS, TEAMS) {
   win.document.write(html);
   win.document.close();
   window._tvWin = win; // guardamos referencia para mandarle datos directamente
+}
+
+// ============================================================
+// VISTA INVITADOS — QR a participante.html (solo lectura, por Firebase)
+// ============================================================
+function openGuestQR() {
+  // Se calcula en base a la URL real donde está alojado este archivo, así
+  // funciona sin importar el dominio (GitHub Pages, Netlify, etc.).
+  const guestUrl = new URL('participante.html', location.href).href;
+
+  let bg = document.getElementById('guest-qr-bg');
+  if (!bg) {
+    bg = document.createElement('div');
+    bg.id = 'guest-qr-bg';
+    bg.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.7);display:flex;align-items:center;justify-content:center;z-index:9999;padding:1.5rem;backdrop-filter:blur(2px)';
+    bg.onclick = (e) => { if (e.target === bg) bg.style.display = 'none'; };
+    bg.innerHTML = `
+      <div style="background:var(--surface);border:0.5px solid var(--border2);border-radius:var(--radius-lg);padding:1.5rem;max-width:340px;width:100%;text-align:center">
+        <div style="font-size:15px;font-weight:600;margin-bottom:0.25rem">📱 Vista para invitados</div>
+        <div style="font-size:12px;color:var(--muted);margin-bottom:1rem;line-height:1.4">Que escaneen este QR desde su celu: eligen su nombre y ven el ranking y sus stats en vivo, sin pedirte el tuyo.</div>
+        <div id="guest-qr-canvas" style="background:#fff;border-radius:12px;padding:12px;display:inline-flex;align-items:center;justify-content:center;min-width:200px;min-height:200px;margin-bottom:1rem"></div>
+        <div style="display:flex;gap:0.5rem;margin-bottom:0.75rem">
+          <input id="guest-qr-url" readonly value="${guestUrl}" onclick="this.select()" style="flex:1;min-width:0;background:var(--surface2);border:1px solid var(--border2);border-radius:var(--radius);padding:0.5rem 0.7rem;color:var(--text);font-size:11px">
+          <button onclick="copyGuestUrl()" style="flex-shrink:0;padding:0.5rem 0.8rem;border-radius:var(--radius);border:1px solid var(--border2);background:transparent;color:var(--text);cursor:pointer;font-size:12px;font-weight:600">Copiar</button>
+        </div>
+        <button onclick="document.getElementById('guest-qr-bg').style.display='none'" style="width:100%;padding:0.6rem;border-radius:var(--radius);border:1px solid var(--border2);background:transparent;color:var(--muted);cursor:pointer;font-size:13px">Cerrar</button>
+      </div>`;
+    document.body.appendChild(bg);
+  }
+  bg.style.display = 'flex';
+  renderGuestQRCode(guestUrl);
+}
+
+function renderGuestQRCode(url) {
+  const el = document.getElementById('guest-qr-canvas');
+  if (!el) return;
+  function draw() {
+    el.innerHTML = '';
+    try {
+      new QRCode(el, { text: url, width: 200, height: 200, colorDark: '#0f0f13', colorLight: '#ffffff' });
+    } catch(e) {
+      el.innerHTML = '<div style="padding:1rem;color:#888;font-size:11px">Error generando el QR</div>';
+    }
+  }
+  if (window.QRCode) { draw(); return; }
+  el.innerHTML = '<div style="padding:1rem;color:#888;font-size:11px">Cargando…</div>';
+  const s = document.createElement('script');
+  s.src = 'https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js';
+  s.onload = draw;
+  s.onerror = () => { el.innerHTML = '<div style="padding:1rem;color:#888;font-size:11px">No se pudo cargar el generador de QR<br>(revisá la conexión a internet)</div>'; };
+  document.head.appendChild(s);
+}
+
+function copyGuestUrl() {
+  const input = document.getElementById('guest-qr-url');
+  if (!input) return;
+  input.select();
+  input.setSelectionRange(0, 99999);
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(input.value).then(() => showToast('✅', 'Link copiado')).catch(() => {
+      try { document.execCommand('copy'); showToast('✅', 'Link copiado'); } catch(e) {}
+    });
+  } else {
+    try { document.execCommand('copy'); showToast('✅', 'Link copiado'); } catch(e) {}
+  }
 }
 
 // ============================================================
