@@ -22,6 +22,18 @@ function _onFbError(){window._fbScriptsDone=true;console.warn('[FB] script load 
 </script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js" onload="_onFbLoad()" onerror="_onFbError()"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js" onload="_onFbLoad()" onerror="_onFbError()"></script>
+<script>
+// ── YouTube IFrame API (para sincronizar play/pause entre conductor y participantes) ──
+window._ytApiReady = false;
+window._ytApiCbs = [];
+window.onYouTubeIframeAPIReady = function(){
+  window._ytApiReady = true;
+  const cbs = window._ytApiCbs; window._ytApiCbs = [];
+  cbs.forEach(fn => { try{ fn(); }catch(e){} });
+};
+function onYtApiReady(fn){ if(window._ytApiReady) fn(); else window._ytApiCbs.push(fn); }
+(function(){ const s=document.createElement('script'); s.src='https://www.youtube.com/iframe_api'; document.head.appendChild(s); })();
+</script>
 
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
@@ -208,6 +220,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
 .ed-body{flex:1;overflow-y:auto;padding:1rem 1.25rem 1.25rem;display:flex;flex-direction:column;gap:1rem}
 .ed-list{display:flex;flex-direction:column;gap:.5rem}
 .ed-item{display:flex;align-items:center;gap:.6rem;padding:.75rem .9rem;border:1px solid var(--border2);border-radius:12px;background:var(--surface2)}
+.ed-item.played{opacity:.5}
 .ed-item-icon{font-size:20px;flex-shrink:0;width:32px;text-align:center}
 .ed-item-body{flex:1;min-width:0}
 .ed-item-title{font-size:13px;font-weight:800;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -272,6 +285,13 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
 .part-opts{display:grid;grid-template-columns:1fr 1fr;gap:.5rem;width:100%}
 .part-opt{padding:.85rem 1rem;border-radius:12px;background:var(--surface2);border:2px solid var(--border2);font-size:14px;font-weight:800;color:var(--text);text-align:center}
 .part-opt.correct{border-color:var(--green);background:var(--green-dim);color:var(--green)}
+
+/* ── AUDIO UNLOCK OVERLAY (participante) ── */
+.audio-unlock{position:fixed;inset:0;z-index:9500;display:none;flex-direction:column;align-items:center;justify-content:center;gap:.75rem;background:rgba(10,10,14,.92);backdrop-filter:blur(6px);cursor:pointer;text-align:center;padding:2rem}
+.au-icon{font-size:3.5rem;animation:auPulse2 1.4s ease-in-out infinite}
+.au-text{font-size:16px;font-weight:800;color:var(--text)}
+.au-sub{font-size:12px;color:var(--muted2);font-weight:600}
+@keyframes auPulse2{0%,100%{transform:scale(1)}50%{transform:scale(1.12)}}
 
 /* ── FB STATUS ── */
 .fb-status{position:fixed;top:max(.6rem,env(safe-area-inset-top));right:.6rem;z-index:50;display:flex;align-items:center;gap:.35rem;padding:.3rem .6rem;background:rgba(20,20,28,.7);border:1px solid var(--border2);border-radius:99px;backdrop-filter:blur(6px);font-size:10px;font-weight:700;color:var(--muted2);letter-spacing:.03em}
@@ -356,6 +376,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
         <button class="set-btn" onclick="closeSetMenu();importDeck()">📥 Importar mazo (JSON)</button>
         <div class="set-divider"></div>
         <button class="set-btn" onclick="closeSetMenu();resetScores()">↺ Reiniciar puntajes</button>
+        <button class="set-btn" onclick="closeSetMenu();resetPlayedFlags()">🔲 Reiniciar cartas jugadas</button>
         <button class="set-btn danger" onclick="closeSetMenu();resetAll()">🗑 Borrar todo (mazo + puntajes)</button>
       </div>
     </div>
@@ -372,6 +393,9 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
       <button class="nav-btn" id="nav-next" onclick="navigate(1)" disabled>▶</button>
     </div>
     <div class="card-count" id="card-count">— / —</div>
+    <div style="display:flex;justify-content:center">
+      <button class="cta-btn" id="mark-played-btn" onclick="toggleCurrentPlayed()">✓ Marcar como jugada</button>
+    </div>
 
     <div class="action-grid-3" id="reveal-row">
       <button class="act-btn gold"   id="hint1-btn" onclick="toggleHint(1)">💡 Pista 1</button>
@@ -384,7 +408,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
     </div>
     <div class="action-grid">
       <button class="act-btn green" onclick="openAssign('who')">✓ Acertó QUIÉN (+1)</button>
-      <button class="act-btn blue"  onclick="openAssign('ending')">✓ Acertó FINAL (+1)</button>
+      <button class="act-btn blue" id="assign-ending-btn" onclick="openAssign('ending')">✓ Acertó FINAL (+1)</button>
     </div>
 
     <div class="assign-panel" id="assign-panel" style="display:none">
@@ -401,6 +425,11 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
 <!-- PARTICIPANT -->
 <div id="participant">
   <div class="fb-status"><div class="fb-dot" id="fb-dot-p"></div><span id="fb-txt-p">Conectando…</span></div>
+  <div class="audio-unlock" id="audio-unlock" onclick="unlockPartAudio()">
+    <div class="au-icon">🔊</div>
+    <div class="au-text">Tocá para activar el audio</div>
+    <div class="au-sub">Necesario para ver videos con sonido</div>
+  </div>
   <div class="part-wrap">
     <div class="part-score-strip"><div class="part-score-inner" id="part-score-inner"></div></div>
     <div class="part-main" id="part-main">
@@ -424,6 +453,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
       <button class="ed-tab"    id="tab-new"  onclick="edSwitch('new')">➕ Nueva</button>
     </div>
     <div class="ed-body" id="ed-body-list">
+      <input class="form-in" id="ed-search" placeholder="🔍 Buscar por título, frase o quién…" oninput="edSetSearch(this.value)" style="margin-bottom:.6rem">
       <div class="ed-filter-row" id="ed-filters"></div>
       <div class="ed-list" id="ed-list"></div>
     </div>
@@ -700,6 +730,7 @@ let hintsShown = { 1: false, 2: false };
 let assignFor = null; // 'who' | 'ending' | null
 let _editCardId = null;
 let _edFilter = 'all';
+let _edSearch = '';
 let _edMediaFileData = null;
 
 // ── STORAGE ──
@@ -823,6 +854,57 @@ function quickAssignPrompt(name){
 }
 
 // ── RENDER: CARD (conductor) ──
+let _lastRenderedCardId = null;
+let condYtPlayer = null;
+let condVideoEl = null;
+let videoSyncState = null; // { videoId|url, playing, t, ts } — se empuja a Firebase para sincronizar a los participantes
+
+function destroyCondPlayers(){
+  if(condYtPlayer){ try{ condYtPlayer.destroy(); }catch(e){} condYtPlayer = null; }
+  condVideoEl = null;
+}
+function pushVideoSync(obj){
+  videoSyncState = Object.assign({}, obj, { ts: Date.now() });
+  fbPushLive(); // empuje inmediato (no esperar el intervalo de 500ms)
+}
+function mountCondMedia(cur){
+  const mount = document.getElementById('cc-media-mount');
+  if(!mount) return;
+  if(!cur.mediaType || cur.mediaType === 'none'){ mount.innerHTML = ''; return; }
+  const src = cur.mediaData || cur.mediaUrl;
+  if(!src){ mount.innerHTML = '<div class="cc-media empty">📁 Sin media cargada</div>'; return; }
+  if(cur.mediaType === 'youtube'){
+    const id = youtubeId(src);
+    if(!id){ mount.innerHTML = '<div class="cc-media empty">⚠️ ID de YouTube inválido</div>'; return; }
+    mount.innerHTML = '<div class="cc-media"><div id="cc-yt-el" style="width:100%;aspect-ratio:16/9"></div></div>';
+    onYtApiReady(() => {
+      // Puede que el usuario ya haya navegado a otra carta mientras cargaba la API
+      if(!document.getElementById('cc-yt-el')) return;
+      condYtPlayer = new YT.Player('cc-yt-el', {
+        videoId: id, width:'100%', height:'100%',
+        playerVars: { autoplay:0, controls:1, modestbranding:1, rel:0 },
+        events: {
+          onStateChange: e => {
+            if(!condYtPlayer) return;
+            const st = e.data;
+            if(st === YT.PlayerState.PLAYING) pushVideoSync({ videoId:id, playing:true,  t: condYtPlayer.getCurrentTime() });
+            else if(st === YT.PlayerState.PAUSED) pushVideoSync({ videoId:id, playing:false, t: condYtPlayer.getCurrentTime() });
+            else if(st === YT.PlayerState.ENDED) pushVideoSync({ videoId:id, playing:false, t: 0 });
+          }
+        }
+      });
+    });
+  } else if(cur.mediaType === 'video-url'){
+    mount.innerHTML = `<div class="cc-media"><video id="cc-video-el" src="${escapeHtml(src)}" controls playsinline preload="metadata"></video></div>`;
+    condVideoEl = document.getElementById('cc-video-el');
+    condVideoEl.addEventListener('play',   () => pushVideoSync({ url:src, playing:true,  t: condVideoEl.currentTime }));
+    condVideoEl.addEventListener('pause',  () => pushVideoSync({ url:src, playing:false, t: condVideoEl.currentTime }));
+    condVideoEl.addEventListener('seeked', () => pushVideoSync({ url:src, playing:!condVideoEl.paused, t: condVideoEl.currentTime }));
+  } else {
+    // image / gif / image-upload
+    mount.innerHTML = `<div class="cc-media"><img src="${escapeHtml(src)}" alt=""></div>`;
+  }
+}
 function renderCard(){
   const cont = document.getElementById('cond-card');
   const cur = currentCard();
@@ -831,19 +913,41 @@ function renderCard(){
   document.getElementById('card-count').textContent = deck.length ? `${cardIdx + 1} / ${deck.length}` : '— / —';
   if(!cur){
     cont.innerHTML = `<div class="cc-empty">Aún no hay cartas.<br>Tocá <b>✏️ Editar mazo</b> para empezar.</div>`;
+    _lastRenderedCardId = null;
+    destroyCondPlayers();
+    fbPushLive();
     return;
   }
   const cat = CAT_BY_ID[cur.category] || CATEGORIES[0];
-  const mediaHtml = renderCardMedia(cur, /*forConductor=*/true);
+  const isNewCard = _lastRenderedCardId !== cur.id;
+  if(isNewCard){
+    cont.innerHTML = `
+      <div class="cc-cat-row">
+        <span class="cc-cat">${cat.icon} ${cat.name}</span>
+        <span class="cc-idx">${cur.title ? escapeHtml(cur.title) : ''}</span>
+      </div>
+      <div id="cc-media-mount"></div>
+      <div id="cc-text-mount"></div>
+    `;
+    destroyCondPlayers();
+    videoSyncState = null;
+    mountCondMedia(cur);
+    _lastRenderedCardId = cur.id;
+  } else {
+    // Solo actualizamos el título/categoría por si cambiaron desde el editor
+    const catRow = cont.querySelector('.cc-cat-row');
+    if(catRow) catRow.innerHTML = `<span class="cc-cat">${cat.icon} ${cat.name}</span><span class="cc-idx">${cur.title ? escapeHtml(cur.title) : ''}</span>`;
+  }
+  renderCondText(cur);
+  fbPushLive();
+}
+function renderCondText(cur){
+  const mount = document.getElementById('cc-text-mount');
+  if(!mount) return;
   const promptHtml = renderPromptWithGap(cur.prompt, revealed, cur.ending);
   const hintsHtml = renderHints(cur);
   const optionsHtml = renderOptions(cur, revealed);
-  cont.innerHTML = `
-    <div class="cc-cat-row">
-      <span class="cc-cat">${cat.icon} ${cat.name}</span>
-      <span class="cc-idx">${cur.title ? escapeHtml(cur.title) : ''}</span>
-    </div>
-    ${mediaHtml}
+  mount.innerHTML = `
     ${cur.prompt ? `<div class="cc-prompt ${revealed?'revealed':''}">${promptHtml}</div>` : ''}
     ${hintsHtml}
     ${optionsHtml}
@@ -860,23 +964,11 @@ function renderCard(){
   document.getElementById('hint2-btn').textContent = hintsShown[2] ? '🔒 Ocultar pista 2' : '💡 Pista 2';
   document.getElementById('hint2-btn').style.opacity = cur.hint2 ? '1' : '.4';
   document.getElementById('reveal-btn').textContent = revealed ? '🙈 Ocultar respuestas' : '👁 Revelar respuestas';
-  fbPushLive();
-}
-function renderCardMedia(cur, forConductor){
-  if(!cur.mediaType || cur.mediaType === 'none') return '';
-  const src = cur.mediaData || cur.mediaUrl;
-  if(!src) return '<div class="cc-media empty">📁 Sin media cargada</div>';
-  if(cur.mediaType === 'youtube'){
-    const id = youtubeId(src);
-    if(!id) return `<div class="cc-media empty">⚠️ ID de YouTube inválido</div>`;
-    // autoplay=0, controls=1 para que el conductor decida cuándo dar play
-    return `<div class="cc-media"><iframe src="https://www.youtube.com/embed/${id}?rel=0&modestbranding=1" allowfullscreen allow="autoplay; encrypted-media"></iframe></div>`;
-  }
-  if(cur.mediaType === 'video-url'){
-    return `<div class="cc-media"><video src="${escapeHtml(src)}" controls playsinline preload="metadata"></video></div>`;
-  }
-  // image / gif / image-upload
-  return `<div class="cc-media"><img src="${escapeHtml(src)}" alt=""></div>`;
+  // "Acertó FINAL" no tiene sentido si la carta no tiene un final cargado
+  const endBtn = document.getElementById('assign-ending-btn');
+  if(endBtn) endBtn.style.display = cur.ending ? '' : 'none';
+  const markBtn = document.getElementById('mark-played-btn');
+  if(markBtn) markBtn.textContent = cur.played ? '↺ Marcar sin jugar' : '✓ Marcar como jugada';
 }
 function renderPromptWithGap(prompt, isRevealed, ending){
   const p = prompt || '';
@@ -922,10 +1014,22 @@ function jumpTo(){
 }
 function randomCard(){
   if(!deck.length) return;
-  cardIdx = Math.floor(Math.random() * deck.length);
+  const unplayedIdx = deck.map((c,i)=>i).filter(i => !deck[i].played);
+  let pool = unplayedIdx.length ? unplayedIdx : deck.map((_,i)=>i);
+  if(!unplayedIdx.length) toast('🎉 Ya se jugaron todas — barajando de nuevo el mazo completo');
+  cardIdx = pool[Math.floor(Math.random() * pool.length)];
   revealed = false; hintsShown = {1:false,2:false}; closeAssign(); _winnerName = null;
   fbLockBuzzer();
   saveIdx(); renderCard();
+}
+function toggleCurrentPlayed(){
+  const cur = currentCard();
+  if(!cur) return;
+  cur.played = !cur.played;
+  saveDeckLocal(); fbPushDeck();
+  renderCondText(cur);
+  renderEditorList();
+  toast(cur.played ? '✅ Marcada como jugada' : '🔲 Marcada como sin jugar');
 }
 function shuffleDeck(){
   if(!deck.length) return;
@@ -954,6 +1058,7 @@ function toggleReveal(){
 function openAssign(type, keepWinner){
   const cur = currentCard();
   if(!cur){ toast('No hay carta cargada'); return; }
+  if(type === 'ending' && !cur.ending){ toast('Esta carta no tiene un "final" cargado'); return; }
   assignFor = type;
   const panel = document.getElementById('assign-panel');
   const label = type === 'who' ? 'QUIÉN lo dijo' : 'el FINAL';
@@ -978,6 +1083,10 @@ function doAssign(name){
   scoresRecent[name] = Date.now();
   saveScores();
   renderScores();
+  // Si alguien acertó, damos por hecho que la carta se jugó
+  const cur = currentCard();
+  if(cur && !cur.played){ cur.played = true; saveDeckLocal(); fbPushDeck(); renderEditorList();
+    const markBtn = document.getElementById('mark-played-btn'); if(markBtn) markBtn.textContent = '↺ Marcar sin jugar'; }
   fbPushLive();
   toast(`+1 para ${name} (${assignFor === 'who' ? 'quién' : 'final'})`);
   closeAssign();
@@ -994,6 +1103,7 @@ function liveStateSnapshot(){
   return {
     cardIdx, revealed, hintsShown,
     scores, players,
+    videoSync: videoSyncState,
     card: cur ? {
       id: cur.id, category: cur.category, prompt: cur.prompt || '',
       mediaType: cur.mediaType || 'none',
@@ -1015,16 +1125,116 @@ function applyLive(st){
   renderPartScores();
   renderPartCard(st);
 }
+let _lastPartCardId = null;
+let partYtPlayer = null;
+let partVideoEl = null;
+let _lastVideoSyncTs = 0;
+let _pendingVideoSync = null;
+let _partAudioUnlocked = false;
+
+function destroyPartPlayers(){
+  if(partYtPlayer){ try{ partYtPlayer.destroy(); }catch(e){} partYtPlayer = null; }
+  partVideoEl = null;
+}
+function mountPartMedia(c){
+  const mount = document.getElementById('part-media-mount');
+  if(!mount) return;
+  if(!c.mediaType || c.mediaType === 'none'){ mount.innerHTML = ''; return; }
+  if(c.mediaIsLocal && !c.mediaUrl){
+    mount.innerHTML = `<div class="part-media" style="min-height:80px;color:var(--muted);font-size:12px;padding:1rem">📁 El video/imagen está solo en la pantalla del conductor</div>`;
+    return;
+  }
+  const src = c.mediaUrl;
+  if(!src) return;
+  if(c.mediaType === 'youtube'){
+    const id = youtubeId(src);
+    if(!id) return;
+    mount.innerHTML = '<div class="part-media"><div id="part-yt-el" style="width:100%;aspect-ratio:16/9"></div></div>';
+    onYtApiReady(() => {
+      if(!document.getElementById('part-yt-el')) return;
+      partYtPlayer = new YT.Player('part-yt-el', {
+        videoId: id, width:'100%', height:'100%',
+        playerVars: { autoplay:0, controls:0, modestbranding:1, rel:0, fs:0, disablekb:1 },
+        events: { onReady: () => { if(_pendingVideoSync){ applyVideoSync(_pendingVideoSync, c); _pendingVideoSync = null; } } }
+      });
+    });
+  } else if(c.mediaType === 'video-url'){
+    mount.innerHTML = `<div class="part-media"><video id="part-video-el" src="${escapeHtml(src)}" playsinline preload="metadata"></video></div>`;
+    partVideoEl = document.getElementById('part-video-el');
+    if(_pendingVideoSync){ applyVideoSync(_pendingVideoSync, c); _pendingVideoSync = null; }
+  } else {
+    mount.innerHTML = `<div class="part-media"><img src="${escapeHtml(src)}" alt=""></div>`;
+  }
+}
+function applyVideoSync(sync, c){
+  if(c.mediaType === 'youtube'){
+    if(!partYtPlayer){ _pendingVideoSync = sync; return; }
+    const targetT = sync.playing ? sync.t + (Date.now() - sync.ts) / 1000 : sync.t;
+    try{
+      partYtPlayer.seekTo(targetT, true);
+      if(sync.playing){ partYtPlayer.playVideo(); maybeShowAudioUnlock(); }
+      else partYtPlayer.pauseVideo();
+    }catch(e){ _pendingVideoSync = sync; }
+  } else if(c.mediaType === 'video-url'){
+    if(!partVideoEl){ _pendingVideoSync = sync; return; }
+    const targetT = sync.playing ? sync.t + (Date.now() - sync.ts) / 1000 : sync.t;
+    const setNow = () => { try{ partVideoEl.currentTime = targetT; }catch(e){} };
+    if(partVideoEl.readyState >= 1) setNow();
+    else partVideoEl.addEventListener('loadedmetadata', setNow, { once:true });
+    if(sync.playing){
+      const pr = partVideoEl.play();
+      if(pr && pr.catch) pr.catch(() => maybeShowAudioUnlock());
+    } else {
+      partVideoEl.pause();
+    }
+  }
+}
+function maybeShowAudioUnlock(){
+  if(_partAudioUnlocked) return;
+  const el = document.getElementById('audio-unlock');
+  if(el) el.style.display = 'flex';
+}
+function unlockPartAudio(){
+  _partAudioUnlocked = true;
+  const el = document.getElementById('audio-unlock');
+  if(el) el.style.display = 'none';
+  try{ if(partYtPlayer) partYtPlayer.playVideo(); }catch(e){}
+  try{ if(partVideoEl) partVideoEl.play().catch(()=>{}); }catch(e){}
+}
 function renderPartCard(st){
   const cont = document.getElementById('part-main');
   if(!cont) return;
   if(!st || !st.card){
     cont.innerHTML = `<div class="part-idle"><div class="part-idle-icon">🎤</div><div class="part-idle-text">Esperando al conductor…</div></div>`;
+    _lastPartCardId = null;
+    destroyPartPlayers();
     return;
   }
   const c = st.card;
   const cat = CAT_BY_ID[c.category] || CATEGORIES[0];
-  const mediaHtml = renderPartMedia(c);
+  const isNewCard = _lastPartCardId !== c.id;
+  if(isNewCard){
+    cont.innerHTML = `
+      <div class="part-card">
+        <div class="part-cat">${cat.icon} ${cat.name}</div>
+        <div id="part-media-mount"></div>
+        <div id="part-text-mount"></div>
+      </div>
+    `;
+    destroyPartPlayers();
+    _lastVideoSyncTs = 0;
+    mountPartMedia(c);
+    _lastPartCardId = c.id;
+  }
+  renderPartText(c, st);
+  if(st.videoSync && st.videoSync.ts && st.videoSync.ts !== _lastVideoSyncTs){
+    _lastVideoSyncTs = st.videoSync.ts;
+    applyVideoSync(st.videoSync, c);
+  }
+}
+function renderPartText(c, st){
+  const mount = document.getElementById('part-text-mount');
+  if(!mount) return;
   const promptHtml = renderPromptWithGap(c.prompt, !!st.revealed, c.ending);
   const optionsHtml = renderPartOptions(c, !!st.revealed);
   const hints = [];
@@ -1035,33 +1245,12 @@ function renderPartCard(st){
       <div><span class="aq">✓ Quién lo dijo</span><div class="av">${escapeHtml(c.who || '—')}</div></div>
       ${c.ending ? `<div style="margin-top:.4rem"><span class="aq">✓ Cómo termina</span><div class="av">${escapeHtml(c.ending)}</div></div>` : ''}
     </div>` : '';
-  cont.innerHTML = `
-    <div class="part-card">
-      <div class="part-cat">${cat.icon} ${cat.name}</div>
-      ${mediaHtml}
-      ${c.prompt ? `<div class="part-prompt ${st.revealed?'revealed':''}">${promptHtml}</div>` : ''}
-      ${optionsHtml}
-      ${hints.join('')}
-      ${answerHtml}
-    </div>
+  mount.innerHTML = `
+    ${c.prompt ? `<div class="part-prompt ${st.revealed?'revealed':''}">${promptHtml}</div>` : ''}
+    ${optionsHtml}
+    ${hints.join('')}
+    ${answerHtml}
   `;
-}
-function renderPartMedia(c){
-  if(!c.mediaType || c.mediaType === 'none') return '';
-  if(c.mediaIsLocal && !c.mediaUrl){
-    return `<div class="part-media" style="min-height:80px;color:var(--muted);font-size:12px;padding:1rem">📁 El video/imagen está solo en la pantalla del conductor</div>`;
-  }
-  const src = c.mediaUrl;
-  if(!src) return '';
-  if(c.mediaType === 'youtube'){
-    const id = youtubeId(src);
-    if(!id) return '';
-    return `<div class="part-media"><iframe src="https://www.youtube.com/embed/${id}?rel=0&modestbranding=1&autoplay=0" allowfullscreen allow="autoplay; encrypted-media"></iframe></div>`;
-  }
-  if(c.mediaType === 'video-url'){
-    return `<div class="part-media"><video src="${escapeHtml(src)}" controls playsinline preload="metadata"></video></div>`;
-  }
-  return `<div class="part-media"><img src="${escapeHtml(src)}" alt=""></div>`;
 }
 function renderPartOptions(c, isRevealed){
   if(!c.options || !c.options.length || !c.optionsFor) return '';
@@ -1089,28 +1278,43 @@ function edSwitch(which){
 function renderEditorList(){
   // filter bar
   const filterWrap = document.getElementById('ed-filters');
-  const counts = { all: deck.length };
+  const counts = { all: deck.length, unplayed: deck.filter(c=>!c.played).length, played: deck.filter(c=>c.played).length };
   deck.forEach(c => { counts[c.category] = (counts[c.category]||0)+1; });
-  filterWrap.innerHTML = `<button class="ed-filter ${_edFilter==='all'?'on':''}" onclick="edSetFilter('all')">Todas (${counts.all})</button>` +
+  filterWrap.innerHTML =
+    `<button class="ed-filter ${_edFilter==='all'?'on':''}" onclick="edSetFilter('all')">Todas (${counts.all})</button>` +
+    `<button class="ed-filter ${_edFilter==='unplayed'?'on':''}" onclick="edSetFilter('unplayed')">🔲 Sin jugar (${counts.unplayed})</button>` +
+    `<button class="ed-filter ${_edFilter==='played'?'on':''}" onclick="edSetFilter('played')">✅ Jugadas (${counts.played})</button>` +
     CATEGORIES.map(c => `<button class="ed-filter ${_edFilter===c.id?'on':''}" onclick="edSetFilter('${c.id}')">${c.icon} ${c.name} (${counts[c.id]||0})</button>`).join('');
 
   const list = document.getElementById('ed-list');
-  const filtered = _edFilter==='all' ? deck : deck.filter(c => c.category === _edFilter);
+  let filtered = _edFilter==='all' ? deck
+    : _edFilter==='unplayed' ? deck.filter(c=>!c.played)
+    : _edFilter==='played' ? deck.filter(c=>c.played)
+    : deck.filter(c => c.category === _edFilter);
+
+  if(_edSearch){
+    filtered = filtered.filter(c => {
+      const hay = [c.title, c.prompt, c.who, c.ending].filter(Boolean).join(' ').toLowerCase();
+      return hay.includes(_edSearch);
+    });
+  }
+
   if(!filtered.length){
-    list.innerHTML = `<div class="ed-empty">Sin cartas en esta categoría. Tocá <b>➕ Nueva</b> para agregar.</div>`;
+    list.innerHTML = `<div class="ed-empty">${_edSearch ? 'Sin resultados para tu búsqueda.' : 'Sin cartas acá. Tocá <b>➕ Nueva</b> para agregar.'}</div>`;
     return;
   }
   list.innerHTML = filtered.map(c => {
     const cat = CAT_BY_ID[c.category] || CATEGORIES[0];
     const label = c.title || (c.prompt ? c.prompt.slice(0, 60) : (c.who || '(sin título)'));
     const sub = `${c.who || '—'} · ${c.mediaType && c.mediaType !== 'none' ? '📎 ' + c.mediaType : 'solo frase'}`;
-    return `<div class="ed-item">
-      <div class="ed-item-icon">${cat.icon}</div>
+    return `<div class="ed-item ${c.played?'played':''}">
+      <div class="ed-item-icon">${c.played ? '✅' : cat.icon}</div>
       <div class="ed-item-body">
         <div class="ed-item-title">${escapeHtml(label)}</div>
         <div class="ed-item-sub">${escapeHtml(sub)}</div>
       </div>
       <div class="ed-item-actions">
+        <button class="ed-mini-btn ${c.played?'':'purple'}" onclick="edTogglePlayed(${c.id})" title="${c.played?'Marcar sin jugar':'Marcar como jugada'}">${c.played?'↺':'✓'}</button>
         <button class="ed-mini-btn purple" onclick="edEdit(${c.id})">✏️</button>
         <button class="ed-mini-btn danger" onclick="edDelete(${c.id})">🗑</button>
       </div>
@@ -1118,6 +1322,15 @@ function renderEditorList(){
   }).join('');
 }
 function edSetFilter(f){ _edFilter = f; renderEditorList(); }
+function edSetSearch(v){ _edSearch = (v||'').trim().toLowerCase(); renderEditorList(); }
+function edTogglePlayed(id){
+  const c = deck.find(x => x.id === id);
+  if(!c) return;
+  c.played = !c.played;
+  saveDeckLocal(); fbPushDeck(); renderEditorList();
+  const cur = currentCard();
+  if(cur && cur.id === id) renderCondText(cur);
+}
 
 function populateCategoryOptions(){
   const sel = document.getElementById('f-cat');
@@ -1155,7 +1368,7 @@ function edMediaChanged(){
   else if(v === 'image-upload'){
     lbl.textContent = '🖼 Subir imagen del dispositivo';
     url.style.display = 'none'; file.style.display = ''; file.accept = 'image/*';
-    help.innerHTML = 'La imagen queda guardada en <b>tu navegador</b> (base64). Los participantes en otro dispositivo no la verán vía Firebase — para eso usá URL pública.';
+    help.innerHTML = 'La imagen se comprime automáticamente (ancho máx. 900px, JPEG) antes de guardarse en el mazo. No se muestra a los participantes en otros dispositivos (por peso) — para eso usá la opción de URL pública.';
     if(_edMediaFileData){ prev.style.display = 'flex'; prev.innerHTML = `<img src="${_edMediaFileData}" alt="">`; }
   }
   else if(v === 'video-url'){ lbl.textContent = '🎥 URL directa de video (.mp4 / .webm)'; url.placeholder = 'https://…/video.mp4'; help.textContent = 'Debe ser una URL directa al archivo de video (mp4, webm). No sirve un link de YouTube — para eso usá la opción de YouTube.'; }
@@ -1180,13 +1393,32 @@ function edPreviewUrl(mediaType, src){
 }
 function edFileChosen(e){
   const f = e.target.files[0]; if(!f) return;
-  if(f.size > 5*1024*1024){ toast('Imagen muy pesada (máx 5MB)'); return; }
+  if(!/^image\//.test(f.type)){ toast('Elegí un archivo de imagen'); return; }
+  if(f.size > 15*1024*1024){ toast('Imagen demasiado pesada (máx 15MB de archivo original)'); return; }
+  const prev = document.getElementById('f-media-preview');
+  prev.style.display = 'flex'; prev.innerHTML = '<span style="font-size:11px;color:var(--muted)">Comprimiendo imagen…</span>';
   const r = new FileReader();
   r.onload = () => {
-    _edMediaFileData = r.result;
-    const prev = document.getElementById('f-media-preview');
-    prev.style.display = 'flex'; prev.innerHTML = `<img src="${_edMediaFileData}" alt="">`;
+    const img = new Image();
+    img.onload = () => {
+      const MAX_W = 900;
+      const scale = Math.min(1, MAX_W / img.width);
+      const w = Math.max(1, Math.round(img.width * scale));
+      const h = Math.max(1, Math.round(img.height * scale));
+      const canvas = document.createElement('canvas');
+      canvas.width = w; canvas.height = h;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0, w, h);
+      const dataUrl = canvas.toDataURL('image/jpeg', 0.82);
+      _edMediaFileData = dataUrl;
+      const approxKb = Math.round(dataUrl.length * 0.75 / 1024);
+      prev.innerHTML = `<img src="${_edMediaFileData}" alt="">`;
+      toast(`🖼 Imagen comprimida (~${approxKb} KB)`);
+    };
+    img.onerror = () => { toast('No se pudo leer la imagen'); prev.style.display = 'none'; };
+    img.src = r.result;
   };
+  r.onerror = () => { toast('Error al leer el archivo'); prev.style.display = 'none'; };
   r.readAsDataURL(f);
 }
 function edOptsChanged(){
@@ -1260,13 +1492,14 @@ function edSave(){
   }
   if(_editCardId){
     const i = deck.findIndex(x => x.id === _editCardId);
-    if(i >= 0) deck[i] = card;
+    if(i >= 0){ card.played = deck[i].played || false; deck[i] = card; } // preservamos el estado "jugada"
   } else {
     deck.push(card);
   }
   saveDeckLocal(); fbPushDeck();
   toast(_editCardId ? '💾 Carta actualizada' : '➕ Carta agregada');
   _editCardId = null;
+  _lastRenderedCardId = null; // fuerza remount de media por si se editó la carta visible
   renderCard();
   edSwitch('list');
 }
@@ -1340,6 +1573,14 @@ function resetScores(){
   Object.keys(scores).forEach(k => scores[k] = 0);
   saveScores(); renderScores(); fbPushLive();
   toast('↺ Puntajes reiniciados');
+}
+function resetPlayedFlags(){
+  if(!confirm('¿Marcar todas las cartas del mazo como "sin jugar"?\n(Útil para arrancar una nueva ronda con el mismo mazo.)')) return;
+  deck.forEach(c => { c.played = false; });
+  saveDeckLocal(); fbPushDeck();
+  renderEditorList();
+  const cur = currentCard(); if(cur) renderCondText(cur);
+  toast('🔲 Cartas reiniciadas — todas sin jugar');
 }
 function resetAll(){
   if(!confirm('⚠️ Esto borra TODO: mazo, puntajes y cartas.\n¿Seguro?')) return;
