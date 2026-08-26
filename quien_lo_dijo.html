@@ -95,7 +95,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
 /* ── SCORE BAR (todos-contra-todos) ── */
 .score-strip{position:sticky;top:0;z-index:20;background:rgba(14,14,20,.9);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border-bottom:1px solid var(--border);padding:.5rem .5rem;overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch}
 .score-strip::-webkit-scrollbar{display:none}
-.score-strip-inner{display:flex;gap:.4rem;padding:0 .25rem;min-width:min-content}
+.score-strip-inner{display:flex;gap:.4rem;padding:0 .25rem 0 4.5rem;min-width:min-content}
 .score-chip{flex-shrink:0;display:flex;flex-direction:column;align-items:center;padding:.4rem .7rem;background:var(--surface);border:1.5px solid var(--border2);border-radius:12px;cursor:pointer;transition:transform .1s,border-color .15s;min-width:70px}
 .score-chip:active{transform:scale(.95)}
 .score-chip.leader{border-color:var(--gold);background:var(--gold-dim)}
@@ -131,7 +131,10 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
 .cc-answer{background:var(--purple-dim);border:1px solid var(--purple);border-radius:12px;padding:.85rem 1rem;display:flex;flex-direction:column;gap:.4rem}
 .cc-answer .aq{font-size:10px;font-weight:800;color:var(--purple);letter-spacing:.1em;text-transform:uppercase}
 .cc-answer .av{font-size:15px;font-weight:700;color:var(--text)}
-.cc-answer.hidden .av{filter:blur(6px);user-select:none}
+.cc-answer-status{display:flex;justify-content:flex-end;margin-bottom:.15rem}
+.cca-badge{display:inline-flex;align-items:center;gap:.3rem;padding:.2rem .55rem;border-radius:99px;font-size:9px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;border:1px solid}
+.cca-badge.on{color:var(--green);border-color:var(--green);background:var(--green-dim)}
+.cca-badge.off{color:var(--muted2);border-color:var(--border2);background:var(--surface2)}
 .cc-hints{display:flex;flex-direction:column;gap:.4rem}
 .cc-hint{display:flex;gap:.5rem;align-items:flex-start;padding:.55rem .75rem;border-radius:10px;background:var(--surface2);border:1px dashed var(--border2);font-size:13px;color:var(--muted2)}
 .cc-hint.revealed{color:var(--text);border-style:solid;border-color:var(--gold);background:var(--gold-dim)}
@@ -175,6 +178,22 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
 .assign-player{padding:.55rem .5rem;border-radius:10px;border:1.5px solid var(--border2);background:var(--surface2);font-family:inherit;font-size:12px;font-weight:800;color:var(--text);cursor:pointer;transition:transform .1s,border-color .15s}
 .assign-player:active{transform:scale(.95)}
 .assign-player:hover{border-color:var(--purple);color:var(--purple)}
+.assign-player.winner{border-color:var(--gold);background:var(--gold-dim);color:var(--gold);box-shadow:0 0 12px rgba(245,200,66,.35);animation:winnerPulse 1.4s ease-in-out infinite}
+@keyframes winnerPulse{0%,100%{box-shadow:0 0 8px rgba(245,200,66,.3)}50%{box-shadow:0 0 18px rgba(245,200,66,.6)}}
+
+/* ── BUZZER BANNER ── */
+.buzzer-banner{display:flex;align-items:center;gap:.75rem;padding:.85rem 1rem;border-radius:14px;border:1.5px solid;font-weight:800;margin-bottom:.5rem;animation:bbSlide .3s ease}
+.buzzer-banner.open{background:var(--purple-dim);border-color:var(--purple);color:var(--purple)}
+.buzzer-banner.won{background:var(--gold-dim);border-color:var(--gold);color:var(--gold);animation:bbSlide .3s ease, bbPulse 1.4s ease-in-out infinite}
+.bb-icon{font-size:24px;flex-shrink:0;line-height:1}
+.bb-body{flex:1;display:flex;flex-direction:column;gap:.15rem;min-width:0}
+.bb-lbl{font-size:10px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;opacity:.8}
+.bb-name{font-size:16px;font-weight:900;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.buzzer-banner.won .bb-name{color:var(--gold)}
+.bb-reset{padding:.4rem .8rem;border-radius:99px;border:1px solid currentColor;background:transparent;color:inherit;font-family:inherit;font-size:11px;font-weight:800;cursor:pointer;flex-shrink:0}
+.bb-reset:hover{background:rgba(255,255,255,.05)}
+@keyframes bbSlide{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:none}}
+@keyframes bbPulse{0%,100%{box-shadow:0 0 12px rgba(245,200,66,.25)}50%{box-shadow:0 0 24px rgba(245,200,66,.5)}}
 
 /* ── EDITOR ── */
 .overlay{position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:700;display:none;align-items:center;justify-content:center;padding:1rem;backdrop-filter:blur(3px)}
@@ -225,7 +244,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
 .part-wrap{flex:1;display:flex;flex-direction:column;padding:0}
 .part-score-strip{position:sticky;top:0;z-index:10;background:rgba(14,14,20,.92);backdrop-filter:blur(10px);border-bottom:1px solid var(--border);padding:.5rem .5rem;overflow-x:auto}
 .part-score-strip::-webkit-scrollbar{display:none}
-.part-score-inner{display:flex;gap:.35rem;padding:0 .25rem;min-width:min-content}
+.part-score-inner{display:flex;gap:.35rem;padding:0 .25rem 0 4.5rem;min-width:min-content}
 .part-chip{flex-shrink:0;padding:.35rem .65rem;background:var(--surface);border:1px solid var(--border2);border-radius:10px;text-align:center;min-width:60px}
 .part-chip.leader{border-color:var(--gold);background:var(--gold-dim)}
 .part-chip-name{font-size:9px;font-weight:800;color:var(--muted2);text-transform:uppercase;letter-spacing:.03em}
@@ -358,6 +377,10 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
       <button class="act-btn gold"   id="hint1-btn" onclick="toggleHint(1)">💡 Pista 1</button>
       <button class="act-btn gold"   id="hint2-btn" onclick="toggleHint(2)">💡 Pista 2</button>
       <button class="act-btn purple" id="reveal-btn" onclick="toggleReveal()">👁 Revelar respuestas</button>
+    </div>
+    <div class="action-grid">
+      <button class="act-btn purple" id="buzzer-btn" onclick="toggleBuzzer()">🔔 Abrir buzzer</button>
+      <button class="act-btn ghost" onclick="openPlayers()">👥 Ver jugadores</button>
     </div>
     <div class="action-grid">
       <button class="act-btn green" onclick="openAssign('who')">✓ Acertó QUIÉN (+1)</button>
@@ -531,7 +554,7 @@ const FB_CFG = {
   messagingSenderId:"313601369235",
   appId:"1:313601369235:web:f8b28a2ec187a934fa1966"
 };
-let fbDb=null, fbStateRef=null, fbDeckRef=null, fbInited=false, _lastFbJson=null;
+let fbDb=null, fbStateRef=null, fbDeckRef=null, fbBuzzerRef=null, fbInited=false, _lastFbJson=null;
 
 function initFirebase(){
   if(fbInited) return;
@@ -540,8 +563,9 @@ function initFirebase(){
   try{
     if(!firebase.apps.length) firebase.initializeApp(FB_CFG);
     fbDb = firebase.database();
-    fbStateRef = fbDb.ref('velada/qld/live');
-    fbDeckRef  = fbDb.ref('velada/qld/deck');
+    fbStateRef  = fbDb.ref('velada/qld/live');
+    fbDeckRef   = fbDb.ref('velada/qld/deck');
+    fbBuzzerRef = fbDb.ref('velada/qld/buzzer');
     fbInited = true;
     fbDb.ref('.info/connected').on('value', s => setFbStatus(s.val()?'ok':'','Conectado'));
     if(MODE==='participant'){
@@ -562,6 +586,13 @@ function initFirebase(){
           renderCard(); renderEditorList();
         }
       });
+      // Listener del buzzer para mostrar quién ganó
+      fbBuzzerRef.on('value', snap => {
+        const d = snap.val() || {};
+        applyBuzzerState(d);
+      });
+      // Al arrancar: buzzer cerrado
+      fbLockBuzzer();
     }
   }catch(e){ console.error('[FB] init error', e); setFbStatus('err','Error FB'); }
 }
@@ -585,6 +616,76 @@ function fbPushDeck(){
   const payload = { deck, updated: Date.now() };
   try{ fbDeckRef.set(payload); }catch(e){}
 }
+
+// ── BUZZER ──
+let buzzerState = 'locked'; // 'locked' | 'open' | 'won'
+let buzzerWinner = null;    // { name }
+function fbOpenBuzzer(){
+  if(!fbBuzzerRef) return;
+  fbBuzzerRef.set({ state:'open', winner:null, players });
+  buzzerWinner = null;
+}
+function fbLockBuzzer(){
+  if(!fbBuzzerRef) return;
+  fbBuzzerRef.set({ state:'locked', winner:null, players });
+  buzzerWinner = null;
+}
+function toggleBuzzer(){
+  if(buzzerState === 'open' || buzzerState === 'won') fbLockBuzzer();
+  else fbOpenBuzzer();
+}
+function applyBuzzerState(d){
+  const state = d.state || 'locked';
+  const winner = d.winner || null;
+  buzzerState = state;
+  buzzerWinner = winner;
+  renderBuzzerBanner();
+  // Si hay ganador nuevo: abrir panel de asignación con el jugador highlighted
+  if(winner && winner.name){
+    sfxBuzz();
+    openAssignWithWinner(winner.name);
+  }
+}
+function renderBuzzerBanner(){
+  let el = document.getElementById('buzzer-banner');
+  if(!el){
+    el = document.createElement('div');
+    el.id = 'buzzer-banner';
+    el.className = 'buzzer-banner';
+    const body = document.querySelector('.cond-body');
+    if(body) body.insertBefore(el, body.firstChild);
+  }
+  const btn = document.getElementById('buzzer-btn');
+  if(buzzerWinner && buzzerWinner.name){
+    el.innerHTML = `<div class="bb-icon">🏆</div><div class="bb-body"><div class="bb-lbl">Buzzeó primero</div><div class="bb-name">${escapeHtml(buzzerWinner.name)}</div></div><button class="bb-reset" onclick="fbOpenBuzzer()">Reabrir</button>`;
+    el.className = 'buzzer-banner won';
+    el.style.display = 'flex';
+    if(btn){ btn.textContent = '🔓 Reabrir buzzer'; btn.classList.remove('primary'); btn.classList.add('danger'); }
+  } else if(buzzerState === 'open'){
+    el.innerHTML = `<div class="bb-icon">🔔</div><div class="bb-body"><div class="bb-lbl">Buzzer abierto</div><div class="bb-name">Esperando que alguien buzzee…</div></div><button class="bb-reset" onclick="fbLockBuzzer()">Cerrar</button>`;
+    el.className = 'buzzer-banner open';
+    el.style.display = 'flex';
+    if(btn){ btn.textContent = '🔒 Cerrar buzzer'; btn.classList.remove('primary'); btn.classList.add('danger'); }
+  } else {
+    el.style.display = 'none';
+    if(btn){ btn.textContent = '🔔 Abrir buzzer'; btn.classList.add('primary'); btn.classList.remove('danger'); }
+  }
+}
+
+// Cuando llega un buzz: abrir el panel de asignación con el ganador destacado
+let _winnerName = null;
+function openAssignWithWinner(name){
+  _winnerName = name;
+  // Si aún no hay tipo elegido, default a 'who'
+  if(!assignFor) assignFor = 'who';
+  openAssign(assignFor, /*keepWinner=*/true);
+}
+
+// SFX buzz — pequeño "tin" para que suene en la compu del conductor
+let _bac = null;
+function _bactx(){ try{ if(!_bac) _bac = new (window.AudioContext||window.webkitAudioContext)(); if(_bac.state==='suspended') _bac.resume(); return _bac; }catch(e){ return null; } }
+document.addEventListener('pointerdown',()=>{ _bactx(); }, { once:true });
+function sfxBuzz(){ const ctx=_bactx(); if(!ctx) return; try{ const now=ctx.currentTime; [[880,0],[1319,0.08]].forEach(([f,t])=>{ const o=ctx.createOscillator(),g=ctx.createGain(); o.type='triangle'; o.frequency.value=f; o.connect(g); g.connect(ctx.destination); const s=now+t; g.gain.setValueAtTime(0.0001,s); g.gain.exponentialRampToValueAtTime(0.5,s+0.01); g.gain.exponentialRampToValueAtTime(0.0001,s+0.4); o.start(s); o.stop(s+0.45); }); }catch(e){} }
 
 // ── STATE ──
 let MODE = null;
@@ -746,7 +847,10 @@ function renderCard(){
     ${cur.prompt ? `<div class="cc-prompt ${revealed?'revealed':''}">${promptHtml}</div>` : ''}
     ${hintsHtml}
     ${optionsHtml}
-    <div class="cc-answer ${revealed?'':'hidden'}">
+    <div class="cc-answer">
+      <div class="cc-answer-status">
+        ${revealed ? '<span class="cca-badge on">👁 Visible para participantes</span>' : '<span class="cca-badge off">🙈 Oculto para participantes</span>'}
+      </div>
       <div><span class="aq">✓ Quién lo dijo</span><div class="av">${escapeHtml(cur.who || '—')}</div></div>
       ${cur.ending ? `<div style="margin-top:.4rem"><span class="aq">✓ Cómo termina</span><div class="av">${escapeHtml(cur.ending)}</div></div>` : ''}
     </div>
@@ -804,20 +908,23 @@ function renderOptions(cur, isRevealed){
 function navigate(delta){
   const n = cardIdx + delta;
   if(n < 0 || n >= deck.length) return;
-  cardIdx = n; revealed = false; hintsShown = {1:false,2:false}; closeAssign();
+  cardIdx = n; revealed = false; hintsShown = {1:false,2:false}; closeAssign(); _winnerName = null;
+  fbLockBuzzer();
   saveIdx(); renderCard();
 }
 function jumpTo(){
   const v = parseInt(document.getElementById('jump-in').value);
   if(!v || v < 1 || v > deck.length) return;
-  cardIdx = v - 1; revealed = false; hintsShown = {1:false,2:false}; closeAssign();
+  cardIdx = v - 1; revealed = false; hintsShown = {1:false,2:false}; closeAssign(); _winnerName = null;
+  fbLockBuzzer();
   saveIdx(); renderCard();
   document.getElementById('jump-in').value = '';
 }
 function randomCard(){
   if(!deck.length) return;
   cardIdx = Math.floor(Math.random() * deck.length);
-  revealed = false; hintsShown = {1:false,2:false}; closeAssign();
+  revealed = false; hintsShown = {1:false,2:false}; closeAssign(); _winnerName = null;
+  fbLockBuzzer();
   saveIdx(); renderCard();
 }
 function shuffleDeck(){
@@ -844,16 +951,20 @@ function toggleReveal(){
 }
 
 // ── ASSIGN POINTS ──
-function openAssign(type){
+function openAssign(type, keepWinner){
   const cur = currentCard();
   if(!cur){ toast('No hay carta cargada'); return; }
   assignFor = type;
   const panel = document.getElementById('assign-panel');
   const label = type === 'who' ? 'QUIÉN lo dijo' : 'el FINAL';
   document.getElementById('assign-title').textContent = `+1 por acertar ${label}`;
-  document.getElementById('assign-sub').textContent = 'Tocá el nombre del jugador que acertó';
+  const winnerHint = (keepWinner && _winnerName) ? ` · <b style="color:var(--gold)">🏆 ${escapeHtml(_winnerName)} buzzeó primero</b>` : '';
+  document.getElementById('assign-sub').innerHTML = 'Tocá el nombre del jugador que acertó' + winnerHint;
   const wrap = document.getElementById('assign-players');
-  wrap.innerHTML = players.map(p => `<button class="assign-player" onclick="doAssign('${escapeHtml(p)}')">${escapeHtml(p)}</button>`).join('');
+  wrap.innerHTML = players.map(p => {
+    const isWinner = keepWinner && _winnerName && p === _winnerName;
+    return `<button class="assign-player ${isWinner?'winner':''}" onclick="doAssign('${escapeHtml(p)}')">${isWinner?'🏆 ':''}${escapeHtml(p)}</button>`;
+  }).join('');
   panel.style.display = 'flex';
   panel.scrollIntoView({behavior:'smooth', block:'end'});
 }
@@ -871,6 +982,9 @@ function doAssign(name){
   toast(`+1 para ${name} (${assignFor === 'who' ? 'quién' : 'final'})`);
   closeAssign();
   setTimeout(renderScores, 2600); // limpia el "+1" pin
+  // Después de asignar, bloqueamos el buzzer para la próxima ronda
+  _winnerName = null;
+  fbLockBuzzer();
 }
 
 // ── PARTICIPANT VIEW ──
