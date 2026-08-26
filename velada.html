@@ -154,7 +154,24 @@
   .pos-badge.silver { background: var(--silver-dim); color: var(--silver); }
   .pos-badge.accent { background: var(--accent-dim); color: var(--accent); }
 
-  .player-name { font-weight: 500; font-size: 14px; }
+  .player-name { font-weight: 500; font-size: 14px; display: flex; align-items: center; gap: 0.5rem; }
+  .player-avatar-img { width: 26px; height: 26px; border-radius: 50%; object-fit: cover; flex-shrink: 0; border: 1px solid var(--border2); }
+  .player-avatar-fallback { width: 26px; height: 26px; border-radius: 50%; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; color: var(--text); opacity: 0.85; }
+
+  /* Filtro "buscá tu nombre" (próximo partido personal) */
+  .who-filter-select {
+    background: var(--surface2);
+    border: 1px solid var(--border2);
+    border-radius: var(--radius);
+    padding: 0.45rem 0.6rem;
+    color: var(--text);
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    max-width: 160px;
+  }
+  .match-row.row-me { border: 1.5px solid var(--info); background: rgba(96,180,240,0.08); }
+  .match-row.row-dim { opacity: 0.38; }
   .total-pts { font-size: 18px; font-weight: 700; color: var(--accent); }
   .round-pts { font-size: 12px; color: var(--muted); min-width: 28px; text-align: center; }
   .round-pts.win { color: var(--success); font-weight: 600; }
@@ -2273,6 +2290,7 @@ body.started .velada-bg-scrim { display: block; }
 <!-- ======================== FASE 1 ======================== -->
 <div class="page" id="page-fase1">
   <div id="next-match-f1" style="margin-bottom:0.75rem"></div>
+  <div id="my-next-f1" style="margin-bottom:0.75rem"></div>
   <div class="stats-grid" id="stats-fase1"></div>
 
   <div id="f1-roster-admin"></div>
@@ -2315,6 +2333,7 @@ body.started .velada-bg-scrim { display: block; }
 <!-- ======================== FASE 2 ======================== -->
 <div class="page" id="page-fase2">
   <div id="next-match-f2" style="margin-bottom:0.75rem"></div>
+  <div id="my-next-f2" style="margin-bottom:0.75rem"></div>
   <div class="stats-grid" id="stats-fase2"></div>
 
   <div id="f2-roster-admin"></div>
@@ -4135,6 +4154,7 @@ function renderFase1() {
   renderF1RosterAdmin();
   renderBonusManualF1();
   renderNextMatch('f1');
+  renderMyNext('f1');
   const ppts = getPlayerPoints();
   const sorted = PLAYERS.map((n,i) => ({n,i,pts:ppts[i]}))
     .sort((a,b) => b.pts.total - a.pts.total);
@@ -4196,7 +4216,7 @@ function renderFase1() {
         : `<td class="round-pts pending">—</td>`;
     return `<tr class="${rowClass}">
       <td><div class="pos-badge ${badgeClass}">${pos+1}</div></td>
-      <td class="player-name">${n}</td>
+      <td class="player-name">${playerAvatarHtml(n, i)}<span>${n}</span></td>
       ${rounds}
       ${special}
       ${bmCell}
@@ -4315,7 +4335,11 @@ function renderFixtureF1() {
             resultText = `✓ ${w.split(' ')[0]}${res.bonus ? ' +bonus' : ''}`;
           }
         }
-        html += `<div class="match-row ${res ? 'done' : ''}" onclick="openModal('f1','${key.replace(/'/g,"\\'")}','${game.replace(/'/g,"\\'")}','${pA.replace(/'/g,"\\'")}','${pB.replace(/'/g,"\\'")}',${a},${b})">
+        const whoF1 = _whoFilter.f1;
+        const hasFilter = whoF1 !== '' && whoF1 !== null && typeof whoF1 !== 'undefined';
+        const isMine = hasFilter && (a === parseInt(whoF1) || b === parseInt(whoF1));
+        const rowCls = `${res ? 'done' : ''} ${isMine ? 'row-me' : ''} ${hasFilter && !isMine ? 'row-dim' : ''}`.trim();
+        html += `<div class="match-row ${rowCls}" onclick="openModal('f1','${key.replace(/'/g,"\\'")}','${game.replace(/'/g,"\\'")}','${pA.replace(/'/g,"\\'")}','${pB.replace(/'/g,"\\'")}',${a},${b})">
           <span class="match-game-badge" style="background:${gbg};color:${gcol};font-weight:600">${game}</span>
           <span class="match-players">${pA.split(' ')[0]} vs ${pB.split(' ')[0]}</span>
           <span class="match-result ${res ? 'set' : ''}">${res ? resultText : 'Cargar'}</span>
@@ -4525,9 +4549,75 @@ function renderNextMatch(phase) {
   </div>`;
 }
 
+// ============================================================
+// "BUSCÁ TU NOMBRE" — filtro personal de próximo partido
+// ============================================================
+// Guarda qué jugador/equipo eligió cada uno para no tener que re-elegirlo
+// cada vez que se recarga la página (persiste por fase, por dispositivo).
+let _whoFilter = { f1: '', f2: '' };
+(function loadWhoFilter() {
+  try {
+    _whoFilter.f1 = localStorage.getItem('ndj_who_f1') || '';
+    _whoFilter.f2 = localStorage.getItem('ndj_who_f2') || '';
+  } catch(e) {}
+})();
+
+function setWhoFilter(phase, value) {
+  _whoFilter[phase] = value;
+  try { localStorage.setItem('ndj_who_' + phase, value); } catch(e) {}
+  if (phase === 'f1') renderFase1(); else renderFase2();
+}
+
+function renderMyNext(phase) {
+  const el = document.getElementById('my-next-' + phase);
+  if (!el) return;
+  const names = phase === 'f1' ? PLAYERS : TEAMS;
+  const who = _whoFilter[phase];
+  const label = phase === 'f1' ? 'jugador' : 'equipo';
+  const selectOpts = [`<option value="">🔍 Buscá tu nombre (${label})…</option>`]
+    .concat(names.map((n, i) => `<option value="${i}" ${String(i) === String(who) ? 'selected' : ''}>${n}</option>`))
+    .join('');
+  const selectHtml = `<select class="who-filter-select" onchange="setWhoFilter('${phase}', this.value)">${selectOpts}</select>`;
+
+  if (who === '' || who === null || typeof who === 'undefined' || isNaN(parseInt(who)) || !names[parseInt(who)]) {
+    el.innerHTML = `<div style="display:flex;align-items:center">${selectHtml}</div>`;
+    return;
+  }
+
+  const idx = parseInt(who);
+  const fixture = phase === 'f1' ? F1_FIXTURE : F2_FIXTURE;
+  const stateMap = phase === 'f1' ? state.f1 : state.f2;
+  const games = phase === 'f1' ? GAMES_F1 : (RULES_CONFIG ? RULES_CONFIG.f2.map(g => g.name) : []);
+  const mine = fixture.filter(([r, a, b]) => a === idx || b === idx);
+  const pending = mine.filter(([r, a, b]) => !stateMap[`${r}-${a}-${b}`]).sort((x, y) => x[0] - y[0]);
+
+  if (!pending.length) {
+    el.innerHTML = `<div style="display:flex;align-items:center;gap:0.6rem;flex-wrap:wrap;background:var(--surface2);border:1px solid var(--border2);border-radius:var(--radius);padding:0.6rem 1rem">
+      ${selectHtml}
+      <span style="font-size:12px;color:var(--muted)">Ya jugaste todos tus partidos de esta fase 🎉</span>
+    </div>`;
+    return;
+  }
+
+  const [nr, na, nb, ng] = pending[0];
+  const oppIdx = na === idx ? nb : na;
+  const oppName = phase === 'f1' ? (names[oppIdx] || '?').split(' ')[0] : (names[oppIdx] || '?').split('/')[0].trim();
+  const game = games[ng] || '—';
+  const allPending = fixture.filter(([r, a, b]) => !stateMap[`${r}-${a}-${b}`]);
+  const isNextOverall = allPending.length && allPending[0][0] === nr && allPending[0][1] === na && allPending[0][2] === nb;
+
+  el.innerHTML = `<div style="display:flex;align-items:center;gap:0.6rem;flex-wrap:wrap;background:var(--surface2);border:1.5px solid var(--info);border-radius:var(--radius);padding:0.7rem 1rem">
+    ${selectHtml}
+    <span style="font-size:10px;font-weight:800;letter-spacing:0.1em;text-transform:uppercase;color:var(--info);white-space:nowrap">${isNextOverall ? '¡Te toca ya!' : 'Tu próximo'}</span>
+    <span style="font-size:14px;font-weight:700;color:var(--text);flex:1;min-width:0">vs ${oppName} <span style="color:var(--muted);font-weight:500;font-size:12px">·</span> ${game}</span>
+    <span style="font-size:11px;color:var(--muted);white-space:nowrap">Ronda ${nr}</span>
+  </div>`;
+}
+
 function renderFase2() {
   renderF2RosterAdmin();
   renderNextMatch('f2');
+  renderMyNext('f2');
   const tpts = getTeamPoints();
   const sorted = TEAMS.map((n,i) => ({n,i,pts:tpts[i]}))
     .sort((a,b) => b.pts.total - a.pts.total);
@@ -4564,7 +4654,7 @@ function renderFase2() {
     }).join('');
     return `<tr class="${rowClass}">
       <td><div class="pos-badge ${badgeClass}">${pos+1}</div></td>
-      <td class="player-name" style="font-size:12px">${n}</td>
+      <td class="player-name" style="font-size:12px">${playerAvatarHtml(n, i)}<span>${n}</span></td>
       ${rounds}
       <td style="text-align:right"><span class="total-pts">${pts.total}</span></td>
     </tr>`;
@@ -4631,7 +4721,11 @@ function renderFixtureF2() {
             resultText = `✓ ${w.split('/')[0].trim()}${res.bonus ? ' +bonus' : ''}`;
           }
         }
-        html += `<div class="match-row ${res ? 'done' : ''}" onclick="openModal('f2','${key.replace(/'/g,"\\'")}','${game.replace(/'/g,"\\'")}','${tA.replace(/'/g,"\\'")}','${tB.replace(/'/g,"\\'")}',${a},${b})">
+        const whoF2 = _whoFilter.f2;
+        const hasFilter2 = whoF2 !== '' && whoF2 !== null && typeof whoF2 !== 'undefined';
+        const isMine2 = hasFilter2 && (a === parseInt(whoF2) || b === parseInt(whoF2));
+        const rowCls2 = `${res ? 'done' : ''} ${isMine2 ? 'row-me' : ''} ${hasFilter2 && !isMine2 ? 'row-dim' : ''}`.trim();
+        html += `<div class="match-row ${rowCls2}" onclick="openModal('f2','${key.replace(/'/g,"\\'")}','${game.replace(/'/g,"\\'")}','${tA.replace(/'/g,"\\'")}','${tB.replace(/'/g,"\\'")}',${a},${b})">
           <span class="match-game-badge" style="background:${gbg};color:${gcol};font-weight:600">${game}</span>
           <span class="match-players" style="font-size:12px">${tA.split('/')[0].trim()} vs ${tB.split('/')[0].trim()}</span>
           <span class="match-result ${res ? 'set' : ''}">${res ? resultText : 'Cargar'}</span>
@@ -6433,6 +6527,16 @@ loadEntityColors();
 // Devuelve el color efectivo: custom si hay, sino la paleta por índice
 function entityColor(name, idx) {
   return getEntityColor(name) || teamColor(idx);
+}
+
+// Avatar chico para las tablas de ranking en vivo (Fase 1 / Fase 2): foto si
+// hay, sino un círculo de color con la inicial (mismo criterio que el podio).
+function playerAvatarHtml(name, idx) {
+  const photo = getPlayerPhoto(name);
+  if (photo) return `<img class="player-avatar-img" src="${photo}" alt="">`;
+  const color = entityColor(name, idx);
+  const initial = (name.split('/')[0].trim()[0] || '?').toUpperCase();
+  return `<div class="player-avatar-fallback" style="background:${color}">${initial}</div>`;
 }
 
 // Popover de selección de color
@@ -9066,6 +9170,18 @@ function openTVMode() {
     flex: 1;
     font-size: clamp(13px, 1.8vw, 24px);
     font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: clamp(6px,0.8vw,12px);
+  }
+  .tv-rank-avatar-img {
+    width: clamp(20px,2.4vw,34px); height: clamp(20px,2.4vw,34px);
+    border-radius: 50%; object-fit: cover; flex-shrink: 0; border: 1px solid var(--border2);
+  }
+  .tv-rank-avatar-fallback {
+    width: clamp(20px,2.4vw,34px); height: clamp(20px,2.4vw,34px);
+    border-radius: 50%; flex-shrink: 0; display: flex; align-items: center; justify-content: center;
+    font-size: clamp(10px,1.1vw,15px); font-weight: 700; color: var(--text); opacity: 0.85;
   }
   .tv-rank-pts {
     font-size: clamp(13px, 1.8vw, 24px);
@@ -9797,7 +9913,11 @@ function renderTV() {
     // Rank list (4th+)
     const rankEl=document.getElementById('tv-rank-'+phase);
     const rest=sorted.slice(3);
-    rankEl.innerHTML=rest.length?rest.map((e,i)=>'<div class="tv-rank-row"><span class="tv-rank-pos">'+(i+4)+'°</span><span class="tv-rank-name">'+e.n+'</span><span class="tv-rank-pts'+(isF1?'':' f2')+'">'+e.pts.total+' pts</span></div>').join(''):'';
+    rankEl.innerHTML=rest.length?rest.map((e,i)=>{
+      const ph=photos[e.n]||null;
+      const av=ph?'<img class="tv-rank-avatar-img" src="'+ph+'" alt="">':'<div class="tv-rank-avatar-fallback" style="background:'+tvEntityColor(e.n,e.i)+'">'+((e.n.split('/')[0].trim()[0]||'?').toUpperCase())+'</div>';
+      return '<div class="tv-rank-row"><span class="tv-rank-pos">'+(i+4)+'°</span><span class="tv-rank-name">'+av+'<span>'+e.n+'</span></span><span class="tv-rank-pts'+(isF1?'':' f2')+'">'+e.pts.total+' pts</span></div>';
+    }).join(''):'';
   });
 
   document.getElementById('tv-footer').textContent='🔴 En vivo · ' + new Date().toLocaleTimeString('es-AR');
