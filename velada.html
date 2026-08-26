@@ -2999,6 +2999,10 @@ const GAME_COLORS_F2 = [
   ['rgba(78,203,126,0.15)','#3aaa68'],   // 4 El Erudito   — verde
   ['rgba(255,160,80,0.15)','#e8903a'],   // 5 Jenga        — naranja
 ];
+// Copia inmutable de los colores originales, para poder restaurarlos si se
+// usa "Reiniciar toda la noche" después de haber agregado/eliminado estaciones.
+const ORIGINAL_GAME_COLORS_F1 = GAME_COLORS_F1.map(c => c.slice());
+const ORIGINAL_GAME_COLORS_F2 = GAME_COLORS_F2.map(c => c.slice());
 
 // ============================================================
 // GENERACIÓN DINÁMICA DE FIXTURES (se usa al agregar jugadores/equipos)
@@ -3052,121 +3056,36 @@ function shuffleArr(a) {
   return a;
 }
 
-// Fixture individual (Fase 1): cada partido simultáneo de una ronda usa un
-// juego distinto (un solo "setup" físico por juego), y cada jugador no repite
-// juego entre sus rondas, en la medida de lo posible.
-function generateF1Fixture(n) {
-  const { rounds: rrRounds, sentinel } = roundRobinPairs(n);
-  const numRounds = Math.min(GAMES_F1.length, rrRounds.length);
-  const byes = {};
-  const realMatchesByRound = [];
-  for (let r = 0; r < numRounds; r++) {
-    const matches = [];
-    rrRounds[r].forEach(([a, b]) => {
-      if (a === sentinel) byes[r + 1] = b;
-      else if (b === sentinel) byes[r + 1] = a;
-      else matches.push([a, b]);
-    });
-    realMatchesByRound.push(matches);
-  }
-
-  const numGames = GAMES_F1.length;
-  const playerUsedGames = {};
-  const assignment = new Array(numRounds).fill(null);
-  let _attempts = 0;
-  const MAX_ATTEMPTS = 5000; // hard cap to prevent UI freeze
-
-  function backtrack(idx) {
-    if (_attempts++ > MAX_ATTEMPTS) return false;
-    if (idx === numRounds) return true;
-    const matches = realMatchesByRound[idx];
-    const k = matches.length;
-    if (k === 0) { assignment[idx] = []; return backtrack(idx + 1); }
-    if (k > numGames) return false;
-    const perms = shuffleArr(kPermutations(Array.from({length: numGames}, (_, i) => i), k));
-    for (const perm of perms) {
-      if (_attempts++ > MAX_ATTEMPTS) return false;
-      let ok = true;
-      for (let i = 0; i < k; i++) {
-        const [a, b] = matches[i], g = perm[i];
-        if ((playerUsedGames[a] && playerUsedGames[a].has(g)) || (playerUsedGames[b] && playerUsedGames[b].has(g))) { ok = false; break; }
-      }
-      if (!ok) continue;
-      for (let i = 0; i < k; i++) {
-        const [a, b] = matches[i], g = perm[i];
-        (playerUsedGames[a] = playerUsedGames[a] || new Set()).add(g);
-        (playerUsedGames[b] = playerUsedGames[b] || new Set()).add(g);
-      }
-      assignment[idx] = perm.slice();
-      if (backtrack(idx + 1)) return true;
-      for (let i = 0; i < k; i++) {
-        const [a, b] = matches[i], g = perm[i];
-        playerUsedGames[a].delete(g);
-        playerUsedGames[b].delete(g);
-      }
-    }
-    return false;
-  }
-
-  if (!backtrack(0)) {
-    // Fallback de emergencia: garantiza que no se repita juego DENTRO de una
-    // misma ronda, aunque no pueda evitar del todo que un jugador repita juego.
-    for (let idx = 0; idx < numRounds; idx++) {
-      assignment[idx] = realMatchesByRound[idx].map((_, i) => i % numGames);
-    }
-  }
-
-  const fixture = [];
-  for (let idx = 0; idx < numRounds; idx++) {
-    const r = idx + 1;
-    realMatchesByRound[idx].forEach(([a, b], i) => fixture.push([r, a, b, assignment[idx][i]]));
-  }
-  return { fixture, byes };
-}
-
-// Fixture grupal (Fase 2): la cantidad de rondas NO es fija — se calcula
-// dinámicamente en función de cuántos equipos haya. El objetivo siempre es el
-// mismo: TODOS los equipos tienen que pasar por las 6 estaciones, aunque para
-// lograrlo algún cruce entre los mismos dos equipos tenga que repetirse (o,
-// si un equipo ya completó su recorrido, que "preste" una revancha a otro que
-// todavía necesita esa estación).
+// ============================================================
+// GENERADOR GENÉRICO: garantiza que TODOS pasen por TODAS las estaciones
+// ============================================================
+// Usado por Fase 1 (jugadores, sin restricción de TV) y por Fase 2 (equipos,
+// con la restricción de que Mario Party y Guess Movie/Song no coincidan).
 //
-// Para exactamente 6 equipos se usa el fixture fijo hecho a mano (el mismo
-// ORIGINAL_F2_FIXTURE con el que arranca la app), que ya cumple la condición
-// y además evita que "Guess Movie/Song" coincida en la misma ronda con "Mario
-// Party" o "El Erudito" (comparten TV/árbitro).
-//
-// Para cualquier otra cantidad de equipos (se agreguen o eliminen equipos en
-// cualquier momento) se arma ronda por ronda: en cada ronda se prioriza a los
-// equipos a los que más estaciones les faltan, buscando cruces que le sirvan
-// a los dos equipos a la vez; si sobra un equipo sin pareja "necesitada", se
-// lo empareja con uno que ya completó su recorrido (para ese la estación se
-// repite, pero no importa: ya cumplió el objetivo). El que queda totalmente
-// sin pareja en una ronda, descansa esa ronda.
-function generateF2Fixture(n) {
-  // El fixture fijo y curado a mano sólo es válido para la configuración
-  // original: 6 equipos Y 6 estaciones. Si se agregó o eliminó alguna
-  // estación, se usa el algoritmo genérico (que también respeta la TV).
-  if (n === 6 && GAMES_F2.length === 6) {
-    return { fixture: ORIGINAL_F2_FIXTURE.map(m => m.slice()), byes: {} };
-  }
+// La cantidad de rondas NO es fija — se calcula dinámicamente hasta que
+// todos completen su recorrido. En cada ronda se arma la mayor cantidad
+// posible de partidos en paralelo (respetando las estaciones físicas
+// disponibles y las restricciones dadas), priorizando:
+// 1) Emparejar a los que comparten una estación pendiente (avanzan los dos).
+// 2) A cada uno que quedó sin pareja mutua, emparejarlo por separado con
+//    alguien que ya terminó (para que varios avancen en paralelo).
+// 3) Último recurso: emparejar sin estación en común (avanza uno solo).
+// 4) Rellenar con partidos "de relleno" entre los que sobraron, para que el
+//    número de gente descansando por ronda sea el mínimo físico posible.
+function generateCoverageFixture(n, numStations, forbiddenStationPairs) {
   if (n < 2) return { fixture: [], byes: {} };
 
-  const G = GAMES_F2.length; // cantidad de estaciones (puede cambiar dinámicamente)
+  const G = numStations;
   const remaining = Array.from({ length: n }, () => new Set(Array.from({ length: G }, (_, i) => i)));
-  const pairCount = {};              // cruces ya jugados entre cada par de equipos (para minimizar repeticiones)
-  const byeCount = new Array(n).fill(0); // veces que descansó cada equipo (para rotar descansos parejo)
+  const pairCount = {};
+  const byeCount = new Array(n).fill(0);
+  // Uso global de cada estación a lo largo de todo el torneo: sirve para
+  // repartir parejo el trabajo entre las estaciones (ver pickStation /
+  // pickStationForFiller) y evitar que una se use de más mientras otra
+  // apenas se usa lo mínimo indispensable.
+  const stationGlobalUse = new Array(G).fill(0);
   const fixture = [];
-  const MAX_ROUNDS = 400; // tope de seguridad; en la práctica nunca se llega a esto
-
-  // Restricción de TV: Mario Party y Guess Movie/Song comparten pantalla, así
-  // que nunca pueden jugarse en la misma ronda. El Erudito no usa TV, así que
-  // puede coincidir con cualquiera sin problema. Se busca por nombre (no por
-  // índice fijo) porque agregar/eliminar estaciones puede correr los índices;
-  // si alguna de las dos estaciones fue eliminada, simplemente no aplica.
-  const marioIdx = GAMES_F2.indexOf('Mario Party');
-  const guessIdx = GAMES_F2.indexOf('Guess Movie/Song');
-  const FORBIDDEN_STATION_PAIRS = (marioIdx !== -1 && guessIdx !== -1) ? [[marioIdx, guessIdx]] : [];
+  const MAX_ROUNDS = 400;
 
   const isDone = t => remaining[t].size === 0;
   const allDone = () => remaining.every(s => s.size === 0);
@@ -3175,38 +3094,35 @@ function generateF2Fixture(n) {
     if (usedStations.has(st)) return false;
     if (!avoidConflicts) return true;
     for (const u of usedStations) {
-      if (FORBIDDEN_STATION_PAIRS.some(([p, q]) => (st === p && u === q) || (st === q && u === p))) return false;
+      if (forbiddenStationPairs.some(([p, q]) => (st === p && u === q) || (st === q && u === p))) return false;
     }
     return true;
   }
 
-  // Busca, entre las estaciones que 'a' todavía necesita y no se usaron (ni
-  // entran en conflicto de TV) en esta ronda, la mejor opción: prioriza una
-  // que TAMBIÉN le sirva a 'b'. Con avoidConflicts=false se ignora la
-  // restricción de TV (solo como último recurso, para no trabar una ronda).
+  // Prioriza 1) el cruce mutuo (avanzan los dos) y 2), a igualdad de eso,
+  // la estación menos usada globalmente hasta el momento — así se reparte
+  // parejo entre las 6 en vez de "gastar" siempre la primera que encaja.
   function pickStation(a, b, usedStations, avoidConflicts) {
-    let best = null, bestMutual = -1;
+    let best = null, bestMutual = -1, bestUse = Infinity;
     for (const st of remaining[a]) {
       if (!stationAllowed(st, usedStations, avoidConflicts)) continue;
       const mutual = remaining[b].has(st) ? 1 : 0;
-      if (mutual > bestMutual) { bestMutual = mutual; best = st; if (mutual === 1) break; }
+      const use = stationGlobalUse[st];
+      if (mutual > bestMutual || (mutual === bestMutual && use < bestUse)) {
+        bestMutual = mutual; best = st; bestUse = use;
+      }
     }
     return best;
   }
 
-  // Para partidos "de relleno" (ambos equipos ya sin nada pendiente, o sin
-  // estación en común): primero intenta una estación que a alguno de los dos
-  // le sirva de verdad (por si en el fondo sí le faltaba algo); si no,
-  // cualquier estación libre sirve, porque el objetivo acá es simplemente que
-  // jueguen y no queden descansando sin necesidad. SIEMPRE respeta la TV: si
-  // no hay ninguna estación disponible sin romper esa regla, no se suma el
-  // partido (es preferible que descansen a que Mario Party y Guess Movie/Song
-  // coincidan en la misma ronda).
   function pickStationForFiller(a, b, usedStations) {
-    for (const st of remaining[a]) if (stationAllowed(st, usedStations, true)) return st;
-    for (const st of remaining[b]) if (stationAllowed(st, usedStations, true)) return st;
-    for (let g = 0; g < G; g++) if (stationAllowed(g, usedStations, true)) return g;
-    return null;
+    let best = null, bestUse = Infinity;
+    for (const st of remaining[a]) if (stationAllowed(st, usedStations, true) && stationGlobalUse[st] < bestUse) { best = st; bestUse = stationGlobalUse[st]; }
+    if (best !== null) return best;
+    for (const st of remaining[b]) if (stationAllowed(st, usedStations, true) && stationGlobalUse[st] < bestUse) { best = st; bestUse = stationGlobalUse[st]; }
+    if (best !== null) return best;
+    for (let g = 0; g < G; g++) if (stationAllowed(g, usedStations, true) && stationGlobalUse[g] < bestUse) { best = g; bestUse = stationGlobalUse[g]; }
+    return best;
   }
 
   let round = 0;
@@ -3216,26 +3132,18 @@ function generateF2Fixture(n) {
     const played = new Set();
     const roundMatches = [];
 
-    // Equipos con estaciones pendientes, priorizando a los que más les falta
-    // (para que ninguno quede muy atrás) y, en empate, a los que menos veces
-    // descansaron.
     const needy = [];
     for (let t = 0; t < n; t++) if (!isDone(t)) needy.push(t);
     needy.sort((a, b) => (remaining[b].size - remaining[a].size) || (byeCount[b] - byeCount[a]) || (Math.random() - 0.5));
 
-    // 1) Emparejar equipos "necesitados" ENTRE SÍ, pero sólo cuando comparten
-    //    una estación pendiente (mutua) — así el partido hace progresar a los
-    //    DOS a la vez. Si dos equipos necesitan estaciones distintas, emparejarlos
-    //    igual desperdiciaría el turno de uno de los dos (avanza uno solo pero
-    //    "gasta" al otro); para eso está el paso 2, que deja a cada uno
-    //    progresar por separado, en paralelo, contra un equipo ya terminado.
+    // 1) Emparejar "necesitados" entre sí sólo cuando comparten estación.
     for (const a of needy) {
       if (played.has(a)) continue;
       let bestB = -1, bestSt = -1, bestScore = -Infinity;
       for (const b of needy) {
         if (b === a || played.has(b)) continue;
         const st = pickStation(a, b, usedStations, true);
-        if (st === null || !remaining[b].has(st)) continue; // exigir mutuo
+        if (st === null || !remaining[b].has(st)) continue;
         const key = a < b ? a + '_' + b : b + '_' + a;
         const score = -(pairCount[key] || 0);
         if (score > bestScore) { bestScore = score; bestB = b; bestSt = st; }
@@ -3243,18 +3151,15 @@ function generateF2Fixture(n) {
       if (bestB !== -1) {
         played.add(a); played.add(bestB); usedStations.add(bestSt);
         remaining[a].delete(bestSt); remaining[bestB].delete(bestSt);
+        stationGlobalUse[bestSt]++;
         const key = a < bestB ? a + '_' + bestB : bestB + '_' + a;
         pairCount[key] = (pairCount[key] || 0) + 1;
         roundMatches.push([a, bestB, bestSt]);
       }
     }
 
-    // 2) Cada "necesitado" que quedó sin pareja mutua progresa por su cuenta,
-    //    emparejado con un equipo que YA completó su recorrido — así varios
-    //    equipos con necesidades distintas pueden avanzar EN PARALELO en la
-    //    misma ronda (cada uno en su propia estación), en vez de competir por
-    //    un único partido. Para ese rival la estación se repite, pero no
-    //    importa: ya cumplió el objetivo.
+    // 2) Cada "necesitado" restante progresa por su cuenta contra alguien
+    //    que ya terminó, en paralelo con los demás.
     for (const a of needy) {
       if (played.has(a)) continue;
       let bestB = -1, bestSt = -1, bestScore = -Infinity;
@@ -3269,17 +3174,14 @@ function generateF2Fixture(n) {
       if (bestB !== -1) {
         played.add(a); played.add(bestB); usedStations.add(bestSt);
         remaining[a].delete(bestSt);
+        stationGlobalUse[bestSt]++;
         const key = a < bestB ? a + '_' + bestB : bestB + '_' + a;
         pairCount[key] = (pairCount[key] || 0) + 1;
         roundMatches.push([a, bestB, bestSt]);
       }
     }
 
-    // 3) Último recurso (caso raro): si a alguien le falta jugar y no hay
-    //    forma mutua NI un equipo ya terminado disponible (típico sólo al
-    //    principio, cuando todavía nadie terminó nada), se lo empareja con
-    //    otro necesitado aunque no comparta la estación — avanza uno solo,
-    //    pero es mejor que dejarlos a ambos sin jugar esta ronda.
+    // 3) Último recurso: emparejar necesitados sin estación en común.
     for (const a of needy) {
       if (played.has(a)) continue;
       let bestB = -1, bestSt = -1, bestScore = -Infinity;
@@ -3294,56 +3196,87 @@ function generateF2Fixture(n) {
       if (bestB !== -1) {
         played.add(a); played.add(bestB); usedStations.add(bestSt);
         remaining[a].delete(bestSt); remaining[bestB].delete(bestSt);
+        stationGlobalUse[bestSt]++;
         const key = a < bestB ? a + '_' + bestB : bestB + '_' + a;
         pairCount[key] = (pairCount[key] || 0) + 1;
         roundMatches.push([a, bestB, bestSt]);
       }
     }
 
-    // 4) Si sobran equipos sin jugar esta ronda (típicamente porque ya
-    //    completaron su recorrido y no hacían falta en los pasos anteriores),
-    //    se los empareja entre sí para que jueguen igual (aunque sea
-    //    repitiendo estación) — así el número de equipos que descansa por
-    //    ronda queda en el mínimo físico posible: 0 si "n" es par, 1 si es
-    //    impar. Nunca deja a varios equipos sin jugar solo porque ya
-    //    cumplieron el objetivo, salvo que no queden estaciones físicas
-    //    libres para sumar otro partido.
+    // 4) Relleno: minimiza al máximo posible la cantidad de gente descansando.
     let idle = [];
     for (let t = 0; t < n; t++) if (!played.has(t)) idle.push(t);
-    idle.sort((a, b) => byeCount[a] - byeCount[b]); // priorizar que jueguen los que menos descansaron hasta ahora
+    idle.sort((a, b) => byeCount[a] - byeCount[b]);
     while (idle.length >= 2) {
       const a = idle.shift(), b = idle.shift();
       const st = pickStationForFiller(a, b, usedStations);
-      if (st === null) { idle.unshift(b); idle.unshift(a); break; } // no hay más estaciones físicas libres esta ronda
+      if (st === null) { idle.unshift(b); idle.unshift(a); break; }
       played.add(a); played.add(b); usedStations.add(st);
       remaining[a].delete(st); remaining[b].delete(st);
+      stationGlobalUse[st]++;
       const key = a < b ? a + '_' + b : b + '_' + a;
       pairCount[key] = (pairCount[key] || 0) + 1;
       roundMatches.push([a, b, st]);
     }
 
-    // 5) Lo que no se pudo emparejar (por paridad o por falta de estaciones
-    //    físicas libres), descansa esta ronda.
+    // 5) Lo que no se pudo emparejar, descansa esta ronda.
     for (let t = 0; t < n; t++) if (!played.has(t)) byeCount[t]++;
 
-    if (roundMatches.length === 0) break; // seguridad anti-loop infinito
+    if (roundMatches.length === 0) break;
     roundMatches.forEach(([a, b, g]) => fixture.push([round, a, b, g]));
   }
 
-  // Descansos: cualquier equipo que no aparezca jugando en una ronda dada
-  // (puede ser más de uno por ronda si hay varios equipos "sobrantes").
+  return { fixture, byes: computeGenericByes(fixture, n) };
+}
+
+// Descansos: cualquier entidad (jugador o equipo) que no aparezca jugando en
+// una ronda dada (puede ser más de una por ronda). Se computa a partir del
+// fixture real, así que sirve tanto para el recién generado como para uno
+// editado manualmente después.
+function computeGenericByes(fixture, numEntities) {
   const totalRounds = fixture.reduce((m, x) => Math.max(m, x[0]), 0);
   const byes = {};
   for (let r = 1; r <= totalRounds; r++) {
     const playing = new Set();
     fixture.filter(m => m[0] === r).forEach(([, a, b]) => { playing.add(a); playing.add(b); });
     const resting = [];
-    for (let t = 0; t < n; t++) if (!playing.has(t)) resting.push(t);
+    for (let t = 0; t < numEntities; t++) if (!playing.has(t)) resting.push(t);
     if (resting.length) byes[r] = resting;
   }
-
-  return { fixture, byes };
+  return byes;
 }
+
+// Fixture individual (Fase 1): cada jugador tiene que pasar por las 6
+// estaciones. No hay restricción de TV entre juegos de Fase 1.
+function generateF1Fixture(n) {
+  return generateCoverageFixture(n, GAMES_F1.length, []);
+}
+
+function computeF2Byes(fixture, numTeams) {
+  return computeGenericByes(fixture, numTeams);
+}
+
+// Fixture grupal (Fase 2): la cantidad de rondas NO es fija — se calcula
+// dinámicamente en función de cuántos equipos haya. El objetivo siempre es el
+// mismo: TODOS los equipos tienen que pasar por las 6 estaciones, aunque para
+// lograrlo algún cruce entre los mismos dos equipos tenga que repetirse (o,
+// si un equipo ya completó su recorrido, que "preste" una revancha a otro que
+// todavía necesita esa estación).
+//
+// Para exactamente 6 equipos se usa el fixture fijo hecho a mano (el mismo
+// ORIGINAL_F2_FIXTURE con el que arranca la app), que ya cumple la condición
+// y además evita que "Guess Movie/Song" coincida en la misma ronda con "Mario
+// Party" (comparten TV/árbitro).
+function generateF2Fixture(n) {
+  if (n === 6 && GAMES_F2.length === 6) {
+    return { fixture: ORIGINAL_F2_FIXTURE.map(m => m.slice()), byes: {} };
+  }
+  const marioIdx = GAMES_F2.indexOf('Mario Party');
+  const guessIdx = GAMES_F2.indexOf('Guess Movie/Song');
+  const forbidden = (marioIdx !== -1 && guessIdx !== -1) ? [[marioIdx, guessIdx]] : [];
+  return generateCoverageFixture(n, GAMES_F2.length, forbidden);
+}
+
 
 function regenerateF1Fixture() {
   const { fixture, byes } = generateF1Fixture(PLAYERS.length);
@@ -3406,6 +3339,16 @@ function resetRosterAndFixtures() {
   state.teamsSnapshot = null;
   state.f1FixtureSnapshot = null;
   state.f2FixtureSnapshot = null;
+
+  // Si se habían agregado/eliminado estaciones, el fixture original (pensado
+  // para las 6 estaciones de cada fase) quedaría desincronizado con la lista
+  // de juegos vigente. Por eso "Reiniciar toda la noche" también restaura las
+  // estaciones, puntajes y colores a los valores originales.
+  RULES_CONFIG = JSON.parse(JSON.stringify(RULES_DEFAULT));
+  GAME_COLORS_F1.length = 0; ORIGINAL_GAME_COLORS_F1.forEach(c => GAME_COLORS_F1.push(c.slice()));
+  GAME_COLORS_F2.length = 0; ORIGINAL_GAME_COLORS_F2.forEach(c => GAME_COLORS_F2.push(c.slice()));
+  syncRulestoRuntime();
+  saveRulesConfig();
 }
 
 // ---- FASE 1: agregar jugador ----
@@ -3745,40 +3688,20 @@ const BONUS_F2 = {
 const EMPATE_ALLOWED_F2 = ['Beer Pong','El Erudito'];
 
 // Fixture fase 1: [ronda, jugadorA(idx), jugadorB(idx), juegoIdx]
-// Regenerado para 11 jugadores reales (round-robin con descanso rotativo).
-// Cada ronda tiene 5 duelos simultáneos + 1 jugador que descansa (11 es impar).
-// Cada jugador pasa por todas las estaciones sin repetir, y cada ronda usa
-// estaciones distintas entre sí (un solo "setup" físico por juego a la vez).
-let F1_FIXTURE = [
-  // R1 (descansa: JM Risuleo)
-  [1,1,10,3],[1,2,9,2],[1,3,8,5],[1,4,7,1],[1,5,6,4],
-  // R2 (descansa: Florencia López)
-  [2,0,10,2],[2,1,8,4],[2,2,7,0],[2,3,6,3],[2,4,5,5],
-  // R3 (descansa: Martin Horn)
-  [3,0,9,5],[3,10,8,1],[3,1,6,0],[3,2,5,3],[3,3,4,4],
-  // R4 (descansa: Lázaro Grosso)
-  [4,0,8,0],[4,9,7,4],[4,10,6,5],[4,1,4,2],[4,2,3,1],
-  // R5 (descansa: Micaela Berruete)
-  [5,0,7,3],[5,8,6,2],[5,9,5,1],[5,10,4,0],[5,1,2,5],
-  // R6 (descansa: Thomas Confente)
-  [6,0,6,1],[6,7,5,2],[6,8,4,3],[6,9,3,0],[6,10,2,4],
-];
+// Se genera dinámicamente (en vez de estar fijo a mano) para garantizar que
+// TODOS los jugadores pasen por las 6 estaciones — con 11 jugadores y 6
+// rondas, el fixture fijo anterior dejaba a 5 de los 11 en 5/6 estaciones,
+// porque el que descansa una vez ya no llega a jugar las 6 en solo 6 rondas.
+// El generador agrega las rondas extra que hagan falta para que nadie se
+// quede corto.
+let F1_FIXTURE = generateF1Fixture(PLAYERS.length).fixture;
 
-// Jugador que descansa en cada ronda (idx en PLAYERS)
-// Se computa dinámicamente del fixture: el jugador que no aparece en ningún
-// partido de esa ronda, y la cantidad de rondas también sale del fixture (no
-// está fija en 6, porque puede cambiar si se agregan/eliminan estaciones).
+// Jugador(es) que descansan en cada ronda (idx en PLAYERS). Puede haber más
+// de uno por ronda. Se computa dinámicamente del fixture: quien no aparece en
+// ningún partido de esa ronda, y la cantidad de rondas también sale del
+// fixture (no está fija, puede cambiar según jugadores/estaciones).
 function computeF1Byes(fixture, numPlayers) {
-  const byes = {};
-  const maxRound = fixture.reduce((m, x) => Math.max(m, x[0]), 0);
-  for (let r = 1; r <= maxRound; r++) {
-    const inRound = new Set();
-    fixture.filter(m => m[0] === r).forEach(([,a,b]) => { inRound.add(a); inRound.add(b); });
-    for (let idx = 0; idx < numPlayers; idx++) {
-      if (!inRound.has(idx)) { byes[r] = idx; break; }
-    }
-  }
-  return byes;
+  return computeGenericByes(fixture, numPlayers);
 }
 let F1_BYES = computeF1Byes(F1_FIXTURE, PLAYERS.length);
 
@@ -3932,10 +3855,11 @@ function getPlayerPoints() {
   const numRoundsF1 = F1_FIXTURE.reduce((m, x) => Math.max(m, x[0]), 0);
   const pts = PLAYERS.map(() => ({ rounds: Array(numRoundsF1).fill(null), special: null, total: 0 }));
 
-  // Marcar la ronda de descanso de cada jugador
+  // Marcar la ronda de descanso de cada jugador (puede haber más de uno)
   for (let r = 1; r <= numRoundsF1; r++) {
-    const byeIdx = F1_BYES[r];
-    if (pts[byeIdx]) pts[byeIdx].rounds[r-1] = 'bye';
+    const byeArrRaw = F1_BYES[r];
+    const byeArr = Array.isArray(byeArrRaw) ? byeArrRaw : (typeof byeArrRaw === 'number' ? [byeArrRaw] : []);
+    byeArr.forEach(idx => { if (pts[idx]) pts[idx].rounds[r-1] = 'bye'; });
   }
 
   F1_FIXTURE.forEach(([r, a, b, g]) => {
@@ -4293,11 +4217,12 @@ function saveFixtureMatch(phase, matchIdx, selectA, selectB, selectG) {
     const store = phase === 'f1' ? state.f1 : state.f2;
     if (store[oldKey]) { delete store[oldKey]; }
   }
-  // Recompute byes for F1
+  // Recompute byes for F1 y F2
   if (phase === 'f1') {
     F1_BYES = computeF1Byes(F1_FIXTURE, PLAYERS.length);
     state.f1FixtureSnapshot = { fixture: F1_FIXTURE, byes: F1_BYES };
   } else {
+    F2_BYES = computeF2Byes(F2_FIXTURE, TEAMS.length);
     state.f2FixtureSnapshot = { fixture: F2_FIXTURE, byes: F2_BYES };
   }
   saveState();
@@ -4324,8 +4249,11 @@ function renderFixtureF1() {
   const numRoundsF1 = F1_FIXTURE.reduce((m, x) => Math.max(m, x[0]), 0);
   for (let r = 1; r <= numRoundsF1; r++) {
     const matches = F1_FIXTURE.filter(m => m[0] === r);
-    const byeIdx = F1_BYES[r];
-    const byeTag = byeIdx !== undefined ? `<span class="bye-tag">😴 Descansa: ${PLAYERS[byeIdx]}</span>` : '';
+    const byeArrRaw = F1_BYES[r];
+    const byeArr = Array.isArray(byeArrRaw) ? byeArrRaw : (typeof byeArrRaw === 'number' ? [byeArrRaw] : []);
+    const byeTag = byeArr.length
+      ? byeArr.map(idx => `<span class="bye-tag">😴 Descansa: ${PLAYERS[idx]}</span>`).join(' ')
+      : '';
     html += `<div class="fixture-round"><div class="round-label">Ronda ${r} ${byeTag}</div>`;
 
     matches.forEach(([round, a, b, g]) => {
