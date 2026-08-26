@@ -3853,6 +3853,40 @@ function saveState() {
   `;
   document.head.appendChild(script);
 })();
+
+// ── Segunda conexión Firebase (RTDB) para leer puntajes de ¿Quién lo dijo?
+// Se hace por separado porque velada.html usa Firestore v10 modular, mientras
+// que QLD usa RTDB v9 compat en otro proyecto (guessmovie-905e2).
+(function initQldFirebase(){
+  window._qldScores = {};
+  function loadScript(src){ return new Promise((res, rej) => { const s = document.createElement('script'); s.src = src; s.onload = res; s.onerror = rej; document.head.appendChild(s); }); }
+  Promise.all([
+    loadScript('https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js'),
+    loadScript('https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js')
+  ]).then(() => {
+    try{
+      const QLD_CFG = {
+        apiKey:"AIzaSyB37WkRQqBWVYkZ84AE2u17pAOs_9ZCgCg",
+        authDomain:"guessmovie-905e2.firebaseapp.com",
+        databaseURL:"https://guessmovie-905e2-default-rtdb.firebaseio.com",
+        projectId:"guessmovie-905e2",
+        appId:"1:313601369235:web:f8b28a2ec187a934fa1966"
+      };
+      // Named app para no chocar con nada
+      const qldApp = firebase.initializeApp(QLD_CFG, 'qld');
+      const qldDb = qldApp.database();
+      qldDb.ref('velada/qld/live').on('value', snap => {
+        const d = snap.val() || {};
+        window._qldScores = d.scores || {};
+        // Re-renderizar la Fase 2 si está activa
+        if(typeof renderFase2 === 'function' && document.getElementById('page-fase2') && document.getElementById('page-fase2').classList.contains('active')){
+          try{ renderFase2(); }catch(e){}
+        }
+      });
+      console.log('QLD Firebase listo ✓');
+    }catch(e){ console.warn('QLD Firebase init error', e); }
+  }).catch(e => console.warn('No se pudo cargar el SDK RTDB', e));
+})();
 function activateTab(tab) {
   document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
@@ -4005,7 +4039,7 @@ function getF2StationStatus(teamIdx, beforeRound) {
 
 function getTeamPoints() {
   const totalRounds = F2_FIXTURE.reduce((m, x) => Math.max(m, x[0]), 0);
-  const pts = TEAMS.map(() => ({ rounds: Array(totalRounds).fill(null), total: 0 }));
+  const pts = TEAMS.map(() => ({ rounds: Array(totalRounds).fill(null), total: 0, qld: 0 }));
 
   for (let r = 1; r <= totalRounds; r++) {
     const byeArr = F2_BYES[r];
@@ -4038,10 +4072,29 @@ function getTeamPoints() {
     }
   });
 
+  // Sumar puntos de "¿Quién lo dijo?" — se leen desde Firebase (window._qldScores)
+  // Cada jugador individual suma a su equipo (identificado por el nombre completo dentro de TEAMS)
+  const qldScores = window._qldScores || {};
+  Object.keys(qldScores).forEach(playerNick => {
+    const pts_p = qldScores[playerNick] || 0;
+    if(!pts_p) return;
+    const tIdx = teamIndexForPlayerName(playerNick);
+    if(tIdx >= 0 && pts[tIdx]) pts[tIdx].qld += pts_p;
+  });
+
   pts.forEach(p => {
-    p.total = p.rounds.reduce((s,v) => s + (typeof v === 'number' ? v : 0), 0);
+    p.total = p.rounds.reduce((s,v) => s + (typeof v === 'number' ? v : 0), 0) + (p.qld || 0);
   });
   return pts;
+}
+
+// Dado el apodo del jugador ("Risu", "Totti", "Martin"...), devuelve el índice del equipo en TEAMS.
+// Usa FULL_NAMES para resolver el nombre completo.
+function teamIndexForPlayerName(playerNick){
+  if(!playerNick) return -1;
+  const full = (typeof FULL_NAMES !== 'undefined' && FULL_NAMES[playerNick]) ? FULL_NAMES[playerNick] : playerNick;
+  // Match por nombre completo o por la primera palabra (apodo)
+  return TEAMS.findIndex(t => t.includes(full) || t.split('/').some(part => part.trim() === full || part.trim().split(' ')[0] === playerNick));
 }
 
 // ============================================================
@@ -4634,7 +4687,7 @@ function renderFase2() {
   if (theadRowF2) {
     const totalRoundsF2 = F2_FIXTURE.reduce((m, x) => Math.max(m, x[0]), 0);
     const roundThs = Array.from({length: totalRoundsF2}, (_, i) => `<th>R${i+1}</th>`).join('');
-    theadRowF2.innerHTML = `<th style="width:36px">#</th><th>Equipo</th>${roundThs}<th style="text-align:right">Total</th>`;
+    theadRowF2.innerHTML = `<th style="width:36px">#</th><th>Equipo</th>${roundThs}<th title="¿Quién lo dijo? — puntos individuales sumados al equipo" style="color:var(--purple)">🗣️ QLD</th><th style="text-align:right">Total</th>`;
   }
 
   const tbody = document.getElementById('tbody-fase2');
@@ -4652,10 +4705,14 @@ function renderFase2() {
         : v > 0 ? `<td class="round-pts win">${v}</td>`
         : `<td class="round-pts">${v}</td>`;
     }).join('');
+    const qldCell = pts.qld > 0
+      ? `<td class="round-pts" style="color:var(--purple);font-weight:800" title="Puntos de ¿Quién lo dijo?">${pts.qld}</td>`
+      : `<td class="round-pts pending">—</td>`;
     return `<tr class="${rowClass}">
       <td><div class="pos-badge ${badgeClass}">${pos+1}</div></td>
       <td class="player-name" style="font-size:12px">${playerAvatarHtml(n, i)}<span>${n}</span></td>
       ${rounds}
+      ${qldCell}
       <td style="text-align:right"><span class="total-pts">${pts.total}</span></td>
     </tr>`;
   }).join('');
