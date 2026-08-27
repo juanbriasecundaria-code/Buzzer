@@ -1936,8 +1936,18 @@
   .cr-name.champ { color: var(--gold); font-size: clamp(1.7rem, 6.5vw, 2.8rem); }
   .cr-name .cr-pts { display: block; color: var(--muted); font-weight: 500;
     font-size: clamp(12px, 3vw, 14px); margin-top: 0.15rem; letter-spacing: 0; }
-  .cr-line { font-size: clamp(1.05rem, 4vw, 1.45rem); margin: 0.3rem 0; line-height: 1.4; }
+  .cr-line { font-size: clamp(1.05rem, 4vw, 1.45rem); margin: 0.3rem 0; line-height: 1.4;
+    display: flex; align-items: center; justify-content: center; gap: 0.45rem; flex-wrap: wrap; }
   .cr-line .cr-mini { color: var(--muted); font-size: 0.7em; }
+  .cr-medal { flex-shrink: 0; }
+  /* Avatares en el podio/elenco de créditos (dúo automático para equipos) */
+  .cr-av { display: inline-flex; align-items: center; flex-shrink: 0; }
+  .cr-av .player-avatar-img,
+  .cr-av .player-avatar-fallback { width: 30px; height: 30px; font-size: 12px; }
+  .cr-av .player-avatar-duo > * { width: 27px; height: 27px; font-size: 11px; }
+  /* Figura del campeón (abrazados si es equipo de dos) */
+  .cr-champ-fig { display: flex; align-items: flex-end; justify-content: center; margin: 0.5rem 0 0.2rem;
+    filter: drop-shadow(0 10px 22px rgba(0,0,0,0.55)); }
   .cr-games { font-size: clamp(1.05rem, 4vw, 1.4rem); line-height: 2.1; }
   .cr-mote { font-size: clamp(1rem, 3.8vw, 1.3rem); margin: 0.35rem 0; }
   .cr-mote b { color: var(--gold); font-weight: 700; }
@@ -8245,8 +8255,8 @@ function rollCredits() {
   const pName = (n) => esc(n);             // jugadores → tal cual los cargaste en la fase 1
   const tName = (n) => esc(n);             // equipos → tal cual
   const podium = (arr, nf) => arr.slice(0, 3)
-    .map((e, i) => `<div class="cr-line">${medal[i]} ${nf(e.n)} <span class="cr-mini">· ${e.pts} pts</span></div>`).join('');
-  const cast = (arr, nf) => arr.map(e => `<div class="cr-line">${nf(e.n)}</div>`).join('');
+    .map((e, i) => `<div class="cr-line"><span class="cr-medal">${medal[i]}</span><span class="cr-av">${playerAvatarHtml(e.n, i)}</span>${nf(e.n)} <span class="cr-mini">· ${e.pts} pts</span></div>`).join('');
+  const cast = (arr, nf) => arr.map((e, i) => `<div class="cr-line"><span class="cr-av">${playerAvatarHtml(e.n, i)}</span>${nf(e.n)}</div>`).join('');
 
   // Todos los juegos: Fase 1 + Fase 2 + Impostor (deduplicados)
   const allGames = [];
@@ -8282,9 +8292,11 @@ function rollCredits() {
       <div class="cr-tag">Edición 2026</div>
 
       <div class="cr-role">Campeón · Fase Individual</div>
+      <div class="cr-champ-fig">${champP ? entityFigureHtml(champP.n, entityColor(champP.n, 0), 150, 'victory') : ''}</div>
       <div class="cr-name champ">🏆 ${esc(champP ? champP.n : '—')}<span class="cr-pts">${champP ? champP.pts : 0} pts</span></div>
 
       <div class="cr-role">Campeón · Fase Grupal</div>
+      <div class="cr-champ-fig">${champT ? entityFigureHtml(champT.n, entityColor(champT.n, 0), 150, 'victory') : ''}</div>
       <div class="cr-name champ">🏆 ${esc(champT ? champT.n : '—')}<span class="cr-pts">${champT ? champT.pts : 0} pts</span></div>
 
       <div class="cr-divider"></div>
