@@ -543,22 +543,25 @@ function selectGame(gameId){
   });
 }
 
-// Lista de jugadores para el modo individual — se lee del canal live del juego.
+// Lista de jugadores para el modo individual — se lee del roster de equipos publicado por velada.html.
 let indivListener = null;
-function stopIndivListener(){ if(indivListener && fbDb){ try{ fbDb.ref('velada/qld/live').off('value', indivListener); }catch(e){} indivListener=null; } }
+function stopIndivListener(){ if(indivListener && fbDb){ try{ fbDb.ref('velada/qld/teams').off('value', indivListener); }catch(e){} indivListener=null; } }
 function startIndividualPlayerListener(){
   stopIndivListener();
-  const ref = fbDb.ref('velada/qld/live');
+  const ref = fbDb.ref('velada/qld/teams');
   indivListener = ref.on('value', snap => {
     const d = snap.val() || {};
-    // Preferir la lista sincronizada por el conductor; si no hay, usar default
-    let list = Array.isArray(d.players) && d.players.length ? d.players : DEFAULT_QLD_PLAYERS;
+    const teams = Array.isArray(d.teams) ? d.teams : [];
+    let list = [];
+    teams.forEach(t => { if(Array.isArray(t.members)) list = list.concat(t.members); });
+    // Si todavía no se publicó el roster (velada.html no se abrió en esta sesión), usamos un default
+    if(!list.length) list = DEFAULT_QLD_PLAYERS;
     renderIndividualPlayers(list);
     document.getElementById('connecting-dot').style.display = 'none';
     document.getElementById('connecting-text').style.display = 'none';
   });
 }
-const DEFAULT_QLD_PLAYERS = ['Risu','Totti','Thiago','Mica','Valentín','Laza','Lara','Martin','Cori','Flor','Tomás'];
+const DEFAULT_QLD_PLAYERS = ['Martin','Valentín','Laza','Tomás','Thiago','Lara','Totti','Risu','Cori','Flor'];
 function renderIndividualPlayers(list){
   const wrap = document.getElementById('team-list-individual');
   if(!wrap) return;
