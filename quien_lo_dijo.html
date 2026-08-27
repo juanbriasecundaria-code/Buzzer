@@ -1307,8 +1307,24 @@ function finalizeRound(){
   const standings = teams.map(t => ({ teamIndex: t.index, label: t.label, score: teamScores[t.index]||0 }))
     .sort((a,b) => b.score - a.score);
   const fase2Pts = [3,2,1];
-  standings.forEach((s,i) => { s.fase2Points = i < 3 ? fase2Pts[i] : 0; });
-  const preview = standings.map((s,i) => `${i+1}. ${s.label} — ${s.score}pt${s.score===1?'':'s'} → +${s.fase2Points} en el ranking`).join('\n');
+  // FIX (empates): antes el puesto salía del orden del array, así que dos equipos
+  // con el mismo puntaje podían llevarse +1 y +0. Ahora los empatados comparten
+  // puesto y se reparten en partes iguales los puntos de los lugares que ocupan.
+  let i = 0;
+  while(i < standings.length){
+    let j = i;
+    while(j + 1 < standings.length && standings[j+1].score === standings[i].score) j++;
+    const tied = j - i + 1;                       // cuántos empatan en este puesto
+    let pool = 0;
+    for(let k = i; k <= j; k++) pool += (k < 3 ? fase2Pts[k] : 0);
+    const share = pool / tied;
+    for(let k = i; k <= j; k++){
+      standings[k].fase2Points = Math.round(share * 2) / 2;  // medios puntos
+      standings[k].rank = i + 1;                             // puesto compartido
+    }
+    i = j + 1;
+  }
+  const preview = standings.map(s => `${s.rank}°. ${s.label} — ${s.score}pt${s.score===1?'':'s'} → +${s.fase2Points} en el ranking`).join('\n');
   if(!confirm(`¿Cerrar la ronda con este resultado?\n\n${preview}`)) return;
   roundResult = { standings, finishedAt: Date.now() };
   if(fbResultRef) fbResultRef.set(roundResult);
