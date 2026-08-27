@@ -1318,6 +1318,9 @@ function saveNames() {
   teamNames.a = a || 'Equipo 1'; teamNames.b = b || 'Equipo 2';
   if (_pendingSizes) { teamSizes = _pendingSizes; _pendingSizes = null; _saveTeamSizes(); }
   _saveTeamNames(); syncScoreUI(); closeNameEditor();
+  // FIX: propagar al buzzer del celu al instante (antes había que esperar
+  // al próximo fbToggle()/fbLock() para que los teléfonos vieran el cambio).
+  if (fbRef) { try { fbRef.child('names').set({ a: teamNames.a, b: teamNames.b }); } catch (e) {} }
   if (navigator.vibrate) navigator.vibrate(30);
 }
 
@@ -1467,8 +1470,12 @@ function closeMemberPicker() {
 }
 
 function confirmMemberPicker() {
-  const ma = parseInt(document.getElementById('mpick-a').value || '1', 10);
-  const mb = parseInt(document.getElementById('mpick-b').value || '1', 10);
+  // FIX: con doble toque rápido en "Confirmar", _pendingRoundPick ya era null y
+  // _launchRound reventaba leyendo pick.q. Además los inputs podían no existir.
+  if (!_pendingRoundPick) { closeMemberPicker(); return; }
+  const ea = document.getElementById('mpick-a'), eb = document.getElementById('mpick-b');
+  const ma = parseInt((ea && ea.value) || '1', 10) || 1;
+  const mb = parseInt((eb && eb.value) || '1', 10) || 1;
   document.getElementById('member-overlay').classList.remove('open');
   _launchRound({ a: ma, b: mb });
 }
@@ -2556,6 +2563,27 @@ const FB_CFG = {
 };
 let fbDb=null, fbRef=null, fbInited=false;
 
+// ── TOAST ──
+// FIX: showToast se usaba 6 veces en esta sección pero nunca estaba definida.
+// Cada buzz tiraba un ReferenceError adentro del listener de Firebase y se
+// perdía el aviso "🏆 X buzzó primero", además de dejar promesas sin manejar.
+function showToast(msg, ms = 2200) {
+  let t = document.getElementById('cad-toast');
+  if (!t) {
+    t = document.createElement('div');
+    t.id = 'cad-toast';
+    t.style.cssText = 'position:fixed;bottom:5rem;left:50%;transform:translateX(-50%);' +
+      'background:var(--surface2,#1e1e2a);border:1.5px solid var(--border2,rgba(255,255,255,.13));' +
+      'border-radius:12px;padding:.6rem 1rem;font-size:13px;font-weight:700;color:var(--text,#f0efe8);' +
+      'z-index:9000;opacity:0;transition:opacity .2s;pointer-events:none;max-width:88vw;text-align:center';
+    document.body.appendChild(t);
+  }
+  t.textContent = msg;
+  t.style.opacity = '1';
+  clearTimeout(t._hideTimer);
+  t._hideTimer = setTimeout(() => { t.style.opacity = '0'; }, ms);
+}
+
 function initFirebase(){
   if(fbInited) return;
   try{
@@ -2619,8 +2647,20 @@ function renderBzToggle(){
 
 function startCondBuzzerListener(){
   if(!fbRef) return;
+  let _lastReset = null; // el primer snapshot solo se registra, no se aplica
   fbRef.on('value', snap=>{
     const d = snap.val() || {};
+    // ── Orden de reset mandada desde velada.html ──
+    const rTs = d.reset || 0;
+    if(_lastReset === null){ _lastReset = rTs; }
+    else if(rTs > _lastReset){
+      _lastReset = rTs;
+      score = { a:0, b:0 };
+      teamNames.a = 'Equipo 1'; teamNames.b = 'Equipo 2';
+      saveScore(); _saveTeamNames(); syncScoreUI(); writeSync();
+      showToast('↺ Buzzers restablecidos — Equipo 1 / Equipo 2, marcador en 0', 3200);
+      return;
+    }
     const w = d.winner, s = d.state||'locked';
     _bzOpen = (s==='open' && !w);
     renderBzToggle();
@@ -2638,9 +2678,14 @@ function startCondBuzzerListener(){
       setFbStatus('ready','🔔 Listo — tocá Reiniciar para abrir');
     }
     // Sync nombres a la vista buzzer
+    // FIX: antes escribía en 'bz-na'/'bz-nb', IDs inexistentes en este archivo.
+    // Los nombres editados desde el celu no llegaban y el siguiente fbToggle()/
+    // fbLock() los revertía. Ahora actualizamos teamNames de verdad.
     if(d.names){
-      if(d.names.a){ const el=document.getElementById('bz-na'); if(el) el.textContent=d.names.a; }
-      if(d.names.b){ const el=document.getElementById('bz-nb'); if(el) el.textContent=d.names.b; }
+      let changed=false;
+      if(d.names.a && d.names.a!==teamNames.a){ teamNames.a=d.names.a; changed=true; }
+      if(d.names.b && d.names.b!==teamNames.b){ teamNames.b=d.names.b; changed=true; }
+      if(changed){ _saveTeamNames(); syncScoreUI(); writeSync(); }
     }
   }, e=>{ setFbStatus('error','Error: '+e.message); });
 }
