@@ -2292,6 +2292,71 @@ body.started .velada-bg-scrim { display: block; }
 .op-playercard .op-member { font-size: clamp(1.15rem, 5.2vw, 1.7rem); }
 .op-playercard .op-label-tag { margin-top: 0.5rem; }
 
+/* ── EFECTOS ÉPICOS ── */
+
+/* Reflectores que barren el fondo, como escenario de show */
+.op-spotlights { position: fixed; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; opacity: 0.5; }
+.op-spotlights span {
+  position: absolute; top: -30%; left: 50%; width: clamp(90px, 16vw, 200px); height: 170%;
+  background: linear-gradient(to bottom, color-mix(in srgb, var(--team, var(--accent)) 42%, transparent), transparent 72%);
+  filter: blur(26px); transform-origin: top center; mix-blend-mode: screen;
+}
+.op-spotlights span:nth-child(1) { animation: spotA 7s ease-in-out infinite; }
+.op-spotlights span:nth-child(2) { animation: spotB 9s ease-in-out infinite; animation-delay: -2s; }
+.op-spotlights span:nth-child(3) { animation: spotC 8s ease-in-out infinite; animation-delay: -4s; }
+@keyframes spotA { 0%,100% { transform: translateX(-160%) rotate(-16deg); } 50% { transform: translateX(-40%) rotate(12deg); } }
+@keyframes spotB { 0%,100% { transform: translateX(60%) rotate(18deg); }   50% { transform: translateX(-20%) rotate(-10deg); } }
+@keyframes spotC { 0%,100% { transform: translateX(-70%) rotate(6deg); }   50% { transform: translateX(90%) rotate(-14deg); } }
+
+/* Anillo de energía que estalla desde la tarjeta al revelarse */
+.op-burst {
+  position: absolute; left: 50%; top: 50%; width: 40px; height: 40px; margin: -20px 0 0 -20px;
+  border-radius: 50%; pointer-events: none; z-index: 4;
+  border: 3px solid color-mix(in srgb, var(--team) 70%, white 20%);
+  opacity: 0; transform: scale(0.2);
+}
+.op-burst.go { animation: opBurst 0.85s cubic-bezier(.2,.8,.3,1) both; }
+@keyframes opBurst {
+  0%   { opacity: 0.85; transform: scale(0.2); border-width: 4px; }
+  70%  { opacity: 0.25; }
+  100% { opacity: 0; transform: scale(9); border-width: 0.5px; }
+}
+
+/* Chispas que saltan al aparecer el nombre */
+.op-sparks { position: absolute; inset: 0; pointer-events: none; z-index: 5; overflow: visible; }
+.op-sparks i {
+  position: absolute; left: 50%; top: 52%; width: 5px; height: 5px; border-radius: 50%;
+  background: color-mix(in srgb, var(--team) 40%, white 60%);
+  box-shadow: 0 0 8px color-mix(in srgb, var(--team) 80%, transparent);
+  opacity: 0;
+}
+.op-sparks.go i { animation: opSpark 0.9s cubic-bezier(.15,.75,.35,1) both; }
+@keyframes opSpark {
+  0%   { opacity: 1; transform: translate(0,0) scale(1); }
+  100% { opacity: 0; transform: translate(var(--dx), var(--dy)) scale(0.3); }
+}
+
+/* La tarjeta activa late suavemente mientras está en foco */
+.op-playercard.visible:not(.past) { animation: opBreathe 3.4s ease-in-out 0.7s infinite; }
+@keyframes opBreathe {
+  0%, 100% { box-shadow: 0 0 0 1px rgba(255,255,255,0.06) inset,
+                         0 24px 60px -12px color-mix(in srgb, var(--team) 55%, transparent),
+                         0 8px 30px rgba(0,0,0,0.55); }
+  50%      { box-shadow: 0 0 0 1px rgba(255,255,255,0.09) inset,
+                         0 26px 78px -10px color-mix(in srgb, var(--team) 78%, transparent),
+                         0 8px 30px rgba(0,0,0,0.55); }
+}
+
+/* Título de cierre con brillo que lo recorre */
+.op-outro .op-bigtitle { background-size: 220% auto !important; animation: opTitleShine 3.2s linear infinite; }
+@keyframes opTitleShine { to { background-position: 220% center; } }
+
+@media (prefers-reduced-motion: reduce) {
+  .op-spotlights, .op-burst, .op-sparks { display: none; }
+  .op-playercard.visible:not(.past) { animation: none; }
+  .op-outro .op-bigtitle { animation: none; }
+}
+
 /* ── PODIO FINAL animado ── */
 .pr-eyebrow { position: relative; z-index: 1; color: var(--gold); letter-spacing: 0.32em;
   text-transform: uppercase; font-size: clamp(10px, 2.8vw, 13px); margin-bottom: 1.4rem; text-align: center;
@@ -7936,6 +8001,71 @@ const CREDITS_MUSIC = {
 };
 const CREDITS_FAST_SPEED = 95; // px/seg si no hay música (más rápido que antes)
 
+// --- MÚSICA DE LAS PRESENTACIONES ------------------------------------------
+// Igual que los créditos: poné tus MP3 al lado del HTML con estos nombres.
+// Si el archivo no existe, la ceremonia funciona igual (solo sin música).
+const CEREMONY_MUSIC = {
+  players: {                              // "Presentar a los concursantes"
+    enabled: true,
+    src: 'musica-presentacion-jugadores.mp3',
+    startAt: 0,       // segundo donde arranca (para saltear intros lentas)
+    volume: 0.7,
+    fadeInMs: 1200,
+    fadeOutMs: 2200,
+  },
+  teams: {                                // "Presentar a los equipos"
+    enabled: true,
+    src: 'musica-presentacion-equipos.mp3',
+    startAt: 0,
+    volume: 0.7,
+    fadeInMs: 1200,
+    fadeOutMs: 2200,
+  }
+};
+
+let _ceremonyAudio = null;
+function startCeremonyTrack(cfg) {
+  stopCeremonyTrack();
+  if (!cfg || !cfg.enabled || !cfg.src) return;
+  try {
+    const a = new Audio(cfg.src);
+    a.preload = 'auto';
+    a.volume = 0;
+    _ceremonyAudio = a;
+    const target = (cfg.volume != null) ? cfg.volume : 0.7;
+    const fadeMs = (cfg.fadeInMs != null) ? cfg.fadeInMs : 1200;
+    const stepMs = 70;
+    const inc = target / Math.max(1, fadeMs / stepMs);
+    const begin = () => {
+      try { a.currentTime = cfg.startAt || 0; } catch (e) {}
+      a.play().catch(() => {});
+      const step = () => {
+        if (_ceremonyAudio !== a) return;
+        if (a.volume < target - inc) { try { a.volume = Math.min(target, a.volume + inc); } catch (e) {} setTimeout(step, stepMs); }
+        else { try { a.volume = target; } catch (e) {} }
+      };
+      step();
+    };
+    if (a.readyState >= 1) begin();
+    else a.addEventListener('loadedmetadata', begin, { once: true });
+    a.addEventListener('error', () => { _ceremonyAudio = null; }, { once: true });
+  } catch (e) { _ceremonyAudio = null; }
+}
+function stopCeremonyTrack(fadeMs) {
+  const a = _ceremonyAudio;
+  if (!a) return;
+  _ceremonyAudio = null;
+  const ms = (fadeMs != null) ? fadeMs : 0;
+  if (!ms) { try { a.pause(); } catch (e) {} return; }
+  const stepMs = 80;
+  const dec = (a.volume || 0.7) / Math.max(1, ms / stepMs);
+  const step = () => {
+    if (a.volume > dec) { try { a.volume = Math.max(0, a.volume - dec); } catch (e) {} setTimeout(step, stepMs); }
+    else { try { a.volume = 0; a.pause(); } catch (e) {} }
+  };
+  step();
+}
+
 let _creditsAF = null;
 let _creditsKeyHandler = null;
 let _creditsPaused = false;
@@ -8350,6 +8480,7 @@ let _podiumTimer = null;
 function closeCeremony(id) {
   const overlay = document.getElementById(id);
   if (!overlay) return;
+  if (id === 'opening') stopCeremonyTrack(900);
   if (_openingTimer) { clearTimeout(_openingTimer); _openingTimer = null; }
   if (_podiumTimer)  { clearTimeout(_podiumTimer);  _podiumTimer  = null; }
   overlay.onclick = null;
@@ -8362,10 +8493,25 @@ function closeCeremony(id) {
 }
 
 // ── CEREMONIA GENÉRICA v3: reveal en 3 fases por item ──
-function _runCeremony({ items, title, eyebrow, labelFn, colorFn, figFn, finishTitle, finishBtn, confetti }) {
+// Genera las chispas que estallan al revelar el nombre (posiciones al azar en abanico)
+function _sparksHtml() {
+  let out = '';
+  for (let i = 0; i < 14; i++) {
+    const ang = (Math.PI * 2 * i) / 14 + (Math.random() - 0.5) * 0.4;
+    const dist = 90 + Math.random() * 90;
+    const dx = Math.round(Math.cos(ang) * dist);
+    const dy = Math.round(Math.sin(ang) * dist);
+    const delay = (Math.random() * 0.12).toFixed(2);
+    out += '<i style="--dx:' + dx + 'px;--dy:' + dy + 'px;animation-delay:' + delay + 's"></i>';
+  }
+  return out;
+}
+
+function _runCeremony({ items, title, eyebrow, labelFn, colorFn, figFn, finishTitle, finishBtn, confetti, music }) {
   const overlay = document.getElementById('opening');
   if (!overlay || !items.length) return;
   _resumeAudio();
+  if (music) startCeremonyTrack(music);
   const reduce = _prefersReduce();
 
   // Tiempos entre fases (ms): número → figura → nombre → pausa → siguiente
@@ -8376,6 +8522,7 @@ function _runCeremony({ items, title, eyebrow, labelFn, colorFn, figFn, finishTi
   overlay.innerHTML =
     '<button class="ceremony-close" id="op-close-btn">✕ Salir</button>'
     + '<div class="op-stage" id="op-stage">'
+    + '  <div class="op-spotlights" aria-hidden="true"><span></span><span></span><span></span></div>'
     + '  <div class="op-beam" id="op-beam-el"></div>'
     + '  <div class="op-rail" id="op-rail"></div>'
     + '  <div class="op-intro" id="op-intro-el">'
@@ -8456,6 +8603,8 @@ function _runCeremony({ items, title, eyebrow, labelFn, colorFn, figFn, finishTi
       '  <div class="op-pcard-top"><span class="op-pcard-badge">' + _escC(title) + '</span><span class="op-pcard-num">' + numStr + '<span class="op-pcard-num-total">/' + totalStr + '</span></span></div>'
       + '  <div class="op-fig" id="op-fig-el">' + fig + '</div>'
       + '  <div class="op-pcard-shine" id="op-shine-el"></div>'
+      + '  <div class="op-burst" id="op-burst-el"></div>'
+      + '  <div class="op-sparks" id="op-sparks-el">' + _sparksHtml() + '</div>'
       + '  <div class="op-names" id="op-names-el">' + namesHtml + '</div>'
       + '  <div class="op-label-tag" id="op-label-el">' + _escC(label) + '</div>';
     rail.appendChild(cardEl);
@@ -8467,6 +8616,8 @@ function _runCeremony({ items, title, eyebrow, labelFn, colorFn, figFn, finishTi
     if (beamEl) { beamEl.classList.remove('sweep'); void beamEl.offsetWidth; beamEl.classList.add('sweep'); }
     void cardEl.offsetWidth;
     cardEl.classList.add('visible');
+    const burstEl = cardEl.querySelector('#op-burst-el');
+    if (burstEl && !reduce) { burstEl.classList.remove('go'); void burstEl.offsetWidth; burstEl.classList.add('go'); }
     if (!reduce) cerSndImpact();
 
     // Fase 2: figura entra
@@ -8484,6 +8635,8 @@ function _runCeremony({ items, title, eyebrow, labelFn, colorFn, figFn, finishTi
       });
       const shineEl = cardEl.querySelector('#op-shine-el');
       if (shineEl) { shineEl.classList.remove('sweep'); void shineEl.offsetWidth; shineEl.classList.add('sweep'); }
+      const sparksEl = cardEl.querySelector('#op-sparks-el');
+      if (sparksEl && !reduce) { sparksEl.classList.remove('go'); void sparksEl.offsetWidth; sparksEl.classList.add('go'); }
       if (!reduce) cerSndShine();
       phase = 3;
       hint.style.opacity = '1';
@@ -8531,6 +8684,8 @@ function _runCeremony({ items, title, eyebrow, labelFn, colorFn, figFn, finishTi
     prog.classList.add('done');
     if (!reduce) cerSndFinale();
     if (!reduce && confetti && typeof launchConfetti === 'function') launchConfetti('opening');
+    // La música baja lentamente sobre el título de cierre
+    if (music) stopCeremonyTrack(music.fadeOutMs != null ? music.fadeOutMs : 2200);
   }
 
   function advance() {
@@ -8576,6 +8731,7 @@ function openCeremony() {
     finishTitle: '¡Que empiece<br>La Velada!',
     finishBtn: 'Entrar ▶',
     confetti: true,
+    music: CEREMONY_MUSIC.teams,
   });
 }
 
@@ -8594,7 +8750,8 @@ function openPlayerCeremony() {
     },
     finishTitle: '¡A jugar!',
     finishBtn: 'Comenzar ▶',
-    confetti: false,
+    confetti: true,
+    music: CEREMONY_MUSIC.players,
   });
 }
 
