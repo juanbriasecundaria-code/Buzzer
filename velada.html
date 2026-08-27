@@ -2048,8 +2048,8 @@ body.started .velada-bg-scrim { display: block; }
 #opening.op-flash::before { animation: opFlash 0.7s ease-out; }
 @keyframes opFlash { 0% { opacity: 0; } 18% { opacity: 0.4; } 100% { opacity: 0; } }
 
-.op-stage { position: relative; z-index: 1; width: 100%; max-width: 560px;
-  min-height: 60vh; display: flex; align-items: center; justify-content: center; text-align: center; }
+.op-stage { position: relative; z-index: 1; width: 100%; max-width: 100%;
+  min-height: 60vh; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
 .op-eyebrow { color: var(--gold); letter-spacing: 0.36em; text-transform: uppercase;
   font-size: clamp(10px, 2.8vw, 13px); padding-left: 0.36em; margin-bottom: 0.9rem; }
 .op-bigtitle { font-size: clamp(2.6rem, 11vw, 4.6rem); font-weight: 800; line-height: 0.96;
@@ -2184,6 +2184,113 @@ body.started .velada-bg-scrim { display: block; }
 .op-dot.active { background: var(--team); transform: scale(1.3); }
 .op-dot.current { width: 18px; border-radius: 4px; background: var(--team); box-shadow: 0 0 8px var(--team); }
 .op-progress.done .op-dot { background: var(--accent); }
+
+/* ── TARJETA DE PRESENTACIÓN estilo "player card reveal" (pack opening) ── */
+.op-beam {
+  position: fixed; inset: 0; z-index: 0; pointer-events: none; overflow: hidden;
+}
+.op-beam::before {
+  content: ''; position: absolute; top: -50%; left: -20%; width: 60%; height: 200%;
+  background: linear-gradient(100deg, transparent 30%, color-mix(in srgb, var(--team, var(--accent)) 55%, white 15%) 48%, transparent 66%);
+  filter: blur(8px);
+  transform: translateX(-120%) rotate(8deg);
+  opacity: 0;
+}
+.op-beam.sweep::before { animation: beamSweep 0.85s cubic-bezier(.3,.9,.3,1) both; }
+@keyframes beamSweep {
+  0%   { transform: translateX(-120%) rotate(8deg); opacity: 0; }
+  12%  { opacity: 0.9; }
+  55%  { opacity: 0.6; }
+  100% { transform: translateX(220%) rotate(8deg); opacity: 0; }
+}
+
+.op-playercard {
+  position: relative; flex: 0 0 auto;
+  width: min(70vw, 300px); aspect-ratio: 5 / 7;
+  border-radius: 22px; overflow: hidden;
+  background:
+    radial-gradient(120% 90% at 50% -10%, color-mix(in srgb, var(--team) 65%, white 10%), transparent 60%),
+    linear-gradient(165deg, color-mix(in srgb, var(--team) 38%, #0b0b10) 0%, #0a0a0e 78%);
+  border: 1.5px solid color-mix(in srgb, var(--team) 60%, white 10%);
+  box-shadow:
+    0 0 0 1px rgba(255,255,255,0.06) inset,
+    0 24px 60px -12px color-mix(in srgb, var(--team) 55%, transparent),
+    0 8px 30px rgba(0,0,0,0.55);
+  opacity: 0; transform: translateY(70px) scale(0.9);
+  transition: opacity 0.5s cubic-bezier(.18,1.1,.36,1),
+              transform 0.55s cubic-bezier(.18,1.15,.34,1),
+              width 0.6s cubic-bezier(.3,.9,.3,1),
+              filter 0.6s ease;
+  display: flex; flex-direction: column; align-items: center;
+  padding: 0.9rem 0.75rem 1.1rem;
+}
+.op-playercard.visible { opacity: 1; transform: translateY(0) scale(1); }
+/* Ya presentadas: se achican y quedan a la izquierda */
+.op-playercard.past {
+  width: min(30vw, 132px);
+  filter: saturate(0.75) brightness(0.75);
+  padding: 0.5rem 0.4rem 0.6rem;
+}
+.op-playercard.past .op-pcard-badge,
+.op-playercard.past .op-label-tag { display: none; }
+.op-playercard.past .op-member { font-size: clamp(0.7rem, 2.6vw, 0.92rem); }
+.op-playercard.past .op-pcard-num { font-size: 0.85rem; }
+
+/* Riel horizontal donde se van acumulando las tarjetas */
+.op-rail {
+  position: relative; z-index: 1;
+  display: flex; align-items: center; justify-content: center;
+  gap: clamp(6px, 1.6vw, 14px);
+  width: 100%; max-width: 100%;
+  overflow-x: auto; overflow-y: visible;
+  padding: 0.5rem clamp(6px, 3vw, 24px) 1rem;
+  scroll-behavior: smooth;
+  scrollbar-width: none;
+}
+.op-rail::-webkit-scrollbar { display: none; }
+/* Al final: todas se muestran juntas, achicadas para que entren */
+.op-rail.all-in .op-playercard { width: min(22vw, 116px); filter: none; padding: 0.45rem 0.35rem 0.55rem; }
+.op-rail.all-in .op-playercard .op-pcard-badge,
+.op-rail.all-in .op-playercard .op-label-tag { display: none; }
+.op-rail.all-in .op-playercard .op-member { font-size: clamp(0.6rem, 2.2vw, 0.82rem); }
+.op-rail.all-in .op-playercard .op-pcard-num { font-size: 0.75rem; }
+
+.op-pcard-top { display: flex; align-items: flex-start; justify-content: space-between; width: 100%; margin-bottom: 0.2rem; }
+.op-pcard-badge { font-size: 9px; font-weight: 900; letter-spacing: 0.2em; text-transform: uppercase;
+  color: color-mix(in srgb, var(--team) 25%, white 70%); opacity: 0.9; max-width: 55%; line-height: 1.3; }
+.op-pcard-num { font-size: clamp(1.05rem, 4.2vw, 1.4rem); font-weight: 900; color: #fff; line-height: 1; flex-shrink: 0; }
+.op-pcard-num-total { font-size: 0.6em; color: rgba(255,255,255,0.32); font-weight: 800; }
+
+/* La figura ocupa el grueso de la tarjeta */
+.op-playercard .op-fig {
+  flex: 1 1 auto; display: flex; align-items: center; justify-content: center;
+  width: 100%; min-height: 0; margin: 0.1rem 0 0.2rem;
+  filter: drop-shadow(0 14px 26px rgba(0,0,0,0.55));
+}
+.op-playercard .op-fig svg { width: auto; height: 100%; max-width: 100%; max-height: 100%; }
+
+/* Equipo: dos figuras abrazadas, solapadas */
+.op-duo { display: flex; align-items: flex-end; justify-content: center; width: 100%; height: 100%; }
+.op-duo-fig { flex: 0 0 auto; height: 100%; display: flex; align-items: flex-end; }
+.op-duo-fig svg { width: auto; height: 100%; }
+.op-duo-l { margin-right: -13%; z-index: 2; }
+.op-duo-r { margin-left: -13%; z-index: 1; }
+
+.op-pcard-shine {
+  position: absolute; inset: 0; pointer-events: none; z-index: 3;
+  background: linear-gradient(120deg, transparent 42%, rgba(255,255,255,0.85) 50%, transparent 58%);
+  transform: translateX(-140%);
+  mix-blend-mode: overlay;
+}
+.op-pcard-shine.sweep { animation: pcardShine 0.9s cubic-bezier(.3,.85,.3,1) both; }
+@keyframes pcardShine {
+  0%   { transform: translateX(-140%); }
+  100% { transform: translateX(140%); }
+}
+
+.op-playercard .op-names { margin-top: auto; margin-bottom: 0.15rem; }
+.op-playercard .op-member { font-size: clamp(1.15rem, 5.2vw, 1.7rem); }
+.op-playercard .op-label-tag { margin-top: 0.5rem; }
 
 /* ── PODIO FINAL animado ── */
 .pr-eyebrow { position: relative; z-index: 1; color: var(--gold); letter-spacing: 0.32em;
@@ -6836,6 +6943,25 @@ function miiFigureSVG(color, size, pose, photoDataUrl) {
       <rect x="${arx}" y="${armShoulderY - armH*0.85}" width="${armW}" height="${armH}"
         rx="${armRad}" fill="${light}"
         transform="rotate(38,${arx + armW/2},${armShoulderY})"/>`;
+  } else if (pose === 'hug-right' || pose === 'hug-left') {
+    // Abrazo: el brazo interior sube por encima del hombro del compañero,
+    // el exterior queda relajado al costado. 'hug-right' abraza hacia la derecha.
+    const alx = torsoL - armW + s*0.01;
+    const arx = torsoR - s*0.01;
+    const innerUp = `<rect x="${arx - s*0.01}" y="${armShoulderY - armH*0.55}" width="${armW}" height="${armH*1.15}"
+        rx="${armRad}" fill="${light}"
+        transform="rotate(-72,${arx + armW/2},${armShoulderY})"/>`;
+    const innerUpL = `<rect x="${alx + s*0.01}" y="${armShoulderY - armH*0.55}" width="${armW}" height="${armH*1.15}"
+        rx="${armRad}" fill="${light}"
+        transform="rotate(72,${alx + armW/2},${armShoulderY})"/>`;
+    const outerL = `<rect x="${alx}" y="${armShoulderY}" width="${armW}" height="${armH}"
+        rx="${armRad}" fill="${light}"
+        transform="rotate(14,${alx + armW/2},${armShoulderY})"/>`;
+    const outerR = `<rect x="${arx}" y="${armShoulderY}" width="${armW}" height="${armH}"
+        rx="${armRad}" fill="${light}"
+        transform="rotate(-14,${arx + armW/2},${armShoulderY})"/>`;
+    if (pose === 'hug-right') { armLeftEl = outerL; armRightEl = innerUp; }
+    else { armLeftEl = innerUpL; armRightEl = outerR; }
   } else if (pose === 'side') {
     // Arms slightly out to sides, relaxed
     const alx = torsoL - armW + s*0.01;
@@ -7155,80 +7281,72 @@ function playUndoSound() {
   playTone(330, 'sine', 0.10, 0.08, 0.1);
 }
 
-// ── SONIDOS DE CEREMONIA ──
+// ── SONIDOS DE CEREMONIA (estilo "player card reveal" — pack opening) ──
 
-// Fase 1: golpe seco al aparecer el número — kick + sub-bass corto
-function cerSndNumber() {
+// Fase 1: la tarjeta entra — whoosh de aire suave + golpe cálido y redondo (sin click metálico)
+function cerSndImpact() {
   try {
     const ctx = getAudioCtx(); const t = ctx.currentTime;
-    // Sub-bass punch
+    // Whoosh de aire — filtrado bajo para que sea suave, no siseante
+    const src = ctx.createBufferSource();
+    src.buffer = _noiseBuffer(ctx, 0.26);
+    const lp = ctx.createBiquadFilter(); lp.type = 'lowpass';
+    lp.frequency.setValueAtTime(700, t);
+    lp.frequency.exponentialRampToValueAtTime(2200, t + 0.14);
+    lp.Q.value = 0.6;
+    const wg = ctx.createGain();
+    wg.gain.setValueAtTime(0.0, t);
+    wg.gain.linearRampToValueAtTime(0.11, t + 0.07);
+    wg.gain.exponentialRampToValueAtTime(0.001, t + 0.24);
+    src.connect(lp); lp.connect(wg); wg.connect(ctx.destination);
+    src.start(t); src.stop(t + 0.26);
+    // Golpe grave redondo — cuerpo cálido, sin transient agresivo
     const osc = ctx.createOscillator(); const g = ctx.createGain();
     osc.type = 'sine';
-    osc.frequency.setValueAtTime(90, t);
-    osc.frequency.exponentialRampToValueAtTime(38, t + 0.12);
-    g.gain.setValueAtTime(0.55, t);
-    g.gain.exponentialRampToValueAtTime(0.001, t + 0.22);
+    osc.frequency.setValueAtTime(150, t + 0.12);
+    osc.frequency.exponentialRampToValueAtTime(55, t + 0.12 + 0.2);
+    g.gain.setValueAtTime(0.0, t + 0.12);
+    g.gain.linearRampToValueAtTime(0.42, t + 0.12 + 0.012);
+    g.gain.exponentialRampToValueAtTime(0.001, t + 0.12 + 0.34);
     osc.connect(g); g.connect(ctx.destination);
-    osc.start(t); osc.stop(t + 0.23);
-    // Click transient de ataque
-    const src = ctx.createBufferSource();
-    src.buffer = _noiseBuffer(ctx, 0.025);
-    const bp = ctx.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = 3200; bp.Q.value = 0.6;
-    const ng = ctx.createGain();
-    ng.gain.setValueAtTime(0.38, t); ng.gain.exponentialRampToValueAtTime(0.001, t + 0.025);
-    src.connect(bp); bp.connect(ng); ng.connect(ctx.destination);
-    src.start(t); src.stop(t + 0.03);
+    osc.start(t + 0.12); osc.stop(t + 0.12 + 0.35);
   } catch(e) {}
 }
 
-// Fase 2: swoosh ascendente cuando la figura sube
-function cerSndFigure() {
+// Fase 3: aparece el nombre — acorde cálido tipo marimba/campana suave (sin sparkle chillón)
+function cerSndShine() {
   try {
     const ctx = getAudioCtx(); const t = ctx.currentTime;
-    // Ruido filtrado que sube (highpass sweep)
-    const src = ctx.createBufferSource();
-    src.buffer = _noiseBuffer(ctx, 0.22);
-    const hp = ctx.createBiquadFilter(); hp.type = 'highpass';
-    hp.frequency.setValueAtTime(400, t);
-    hp.frequency.exponentialRampToValueAtTime(3800, t + 0.18);
-    const g = ctx.createGain();
-    g.gain.setValueAtTime(0.0, t);
-    g.gain.linearRampToValueAtTime(0.22, t + 0.06);
-    g.gain.exponentialRampToValueAtTime(0.001, t + 0.22);
-    src.connect(hp); hp.connect(g); g.connect(ctx.destination);
-    src.start(t); src.stop(t + 0.23);
-    // Tono suave de acompañamiento
-    const osc = ctx.createOscillator(); const og = ctx.createGain();
-    osc.type = 'sine'; osc.frequency.setValueAtTime(320, t);
-    osc.frequency.linearRampToValueAtTime(520, t + 0.18);
-    og.gain.setValueAtTime(0.09, t); og.gain.exponentialRampToValueAtTime(0.001, t + 0.25);
-    osc.connect(og); og.connect(ctx.destination);
-    osc.start(t); osc.stop(t + 0.26);
-  } catch(e) {}
-}
-
-// Fase 3: chime metálico cuando aparece el nombre — el momento "ta-dá" elegante
-function cerSndName(teamColor) {
-  try {
-    const ctx = getAudioCtx(); const t = ctx.currentTime;
-    // Dos parciales que forman un intervalo de quinta (suena "limpio" y brillante)
-    const freqs = [880, 1320, 1760];
-    const decays = [0.55, 0.42, 0.30];
-    freqs.forEach(function(freq, fi) {
+    // Acorde mayor cálido, notas con ataque suave y decay largo
+    const notes = [523.25, 659.25, 783.99];  // Do5 - Mi5 - Sol5
+    notes.forEach(function(freq, i) {
+      const d = i * 0.05;
       const osc = ctx.createOscillator(); const g = ctx.createGain();
-      osc.type = 'triangle';
-      osc.frequency.setValueAtTime(freq, t);
-      g.gain.setValueAtTime(0.13 - fi * 0.03, t);
-      g.gain.exponentialRampToValueAtTime(0.001, t + decays[fi]);
-      osc.connect(g); g.connect(ctx.destination);
-      osc.start(t); osc.stop(t + decays[fi] + 0.02);
+      const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 2600;
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(freq, t + d);
+      g.gain.setValueAtTime(0.0, t + d);
+      g.gain.linearRampToValueAtTime(0.16 - i * 0.025, t + d + 0.02);
+      g.gain.exponentialRampToValueAtTime(0.001, t + d + 0.9);
+      osc.connect(lp); lp.connect(g); g.connect(ctx.destination);
+      osc.start(t + d); osc.stop(t + d + 0.95);
+      // Segundo armónico bajito para dar cuerpo de "campana"
+      const h = ctx.createOscillator(); const hg = ctx.createGain();
+      h.type = 'sine'; h.frequency.setValueAtTime(freq * 2, t + d);
+      hg.gain.setValueAtTime(0.0, t + d);
+      hg.gain.linearRampToValueAtTime(0.035, t + d + 0.02);
+      hg.gain.exponentialRampToValueAtTime(0.001, t + d + 0.5);
+      h.connect(hg); hg.connect(ctx.destination);
+      h.start(t + d); h.stop(t + d + 0.55);
     });
-    // Sub-armónico suave para que tenga cuerpo
+    // Sub grave que sostiene el acorde
     const sub = ctx.createOscillator(); const sg = ctx.createGain();
-    sub.type = 'sine'; sub.frequency.setValueAtTime(440, t);
-    sg.gain.setValueAtTime(0.10, t); sg.gain.exponentialRampToValueAtTime(0.001, t + 0.4);
+    sub.type = 'sine'; sub.frequency.setValueAtTime(130.8, t);
+    sg.gain.setValueAtTime(0.0, t);
+    sg.gain.linearRampToValueAtTime(0.13, t + 0.04);
+    sg.gain.exponentialRampToValueAtTime(0.001, t + 0.8);
     sub.connect(sg); sg.connect(ctx.destination);
-    sub.start(t); sub.stop(t + 0.42);
+    sub.start(t); sub.stop(t + 0.85);
   } catch(e) {}
 }
 
@@ -7257,6 +7375,16 @@ function cerSndFinale() {
     g2.gain.exponentialRampToValueAtTime(0.001, t + 0.9);
     src.connect(hp); hp.connect(g2); g2.connect(ctx.destination);
     src.start(t + 0.2); src.stop(t + 0.9);
+    // Ovación del público — swell largo de ruido de banda media
+    const crowd = ctx.createBufferSource(); crowd.buffer = _noiseBuffer(ctx, 1.6);
+    const bp3 = ctx.createBiquadFilter(); bp3.type = 'bandpass'; bp3.frequency.value = 1500; bp3.Q.value = 0.4;
+    const cg = ctx.createGain();
+    cg.gain.setValueAtTime(0.0, t + 0.1);
+    cg.gain.linearRampToValueAtTime(0.16, t + 0.5);
+    cg.gain.linearRampToValueAtTime(0.1, t + 1.0);
+    cg.gain.exponentialRampToValueAtTime(0.001, t + 1.6);
+    crowd.connect(bp3); bp3.connect(cg); cg.connect(ctx.destination);
+    crowd.start(t + 0.1); crowd.stop(t + 1.7);
   } catch(e) {}
 }
 
@@ -8248,7 +8376,9 @@ function _runCeremony({ items, title, eyebrow, labelFn, colorFn, figFn, finishTi
   overlay.innerHTML =
     '<button class="ceremony-close" id="op-close-btn">✕ Salir</button>'
     + '<div class="op-stage" id="op-stage">'
-    + '  <div class="op-intro">'
+    + '  <div class="op-beam" id="op-beam-el"></div>'
+    + '  <div class="op-rail" id="op-rail"></div>'
+    + '  <div class="op-intro" id="op-intro-el">'
     + '    <div class="op-eyebrow">' + eyebrow + '</div>'
     + '    <div class="op-bigtitle">' + title + '</div>'
     + '  </div>'
@@ -8297,11 +8427,11 @@ function _runCeremony({ items, title, eyebrow, labelFn, colorFn, figFn, finishTi
 
     // Flash de color + fondo respira
     overlay.style.setProperty('--flash', color);
+    overlay.style.setProperty('--team', color);
     overlay.classList.remove('op-flash', 'op-bg-on');
     void overlay.offsetWidth;
     overlay.classList.add('op-flash', 'op-bg-on');
     if (navigator.vibrate) navigator.vibrate(35);
-    if (!reduce) cerSndNumber();
 
     // Dots: el actual tiene clase "current", los anteriores "active"
     prog.querySelectorAll('.op-dot').forEach(function(d, di) {
@@ -8309,30 +8439,52 @@ function _runCeremony({ items, title, eyebrow, labelFn, colorFn, figFn, finishTi
       d.classList.toggle('current', di === i);
     });
 
-    stage.innerHTML =
-      '<div class="op-card" style="--team:' + color + '">'
-      + '<div class="op-num-block"><span class="op-num-n">' + (i + 1) + '</span><span class="op-num-total">&thinsp;/&thinsp;' + items.length + '</span></div>'
-      + '<div class="op-fig" id="op-fig-el">' + fig + '</div>'
-      + '<div class="op-names" id="op-names-el">' + namesHtml + '</div>'
-      + '<div class="op-label-tag" id="op-label-el">' + _escC(label) + '</div>'
-      + '<div class="op-bar" id="op-bar-el"></div>'
-      + '</div>';
+    // Las tarjetas ya presentadas se achican y se corren a la izquierda,
+    // asi al final quedan todas juntas en pantalla.
+    const introEl = stage.querySelector('#op-intro-el');
+    if (introEl) introEl.remove();
+    const rail = stage.querySelector('#op-rail');
+    rail.querySelectorAll('.op-playercard').forEach(function(c) { c.classList.add('past'); });
+
+    const numStr = String(i + 1).padStart(2, '0');
+    const totalStr = String(items.length).padStart(2, '0');
+    const cardEl = document.createElement('div');
+    cardEl.className = 'op-playercard';
+    cardEl.id = 'op-pcard-' + i;
+    cardEl.style.setProperty('--team', color);
+    cardEl.innerHTML =
+      '  <div class="op-pcard-top"><span class="op-pcard-badge">' + _escC(title) + '</span><span class="op-pcard-num">' + numStr + '<span class="op-pcard-num-total">/' + totalStr + '</span></span></div>'
+      + '  <div class="op-fig" id="op-fig-el">' + fig + '</div>'
+      + '  <div class="op-pcard-shine" id="op-shine-el"></div>'
+      + '  <div class="op-names" id="op-names-el">' + namesHtml + '</div>'
+      + '  <div class="op-label-tag" id="op-label-el">' + _escC(label) + '</div>';
+    rail.appendChild(cardEl);
+    // Mantener la tarjeta nueva a la vista cuando ya no entran todas
+    rail.scrollLeft = rail.scrollWidth;
+
+    // Fase 1: haz de luz + la tarjeta entra con golpe
+    const beamEl = stage.querySelector('#op-beam-el');
+    if (beamEl) { beamEl.classList.remove('sweep'); void beamEl.offsetWidth; beamEl.classList.add('sweep'); }
+    void cardEl.offsetWidth;
+    cardEl.classList.add('visible');
+    if (!reduce) cerSndImpact();
 
     // Fase 2: figura entra
     phaseTimers.push(setTimeout(function() {
-      const el = stage.querySelector('#op-fig-el');
+      const el = cardEl.querySelector('#op-fig-el');
       if (el) el.classList.add('visible');
-      if (!reduce) cerSndFigure();
       phase = 2;
     }, T_FIG));
 
-    // Fase 3: nombre, tag y barra
+    // Fase 3: nombre + brillo diagonal — el momento "ta-da"
     phaseTimers.push(setTimeout(function() {
-      ['#op-names-el','#op-label-el','#op-bar-el'].forEach(function(sel) {
-        const el = stage.querySelector(sel);
+      ['#op-names-el','#op-label-el'].forEach(function(sel) {
+        const el = cardEl.querySelector(sel);
         if (el) el.classList.add('visible');
       });
-      if (!reduce) cerSndName();
+      const shineEl = cardEl.querySelector('#op-shine-el');
+      if (shineEl) { shineEl.classList.remove('sweep'); void shineEl.offsetWidth; shineEl.classList.add('sweep'); }
+      if (!reduce) cerSndShine();
       phase = 3;
       hint.style.opacity = '1';
       _openingTimer = setTimeout(advance, T_WAIT);
@@ -8341,10 +8493,15 @@ function _runCeremony({ items, title, eyebrow, labelFn, colorFn, figFn, finishTi
 
   function skipToFull() {
     clearPhaseTimers();
-    ['#op-fig-el','#op-names-el','#op-label-el','#op-bar-el'].forEach(function(sel) {
-      const el = stage.querySelector(sel);
-      if (el) el.classList.add('visible');
-    });
+    const rail = stage.querySelector('#op-rail');
+    const cardEl = rail && rail.lastElementChild;
+    if (cardEl) {
+      cardEl.classList.add('visible');
+      ['#op-fig-el','#op-names-el','#op-label-el'].forEach(function(sel) {
+        const el = cardEl.querySelector(sel);
+        if (el) el.classList.add('visible');
+      });
+    }
     phase = 3;
     hint.style.opacity = '1';
     _openingTimer = setTimeout(advance, 1100);
@@ -8356,11 +8513,19 @@ function _runCeremony({ items, title, eyebrow, labelFn, colorFn, figFn, finishTi
     hint.style.display = 'none';
     overlay.classList.remove('op-bg-on');
     prog.querySelectorAll('.op-dot').forEach(function(d) { d.classList.remove('current'); });
-    stage.innerHTML =
-      '<div class="op-outro">'
-      + '<div class="op-bigtitle" style="background:linear-gradient(105deg,var(--accent),#eaffa0 40%,var(--gold));-webkit-background-clip:text;background-clip:text;color:transparent;-webkit-text-fill-color:transparent">' + finishTitle + '</div>'
-      + '<button class="op-cta" id="op-cta-btn">' + finishBtn + '</button>'
-      + '</div>';
+    // Dejamos todas las tarjetas en pantalla: se achican para entrar todas juntas
+    const rail = stage.querySelector('#op-rail');
+    if (rail) {
+      rail.classList.add('all-in');
+      rail.querySelectorAll('.op-playercard').forEach(function(c) { c.classList.remove('past'); });
+      rail.scrollLeft = 0;
+    }
+    const outro = document.createElement('div');
+    outro.className = 'op-outro';
+    outro.innerHTML =
+      '<div class="op-bigtitle" style="background:linear-gradient(105deg,var(--accent),#eaffa0 40%,var(--gold));-webkit-background-clip:text;background-clip:text;color:transparent;-webkit-text-fill-color:transparent">' + finishTitle + '</div>'
+      + '<button class="op-cta" id="op-cta-btn">' + finishBtn + '</button>';
+    stage.appendChild(outro);
     const ctaBtn = stage.querySelector('#op-cta-btn');
     if (ctaBtn) ctaBtn.onclick = function(e) { e.stopPropagation(); closeCeremony('opening'); };
     prog.classList.add('done');
@@ -8395,8 +8560,18 @@ function openCeremony() {
     labelFn: (i, total) => `Equipo ${i + 1} de ${total}`,
     colorFn: (i) => entityColor(TEAMS[i], i),
     figFn: (name, color, i) => {
+      if (typeof miiFigureSVG !== 'function') return '';
+      // Un equipo son dos personas separadas por "/" — las mostramos abrazadas
+      const parts = String(name).split('/').map(s => s.trim()).filter(Boolean);
+      if (parts.length > 1) {
+        return '<div class="op-duo">' + parts.slice(0, 2).map(function(p, pi) {
+          const ph = (typeof getPlayerPhoto === 'function') ? getPlayerPhoto(p) : null;
+          return '<div class="op-duo-fig' + (pi === 0 ? ' op-duo-l' : ' op-duo-r') + '">'
+            + miiFigureSVG(color, 200, pi === 0 ? 'hug-right' : 'hug-left', ph) + '</div>';
+        }).join('') + '</div>';
+      }
       const photo = (typeof getPlayerPhoto === 'function') ? getPlayerPhoto(name) : null;
-      return (typeof miiFigureSVG === 'function') ? miiFigureSVG(color, 120, i % 2 ? 'side' : 'victory', photo) : '';
+      return miiFigureSVG(color, 230, i % 2 ? 'side' : 'victory', photo);
     },
     finishTitle: '¡Que empiece<br>La Velada!',
     finishBtn: 'Entrar ▶',
@@ -8415,7 +8590,7 @@ function openPlayerCeremony() {
     colorFn: (i) => entityColor(PLAYERS[i], i),
     figFn: (name, color, i) => {
       const photo = (typeof getPlayerPhoto === 'function') ? getPlayerPhoto(name) : null;
-      return (typeof miiFigureSVG === 'function') ? miiFigureSVG(color, 120, i % 2 ? 'side' : 'victory', photo) : '';
+      return (typeof miiFigureSVG === 'function') ? miiFigureSVG(color, 230, i % 2 ? 'side' : 'victory', photo) : '';
     },
     finishTitle: '¡A jugar!',
     finishBtn: 'Comenzar ▶',
