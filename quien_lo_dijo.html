@@ -207,9 +207,9 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
 .assign-tabs{display:flex;gap:.4rem}
 .assign-tab{flex:1;padding:.5rem;border-radius:10px;border:1.5px solid var(--border2);background:var(--surface2);font-family:inherit;font-size:12px;font-weight:800;color:var(--muted2);cursor:pointer}
 .assign-tab.on{border-color:var(--purple);background:var(--purple-dim);color:var(--purple)}
-.assign-players{display:grid;grid-template-columns:repeat(auto-fill,minmax(90px,1fr));gap:.4rem;max-height:220px;overflow-y:auto}
+.assign-players{display:flex;flex-direction:column;gap:.4rem;max-height:260px;overflow-y:auto}
 .assign-amount-choices{display:none;flex-direction:column;gap:.5rem}
-.assign-player{padding:.55rem .5rem;border-radius:10px;border:1.5px solid var(--border2);background:var(--surface2);font-family:inherit;font-size:12px;font-weight:800;color:var(--text);cursor:pointer;transition:transform .1s,border-color .15s}
+.assign-player{padding:.75rem .9rem;border-radius:10px;border:1.5px solid var(--border2);background:var(--surface2);font-family:inherit;font-size:14px;font-weight:800;color:var(--text);cursor:pointer;transition:transform .1s,border-color .15s;text-align:left;width:100%}
 .assign-player:active{transform:scale(.95)}
 .assign-player:hover{border-color:var(--purple);color:var(--purple)}
 .assign-player.winner{border-color:var(--gold);background:var(--gold-dim);color:var(--gold);box-shadow:0 0 12px rgba(245,200,66,.35);animation:winnerPulse 1.4s ease-in-out infinite}
@@ -408,6 +408,10 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
         <div class="set-divider"></div>
         <button class="set-btn" onclick="closeSetMenu();resetScores()">↺ Reiniciar puntajes</button>
         <button class="set-btn" onclick="closeSetMenu();resetPlayedFlags()">🔲 Reiniciar cartas jugadas</button>
+        <div class="set-divider"></div>
+        <button class="set-btn" onclick="closeSetMenu();finalizeRound()">🏁 Finalizar ronda (3/2/1 pts)</button>
+        <button class="set-btn" onclick="closeSetMenu();reopenRound()">↺ Reabrir ronda</button>
+        <div class="set-divider"></div>
         <button class="set-btn danger" onclick="closeSetMenu();resetAll()">🗑 Borrar todo (mazo + puntajes)</button>
       </div>
     </div>
@@ -435,7 +439,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
     </div>
     <div class="action-grid">
       <button class="act-btn purple" id="buzzer-btn" onclick="toggleBuzzer()">🔔 Abrir buzzer</button>
-      <button class="act-btn ghost" onclick="openPlayers()">👥 Ver jugadores</button>
+      <button class="act-btn ghost" onclick="openPlayers()">👥 Ver equipos</button>
     </div>
     <div style="display:flex">
       <button class="act-btn green" style="flex:1" onclick="openAssign(false)">✓ Acertó</button>
@@ -597,15 +601,14 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
 <div class="overlay" id="pl-overlay">
   <div class="ed-panel" style="max-width:420px">
     <div class="ed-head">
-      <div class="ed-title">Jugadores</div>
+      <div class="ed-title">Equipos (Fase 2)</div>
       <button class="ed-close" onclick="closePlayers()">×</button>
     </div>
     <div class="ed-body">
-      <div class="form-help" style="margin-bottom:.5rem">Uno por línea. El orden se mantiene en la barra de puntajes.</div>
-      <textarea class="form-ta" id="pl-list" style="min-height:220px" placeholder="Risu&#10;Totti&#10;Thiago&#10;…"></textarea>
+      <div class="form-help" style="margin-bottom:.5rem">Se sincronizan en vivo desde <b>velada.html</b> — para cambiarlos, editá los equipos ahí y volvé a abrir esa página.</div>
+      <div class="ed-list" id="pl-list-view"></div>
       <div class="form-actions">
-        <button class="cta-btn" onclick="closePlayers()">Cancelar</button>
-        <button class="cta-btn primary" onclick="savePlayers()">💾 Guardar</button>
+        <button class="cta-btn primary" style="flex:1" onclick="closePlayers()">Cerrar</button>
       </div>
     </div>
   </div>
@@ -623,11 +626,18 @@ const PW = '100';
 const SK = {
   DECK: 'qld_deck',
   IDX: 'qld_idx',
-  SCORES: 'qld_scores',
-  PLAYERS: 'qld_players',
+  TEAM_SCORES: 'qld_team_scores',
   MODE: 'qld_mode'
 };
-const PLAYERS_DEFAULT = ['Risu','Totti','Thiago','Mica','Valentín','Laza','Lara','Martin','Cori','Flor','Tomás'];
+const WIN_TARGET = 10; // puntos para ganar la ronda especial
+// Roster por defecto (offline / antes de que velada.html publique los equipos reales vía Firebase)
+const DEFAULT_TEAMS = [
+  { index: 0, label: 'Martín H. / Valentín A.', members: ['Martin','Valentín'] },
+  { index: 1, label: 'Lázaro G. / Tomás P.',    members: ['Laza','Tomás'] },
+  { index: 2, label: 'Thiago C. / Lara M.',     members: ['Thiago','Lara'] },
+  { index: 3, label: 'Totti / Risu',            members: ['Totti','Risu'] },
+  { index: 4, label: 'Coral O. / Florencia L.', members: ['Cori','Flor'] }
+];
 
 const CATEGORIES = [
   { id:'famosos',   name:'Famosos AR', icon:'🎭', color:'gold' },
@@ -650,7 +660,7 @@ const FB_CFG = {
   messagingSenderId:"313601369235",
   appId:"1:313601369235:web:f8b28a2ec187a934fa1966"
 };
-let fbDb=null, fbStateRef=null, fbDeckRef=null, fbBuzzerRef=null, fbInited=false, _lastFbJson=null;
+let fbDb=null, fbStateRef=null, fbDeckRef=null, fbBuzzerRef=null, fbTeamsRef=null, fbResultRef=null, fbInited=false, _lastFbJson=null;
 
 function initFirebase(){
   if(fbInited) return;
@@ -662,8 +672,15 @@ function initFirebase(){
     fbStateRef  = fbDb.ref('velada/qld/live');
     fbDeckRef   = fbDb.ref('velada/qld/deck');
     fbBuzzerRef = fbDb.ref('velada/qld/buzzer');
+    fbTeamsRef  = fbDb.ref('velada/qld/teams');
+    fbResultRef = fbDb.ref('velada/qld/result');
     fbInited = true;
     fbDb.ref('.info/connected').on('value', s => setFbStatus(s.val()?'ok':'','Conectado'));
+    // Roster de equipos — lo publica velada.html; lo escuchan conductor y participantes por igual
+    fbTeamsRef.on('value', snap => {
+      const d = snap.val();
+      if(d && Array.isArray(d.teams)) applyTeams(d.teams);
+    });
     if(MODE==='participant'){
       fbStateRef.on('value', snap => { const d = snap.val(); if(d) applyLive(d); });
       fbDeckRef.on('value', snap => {
@@ -686,6 +703,11 @@ function initFirebase(){
       fbBuzzerRef.on('value', snap => {
         const d = snap.val() || {};
         applyBuzzerState(d);
+      });
+      // Resultado ya finalizado de la ronda (por si se recarga la página con la ronda ya cerrada)
+      fbResultRef.on('value', snap => {
+        roundResult = snap.val() || null;
+        renderRoundStatus();
       });
       // Al arrancar: buzzer cerrado
       fbLockBuzzer();
@@ -718,12 +740,12 @@ let buzzerState = 'locked'; // 'locked' | 'open' | 'won'
 let buzzerWinner = null;    // { name }
 function fbOpenBuzzer(){
   if(!fbBuzzerRef) return;
-  fbBuzzerRef.set({ state:'open', winner:null, players });
+  fbBuzzerRef.set({ state:'open', winner:null });
   buzzerWinner = null;
 }
 function fbLockBuzzer(){
   if(!fbBuzzerRef) return;
-  fbBuzzerRef.set({ state:'locked', winner:null, players });
+  fbBuzzerRef.set({ state:'locked', winner:null });
   buzzerWinner = null;
 }
 function toggleBuzzer(){
@@ -736,7 +758,7 @@ function applyBuzzerState(d){
   buzzerState = state;
   buzzerWinner = winner;
   renderBuzzerBanner();
-  // Si hay ganador nuevo: abrir panel de asignación con el jugador highlighted
+  // Si hay ganador nuevo: abrir panel de asignación con el jugador y su equipo destacados
   if(winner && winner.name){
     sfxBuzz();
     openAssignWithWinner(winner.name);
@@ -753,7 +775,10 @@ function renderBuzzerBanner(){
   }
   const btn = document.getElementById('buzzer-btn');
   if(buzzerWinner && buzzerWinner.name){
-    el.innerHTML = `<div class="bb-icon">🏆</div><div class="bb-body"><div class="bb-lbl">Buzzeó primero</div><div class="bb-name">${escapeHtml(buzzerWinner.name)}</div></div><button class="bb-reset" onclick="fbOpenBuzzer()">Reabrir</button>`;
+    const tIdx = nickToTeamIndex[buzzerWinner.name];
+    const team = (typeof tIdx === 'number') ? teams.find(t => t.index === tIdx) : null;
+    const nameLine = team ? `${escapeHtml(buzzerWinner.name)} <span style="opacity:.7;font-weight:600">(${escapeHtml(team.label)})</span>` : escapeHtml(buzzerWinner.name);
+    el.innerHTML = `<div class="bb-icon">🏆</div><div class="bb-body"><div class="bb-lbl">Buzzeó primero</div><div class="bb-name">${nameLine}</div></div><button class="bb-reset" onclick="fbOpenBuzzer()">Reabrir</button>`;
     el.className = 'buzzer-banner won';
     el.style.display = 'flex';
     if(btn){ btn.textContent = '🔓 Reabrir buzzer'; btn.classList.remove('primary'); btn.classList.add('danger'); }
@@ -768,10 +793,11 @@ function renderBuzzerBanner(){
   }
 }
 
-// Cuando llega un buzz: abrir el panel de asignación con el ganador destacado
+// Cuando llega un buzz: abrir el panel de asignación con el jugador y su equipo destacados
 let _winnerName = null;
 function openAssignWithWinner(name){
   _winnerName = name;
+  _winnerTeamIdx = (typeof nickToTeamIndex[name] === 'number') ? nickToTeamIndex[name] : null;
   openAssign(/*keepWinner=*/true);
 }
 
@@ -786,9 +812,12 @@ let MODE = null;
 let deck = [];
 let deckMeta = { updated: 0 };
 let cardIdx = 0;
-let scores = {}; // { playerName: totalPoints }
-let scoresRecent = {}; // { playerName: msTimestamp } — para efecto "+1"
-let players = PLAYERS_DEFAULT.slice();
+let teams = DEFAULT_TEAMS.map(t => ({ ...t })); // se sobreescribe en vivo desde velada.html (Firebase)
+let teamScores = {};       // { teamIndex: totalPoints }
+let teamScoresRecent = {}; // { teamIndex: msTimestamp } — para efecto "+1"
+let nickToTeamIndex = {};  // { apodo: teamIndex } — se reconstruye cada vez que llegan equipos nuevos
+let roundResult = null;    // { standings:[{teamIndex,label,score,fase2Points}], finishedAt } una vez finalizada la ronda
+let _winnerTeamIdx = null; // equipo del jugador que buzzeó primero (resuelto por apodo)
 let revealed = false;
 let hintsShown = { 1: false, 2: false };
 let assignAmount = null;   // 0.5 | 1 | null — cuánto vale el punto a asignar
@@ -802,19 +831,28 @@ let _edRevealFileData = null;
 // ── STORAGE ──
 function loadState(){
   try{ const s = localStorage.getItem(SK.DECK); if(s){ deck = JSON.parse(s) || []; }}catch(e){}
-  try{ const s = localStorage.getItem(SK.SCORES); if(s){ scores = JSON.parse(s) || {}; }}catch(e){}
-  try{ const s = localStorage.getItem(SK.PLAYERS); if(s){ players = JSON.parse(s) || PLAYERS_DEFAULT.slice(); }}catch(e){}
+  try{ const s = localStorage.getItem(SK.TEAM_SCORES); if(s){ teamScores = JSON.parse(s) || {}; }}catch(e){}
   try{ const s = localStorage.getItem(SK.IDX); if(s){ cardIdx = parseInt(s)||0; }}catch(e){}
   if(!deck.length){ deck = DEFAULT_DECK(); saveDeckLocal(); }
-  players.forEach(p => { if(!(p in scores)) scores[p] = 0; });
+  rebuildNickMap();
 }
 function saveDeckLocal(){
   deckMeta.updated = Date.now();
   try{ localStorage.setItem(SK.DECK, JSON.stringify(deck)); }catch(e){}
 }
-function saveScores(){ try{ localStorage.setItem(SK.SCORES, JSON.stringify(scores)); }catch(e){} }
-function savePlayersLocal(){ try{ localStorage.setItem(SK.PLAYERS, JSON.stringify(players)); }catch(e){} }
+function saveTeamScores(){ try{ localStorage.setItem(SK.TEAM_SCORES, JSON.stringify(teamScores)); }catch(e){} }
 function saveIdx(){ try{ localStorage.setItem(SK.IDX, String(cardIdx)); }catch(e){} }
+function rebuildNickMap(){
+  nickToTeamIndex = {};
+  teams.forEach(t => { (t.members||[]).forEach(m => { nickToTeamIndex[m] = t.index; }); });
+}
+function applyTeams(newTeams){
+  if(!Array.isArray(newTeams) || !newTeams.length) return;
+  teams = newTeams.map(t => ({ index: t.index, label: t.label, members: t.members || [] }));
+  rebuildNickMap();
+  renderScores();
+  if(MODE === 'participant') renderPartScores();
+}
 
 // ── HELPERS ──
 function currentCard(){ return deck[cardIdx] || null; }
@@ -870,7 +908,7 @@ function applyMode(m){
   initFirebase();
   if(m === 'conductor'){
     document.getElementById('conductor').classList.add('active');
-    renderScores(); renderCard(); populateCategoryOptions();
+    renderScores(); renderCard(); populateCategoryOptions(); renderRoundStatus();
     setInterval(fbPushLive, 500);
   } else {
     document.getElementById('participant').classList.add('active');
@@ -885,14 +923,17 @@ function exitMode(){
 // ── RENDER: SCORES ──
 function renderScores(){
   const wrap = document.getElementById('score-strip');
-  const max = Math.max(0, ...Object.values(scores));
-  wrap.innerHTML = players.map(p => {
-    const pts = scores[p] || 0;
+  if(!wrap) return;
+  const vals = teams.map(t => teamScores[t.index]||0);
+  const max = Math.max(0, ...vals);
+  wrap.innerHTML = teams.map(t => {
+    const pts = teamScores[t.index]||0;
     const leader = max > 0 && pts === max;
-    const recent = scoresRecent[p] && (Date.now() - scoresRecent[p] < 2500);
-    return `<button class="score-chip ${leader?'leader':''}" onclick="quickAssignPrompt('${escapeHtml(p)}')">
+    const recent = teamScoresRecent[t.index] && (Date.now() - teamScoresRecent[t.index] < 2500);
+    const shortLabel = (t.members && t.members.length) ? t.members.join(' & ') : t.label;
+    return `<button class="score-chip ${leader?'leader':''}" onclick="quickAssignPrompt(${t.index})" title="${escapeHtml(t.label)}">
       ${recent ? '<span class="score-chip-recent">+</span>' : ''}
-      <div class="score-chip-name">${escapeHtml(p)}</div>
+      <div class="score-chip-name">${escapeHtml(shortLabel)}</div>
       <div class="score-chip-pts">${pts}</div>
     </button>`;
   }).join('');
@@ -900,23 +941,28 @@ function renderScores(){
 function renderPartScores(){
   const wrap = document.getElementById('part-score-inner');
   if(!wrap) return;
-  const max = Math.max(0, ...Object.values(scores));
-  wrap.innerHTML = players.map(p => {
-    const pts = scores[p] || 0;
+  const vals = teams.map(t => teamScores[t.index]||0);
+  const max = Math.max(0, ...vals);
+  wrap.innerHTML = teams.map(t => {
+    const pts = teamScores[t.index]||0;
     const leader = max > 0 && pts === max;
-    return `<div class="part-chip ${leader?'leader':''}">
-      <div class="part-chip-name">${escapeHtml(p)}</div>
+    const shortLabel = (t.members && t.members.length) ? t.members.join(' & ') : t.label;
+    return `<div class="part-chip ${leader?'leader':''}" title="${escapeHtml(t.label)}">
+      <div class="part-chip-name">${escapeHtml(shortLabel)}</div>
       <div class="part-chip-pts">${pts}</div>
     </div>`;
   }).join('');
 }
-function quickAssignPrompt(name){
-  const delta = prompt(`Ajustar puntaje de ${name}\n(actual: ${scores[name]||0})\n\nEscribí +N o -N (ej: +1, -0.5):`, '+1');
+function quickAssignPrompt(teamIdx){
+  const t = teams.find(x => x.index === teamIdx);
+  if(!t) return;
+  const delta = prompt(`Ajustar puntaje de ${t.label}\n(actual: ${teamScores[teamIdx]||0})\n\nEscribí +N o -N (ej: +1, -0.5):`, '+1');
   if(!delta) return;
   const n = parseFloat(delta);
   if(isNaN(n)) return;
-  scores[name] = Math.max(0, (scores[name]||0) + n);
-  saveScores(); renderScores(); fbPushLive();
+  teamScores[teamIdx] = Math.max(0, (teamScores[teamIdx]||0) + n);
+  saveTeamScores(); renderScores(); fbPushLive();
+  checkWinCondition();
 }
 
 // ── RENDER: CARD (conductor) ──
@@ -1208,12 +1254,13 @@ function chooseAssignAmount(amount){
   assignAmount = amount;
   document.getElementById('assign-amount-choices').style.display = 'none';
   document.getElementById('assign-title').textContent = `Asignar ${amount === 1 ? '1 pt' : '0.5 pt'}`;
-  const winnerHint = (assignKeepWinner && _winnerName) ? ` · <b style="color:var(--gold)">🏆 ${escapeHtml(_winnerName)} buzzeó primero</b>` : '';
-  document.getElementById('assign-sub').innerHTML = 'Tocá el nombre del jugador que acertó' + winnerHint;
+  const winnerTeam = (assignKeepWinner && typeof _winnerTeamIdx === 'number') ? teams.find(t => t.index === _winnerTeamIdx) : null;
+  const winnerHint = (assignKeepWinner && _winnerName) ? ` · <b style="color:var(--gold)">🏆 ${escapeHtml(_winnerName)} buzzeó primero${winnerTeam ? ' (' + escapeHtml(winnerTeam.label) + ')' : ''}</b>` : '';
+  document.getElementById('assign-sub').innerHTML = 'Tocá el equipo que acertó' + winnerHint;
   const wrap = document.getElementById('assign-players');
-  wrap.innerHTML = players.map(p => {
-    const isWinner = assignKeepWinner && _winnerName && p === _winnerName;
-    return `<button class="assign-player ${isWinner?'winner':''}" onclick="doAssign('${escapeHtml(p)}')">${isWinner?'🏆 ':''}${escapeHtml(p)}</button>`;
+  wrap.innerHTML = teams.map(t => {
+    const isWinner = assignKeepWinner && typeof _winnerTeamIdx === 'number' && t.index === _winnerTeamIdx;
+    return `<button class="assign-player ${isWinner?'winner':''}" onclick="doAssign(${t.index})">${isWinner?'🏆 ':''}${escapeHtml(t.label)}</button>`;
   }).join('');
 }
 function closeAssign(){
@@ -1222,23 +1269,77 @@ function closeAssign(){
   assignAmount = null;
   assignKeepWinner = false;
 }
-function doAssign(name){
+function doAssign(teamIdx){
   if(!assignAmount) return;
-  scores[name] = (scores[name]||0) + assignAmount;
-  scoresRecent[name] = Date.now();
-  saveScores();
+  const t = teams.find(x => x.index === teamIdx);
+  if(!t) return;
+  teamScores[teamIdx] = (teamScores[teamIdx]||0) + assignAmount;
+  teamScoresRecent[teamIdx] = Date.now();
+  saveTeamScores();
   renderScores();
   // Si alguien acertó, damos por hecho que la carta se jugó
   const cur = currentCard();
   if(cur && !cur.played){ cur.played = true; saveDeckLocal(); fbPushDeck(); renderEditorList();
     const markBtn = document.getElementById('mark-played-btn'); if(markBtn) markBtn.textContent = '↺ Marcar sin jugar'; }
   fbPushLive();
-  toast(`+${assignAmount} para ${name}`);
+  toast(`+${assignAmount} para ${t.label}`);
   closeAssign();
   setTimeout(renderScores, 2600); // limpia el "+1" pin
   // Después de asignar, bloqueamos el buzzer para la próxima ronda
   _winnerName = null;
+  _winnerTeamIdx = null;
   fbLockBuzzer();
+  checkWinCondition();
+}
+
+// ── FIN DE RONDA (10 pts, mazo agotado, o manual) ──
+function checkWinCondition(){
+  if(roundResult) return; // ya está cerrada
+  const reached = teams.find(t => (teamScores[t.index]||0) >= WIN_TARGET);
+  if(reached){
+    toast(`🏆 ${reached.label} llegó a ${WIN_TARGET} puntos — ¿Finalizar la ronda?`);
+  } else if(deck.length && deck.every(c => c.played)){
+    toast('🏁 Se jugaron todas las cartas — ¿Finalizar la ronda?');
+  }
+}
+function finalizeRound(){
+  if(!teams.length){ toast('No hay equipos cargados todavía'); return; }
+  const standings = teams.map(t => ({ teamIndex: t.index, label: t.label, score: teamScores[t.index]||0 }))
+    .sort((a,b) => b.score - a.score);
+  const fase2Pts = [3,2,1];
+  standings.forEach((s,i) => { s.fase2Points = i < 3 ? fase2Pts[i] : 0; });
+  const preview = standings.map((s,i) => `${i+1}. ${s.label} — ${s.score}pt${s.score===1?'':'s'} → +${s.fase2Points} en el ranking`).join('\n');
+  if(!confirm(`¿Cerrar la ronda con este resultado?\n\n${preview}`)) return;
+  roundResult = { standings, finishedAt: Date.now() };
+  if(fbResultRef) fbResultRef.set(roundResult);
+  toast('🏁 Ronda finalizada — puntos aplicados al ranking de Fase 2');
+  renderRoundStatus();
+}
+function reopenRound(){
+  if(!roundResult){ toast('La ronda no está finalizada'); return; }
+  if(!confirm('¿Reabrir la ronda?\nEsto borra el resultado ya aplicado al ranking de Fase 2 (los puntos del mazo/buzzer no se tocan, podés seguir jugando).')) return;
+  roundResult = null;
+  if(fbResultRef) fbResultRef.remove();
+  toast('↺ Ronda reabierta');
+  renderRoundStatus();
+}
+function renderRoundStatus(){
+  let el = document.getElementById('round-result-banner');
+  if(!el){
+    el = document.createElement('div');
+    el.id = 'round-result-banner';
+    el.className = 'buzzer-banner';
+    const body = document.querySelector('.cond-body');
+    if(body) body.insertBefore(el, body.firstChild);
+  }
+  if(roundResult && Array.isArray(roundResult.standings) && roundResult.standings.length){
+    const top = roundResult.standings[0];
+    el.innerHTML = `<div class="bb-icon">🏁</div><div class="bb-body"><div class="bb-lbl">Ronda finalizada</div><div class="bb-name">1° ${escapeHtml(top.label)} (+${top.fase2Points} en el ranking)</div></div><button class="bb-reset" onclick="reopenRound()">Reabrir</button>`;
+    el.className = 'buzzer-banner won';
+    el.style.display = 'flex';
+  } else {
+    el.style.display = 'none';
+  }
 }
 
 // ── PARTICIPANT VIEW ──
@@ -1247,7 +1348,7 @@ function liveStateSnapshot(){
   const cur = currentCard();
   return {
     cardIdx, revealed, hintsShown,
-    scores, players,
+    teamScores,
     videoSync: videoSyncState,
     revealCue: revealCueState,
     card: cur ? {
@@ -1267,8 +1368,7 @@ function liveStateSnapshot(){
 }
 function applyLive(st){
   if(!st) return;
-  if(st.scores) scores = st.scores;
-  if(st.players) players = st.players;
+  if(st.teamScores) teamScores = st.teamScores;
   renderPartScores();
   renderPartCard(st);
   if(st.revealCue && st.revealCue.ts && st.revealCue.ts !== _lastRevealCueTs){
@@ -1821,21 +1921,26 @@ function edSave(){
 
 // ── PLAYERS ──
 function openPlayers(){
-  document.getElementById('pl-list').value = players.join('\n');
+  const wrap = document.getElementById('pl-list-view');
+  if(wrap){
+    if(!teams.length){
+      wrap.innerHTML = `<div class="ed-empty">Todavía no llegaron los equipos desde Velada.<br>Abrí <b>velada.html</b> al menos una vez para publicarlos.</div>`;
+    } else {
+      wrap.innerHTML = teams.map(t => `
+        <div class="ed-item">
+          <div class="ed-item-icon">👥</div>
+          <div class="ed-item-body">
+            <div class="ed-item-title">${escapeHtml(t.label)}</div>
+            <div class="ed-item-sub">${(t.members||[]).map(escapeHtml).join(' & ') || 'sin apodos cargados'}</div>
+          </div>
+          <div class="ed-item-actions"><span style="font-weight:900;color:var(--gold)">${teamScores[t.index]||0} pt</span></div>
+        </div>
+      `).join('');
+    }
+  }
   document.getElementById('pl-overlay').classList.add('open');
 }
 function closePlayers(){ document.getElementById('pl-overlay').classList.remove('open'); }
-function savePlayers(){
-  const raw = document.getElementById('pl-list').value.split('\n').map(s => s.trim()).filter(Boolean);
-  if(!raw.length){ toast('Al menos un jugador'); return; }
-  players = raw;
-  // preserve existing scores for players that stay, create for new
-  const newScores = {};
-  players.forEach(p => { newScores[p] = scores[p] || 0; });
-  scores = newScores;
-  savePlayersLocal(); saveScores(); renderScores(); fbPushLive();
-  closePlayers(); toast('👥 Jugadores actualizados');
-}
 
 // ── SETTINGS MENU ──
 function toggleSetMenu(e){
@@ -1884,9 +1989,9 @@ function importDeck(){
   inp.click();
 }
 function resetScores(){
-  if(!confirm('¿Reiniciar los puntajes de todos los jugadores?')) return;
-  Object.keys(scores).forEach(k => scores[k] = 0);
-  saveScores(); renderScores(); fbPushLive();
+  if(!confirm('¿Reiniciar los puntajes de todos los equipos?\n(Esto no toca el resultado ya finalizado, si lo hay — usá "Reabrir ronda" para eso.)')) return;
+  Object.keys(teamScores).forEach(k => teamScores[k] = 0);
+  saveTeamScores(); renderScores(); fbPushLive();
   toast('↺ Puntajes reiniciados');
 }
 function resetPlayedFlags(){
@@ -1901,8 +2006,8 @@ function resetAll(){
   if(!confirm('⚠️ Esto borra TODO: mazo, puntajes y cartas.\n¿Seguro?')) return;
   if(!confirm('Última chance. ¿Realmente borrar todo?')) return;
   deck = DEFAULT_DECK(); cardIdx = 0; revealed = false; hintsShown = {1:false,2:false};
-  Object.keys(scores).forEach(k => scores[k] = 0);
-  saveDeckLocal(); saveScores(); saveIdx(); fbPushDeck(); fbPushLive();
+  Object.keys(teamScores).forEach(k => teamScores[k] = 0);
+  saveDeckLocal(); saveTeamScores(); saveIdx(); fbPushDeck(); fbPushLive();
   renderCard(); renderScores(); renderEditorList();
   toast('🗑 Todo reiniciado');
 }
