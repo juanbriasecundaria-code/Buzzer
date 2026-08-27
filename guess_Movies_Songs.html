@@ -898,21 +898,36 @@ function setFbStatus(state, msg){
 // cambiar de carta. El index.html (GitHub) obedece este estado por Firebase.
 
 // Habilitar el buzzer (limpia ganador) — se llama al revelar la carta
-function fbOpenBuzzer(){
+// `blocked` = equipo que ya erró esta carta y no puede volver a buzzear ('a'|'b'|null)
+let _buzzBlocked = null;
+function fbOpenBuzzer(blocked){
+  _buzzBlocked = blocked || null;
   if(!fbRef) return;
-  fbRef.set({ state:'open', winner:null, names:{ a:nameA, b:nameB } });
+  fbRef.set({ state:'open', winner:null, blocked:_buzzBlocked, names:{ a:nameA, b:nameB } });
 }
 
 // Bloquear el buzzer — al ocultar la carta, cambiar de carta o iniciar
 function fbLock(){
+  _buzzBlocked = null;
   if(!fbRef) return;
-  fbRef.set({ state:'locked', winner:null, names:{ a:nameA, b:nameB } });
+  fbRef.set({ state:'locked', winner:null, blocked:null, names:{ a:nameA, b:nameB } });
 }
 
 function startCondListener(){
   if(!fbRef) return;
+  let _lastReset = null; // el primer snapshot solo se registra, no se aplica
   fbRef.on('value', snap=>{
     const d = snap.val() || {};
+    // ── Orden de reset mandada desde velada.html ──
+    const rTs = d.reset || 0;
+    if(_lastReset === null){ _lastReset = rTs; }
+    else if(rTs > _lastReset){
+      _lastReset = rTs;
+      scoreA=0; scoreB=0; nameA='Equipo 1'; nameB='Equipo 2';
+      _saveNames(); saveScore(); syncNamesUI(); syncScoreUI(); syncPhaseUI(); sendState();
+      showToast('↺ Buzzers restablecidos — Equipo 1 / Equipo 2, marcador en 0',3200);
+      return;
+    }
     const w = d.winner, s = d.state||'locked';
     if(w){
       const t=w.team, n=w.name||(t==='a'?nameA:nameB);
@@ -929,9 +944,15 @@ function startCondListener(){
       setFbStatus('ready','🔒 Bloqueado — mostrá la carta para habilitar');
     }
     // Sync names from Firebase if available
+    // FIX: antes escribía en 'bz-na'/'bz-nb', IDs que ya no existen (quedaron de
+    // cuando el buzzer vivía acá adentro). Los nombres editados desde el celu se
+    // perdían y el siguiente fbLock()/fbOpenBuzzer() los pisaba con los viejos.
+    // Ahora actualizamos las variables reales y refrescamos la UI.
     if(d.names){
-      if(d.names.a){ const el=document.getElementById('bz-na'); if(el) el.textContent=d.names.a; }
-      if(d.names.b){ const el=document.getElementById('bz-nb'); if(el) el.textContent=d.names.b; }
+      let changed=false;
+      if(d.names.a && d.names.a!==nameA){ nameA=d.names.a; changed=true; }
+      if(d.names.b && d.names.b!==nameB){ nameB=d.names.b; changed=true; }
+      if(changed){ _saveNames(); syncNamesUI(); syncPhaseUI(); sendState(); }
     }
   }, e=>{ setFbStatus('error','Error: '+e.message); });
 }
@@ -1746,7 +1767,22 @@ document.addEventListener('keydown',function(e){
 // ─── CONDUCTOR: PHASE ────────────────────────────────────────────
 function setBuzzer(team){phase='playing_'+team;activeBuzzer=team;syncPhaseUI();sendState();fbLock();sfxBuzz();}
 function markCorrect(){if(!activeBuzzer)return;if(activeBuzzer==='a'){scoreA++;bump('c-sa');}else{scoreB++;bump('c-sb');}saveScore();syncScoreUI();phase='reveal';activeBuzzer=null;stopTimer();syncPhaseUI();sendState();}
-function markWrong(){stopTimer();phase='idle';activeBuzzer=null;syncPhaseUI();sendState();fbOpenBuzzer();showToast('✗ Incorrecto — buzzer reabierto, otro equipo puede intentar');}
+function markWrong(){
+  const failed=activeBuzzer;
+  stopTimer();phase='idle';activeBuzzer=null;syncPhaseUI();sendState();
+  if(failed && _buzzBlocked && _buzzBlocked!==failed){
+    // Erraron los dos equipos: se cierra el buzzer y el conductor revela o pasa.
+    fbLock();
+    showToast('✗ Erraron los dos — buzzer cerrado, revelá la respuesta o pasá de carta',3600);
+  } else if(failed){
+    // Le toca al otro equipo: queda bloqueado el que erró.
+    fbOpenBuzzer(failed);
+    showToast('✗ Incorrecto — ahora solo puede buzzear '+(failed==='a'?nameB:nameA),3000);
+  } else {
+    fbOpenBuzzer();
+    showToast('✗ Incorrecto — buzzer reabierto');
+  }
+}
 function passCard(){if(_bonusAdvanceTimer){clearTimeout(_bonusAdvanceTimer);_bonusAdvanceTimer=null;}stopTimer();phase='idle';activeBuzzer=null;revealed=false;discardCurrent();fbLock();if(order.length===0){showToast('¡Se acabaron las cartas!');renderCondCard();updateCount();syncPhaseUI();syncRevealUI();sendState();return;}renderCondCard();updateCount();syncPhaseUI();syncRevealUI();sendState();showToast('→ Carta descartada');}
 function nextAfterReveal(){phase='idle';activeBuzzer=null;revealed=false;discardCurrent();fbLock();if(order.length===0){showToast('🎉 ¡Fin del juego!');renderCondCard();updateCount();syncPhaseUI();syncRevealUI();sendState();return;}renderCondCard();updateCount();syncPhaseUI();syncRevealUI();sendState();}
 function syncPhaseUI(){
