@@ -1,4 +1,4 @@
-¿Quién lo dijo?<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="es">
 <head>
 <meta charset="UTF-8">
@@ -2934,12 +2934,13 @@ function renderReglas() {
       <span class="section-title"><span class="dot-indicator quien"></span>Ronda especial — ¿Quién lo dijo?</span>
     </div>
     <details class="rule-card" id="quien-rule-card">
-      <summary><span class="rule-name"><span class="rule-icon-badge quien">🗣️</span>¿Quién lo dijo?</span><span class="rule-chevron">▾</span></summary>
+      <summary><span class="rule-name"><span class="rule-icon-badge quien">🗣️</span>¿Quién lo dijo? (por parejas de Fase 2)</span><span class="rule-chevron">▾</span></summary>
       <div class="rule-body">
-        <p class="rule-desc">Se muestran frases, memes, imágenes, audios o videos cortados de famosos, fútbol, películas, series y dibujitos. Hay que adivinar quién lo dijo y/o cómo termina la frase, usando el buzzer del celular para responder primero. Es individual, todos contra todos, y se puede jugar en cualquier momento dentro de la Fase 2 como ronda especial.</p>
+        <p class="rule-desc">Se muestran frases, memes, imágenes, audios o videos cortados de famosos, fútbol, películas, series y dibujitos. Hay que adivinar quién lo dijo y/o cómo termina la frase. El buzzer del celular es individual (cada uno presiona con su propio nombre), pero lo que acierte suma para la pareja de Fase 2 a la que pertenece. Se juega hasta que una pareja llegue a 10 puntos, o hasta que se terminen las cartas del mazo — en ese caso gana la que tenga más puntos.</p>
         <div class="rule-footer">
-          <span class="score-pill win">Acertó todo (quién + final) · 1 pt</span>
-          <span class="score-pill bonus">Acertó una parte · 0.5 pt</span>
+          <span class="score-pill win">1° puesto · 3 pts</span>
+          <span class="score-pill bonus">2° puesto · 2 pts</span>
+          <span class="score-pill draw">3° puesto · 1 pt</span>
         </div>
       </div>
     </details>
@@ -3007,9 +3008,8 @@ const TEAMS = [
   'Martín H. / Valentín A.',
   'Lázaro G. / Tomás P.',
   'Thiago C. / Lara M.',
-  'Thomas C. / JM R.',
-  'Micaela B. / Florencia L.',
-  'Coral O. / (pendiente)'
+  'Totti / Risu',
+  'Coral O. / Florencia L.'
 ];
 
 const GAMES_F1 = ['Curling','100 Argentinos Dicen','UNO','Palabras a Tiempo','Carrera de Mentes','Spot It'];
@@ -3879,7 +3879,7 @@ function saveState() {
 // Se hace por separado porque velada.html usa Firestore v10 modular, mientras
 // que QLD usa RTDB v9 compat en otro proyecto (guessmovie-905e2).
 (function initQldFirebase(){
-  window._qldScores = {};
+  window._qldTeamPoints = {}; // { teamIndex: fase2Points (3/2/1/0) } — resultado ya finalizado de la ronda
   function loadScript(src){ return new Promise((res, rej) => { const s = document.createElement('script'); s.src = src; s.onload = res; s.onerror = rej; document.head.appendChild(s); }); }
   Promise.all([
     loadScript('https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js'),
@@ -3896,9 +3896,30 @@ function saveState() {
       // Named app para no chocar con nada
       const qldApp = firebase.initializeApp(QLD_CFG, 'qld');
       const qldDb = qldApp.database();
-      qldDb.ref('velada/qld/live').on('value', snap => {
+
+      // Publicamos el roster de equipos de Fase 2 (con apodos) para que "¿Quién lo dijo?"
+      // siempre juegue con los equipos actuales — se resincroniza cada vez que se abre esta página.
+      function pushQldTeams(){
+        try{
+          const teamsPayload = TEAMS.map((label, idx) => {
+            const fullNames = label.split('/').map(s => s.trim());
+            const members = fullNames.map(full => {
+              const nick = Object.keys(FULL_NAMES).find(k => FULL_NAMES[k] === full);
+              return nick || full;
+            });
+            return { index: idx, label, members };
+          });
+          qldDb.ref('velada/qld/teams').set({ teams: teamsPayload, updated: Date.now() });
+        }catch(e){ console.warn('No se pudo publicar los equipos a QLD', e); }
+      }
+      pushQldTeams();
+
+      // Leemos el resultado ya finalizado de la ronda (1°/2°/3° puesto → 3/2/1 pts)
+      qldDb.ref('velada/qld/result').on('value', snap => {
         const d = snap.val() || {};
-        window._qldScores = d.scores || {};
+        const standings = Array.isArray(d.standings) ? d.standings : [];
+        window._qldTeamPoints = {};
+        standings.forEach(s => { window._qldTeamPoints[s.teamIndex] = s.fase2Points || 0; });
         // Re-renderizar la Fase 2 si está activa
         if(typeof renderFase2 === 'function' && document.getElementById('page-fase2') && document.getElementById('page-fase2').classList.contains('active')){
           try{ renderFase2(); }catch(e){}
@@ -4093,29 +4114,15 @@ function getTeamPoints() {
     }
   });
 
-  // Sumar puntos de "¿Quién lo dijo?" — se leen desde Firebase (window._qldScores)
-  // Cada jugador individual suma a su equipo (identificado por el nombre completo dentro de TEAMS)
-  const qldScores = window._qldScores || {};
-  Object.keys(qldScores).forEach(playerNick => {
-    const pts_p = qldScores[playerNick] || 0;
-    if(!pts_p) return;
-    const tIdx = teamIndexForPlayerName(playerNick);
-    if(tIdx >= 0 && pts[tIdx]) pts[tIdx].qld += pts_p;
-  });
+  // Puntos de "¿Quién lo dijo?" — ya vienen resueltos por equipo (1°=3, 2°=2, 3°=1) desde Firebase,
+  // una vez que el conductor finaliza la ronda especial.
+  const qldTeamPoints = window._qldTeamPoints || {};
+  pts.forEach((p, idx) => { p.qld = qldTeamPoints[idx] || 0; });
 
   pts.forEach(p => {
     p.total = p.rounds.reduce((s,v) => s + (typeof v === 'number' ? v : 0), 0) + (p.qld || 0);
   });
   return pts;
-}
-
-// Dado el apodo del jugador ("Risu", "Totti", "Martin"...), devuelve el índice del equipo en TEAMS.
-// Usa FULL_NAMES para resolver el nombre completo.
-function teamIndexForPlayerName(playerNick){
-  if(!playerNick) return -1;
-  const full = (typeof FULL_NAMES !== 'undefined' && FULL_NAMES[playerNick]) ? FULL_NAMES[playerNick] : playerNick;
-  // Match por nombre completo o por la primera palabra (apodo)
-  return TEAMS.findIndex(t => t.includes(full) || t.split('/').some(part => part.trim() === full || part.trim().split(' ')[0] === playerNick));
 }
 
 // ============================================================
