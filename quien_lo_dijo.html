@@ -140,6 +140,27 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
 .cc-prompt{font-size:clamp(15px,3.5vw,20px);font-weight:700;line-height:1.4;color:var(--text);padding:.5rem .25rem}
 .cc-prompt .gap{display:inline-block;min-width:80px;border-bottom:2.5px solid var(--purple);margin:0 .15rem;color:transparent;padding:0 .3rem}
 .cc-prompt.revealed .gap{color:var(--purple);border-bottom-color:var(--purple);background:var(--purple-dim);border-radius:4px}
+
+/* ── DIÁLOGO POR PERSONAJES ── */
+.dlg-wrap{display:flex;flex-direction:column;gap:.55rem;padding:.5rem .25rem;width:100%}
+.dlg-row{display:flex;flex-direction:column;max-width:82%}
+.dlg-row.side-a{align-self:flex-start;align-items:flex-start}
+.dlg-row.side-b{align-self:flex-end;align-items:flex-end}
+.dlg-name{font-size:11px;font-weight:900;letter-spacing:.03em;margin-bottom:3px;padding:0 .35rem;text-transform:uppercase}
+.dlg-bubble{padding:.6rem .85rem;border-radius:14px;font-weight:700;line-height:1.4;font-size:clamp(14px,3.3vw,18px)}
+.dlg-row.side-a .dlg-bubble{border-bottom-left-radius:3px}
+.dlg-row.side-b .dlg-bubble{border-bottom-right-radius:3px}
+.part-dlg .dlg-bubble{font-size:clamp(16px,4vw,22px)}
+.part-dlg .dlg-name{font-size:12px}
+.dlg-bubble .gap{display:inline-block;min-width:70px;border-bottom:2.5px solid currentColor;margin:0 .15rem;color:transparent;padding:0 .3rem}
+
+/* editor: tabs de modo + filas de diálogo */
+.prompt-mode-tabs{display:flex;gap:1rem;margin-bottom:.5rem;font-size:13px;font-weight:600;color:var(--muted2)}
+.prompt-mode-tab{display:flex;align-items:center;gap:.35rem;cursor:pointer}
+.dlg-edit-row{display:flex;gap:.5rem;align-items:flex-start;background:rgba(255,255,255,.03);border:1px solid var(--border);border-radius:10px;padding:.6rem;margin-bottom:.5rem}
+.dlg-edit-row .form-in{flex:0 0 130px}
+.dlg-edit-row textarea{flex:1;min-height:44px;resize:vertical}
+.dlg-edit-del{flex:0 0 auto;padding:.4rem .6rem}
 .cc-answer{background:var(--purple-dim);border:1px solid var(--purple);border-radius:12px;padding:.85rem 1rem;display:flex;flex-direction:column;gap:.4rem}
 .cc-answer .aq{font-size:10px;font-weight:800;color:var(--purple);letter-spacing:.1em;text-transform:uppercase}
 .cc-answer .av{font-size:15px;font-weight:700;color:var(--text)}
@@ -503,8 +524,19 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
       </div>
       <div class="form-row">
         <span class="form-lbl">Frase / Prompt para los participantes</span>
-        <textarea class="form-ta" id="f-prompt" placeholder="Ej: ¿Te das cuenta? ___ no faltan, lo que faltan son ___"></textarea>
-        <div class="form-help">Usá <code>___</code> (tres guiones bajos) donde va cada hueco. Si ponés varios, cada uno se completa con una parte distinta de "Cómo termina la frase" (separadas por <code>/</code>), en el mismo orden.</div>
+        <div class="prompt-mode-tabs">
+          <label class="prompt-mode-tab"><input type="radio" name="f-prompt-mode" value="simple" checked onchange="edPromptModeChanged()"> Texto simple</label>
+          <label class="prompt-mode-tab"><input type="radio" name="f-prompt-mode" value="dialogue" onchange="edPromptModeChanged()"> 🎭 Diálogo por personajes</label>
+        </div>
+        <div id="f-prompt-simple-row">
+          <textarea class="form-ta" id="f-prompt" placeholder="Ej: ¿Te das cuenta? ___ no faltan, lo que faltan son ___"></textarea>
+          <div class="form-help">Usá <code>___</code> (tres guiones bajos) donde va cada hueco. Si ponés varios, cada uno se completa con una parte distinta de "Cómo termina la frase" (separadas por <code>/</code>), en el mismo orden.</div>
+        </div>
+        <div id="f-dialogue-row" style="display:none">
+          <div id="f-dialogue-list"></div>
+          <button type="button" class="cta-btn" onclick="edAddDialogueLine()">+ Agregar línea</button>
+          <div class="form-help">Una línea por personaje. Se muestran separadas, cada una con el nombre bien visible (una a cada lado, como un chat). Dejá <code>___</code> donde tengan que completar.</div>
+        </div>
       </div>
       <div class="form-2col">
         <div class="form-row">
@@ -980,11 +1012,14 @@ function renderCard(){
 function renderCondText(cur){
   const mount = document.getElementById('cc-text-mount');
   if(!mount) return;
-  const promptHtml = renderPromptWithGap(cur.prompt, revealed, cur.ending);
+  const hasDialogue = cur.dialogue && cur.dialogue.length;
+  const promptBlockHtml = hasDialogue
+    ? `<div class="cc-prompt ${revealed?'revealed':''}">${renderDialogueHtml(cur.dialogue, revealed, cur.ending)}</div>`
+    : (cur.prompt ? `<div class="cc-prompt ${revealed?'revealed':''}">${renderPromptWithGap(cur.prompt, revealed, cur.ending)}</div>` : '');
   const hintsHtml = renderHints(cur);
   const optionsHtml = renderOptions(cur, revealed);
   mount.innerHTML = `
-    ${cur.prompt ? `<div class="cc-prompt ${revealed?'revealed':''}">${promptHtml}</div>` : ''}
+    ${promptBlockHtml}
     ${hintsHtml}
     ${optionsHtml}
     <div class="cc-answer">
@@ -1018,6 +1053,40 @@ function renderPromptWithGap(prompt, isRevealed, ending){
     });
   }
   return escapeHtml(p).replace(/___+/g, `<span class="gap">_____</span>`);
+}
+// ── DIÁLOGO POR PERSONAJES ──
+const DLG_PALETTE = [
+  { bg:'rgba(124,92,255,.22)', border:'rgba(124,92,255,.55)', name:'#b3a3ff' },
+  { bg:'rgba(245,200,66,.18)', border:'rgba(245,200,66,.5)',  name:'#f5c842' },
+  { bg:'rgba(74,201,150,.18)', border:'rgba(74,201,150,.5)',  name:'#4ac996' },
+  { bg:'rgba(255,120,120,.18)', border:'rgba(255,120,120,.5)', name:'#ff9a9a' },
+  { bg:'rgba(90,180,255,.18)', border:'rgba(90,180,255,.5)',  name:'#7fc2ff' }
+];
+function dialogueSpeakerMeta(dialogue){
+  const order = [];
+  dialogue.forEach(d => { const w = (d.who||'').trim(); if(w && !order.includes(w)) order.push(w); });
+  const map = {};
+  order.forEach((name, i) => { map[name] = { side: i % 2 === 0 ? 'side-a' : 'side-b', color: DLG_PALETTE[i % DLG_PALETTE.length] }; });
+  return map;
+}
+function renderDialogueHtml(dialogue, isRevealed, ending){
+  if(!dialogue || !dialogue.length) return '';
+  const meta = dialogueSpeakerMeta(dialogue);
+  // Unimos todas las líneas con un separador invisible para que los huecos "___" se completen
+  // en orden a lo largo de TODO el diálogo (respeta el mismo sistema de "Cómo termina" con "/").
+  const SEP = '\u0000DLGLINE\u0000';
+  const combined = dialogue.map(d => d.text || '').join(SEP);
+  const combinedHtml = renderPromptWithGap(combined, isRevealed, ending);
+  const partsHtml = combinedHtml.split(SEP);
+  const rows = dialogue.map((d, i) => {
+    const who = (d.who||'').trim();
+    const m = meta[who] || { side:'side-a', color: DLG_PALETTE[0] };
+    return `<div class="dlg-row ${m.side}">
+      ${who ? `<div class="dlg-name" style="color:${m.color.name}">${escapeHtml(who)}</div>` : ''}
+      <div class="dlg-bubble" style="background:${m.color.bg};border:1.5px solid ${m.color.border};color:#fff">${partsHtml[i] || ''}</div>
+    </div>`;
+  }).join('');
+  return `<div class="dlg-wrap">${rows}</div>`;
 }
 function renderHints(cur){
   const items = [];
@@ -1183,6 +1252,7 @@ function liveStateSnapshot(){
     revealCue: revealCueState,
     card: cur ? {
       id: cur.id, category: cur.category, prompt: cur.prompt || '',
+      dialogue: cur.dialogue || null,
       mediaType: cur.mediaType || 'none',
       // No enviamos mediaData (base64) por Firebase — solo URLs
       mediaUrl: (cur.mediaData && String(cur.mediaData).startsWith('data:')) ? null : (cur.mediaUrl || cur.mediaData || ''),
@@ -1355,7 +1425,10 @@ function renderPartCard(st){
 function renderPartText(c, st){
   const mount = document.getElementById('part-text-mount');
   if(!mount) return;
-  const promptHtml = renderPromptWithGap(c.prompt, !!st.revealed, c.ending);
+  const hasDialogue = c.dialogue && c.dialogue.length;
+  const promptBlockHtml = hasDialogue
+    ? `<div class="part-prompt part-dlg ${st.revealed?'revealed':''}">${renderDialogueHtml(c.dialogue, !!st.revealed, c.ending)}</div>`
+    : (c.prompt ? `<div class="part-prompt ${st.revealed?'revealed':''}">${renderPromptWithGap(c.prompt, !!st.revealed, c.ending)}</div>` : '');
   const optionsHtml = renderPartOptions(c, !!st.revealed);
   const hints = [];
   if(st.hintsShown && st.hintsShown[1] && c.hint1) hints.push(`<div class="part-hint"><div class="part-hint-tag">💡 Pista 1</div>${escapeHtml(c.hint1)}</div>`);
@@ -1366,7 +1439,7 @@ function renderPartText(c, st){
       ${c.ending ? `<div style="margin-top:.4rem"><span class="aq">✓ Cómo termina</span><div class="av">${escapeHtml(c.ending)}</div></div>` : ''}
     </div>` : '';
   mount.innerHTML = `
-    ${c.prompt ? `<div class="part-prompt ${st.revealed?'revealed':''}">${promptHtml}</div>` : ''}
+    ${promptBlockHtml}
     ${optionsHtml}
     ${hints.join('')}
     ${answerHtml}
@@ -1463,6 +1536,9 @@ function clearEditorForm(){
   document.getElementById('f-media').value = 'none';
   document.getElementById('f-media-url').value = '';
   document.getElementById('f-prompt').value = '';
+  document.querySelectorAll('input[name="f-prompt-mode"]').forEach(r => r.checked = r.value === 'simple');
+  edRenderDialogueList([]);
+  edPromptModeChanged();
   document.getElementById('f-who').value = '';
   document.getElementById('f-ending').value = '';
   document.getElementById('f-hint1').value = '';
@@ -1474,6 +1550,43 @@ function clearEditorForm(){
   document.querySelectorAll('input[name="f-opt-for"]').forEach(r => r.checked = r.value === 'none');
   _edMediaFileData = null;
   edMediaChanged(); edOptsChanged(); edRevealChanged();
+}
+// ── EDITOR: modo diálogo por personajes ──
+function edPromptModeChanged(){
+  const mode = document.querySelector('input[name="f-prompt-mode"]:checked').value;
+  document.getElementById('f-prompt-simple-row').style.display = mode === 'simple' ? '' : 'none';
+  document.getElementById('f-dialogue-row').style.display = mode === 'dialogue' ? '' : 'none';
+  if(mode === 'dialogue' && !document.querySelectorAll('#f-dialogue-list .dlg-edit-row').length){
+    edRenderDialogueList([{who:'',text:''},{who:'',text:''}]);
+  }
+}
+function edReadDialogueFromDom(){
+  return Array.from(document.querySelectorAll('#f-dialogue-list .dlg-edit-row')).map(row => ({
+    who: row.querySelector('.dlg-edit-who').value.trim(),
+    text: row.querySelector('.dlg-edit-text').value.trim()
+  }));
+}
+function edRenderDialogueList(lines){
+  const wrap = document.getElementById('f-dialogue-list');
+  wrap.innerHTML = lines.map((l, i) => `
+    <div class="dlg-edit-row">
+      <input class="form-in dlg-edit-who" placeholder="Personaje" value="${escapeHtml(l.who||'')}">
+      <textarea class="form-ta dlg-edit-text" placeholder="Lo que dice…">${escapeHtml(l.text||'')}</textarea>
+      <button type="button" class="cta-btn danger dlg-edit-del" data-i="${i}">🗑</button>
+    </div>
+  `).join('');
+  wrap.querySelectorAll('.dlg-edit-del').forEach(btn => {
+    btn.onclick = () => {
+      const cur = edReadDialogueFromDom();
+      cur.splice(parseInt(btn.dataset.i), 1);
+      edRenderDialogueList(cur);
+    };
+  });
+}
+function edAddDialogueLine(){
+  const cur = edReadDialogueFromDom();
+  cur.push({who:'', text:''});
+  edRenderDialogueList(cur);
 }
 function edMediaChanged(){
   const v = document.getElementById('f-media').value;
@@ -1608,6 +1721,10 @@ function edEdit(id){
   _edMediaFileData = (c.mediaData && String(c.mediaData).startsWith('data:')) ? c.mediaData : null;
   document.getElementById('f-media-url').value = _edMediaFileData ? '' : (c.mediaUrl || '');
   document.getElementById('f-prompt').value = c.prompt || '';
+  const hasDlg = c.dialogue && c.dialogue.length;
+  document.querySelectorAll('input[name="f-prompt-mode"]').forEach(r => r.checked = r.value === (hasDlg ? 'dialogue' : 'simple'));
+  edRenderDialogueList(hasDlg ? c.dialogue : []);
+  edPromptModeChanged();
   document.getElementById('f-who').value = c.who || '';
   document.getElementById('f-ending').value = c.ending || '';
   document.getElementById('f-hint1').value = c.hint1 || '';
@@ -1643,7 +1760,16 @@ function edSave(){
   const title = document.getElementById('f-title').value.trim();
   const mediaType = document.getElementById('f-media').value;
   const mediaUrl = document.getElementById('f-media-url').value.trim();
-  const prompt = document.getElementById('f-prompt').value.trim();
+  const promptMode = document.querySelector('input[name="f-prompt-mode"]:checked').value;
+  let prompt = document.getElementById('f-prompt').value.trim();
+  let dialogue = null;
+  if(promptMode === 'dialogue'){
+    const lines = edReadDialogueFromDom().filter(l => l.who || l.text);
+    if(lines.length){
+      dialogue = lines;
+      prompt = lines.map(l => l.who ? `${l.who}: ${l.text}` : l.text).join(' '); // texto plano de respaldo (listado/búsqueda)
+    }
+  }
   const who = document.getElementById('f-who').value.trim();
   const ending = document.getElementById('f-ending').value.trim();
   const hint1 = document.getElementById('f-hint1').value.trim();
@@ -1669,6 +1795,7 @@ function edSave(){
     id: _editCardId || nextId(),
     category: cat, title, mediaType, prompt, who, ending, hint1, hint2, options, optionsFor
   };
+  if(dialogue) card.dialogue = dialogue;
   if(mediaType !== 'none'){
     if(mediaType === 'image-upload' && _edMediaFileData){ card.mediaData = _edMediaFileData; }
     else if(mediaUrl){ card.mediaUrl = mediaUrl; }
