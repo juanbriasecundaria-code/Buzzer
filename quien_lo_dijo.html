@@ -503,8 +503,8 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
       </div>
       <div class="form-row">
         <span class="form-lbl">Frase / Prompt para los participantes</span>
-        <textarea class="form-ta" id="f-prompt" placeholder="Ej: Hola estrellitas, la tierra les dice ___"></textarea>
-        <div class="form-help">Usá <code>___</code> (tres guiones bajos) donde va el hueco. Podés poner varios.</div>
+        <textarea class="form-ta" id="f-prompt" placeholder="Ej: ¿Te das cuenta? ___ no faltan, lo que faltan son ___"></textarea>
+        <div class="form-help">Usá <code>___</code> (tres guiones bajos) donde va cada hueco. Si ponés varios, cada uno se completa con una parte distinta de "Cómo termina la frase" (separadas por <code>/</code>), en el mismo orden.</div>
       </div>
       <div class="form-2col">
         <div class="form-row">
@@ -513,7 +513,8 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
         </div>
         <div class="form-row">
           <span class="form-lbl">✓ Cómo termina la frase</span>
-          <input class="form-in" id="f-ending" placeholder="Ej: hola">
+          <input class="form-in" id="f-ending" placeholder="Ej: hola  —  o con varios huecos: giles / financistas">
+          <div class="form-help">Si la frase tiene un solo hueco, poné una sola respuesta. Si tiene varios, separá cada una con <code>/</code> en el mismo orden en que aparecen los huecos.</div>
         </div>
       </div>
       <div class="form-row">
@@ -1006,7 +1007,15 @@ function renderCondText(cur){
 function renderPromptWithGap(prompt, isRevealed, ending){
   const p = prompt || '';
   if(isRevealed && ending){
-    return escapeHtml(p).replace(/___+/g, `<span class="gap">${escapeHtml(ending)}</span>`);
+    // Soporta varios huecos "___": separá cada respuesta con "/" en "Cómo termina la frase"
+    // y se van completando en orden. Si hay más huecos que partes, el resto repite la última.
+    const parts = ending.split('/').map(s => s.trim()).filter(Boolean);
+    let i = 0;
+    return escapeHtml(p).replace(/___+/g, () => {
+      const val = parts.length ? (i < parts.length ? parts[i] : parts[parts.length - 1]) : ending;
+      i++;
+      return `<span class="gap">${escapeHtml(val)}</span>`;
+    });
   }
   return escapeHtml(p).replace(/___+/g, `<span class="gap">_____</span>`);
 }
