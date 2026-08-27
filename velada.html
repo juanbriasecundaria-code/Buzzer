@@ -2823,6 +2823,15 @@ function renderReglas() {
       </button>
     </div>
 
+    <!-- ── ADMIN: restablecer los buzzers entre juego y juego ── -->
+    <div class="card" style="text-align:center;border-color:rgba(255,95,95,0.3)">
+      <div style="font-size:13px;color:var(--muted);margin-bottom:0.9rem">
+        Cuando termina un juego y se sientan dos personas nuevas, esto deja los buzzers
+        de <b>Guess Movies</b> y <b>100 Argentinos</b> en Equipo 1 / Equipo 2 y el marcador en 0.
+      </div>
+      <button class="final-end-btn" style="border-color:rgba(255,95,95,0.6);color:var(--red)" onclick="resetBuzzers()">↺ Restablecer buzzers (nombres + puntajes)</button>
+    </div>
+
     <div class="${editBarClass}">
       <span class="rules-edit-bar-label">${editBarLabel}</span>
       <button class="rules-edit-toggle" onclick="toggleRulesEdit()">${editBtnLabel}</button>
@@ -3896,6 +3905,7 @@ function saveState() {
       // Named app para no chocar con nada
       const qldApp = firebase.initializeApp(QLD_CFG, 'qld');
       const qldDb = qldApp.database();
+      window._qldDb = qldDb; // lo usa resetBuzzers()
 
       // Publicamos el roster de equipos de Fase 2 (con apodos) para que "¿Quién lo dijo?"
       // siempre juegue con los equipos actuales — se resincroniza cada vez que se abre esta página.
@@ -3929,6 +3939,25 @@ function saveState() {
     }catch(e){ console.warn('QLD Firebase init error', e); }
   }).catch(e => console.warn('No se pudo cargar el SDK RTDB', e));
 })();
+
+// ── ADMIN: restablecer los buzzers entre juego y juego ──────────────
+// Manda una orden por Firebase a los dos juegos que usan buzzer con nombres
+// (Guess Movies & Songs y 100 Argentinos Dicen). Cada conductor la recibe en
+// vivo y pone los nombres en "Equipo 1 / Equipo 2" y el marcador en 0.
+// ¿Quién lo dijo? no se toca: usa el roster de equipos de la Fase 2.
+function resetBuzzers(){
+  const db = window._qldDb;
+  if(!db){ showToast('⚠️', 'Todavía no hay conexión con los buzzers — probá en unos segundos', false); return; }
+  if(!confirm('¿Restablecer los buzzers?\n\n· Nombres → Equipo 1 / Equipo 2\n· Puntajes → 0\n\nAfecta a Guess Movies & Songs y 100 Argentinos Dicen.\nNo toca ¿Quién lo dijo? ni el ranking de la velada.')) return;
+  const ts = Date.now();
+  const payload = { state:'locked', winner:null, blocked:null, names:{ a:'Equipo 1', b:'Equipo 2' }, reset: ts };
+  let ok = 0, fail = 0;
+  ['velada/buzzer', 'argentinos/buzzer'].forEach(p => {
+    db.ref(p).set(payload)
+      .then(() => { ok++; if(ok + fail === 2) showToast('↺', 'Buzzers restablecidos — Equipo 1 / Equipo 2, marcador en 0', false); })
+      .catch(e => { fail++; console.warn('reset', p, e); showToast('⚠️', 'No se pudo restablecer ' + p, false); });
+  });
+}
 function activateTab(tab) {
   document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
