@@ -22,18 +22,6 @@ function _onFbError(){window._fbScriptsDone=true;console.warn('[FB] script load 
 </script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js" onload="_onFbLoad()" onerror="_onFbError()"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js" onload="_onFbLoad()" onerror="_onFbError()"></script>
-<script>
-// ── YouTube IFrame API (para sincronizar play/pause entre conductor y participantes) ──
-window._ytApiReady = false;
-window._ytApiCbs = [];
-window.onYouTubeIframeAPIReady = function(){
-  window._ytApiReady = true;
-  const cbs = window._ytApiCbs; window._ytApiCbs = [];
-  cbs.forEach(fn => { try{ fn(); }catch(e){} });
-};
-function onYtApiReady(fn){ if(window._ytApiReady) fn(); else window._ytApiCbs.push(fn); }
-(function(){ const s=document.createElement('script'); s.src='https://www.youtube.com/iframe_api'; document.head.appendChild(s); })();
-</script>
 
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
@@ -107,7 +95,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
 /* ── SCORE BAR (todos-contra-todos) ── */
 .score-strip{position:sticky;top:0;z-index:20;background:rgba(14,14,20,.9);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border-bottom:1px solid var(--border);padding:.5rem .5rem;overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch}
 .score-strip::-webkit-scrollbar{display:none}
-.score-strip-inner{display:flex;gap:.4rem;padding:0 .25rem 0 4.5rem;min-width:min-content}
+.score-strip-inner{display:flex;gap:.4rem;padding:0 .25rem;min-width:min-content}
 .score-chip{flex-shrink:0;display:flex;flex-direction:column;align-items:center;padding:.4rem .7rem;background:var(--surface);border:1.5px solid var(--border2);border-radius:12px;cursor:pointer;transition:transform .1s,border-color .15s;min-width:70px}
 .score-chip:active{transform:scale(.95)}
 .score-chip.leader{border-color:var(--gold);background:var(--gold-dim)}
@@ -117,6 +105,29 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
 .score-chip.leader .score-chip-pts{color:var(--gold)}
 .score-chip-recent{position:absolute;top:-6px;right:-6px;background:var(--green);color:#0a0a0e;font-size:9px;font-weight:900;padding:1px 5px;border-radius:99px;pointer-events:none}
 .score-chip{position:relative}
+.score-chip-goal{font-size:11px;font-weight:700;color:var(--muted2);margin-left:1px}
+
+/* ── WIN OVERLAY ── */
+.win-panel{background:var(--surface);border:2px solid var(--gold);border-radius:20px;max-width:340px;width:100%;padding:2rem 1.5rem;text-align:center;display:flex;flex-direction:column;align-items:center;gap:.5rem;box-shadow:0 0 40px rgba(245,200,66,.25)}
+.win-trophy{font-size:3.2rem;line-height:1;margin-bottom:.3rem;animation:spBreathe 1.6s ease-in-out infinite}
+.win-eye{font-size:11px;font-weight:800;letter-spacing:.24em;text-transform:uppercase;color:var(--gold)}
+.win-name{font-size:1.7rem;font-weight:900;letter-spacing:-.02em;color:var(--text)}
+.win-sub{font-size:12px;color:var(--muted2);margin-bottom:.5rem}
+.win-actions{display:flex;flex-direction:column;gap:.5rem;width:100%;margin-top:.5rem}
+.part-win-banner{position:fixed;inset:0;z-index:750;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.8);opacity:0;pointer-events:none;transition:opacity .3s ease;text-align:center;flex-direction:column;gap:.5rem;padding:2rem}
+.part-win-banner.show{opacity:1}
+.part-win-banner .win-trophy{font-size:4rem}
+.part-win-banner .win-eye{font-size:12px;font-weight:800;letter-spacing:.24em;text-transform:uppercase;color:var(--gold)}
+.part-win-banner .win-name{font-size:2.2rem;font-weight:900;color:var(--text)}
+.part-audio-tap{position:fixed;left:50%;bottom:max(1.25rem,env(safe-area-inset-bottom));transform:translateX(-50%);z-index:760;display:none;align-items:center;gap:.4rem;background:var(--gold);color:#1a1400;font-weight:800;font-size:13px;padding:.7rem 1.2rem;border-radius:99px;cursor:pointer;box-shadow:0 4px 20px rgba(0,0,0,.35)}
+
+/* ── REVEAL MEDIA (audio/video al acertar) ── */
+.reveal-overlay{z-index:850}
+.reveal-panel{position:relative;max-width:480px;width:100%;background:var(--surface);border:2px solid var(--gold);border-radius:16px;overflow:hidden}
+.reveal-close{position:absolute;top:.4rem;right:.4rem;z-index:2;background:rgba(10,10,14,.7);border:none;color:#fff;font-size:20px;width:30px;height:30px;border-radius:50%;cursor:pointer;line-height:1}
+.reveal-panel video,.reveal-panel iframe{width:100%;display:block;aspect-ratio:16/9;border:none}
+.reveal-panel audio{width:100%;display:block}
+.reveal-audio-vis{font-size:3.5rem;text-align:center;padding:2rem 0 .5rem;animation:spBreathe 1.4s ease-in-out infinite}
 
 /* ── COND TOP BAR ── */
 .cond-topbar{display:flex;gap:.4rem;padding:.6rem .75rem;align-items:center;flex-wrap:wrap}
@@ -140,13 +151,31 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
 .cc-prompt{font-size:clamp(15px,3.5vw,20px);font-weight:700;line-height:1.4;color:var(--text);padding:.5rem .25rem}
 .cc-prompt .gap{display:inline-block;min-width:80px;border-bottom:2.5px solid var(--purple);margin:0 .15rem;color:transparent;padding:0 .3rem}
 .cc-prompt.revealed .gap{color:var(--purple);border-bottom-color:var(--purple);background:var(--purple-dim);border-radius:4px}
+
+/* ── DIÁLOGO POR PERSONAJES ── */
+.dlg-wrap{display:flex;flex-direction:column;gap:.55rem;padding:.5rem .25rem;width:100%}
+.dlg-row{display:flex;flex-direction:column;max-width:82%}
+.dlg-row.side-a{align-self:flex-start;align-items:flex-start}
+.dlg-row.side-b{align-self:flex-end;align-items:flex-end}
+.dlg-name{font-size:11px;font-weight:900;letter-spacing:.03em;margin-bottom:3px;padding:0 .35rem;text-transform:uppercase}
+.dlg-bubble{padding:.6rem .85rem;border-radius:14px;font-weight:700;line-height:1.4;font-size:clamp(14px,3.3vw,18px)}
+.dlg-row.side-a .dlg-bubble{border-bottom-left-radius:3px}
+.dlg-row.side-b .dlg-bubble{border-bottom-right-radius:3px}
+.part-dlg .dlg-bubble{font-size:clamp(16px,4vw,22px)}
+.part-dlg .dlg-name{font-size:12px}
+.dlg-bubble .gap{display:inline-block;min-width:70px;border-bottom:2.5px solid currentColor;margin:0 .15rem;color:transparent;padding:0 .3rem}
+
+/* editor: tabs de modo + filas de diálogo */
+.prompt-mode-tabs{display:flex;gap:1rem;margin-bottom:.5rem;font-size:13px;font-weight:600;color:var(--muted2)}
+.prompt-mode-tab{display:flex;align-items:center;gap:.35rem;cursor:pointer}
+.dlg-edit-row{display:flex;gap:.5rem;align-items:flex-start;background:rgba(255,255,255,.03);border:1px solid var(--border);border-radius:10px;padding:.6rem;margin-bottom:.5rem}
+.dlg-edit-row .form-in{flex:0 0 130px}
+.dlg-edit-row textarea{flex:1;min-height:44px;resize:vertical}
+.dlg-edit-del{flex:0 0 auto;padding:.4rem .6rem}
 .cc-answer{background:var(--purple-dim);border:1px solid var(--purple);border-radius:12px;padding:.85rem 1rem;display:flex;flex-direction:column;gap:.4rem}
 .cc-answer .aq{font-size:10px;font-weight:800;color:var(--purple);letter-spacing:.1em;text-transform:uppercase}
 .cc-answer .av{font-size:15px;font-weight:700;color:var(--text)}
-.cc-answer-status{display:flex;justify-content:flex-end;margin-bottom:.15rem}
-.cca-badge{display:inline-flex;align-items:center;gap:.3rem;padding:.2rem .55rem;border-radius:99px;font-size:9px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;border:1px solid}
-.cca-badge.on{color:var(--green);border-color:var(--green);background:var(--green-dim)}
-.cca-badge.off{color:var(--muted2);border-color:var(--border2);background:var(--surface2)}
+.cc-answer.hidden .av{filter:blur(6px);user-select:none}
 .cc-hints{display:flex;flex-direction:column;gap:.4rem}
 .cc-hint{display:flex;gap:.5rem;align-items:flex-start;padding:.55rem .75rem;border-radius:10px;background:var(--surface2);border:1px dashed var(--border2);font-size:13px;color:var(--muted2)}
 .cc-hint.revealed{color:var(--text);border-style:solid;border-color:var(--gold);background:var(--gold-dim)}
@@ -187,26 +216,9 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
 .assign-tab{flex:1;padding:.5rem;border-radius:10px;border:1.5px solid var(--border2);background:var(--surface2);font-family:inherit;font-size:12px;font-weight:800;color:var(--muted2);cursor:pointer}
 .assign-tab.on{border-color:var(--purple);background:var(--purple-dim);color:var(--purple)}
 .assign-players{display:grid;grid-template-columns:repeat(auto-fill,minmax(90px,1fr));gap:.4rem;max-height:220px;overflow-y:auto}
-.assign-amount-choices{display:none;flex-direction:column;gap:.5rem}
 .assign-player{padding:.55rem .5rem;border-radius:10px;border:1.5px solid var(--border2);background:var(--surface2);font-family:inherit;font-size:12px;font-weight:800;color:var(--text);cursor:pointer;transition:transform .1s,border-color .15s}
 .assign-player:active{transform:scale(.95)}
 .assign-player:hover{border-color:var(--purple);color:var(--purple)}
-.assign-player.winner{border-color:var(--gold);background:var(--gold-dim);color:var(--gold);box-shadow:0 0 12px rgba(245,200,66,.35);animation:winnerPulse 1.4s ease-in-out infinite}
-@keyframes winnerPulse{0%,100%{box-shadow:0 0 8px rgba(245,200,66,.3)}50%{box-shadow:0 0 18px rgba(245,200,66,.6)}}
-
-/* ── BUZZER BANNER ── */
-.buzzer-banner{display:flex;align-items:center;gap:.75rem;padding:.85rem 1rem;border-radius:14px;border:1.5px solid;font-weight:800;margin-bottom:.5rem;animation:bbSlide .3s ease}
-.buzzer-banner.open{background:var(--purple-dim);border-color:var(--purple);color:var(--purple)}
-.buzzer-banner.won{background:var(--gold-dim);border-color:var(--gold);color:var(--gold);animation:bbSlide .3s ease, bbPulse 1.4s ease-in-out infinite}
-.bb-icon{font-size:24px;flex-shrink:0;line-height:1}
-.bb-body{flex:1;display:flex;flex-direction:column;gap:.15rem;min-width:0}
-.bb-lbl{font-size:10px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;opacity:.8}
-.bb-name{font-size:16px;font-weight:900;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.buzzer-banner.won .bb-name{color:var(--gold)}
-.bb-reset{padding:.4rem .8rem;border-radius:99px;border:1px solid currentColor;background:transparent;color:inherit;font-family:inherit;font-size:11px;font-weight:800;cursor:pointer;flex-shrink:0}
-.bb-reset:hover{background:rgba(255,255,255,.05)}
-@keyframes bbSlide{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:none}}
-@keyframes bbPulse{0%,100%{box-shadow:0 0 12px rgba(245,200,66,.25)}50%{box-shadow:0 0 24px rgba(245,200,66,.5)}}
 
 /* ── EDITOR ── */
 .overlay{position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:700;display:none;align-items:center;justify-content:center;padding:1rem;backdrop-filter:blur(3px)}
@@ -221,7 +233,6 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
 .ed-body{flex:1;overflow-y:auto;padding:1rem 1.25rem 1.25rem;display:flex;flex-direction:column;gap:1rem}
 .ed-list{display:flex;flex-direction:column;gap:.5rem}
 .ed-item{display:flex;align-items:center;gap:.6rem;padding:.75rem .9rem;border:1px solid var(--border2);border-radius:12px;background:var(--surface2)}
-.ed-item.played{opacity:.5}
 .ed-item-icon{font-size:20px;flex-shrink:0;width:32px;text-align:center}
 .ed-item-body{flex:1;min-width:0}
 .ed-item-title{font-size:13px;font-weight:800;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -258,7 +269,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
 .part-wrap{flex:1;display:flex;flex-direction:column;padding:0}
 .part-score-strip{position:sticky;top:0;z-index:10;background:rgba(14,14,20,.92);backdrop-filter:blur(10px);border-bottom:1px solid var(--border);padding:.5rem .5rem;overflow-x:auto}
 .part-score-strip::-webkit-scrollbar{display:none}
-.part-score-inner{display:flex;gap:.35rem;padding:0 .25rem 0 4.5rem;min-width:min-content}
+.part-score-inner{display:flex;gap:.35rem;padding:0 .25rem;min-width:min-content}
 .part-chip{flex-shrink:0;padding:.35rem .65rem;background:var(--surface);border:1px solid var(--border2);border-radius:10px;text-align:center;min-width:60px}
 .part-chip.leader{border-color:var(--gold);background:var(--gold-dim)}
 .part-chip-name{font-size:9px;font-weight:800;color:var(--muted2);text-transform:uppercase;letter-spacing:.03em}
@@ -286,22 +297,6 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
 .part-opts{display:grid;grid-template-columns:1fr 1fr;gap:.5rem;width:100%}
 .part-opt{padding:.85rem 1rem;border-radius:12px;background:var(--surface2);border:2px solid var(--border2);font-size:14px;font-weight:800;color:var(--text);text-align:center}
 .part-opt.correct{border-color:var(--green);background:var(--green-dim);color:var(--green)}
-
-/* ── AUDIO UNLOCK OVERLAY (participante) ── */
-.audio-unlock{position:fixed;inset:0;z-index:9500;display:none;flex-direction:column;align-items:center;justify-content:center;gap:.75rem;background:rgba(10,10,14,.92);backdrop-filter:blur(6px);cursor:pointer;text-align:center;padding:2rem}
-.au-icon{font-size:3.5rem;animation:auPulse2 1.4s ease-in-out infinite}
-.au-text{font-size:16px;font-weight:800;color:var(--text)}
-.au-sub{font-size:12px;color:var(--muted2);font-weight:600}
-@keyframes auPulse2{0%,100%{transform:scale(1)}50%{transform:scale(1.12)}}
-
-/* ── REVEAL CUE OVERLAY (participante) — clip de audio/video al revelar ── */
-.reveal-cue-overlay{position:fixed;inset:0;z-index:9400;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.92);cursor:pointer}
-.reveal-cue-overlay.show{display:flex}
-#reveal-cue-video{max-width:92vw;max-height:80vh;border-radius:12px;box-shadow:0 8px 60px rgba(0,0,0,.6);display:none}
-.reveal-cue-audio-vis{display:none;flex-direction:column;align-items:center;gap:1rem;color:var(--gold)}
-.reveal-cue-audio-vis.show{display:flex}
-.rcv-icon{font-size:4rem;animation:auPulse2 1s ease-in-out infinite}
-.rcv-text{font-size:14px;font-weight:800;letter-spacing:.05em;text-transform:uppercase}
 
 /* ── FB STATUS ── */
 .fb-status{position:fixed;top:max(.6rem,env(safe-area-inset-top));right:.6rem;z-index:50;display:flex;align-items:center;gap:.35rem;padding:.3rem .6rem;background:rgba(20,20,28,.7);border:1px solid var(--border2);border-radius:99px;backdrop-filter:blur(6px);font-size:10px;font-weight:700;color:var(--muted2);letter-spacing:.03em}
@@ -385,8 +380,10 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
         <button class="set-btn" onclick="closeSetMenu();exportDeck()">📤 Exportar mazo (JSON)</button>
         <button class="set-btn" onclick="closeSetMenu();importDeck()">📥 Importar mazo (JSON)</button>
         <div class="set-divider"></div>
+        <button class="set-btn" onclick="closeSetMenu();changeGoal()">🎯 Meta de puntos</button>
+        <button class="set-btn" onclick="closeSetMenu();openRanking()">🏆 Ver ranking</button>
+        <div class="set-divider"></div>
         <button class="set-btn" onclick="closeSetMenu();resetScores()">↺ Reiniciar puntajes</button>
-        <button class="set-btn" onclick="closeSetMenu();resetPlayedFlags()">🔲 Reiniciar cartas jugadas</button>
         <button class="set-btn danger" onclick="closeSetMenu();resetAll()">🗑 Borrar todo (mazo + puntajes)</button>
       </div>
     </div>
@@ -403,9 +400,6 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
       <button class="nav-btn" id="nav-next" onclick="navigate(1)" disabled>▶</button>
     </div>
     <div class="card-count" id="card-count">— / —</div>
-    <div style="display:flex;justify-content:center">
-      <button class="cta-btn" id="mark-played-btn" onclick="toggleCurrentPlayed()">✓ Marcar como jugada</button>
-    </div>
 
     <div class="action-grid-3" id="reveal-row">
       <button class="act-btn gold"   id="hint1-btn" onclick="toggleHint(1)">💡 Pista 1</button>
@@ -413,11 +407,8 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
       <button class="act-btn purple" id="reveal-btn" onclick="toggleReveal()">👁 Revelar respuestas</button>
     </div>
     <div class="action-grid">
-      <button class="act-btn purple" id="buzzer-btn" onclick="toggleBuzzer()">🔔 Abrir buzzer</button>
-      <button class="act-btn ghost" onclick="openPlayers()">👥 Ver jugadores</button>
-    </div>
-    <div style="display:flex">
-      <button class="act-btn green" style="flex:1" onclick="openAssign(false)">✓ Acertó</button>
+      <button class="act-btn green" onclick="openAssign('who')">✓ Acertó QUIÉN (+1)</button>
+      <button class="act-btn blue"  onclick="openAssign('ending')">✓ Acertó FINAL (+1)</button>
     </div>
 
     <div class="assign-panel" id="assign-panel" style="display:none">
@@ -426,27 +417,32 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
         <button class="assign-close" onclick="closeAssign()">×</button>
       </div>
       <div class="assign-sub" id="assign-sub">Tocá el nombre del jugador que acertó</div>
-      <div class="assign-amount-choices" id="assign-amount-choices" style="display:none"></div>
       <div class="assign-players" id="assign-players"></div>
+    </div>
+  </div>
+  <div class="overlay reveal-overlay" id="reveal-media-overlay">
+    <div class="reveal-panel">
+      <button class="reveal-close" onclick="closeRevealMedia()">×</button>
+      <div id="reveal-media-content"></div>
     </div>
   </div>
 </div>
 
 <!-- PARTICIPANT -->
 <div id="participant">
-  <div class="fb-status"><div class="fb-dot" id="fb-dot-p"></div><span id="fb-txt-p">Conectando…</span></div>
-  <div class="audio-unlock" id="audio-unlock" onclick="unlockPartAudio()">
-    <div class="au-icon">🔊</div>
-    <div class="au-text">Tocá para activar el audio</div>
-    <div class="au-sub">Necesario para ver videos con sonido</div>
-  </div>
-  <div class="reveal-cue-overlay" id="reveal-cue-overlay" onclick="closeRevealCue()">
-    <video id="reveal-cue-video" playsinline></video>
-    <div class="reveal-cue-audio-vis" id="reveal-cue-audio-vis">
-      <div class="rcv-icon">🔊</div>
-      <div class="rcv-text">Reproduciendo…</div>
+  <div class="overlay reveal-overlay" id="part-reveal-overlay">
+    <div class="reveal-panel">
+      <button class="reveal-close" onclick="document.getElementById('part-reveal-overlay').classList.remove('open')">×</button>
+      <div id="part-reveal-content"></div>
     </div>
   </div>
+  <div class="part-audio-tap" id="part-audio-tap">🔊 Tocá para escuchar/ver el clip</div>
+  <div class="part-win-banner" id="part-win-banner">
+    <div class="win-trophy">🏆</div>
+    <div class="win-eye">¡Ganó la partida!</div>
+    <div class="win-name" id="part-win-name">—</div>
+  </div>
+  <div class="fb-status"><div class="fb-dot" id="fb-dot-p"></div><span id="fb-txt-p">Conectando…</span></div>
   <div class="part-wrap">
     <div class="part-score-strip"><div class="part-score-inner" id="part-score-inner"></div></div>
     <div class="part-main" id="part-main">
@@ -470,7 +466,6 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
       <button class="ed-tab"    id="tab-new"  onclick="edSwitch('new')">➕ Nueva</button>
     </div>
     <div class="ed-body" id="ed-body-list">
-      <input class="form-in" id="ed-search" placeholder="🔍 Buscar por título, frase o quién…" oninput="edSetSearch(this.value)" style="margin-bottom:.6rem">
       <div class="ed-filter-row" id="ed-filters"></div>
       <div class="ed-list" id="ed-list"></div>
     </div>
@@ -503,8 +498,19 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
       </div>
       <div class="form-row">
         <span class="form-lbl">Frase / Prompt para los participantes</span>
-        <textarea class="form-ta" id="f-prompt" placeholder="Ej: ¿Te das cuenta? ___ no faltan, lo que faltan son ___"></textarea>
-        <div class="form-help">Usá <code>___</code> (tres guiones bajos) donde va cada hueco. Si ponés varios, cada uno se completa con una parte distinta de "Cómo termina la frase" (separadas por <code>/</code>), en el mismo orden.</div>
+        <div class="prompt-mode-tabs">
+          <label class="prompt-mode-tab"><input type="radio" name="f-prompt-mode" value="simple" checked onchange="edPromptModeChanged()"> Texto simple</label>
+          <label class="prompt-mode-tab"><input type="radio" name="f-prompt-mode" value="dialogue" onchange="edPromptModeChanged()"> 🎭 Diálogo por personajes</label>
+        </div>
+        <div id="f-prompt-simple-row">
+          <textarea class="form-ta" id="f-prompt" placeholder="Ej: Hola estrellitas, la tierra les dice ___"></textarea>
+          <div class="form-help">Usá <code>___</code> (tres guiones bajos) donde va el hueco. Podés poner varios.</div>
+        </div>
+        <div id="f-dialogue-row" style="display:none">
+          <div id="f-dialogue-list"></div>
+          <button type="button" class="cta-btn" onclick="edAddDialogueLine()">+ Agregar línea</button>
+          <div class="form-help">Una línea por personaje. Se van a mostrar separadas, cada una con el nombre bien visible. Dejá <code>___</code> donde tengan que completar.</div>
+        </div>
       </div>
       <div class="form-2col">
         <div class="form-row">
@@ -513,30 +519,32 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
         </div>
         <div class="form-row">
           <span class="form-lbl">✓ Cómo termina la frase</span>
-          <input class="form-in" id="f-ending" placeholder="Ej: hola  —  o con varios huecos: giles / financistas">
-          <div class="form-help">Si la frase tiene un solo hueco, poné una sola respuesta. Si tiene varios, separá cada una con <code>/</code> en el mismo orden en que aparecen los huecos.</div>
+          <input class="form-in" id="f-ending" placeholder="Ej: hola">
         </div>
+      </div>
+      <div class="form-row" id="f-reveal-row">
+        <span class="form-lbl">🎬 Clip al revelar (audio o video, opcional)</span>
+        <select class="form-sel" id="f-reveal-type" onchange="edRevealChanged()">
+          <option value="none">Sin clip</option>
+          <option value="audio-url">Audio (URL pública)</option>
+          <option value="audio-upload">Audio (subir archivo)</option>
+          <option value="video-url">Video (URL directa .mp4/.webm)</option>
+          <option value="video-upload">Video (subir archivo)</option>
+          <option value="youtube">YouTube (link o ID)</option>
+        </select>
+        <input class="form-in" id="f-reveal-url" placeholder="https://…" oninput="edRevealUrlChanged()" style="margin-top:.4rem;display:none">
+        <input type="file" id="f-reveal-file" style="display:none" onchange="edRevealFileChosen(event)">
+        <div style="display:flex;gap:.5rem;flex-wrap:wrap;margin-top:.4rem">
+          <button type="button" class="cta-btn" id="f-reveal-upload-btn" style="display:none" onclick="document.getElementById('f-reveal-file').click()">📁 Elegir archivo</button>
+          <button type="button" class="cta-btn danger" id="f-reveal-clear-btn" style="display:none" onclick="edRevealClear()">🗑 Quitar clip</button>
+        </div>
+        <div class="form-help" id="f-reveal-help"></div>
+        <div id="f-reveal-preview" style="display:none;margin-top:.5rem"></div>
       </div>
       <div class="form-row">
         <span class="form-lbl">Pistas (opcional, se revelan de a una)</span>
         <input class="form-in" id="f-hint1" placeholder="Pista 1" style="margin-bottom:.4rem">
         <input class="form-in" id="f-hint2" placeholder="Pista 2">
-      </div>
-      <div class="form-row">
-        <span class="form-lbl">🎬 Clip de revelación (opcional — se ve/escucha en la pantalla de participantes al Revelar)</span>
-        <select class="form-sel" id="f-reveal-type" onchange="edRevealChanged()">
-          <option value="none">Sin clip</option>
-          <option value="audio-url">🔊 Audio — URL pública</option>
-          <option value="audio-upload">🔊 Audio — subir archivo</option>
-          <option value="video-url">🎬 Video — URL pública (mp4/webm)</option>
-          <option value="video-upload">🎬 Video — subir archivo</option>
-        </select>
-        <div id="f-reveal-row" style="display:none;margin-top:.5rem">
-          <input class="form-in" id="f-reveal-url" placeholder="https://…" style="margin-bottom:.4rem">
-          <input type="file" id="f-reveal-file" style="display:none" onchange="edRevealFileChosen(event)">
-          <div class="form-help" id="f-reveal-help"></div>
-          <div class="media-preview" id="f-reveal-preview" style="display:none"></div>
-        </div>
       </div>
       <div class="form-row">
         <span class="form-lbl">Opciones múltiples (opcional)</span>
@@ -579,6 +587,39 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
   </div>
 </div>
 
+<!-- WIN OVERLAY -->
+<div class="overlay" id="win-overlay">
+  <div class="win-panel">
+    <div class="win-trophy">🏆</div>
+    <div class="win-eye">¡Ganó la partida!</div>
+    <div class="win-name" id="win-name">—</div>
+    <div class="win-sub" id="win-sub">—</div>
+    <div class="win-actions">
+      <button class="cta-btn primary" onclick="newPartida()">🔄 Nueva partida (puntajes a 0)</button>
+      <button class="cta-btn" onclick="closeWinOverlay();openRanking()">🏆 Ver ranking</button>
+      <button class="cta-btn" onclick="closeWinOverlay()">Seguir viendo el marcador</button>
+    </div>
+  </div>
+</div>
+
+<!-- RANKING OVERLAY -->
+<div class="overlay" id="rank-overlay">
+  <div class="ed-panel" style="max-width:420px">
+    <div class="ed-head">
+      <div class="ed-title">🏆 Ranking (entre partidas)</div>
+      <button class="ed-close" onclick="closeRanking()">×</button>
+    </div>
+    <div class="ed-body">
+      <div class="form-help">Cada vez que alguien llega a la meta de puntos (hoy: <b id="rank-goal-lbl"></b>) suma <b id="rank-winpts-lbl"></b> al ranking.</div>
+      <div class="ed-list" id="rank-list"></div>
+      <div class="form-actions">
+        <button class="cta-btn" onclick="changeGoal();renderRankingLabels()">🎯 Cambiar meta</button>
+        <button class="cta-btn danger" onclick="resetRanking()">🗑 Reiniciar ranking</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- TOAST -->
 <div class="toast" id="toast"></div>
 
@@ -593,8 +634,12 @@ const SK = {
   IDX: 'qld_idx',
   SCORES: 'qld_scores',
   PLAYERS: 'qld_players',
-  MODE: 'qld_mode'
+  MODE: 'qld_mode',
+  RANKING: 'qld_ranking',
+  GOAL: 'qld_goal'
 };
+const GOAL_DEFAULT = 10;
+const RANKING_WIN_PTS = 3;
 const PLAYERS_DEFAULT = ['Risu','Totti','Thiago','Mica','Valentín','Laza','Lara','Martin','Cori','Flor','Tomás'];
 
 const CATEGORIES = [
@@ -618,7 +663,7 @@ const FB_CFG = {
   messagingSenderId:"313601369235",
   appId:"1:313601369235:web:f8b28a2ec187a934fa1966"
 };
-let fbDb=null, fbStateRef=null, fbDeckRef=null, fbBuzzerRef=null, fbInited=false, _lastFbJson=null;
+let fbDb=null, fbStateRef=null, fbDeckRef=null, fbRankingRef=null, fbInited=false, _lastFbJson=null;
 
 function initFirebase(){
   if(fbInited) return;
@@ -627,9 +672,9 @@ function initFirebase(){
   try{
     if(!firebase.apps.length) firebase.initializeApp(FB_CFG);
     fbDb = firebase.database();
-    fbStateRef  = fbDb.ref('velada/qld/live');
-    fbDeckRef   = fbDb.ref('velada/qld/deck');
-    fbBuzzerRef = fbDb.ref('velada/qld/buzzer');
+    fbStateRef = fbDb.ref('velada/qld/live');
+    fbDeckRef  = fbDb.ref('velada/qld/deck');
+    fbRankingRef = fbDb.ref('velada/qld/ranking');
     fbInited = true;
     fbDb.ref('.info/connected').on('value', s => setFbStatus(s.val()?'ok':'','Conectado'));
     if(MODE==='participant'){
@@ -650,13 +695,15 @@ function initFirebase(){
           renderCard(); renderEditorList();
         }
       });
-      // Listener del buzzer para mostrar quién ganó
-      fbBuzzerRef.on('value', snap => {
-        const d = snap.val() || {};
-        applyBuzzerState(d);
+      // Igual para el ranking acumulado entre partidas
+      fbRankingRef.once('value').then(snap => {
+        const d = snap.val();
+        if(d && d.ranking && d.updated && d.updated > (rankingMeta.updated||0)){
+          ranking = d.ranking;
+          rankingMeta = { updated: d.updated };
+          saveRankingLocal();
+        }
       });
-      // Al arrancar: buzzer cerrado
-      fbLockBuzzer();
     }
   }catch(e){ console.error('[FB] init error', e); setFbStatus('err','Error FB'); }
 }
@@ -680,90 +727,28 @@ function fbPushDeck(){
   const payload = { deck, updated: Date.now() };
   try{ fbDeckRef.set(payload); }catch(e){}
 }
-
-// ── BUZZER ──
-let buzzerState = 'locked'; // 'locked' | 'open' | 'won'
-let buzzerWinner = null;    // { name }
-function fbOpenBuzzer(){
-  if(!fbBuzzerRef) return;
-  fbBuzzerRef.set({ state:'open', winner:null, players });
-  buzzerWinner = null;
+function fbPushRanking(){
+  if(!fbRankingRef) return;
+  const payload = { ranking, updated: Date.now() };
+  try{ fbRankingRef.set(payload); }catch(e){}
 }
-function fbLockBuzzer(){
-  if(!fbBuzzerRef) return;
-  fbBuzzerRef.set({ state:'locked', winner:null, players });
-  buzzerWinner = null;
-}
-function toggleBuzzer(){
-  if(buzzerState === 'open' || buzzerState === 'won') fbLockBuzzer();
-  else fbOpenBuzzer();
-}
-function applyBuzzerState(d){
-  const state = d.state || 'locked';
-  const winner = d.winner || null;
-  buzzerState = state;
-  buzzerWinner = winner;
-  renderBuzzerBanner();
-  // Si hay ganador nuevo: abrir panel de asignación con el jugador highlighted
-  if(winner && winner.name){
-    sfxBuzz();
-    openAssignWithWinner(winner.name);
-  }
-}
-function renderBuzzerBanner(){
-  let el = document.getElementById('buzzer-banner');
-  if(!el){
-    el = document.createElement('div');
-    el.id = 'buzzer-banner';
-    el.className = 'buzzer-banner';
-    const body = document.querySelector('.cond-body');
-    if(body) body.insertBefore(el, body.firstChild);
-  }
-  const btn = document.getElementById('buzzer-btn');
-  if(buzzerWinner && buzzerWinner.name){
-    el.innerHTML = `<div class="bb-icon">🏆</div><div class="bb-body"><div class="bb-lbl">Buzzeó primero</div><div class="bb-name">${escapeHtml(buzzerWinner.name)}</div></div><button class="bb-reset" onclick="fbOpenBuzzer()">Reabrir</button>`;
-    el.className = 'buzzer-banner won';
-    el.style.display = 'flex';
-    if(btn){ btn.textContent = '🔓 Reabrir buzzer'; btn.classList.remove('primary'); btn.classList.add('danger'); }
-  } else if(buzzerState === 'open'){
-    el.innerHTML = `<div class="bb-icon">🔔</div><div class="bb-body"><div class="bb-lbl">Buzzer abierto</div><div class="bb-name">Esperando que alguien buzzee…</div></div><button class="bb-reset" onclick="fbLockBuzzer()">Cerrar</button>`;
-    el.className = 'buzzer-banner open';
-    el.style.display = 'flex';
-    if(btn){ btn.textContent = '🔒 Cerrar buzzer'; btn.classList.remove('primary'); btn.classList.add('danger'); }
-  } else {
-    el.style.display = 'none';
-    if(btn){ btn.textContent = '🔔 Abrir buzzer'; btn.classList.add('primary'); btn.classList.remove('danger'); }
-  }
-}
-
-// Cuando llega un buzz: abrir el panel de asignación con el ganador destacado
-let _winnerName = null;
-function openAssignWithWinner(name){
-  _winnerName = name;
-  openAssign(/*keepWinner=*/true);
-}
-
-// SFX buzz — pequeño "tin" para que suene en la compu del conductor
-let _bac = null;
-function _bactx(){ try{ if(!_bac) _bac = new (window.AudioContext||window.webkitAudioContext)(); if(_bac.state==='suspended') _bac.resume(); return _bac; }catch(e){ return null; } }
-document.addEventListener('pointerdown',()=>{ _bactx(); }, { once:true });
-function sfxBuzz(){ const ctx=_bactx(); if(!ctx) return; try{ const now=ctx.currentTime; [[880,0],[1319,0.08]].forEach(([f,t])=>{ const o=ctx.createOscillator(),g=ctx.createGain(); o.type='triangle'; o.frequency.value=f; o.connect(g); g.connect(ctx.destination); const s=now+t; g.gain.setValueAtTime(0.0001,s); g.gain.exponentialRampToValueAtTime(0.5,s+0.01); g.gain.exponentialRampToValueAtTime(0.0001,s+0.4); o.start(s); o.stop(s+0.45); }); }catch(e){} }
 
 // ── STATE ──
 let MODE = null;
 let deck = [];
 let deckMeta = { updated: 0 };
 let cardIdx = 0;
-let scores = {}; // { playerName: totalPoints }
+let scores = {}; // { playerName: totalPoints } — puntaje de la partida actual
 let scoresRecent = {}; // { playerName: msTimestamp } — para efecto "+1"
 let players = PLAYERS_DEFAULT.slice();
+let ranking = {}; // { playerName: partidas ganadas * 3 } — acumulado entre partidas
+let rankingMeta = { updated: 0 };
+let goalScore = GOAL_DEFAULT; // puntos para ganar la partida
 let revealed = false;
 let hintsShown = { 1: false, 2: false };
-let assignAmount = null;   // 0.5 | 1 | null — cuánto vale el punto a asignar
-let assignKeepWinner = false;
+let assignFor = null; // 'who' | 'ending' | null
 let _editCardId = null;
 let _edFilter = 'all';
-let _edSearch = '';
 let _edMediaFileData = null;
 let _edRevealFileData = null;
 
@@ -773,6 +758,8 @@ function loadState(){
   try{ const s = localStorage.getItem(SK.SCORES); if(s){ scores = JSON.parse(s) || {}; }}catch(e){}
   try{ const s = localStorage.getItem(SK.PLAYERS); if(s){ players = JSON.parse(s) || PLAYERS_DEFAULT.slice(); }}catch(e){}
   try{ const s = localStorage.getItem(SK.IDX); if(s){ cardIdx = parseInt(s)||0; }}catch(e){}
+  try{ const s = localStorage.getItem(SK.RANKING); if(s){ ranking = JSON.parse(s) || {}; }}catch(e){}
+  try{ const s = localStorage.getItem(SK.GOAL); if(s){ const n = parseInt(s); if(n>0) goalScore = n; } }catch(e){}
   if(!deck.length){ deck = DEFAULT_DECK(); saveDeckLocal(); }
   players.forEach(p => { if(!(p in scores)) scores[p] = 0; });
 }
@@ -783,6 +770,8 @@ function saveDeckLocal(){
 function saveScores(){ try{ localStorage.setItem(SK.SCORES, JSON.stringify(scores)); }catch(e){} }
 function savePlayersLocal(){ try{ localStorage.setItem(SK.PLAYERS, JSON.stringify(players)); }catch(e){} }
 function saveIdx(){ try{ localStorage.setItem(SK.IDX, String(cardIdx)); }catch(e){} }
+function saveRankingLocal(){ try{ localStorage.setItem(SK.RANKING, JSON.stringify(ranking)); }catch(e){} }
+function saveGoal(){ try{ localStorage.setItem(SK.GOAL, String(goalScore)); }catch(e){} }
 
 // ── HELPERS ──
 function currentCard(){ return deck[cardIdx] || null; }
@@ -861,7 +850,7 @@ function renderScores(){
     return `<button class="score-chip ${leader?'leader':''}" onclick="quickAssignPrompt('${escapeHtml(p)}')">
       ${recent ? '<span class="score-chip-recent">+</span>' : ''}
       <div class="score-chip-name">${escapeHtml(p)}</div>
-      <div class="score-chip-pts">${pts}</div>
+      <div class="score-chip-pts">${pts}<span class="score-chip-goal">/${goalScore}</span></div>
     </button>`;
   }).join('');
 }
@@ -874,72 +863,92 @@ function renderPartScores(){
     const leader = max > 0 && pts === max;
     return `<div class="part-chip ${leader?'leader':''}">
       <div class="part-chip-name">${escapeHtml(p)}</div>
-      <div class="part-chip-pts">${pts}</div>
+      <div class="part-chip-pts">${pts}<span class="score-chip-goal">/${goalScore}</span></div>
     </div>`;
   }).join('');
 }
 function quickAssignPrompt(name){
-  const delta = prompt(`Ajustar puntaje de ${name}\n(actual: ${scores[name]||0})\n\nEscribí +N o -N (ej: +1, -0.5):`, '+1');
+  const delta = prompt(`Ajustar puntaje de ${name}\n(actual: ${scores[name]||0})\n\nEscribí +N o -N (ej: +1, -2):`, '+1');
   if(!delta) return;
-  const n = parseFloat(delta);
+  const n = parseInt(delta);
   if(isNaN(n)) return;
   scores[name] = Math.max(0, (scores[name]||0) + n);
   saveScores(); renderScores(); fbPushLive();
+  checkGoal(name);
+}
+
+// ── META DE PUNTOS / RANKING ──
+let _wonThisPartida = {}; // evita sumar el premio de nuevo si se le siguen dando puntos al ganador
+function checkGoal(name){
+  if(!goalScore || (scores[name]||0) < goalScore) return;
+  if(_wonThisPartida[name]) return;
+  _wonThisPartida[name] = true;
+  declareWinner(name);
+}
+let winnerEvent = null; // { name, t } — se comparte por Firebase para avisarle al participante
+function declareWinner(name){
+  ranking[name] = (ranking[name]||0) + RANKING_WIN_PTS;
+  rankingMeta.updated = Date.now();
+  saveRankingLocal(); fbPushRanking();
+  winnerEvent = { name, t: Date.now() };
+  document.getElementById('win-name').textContent = name;
+  document.getElementById('win-sub').textContent = `Llegó a ${scores[name]} pts (meta: ${goalScore}) · +${RANKING_WIN_PTS} en el ranking`;
+  document.getElementById('win-overlay').classList.add('open');
+  fbPushLive(); // liveStateSnapshot incluye winnerEvent para que el participante también lo vea
+}
+function closeWinOverlay(){
+  document.getElementById('win-overlay').classList.remove('open');
+}
+function newPartida(){
+  closeWinOverlay();
+  Object.keys(scores).forEach(k => scores[k] = 0);
+  _wonThisPartida = {};
+  saveScores(); renderScores(); fbPushLive();
+  toast('🔄 Nueva partida — puntajes en 0');
+}
+function changeGoal(){
+  const v = prompt('¿A cuántos puntos gana la partida?', String(goalScore));
+  if(!v) return;
+  const n = parseInt(v);
+  if(isNaN(n) || n < 1){ toast('Número inválido'); return; }
+  goalScore = n;
+  saveGoal(); renderScores(); fbPushLive();
+  toast(`🎯 Meta actualizada a ${n} pts`);
+}
+function openRanking(){
+  renderRankingList();
+  renderRankingLabels();
+  document.getElementById('rank-overlay').classList.add('open');
+}
+function closeRanking(){ document.getElementById('rank-overlay').classList.remove('open'); }
+function renderRankingLabels(){
+  document.getElementById('rank-goal-lbl').textContent = goalScore + ' pts';
+  document.getElementById('rank-winpts-lbl').textContent = '+' + RANKING_WIN_PTS + ' pts';
+}
+function renderRankingList(){
+  const wrap = document.getElementById('rank-list');
+  const entries = Object.entries(ranking).filter(([,v]) => v > 0).sort((a,b) => b[1]-a[1]);
+  if(!entries.length){
+    wrap.innerHTML = `<div class="cc-empty">Todavía nadie ganó una partida.<br>Se suman ${RANKING_WIN_PTS} pts al ranking por cada partida ganada (meta actual: ${goalScore} pts).</div>`;
+    return;
+  }
+  wrap.innerHTML = entries.map(([name,pts],i) => `
+    <div class="ed-item">
+      <div class="ed-item-icon">${i===0?'🥇':i===1?'🥈':i===2?'🥉':'🏅'}</div>
+      <div class="ed-item-body">
+        <div class="ed-item-title">${escapeHtml(name)}</div>
+        <div class="ed-item-sub">${pts} pts en el ranking</div>
+      </div>
+    </div>`).join('');
+}
+function resetRanking(){
+  if(!confirm('¿Reiniciar el ranking acumulado de todas las partidas?')) return;
+  ranking = {}; rankingMeta.updated = Date.now();
+  saveRankingLocal(); fbPushRanking(); renderRankingList();
+  toast('↺ Ranking reiniciado');
 }
 
 // ── RENDER: CARD (conductor) ──
-let _lastRenderedCardId = null;
-let condYtPlayer = null;
-let condVideoEl = null;
-let videoSyncState = null; // { videoId|url, playing, t, ts } — se empuja a Firebase para sincronizar a los participantes
-let revealCueState = null; // { src, kind:'audio'|'video', ts } — dispara el clip de revelación en la pantalla de participantes
-
-function destroyCondPlayers(){
-  if(condYtPlayer){ try{ condYtPlayer.destroy(); }catch(e){} condYtPlayer = null; }
-  condVideoEl = null;
-}
-function pushVideoSync(obj){
-  videoSyncState = Object.assign({}, obj, { ts: Date.now() });
-  fbPushLive(); // empuje inmediato (no esperar el intervalo de 500ms)
-}
-function mountCondMedia(cur){
-  const mount = document.getElementById('cc-media-mount');
-  if(!mount) return;
-  if(!cur.mediaType || cur.mediaType === 'none'){ mount.innerHTML = ''; return; }
-  const src = cur.mediaData || cur.mediaUrl;
-  if(!src){ mount.innerHTML = '<div class="cc-media empty">📁 Sin media cargada</div>'; return; }
-  if(cur.mediaType === 'youtube'){
-    const id = youtubeId(src);
-    if(!id){ mount.innerHTML = '<div class="cc-media empty">⚠️ ID de YouTube inválido</div>'; return; }
-    mount.innerHTML = '<div class="cc-media"><div id="cc-yt-el" style="width:100%;aspect-ratio:16/9"></div></div>';
-    onYtApiReady(() => {
-      // Puede que el usuario ya haya navegado a otra carta mientras cargaba la API
-      if(!document.getElementById('cc-yt-el')) return;
-      condYtPlayer = new YT.Player('cc-yt-el', {
-        videoId: id, width:'100%', height:'100%',
-        playerVars: { autoplay:0, controls:1, modestbranding:1, rel:0 },
-        events: {
-          onStateChange: e => {
-            if(!condYtPlayer) return;
-            const st = e.data;
-            if(st === YT.PlayerState.PLAYING) pushVideoSync({ videoId:id, playing:true,  t: condYtPlayer.getCurrentTime() });
-            else if(st === YT.PlayerState.PAUSED) pushVideoSync({ videoId:id, playing:false, t: condYtPlayer.getCurrentTime() });
-            else if(st === YT.PlayerState.ENDED) pushVideoSync({ videoId:id, playing:false, t: 0 });
-          }
-        }
-      });
-    });
-  } else if(cur.mediaType === 'video-url'){
-    mount.innerHTML = `<div class="cc-media"><video id="cc-video-el" src="${escapeHtml(src)}" controls playsinline preload="metadata"></video></div>`;
-    condVideoEl = document.getElementById('cc-video-el');
-    condVideoEl.addEventListener('play',   () => pushVideoSync({ url:src, playing:true,  t: condVideoEl.currentTime }));
-    condVideoEl.addEventListener('pause',  () => pushVideoSync({ url:src, playing:false, t: condVideoEl.currentTime }));
-    condVideoEl.addEventListener('seeked', () => pushVideoSync({ url:src, playing:!condVideoEl.paused, t: condVideoEl.currentTime }));
-  } else {
-    // image / gif / image-upload
-    mount.innerHTML = `<div class="cc-media"><img src="${escapeHtml(src)}" alt=""></div>`;
-  }
-}
 function renderCard(){
   const cont = document.getElementById('cond-card');
   const cur = currentCard();
@@ -948,52 +957,29 @@ function renderCard(){
   document.getElementById('card-count').textContent = deck.length ? `${cardIdx + 1} / ${deck.length}` : '— / —';
   if(!cur){
     cont.innerHTML = `<div class="cc-empty">Aún no hay cartas.<br>Tocá <b>✏️ Editar mazo</b> para empezar.</div>`;
-    _lastRenderedCardId = null;
-    destroyCondPlayers();
-    fbPushLive();
     return;
   }
   const cat = CAT_BY_ID[cur.category] || CATEGORIES[0];
-  const isNewCard = _lastRenderedCardId !== cur.id;
-  if(isNewCard){
-    cont.innerHTML = `
-      <div class="cc-cat-row">
-        <span class="cc-cat">${cat.icon} ${cat.name}</span>
-        <span class="cc-idx">${cur.title ? escapeHtml(cur.title) : ''}</span>
-      </div>
-      <div id="cc-media-mount"></div>
-      <div id="cc-text-mount"></div>
-    `;
-    destroyCondPlayers();
-    videoSyncState = null;
-    revealCueState = null;
-    mountCondMedia(cur);
-    _lastRenderedCardId = cur.id;
-  } else {
-    // Solo actualizamos el título/categoría por si cambiaron desde el editor
-    const catRow = cont.querySelector('.cc-cat-row');
-    if(catRow) catRow.innerHTML = `<span class="cc-cat">${cat.icon} ${cat.name}</span><span class="cc-idx">${cur.title ? escapeHtml(cur.title) : ''}</span>`;
-  }
-  renderCondText(cur);
-  fbPushLive();
-}
-function renderCondText(cur){
-  const mount = document.getElementById('cc-text-mount');
-  if(!mount) return;
-  const promptHtml = renderPromptWithGap(cur.prompt, revealed, cur.ending);
+  const mediaHtml = renderCardMedia(cur, /*forConductor=*/true);
+  const hasDialogue = cur.dialogue && cur.dialogue.length;
+  const promptBlockHtml = hasDialogue
+    ? `<div class="cc-prompt ${revealed?'revealed':''}">${renderDialogueHtml(cur.dialogue, revealed, cur.ending)}</div>`
+    : (cur.prompt ? `<div class="cc-prompt ${revealed?'revealed':''}">${renderPromptWithGap(cur.prompt, revealed, cur.ending)}</div>` : '');
   const hintsHtml = renderHints(cur);
   const optionsHtml = renderOptions(cur, revealed);
-  mount.innerHTML = `
-    ${cur.prompt ? `<div class="cc-prompt ${revealed?'revealed':''}">${promptHtml}</div>` : ''}
+  cont.innerHTML = `
+    <div class="cc-cat-row">
+      <span class="cc-cat">${cat.icon} ${cat.name}</span>
+      <span class="cc-idx">${cur.title ? escapeHtml(cur.title) : ''}</span>
+    </div>
+    ${mediaHtml}
+    ${promptBlockHtml}
     ${hintsHtml}
     ${optionsHtml}
-    <div class="cc-answer">
-      <div class="cc-answer-status">
-        ${revealed ? '<span class="cca-badge on">👁 Visible para participantes</span>' : '<span class="cca-badge off">🙈 Oculto para participantes</span>'}
-      </div>
+    <div class="cc-answer ${revealed?'':'hidden'}">
       <div><span class="aq">✓ Quién lo dijo</span><div class="av">${escapeHtml(cur.who || '—')}</div></div>
       ${cur.ending ? `<div style="margin-top:.4rem"><span class="aq">✓ Cómo termina</span><div class="av">${escapeHtml(cur.ending)}</div></div>` : ''}
-      ${(cur.revealUrl || cur.revealData) ? `<button class="cta-btn primary" style="margin-top:.6rem;justify-content:center" onclick="replayRevealCue()">${cur.revealType && cur.revealType.startsWith('video') ? '🎬' : '🔊'} Reproducir el clip otra vez</button>` : ''}
+      ${(cur.revealType && cur.revealType !== 'none' && (cur.revealData || cur.revealUrl)) ? `<button class="act-btn gold" style="margin-top:.6rem" onclick="playCurrentRevealManually()">🔊 Escuchar/ver clip original</button>` : ''}
     </div>
   `;
   document.getElementById('hint1-btn').textContent = hintsShown[1] ? '🔒 Ocultar pista 1' : '💡 Pista 1';
@@ -1001,23 +987,59 @@ function renderCondText(cur){
   document.getElementById('hint2-btn').textContent = hintsShown[2] ? '🔒 Ocultar pista 2' : '💡 Pista 2';
   document.getElementById('hint2-btn').style.opacity = cur.hint2 ? '1' : '.4';
   document.getElementById('reveal-btn').textContent = revealed ? '🙈 Ocultar respuestas' : '👁 Revelar respuestas';
-  const markBtn = document.getElementById('mark-played-btn');
-  if(markBtn) markBtn.textContent = cur.played ? '↺ Marcar sin jugar' : '✓ Marcar como jugada';
+  fbPushLive();
+}
+function renderCardMedia(cur, forConductor){
+  if(!cur.mediaType || cur.mediaType === 'none') return '';
+  const src = cur.mediaData || cur.mediaUrl;
+  if(!src) return '<div class="cc-media empty">📁 Sin media cargada</div>';
+  if(cur.mediaType === 'youtube'){
+    const id = youtubeId(src);
+    if(!id) return `<div class="cc-media empty">⚠️ ID de YouTube inválido</div>`;
+    // autoplay=0, controls=1 para que el conductor decida cuándo dar play
+    return `<div class="cc-media"><iframe src="https://www.youtube.com/embed/${id}?rel=0&modestbranding=1" allowfullscreen allow="autoplay; encrypted-media"></iframe></div>`;
+  }
+  if(cur.mediaType === 'video-url'){
+    return `<div class="cc-media"><video src="${escapeHtml(src)}" controls playsinline preload="metadata"></video></div>`;
+  }
+  // image / gif / image-upload
+  return `<div class="cc-media"><img src="${escapeHtml(src)}" alt=""></div>`;
 }
 function renderPromptWithGap(prompt, isRevealed, ending){
   const p = prompt || '';
   if(isRevealed && ending){
-    // Soporta varios huecos "___": separá cada respuesta con "/" en "Cómo termina la frase"
-    // y se van completando en orden. Si hay más huecos que partes, el resto repite la última.
-    const parts = ending.split('/').map(s => s.trim()).filter(Boolean);
-    let i = 0;
-    return escapeHtml(p).replace(/___+/g, () => {
-      const val = parts.length ? (i < parts.length ? parts[i] : parts[parts.length - 1]) : ending;
-      i++;
-      return `<span class="gap">${escapeHtml(val)}</span>`;
-    });
+    return escapeHtml(p).replace(/___+/g, `<span class="gap">${escapeHtml(ending)}</span>`);
   }
   return escapeHtml(p).replace(/___+/g, `<span class="gap">_____</span>`);
+}
+// ── DIÁLOGO POR PERSONAJES ──
+const DLG_PALETTE = [
+  { bg:'rgba(124,92,255,.22)', border:'rgba(124,92,255,.55)', name:'#b3a3ff' },
+  { bg:'rgba(245,200,66,.18)', border:'rgba(245,200,66,.5)',  name:'#f5c842' },
+  { bg:'rgba(74,201,150,.18)', border:'rgba(74,201,150,.5)',  name:'#4ac996' },
+  { bg:'rgba(255,120,120,.18)', border:'rgba(255,120,120,.5)', name:'#ff9a9a' },
+  { bg:'rgba(90,180,255,.18)', border:'rgba(90,180,255,.5)',  name:'#7fc2ff' }
+];
+function dialogueSpeakerMeta(dialogue){
+  const order = [];
+  dialogue.forEach(d => { const w = (d.who||'').trim(); if(w && !order.includes(w)) order.push(w); });
+  const map = {};
+  order.forEach((name, i) => { map[name] = { side: i % 2 === 0 ? 'side-a' : 'side-b', color: DLG_PALETTE[i % DLG_PALETTE.length] }; });
+  return map;
+}
+function renderDialogueHtml(dialogue, isRevealed, ending){
+  if(!dialogue || !dialogue.length) return '';
+  const meta = dialogueSpeakerMeta(dialogue);
+  const rows = dialogue.map(d => {
+    const who = (d.who||'').trim();
+    const m = meta[who] || { side:'side-a', color: DLG_PALETTE[0] };
+    const textHtml = renderPromptWithGap(d.text, isRevealed, ending);
+    return `<div class="dlg-row ${m.side}">
+      ${who ? `<div class="dlg-name" style="color:${m.color.name}">${escapeHtml(who)}</div>` : ''}
+      <div class="dlg-bubble" style="background:${m.color.bg};border:1.5px solid ${m.color.border};color:#fff">${textHtml}</div>
+    </div>`;
+  }).join('');
+  return `<div class="dlg-wrap">${rows}</div>`;
 }
 function renderHints(cur){
   const items = [];
@@ -1042,36 +1064,21 @@ function renderOptions(cur, isRevealed){
 function navigate(delta){
   const n = cardIdx + delta;
   if(n < 0 || n >= deck.length) return;
-  cardIdx = n; revealed = false; hintsShown = {1:false,2:false}; closeAssign(); _winnerName = null;
-  fbLockBuzzer();
+  cardIdx = n; revealed = false; hintsShown = {1:false,2:false}; closeAssign(); stopCondAudio();
   saveIdx(); renderCard();
 }
 function jumpTo(){
   const v = parseInt(document.getElementById('jump-in').value);
   if(!v || v < 1 || v > deck.length) return;
-  cardIdx = v - 1; revealed = false; hintsShown = {1:false,2:false}; closeAssign(); _winnerName = null;
-  fbLockBuzzer();
+  cardIdx = v - 1; revealed = false; hintsShown = {1:false,2:false}; closeAssign(); stopCondAudio();
   saveIdx(); renderCard();
   document.getElementById('jump-in').value = '';
 }
 function randomCard(){
   if(!deck.length) return;
-  const unplayedIdx = deck.map((c,i)=>i).filter(i => !deck[i].played);
-  let pool = unplayedIdx.length ? unplayedIdx : deck.map((_,i)=>i);
-  if(!unplayedIdx.length) toast('🎉 Ya se jugaron todas — barajando de nuevo el mazo completo');
-  cardIdx = pool[Math.floor(Math.random() * pool.length)];
-  revealed = false; hintsShown = {1:false,2:false}; closeAssign(); _winnerName = null;
-  fbLockBuzzer();
+  cardIdx = Math.floor(Math.random() * deck.length);
+  revealed = false; hintsShown = {1:false,2:false}; closeAssign(); stopCondAudio();
   saveIdx(); renderCard();
-}
-function toggleCurrentPlayed(){
-  const cur = currentCard();
-  if(!cur) return;
-  cur.played = !cur.played;
-  saveDeckLocal(); fbPushDeck();
-  renderCondText(cur);
-  renderEditorList();
-  toast(cur.played ? '✅ Marcada como jugada' : '🔲 Marcada como sin jugar');
 }
 function shuffleDeck(){
   if(!deck.length) return;
@@ -1092,84 +1099,88 @@ function toggleHint(n){
   renderCard();
 }
 function toggleReveal(){
-  const wasRevealed = revealed;
   revealed = !revealed;
-  // Al revelar (no al ocultar) disparamos el clip de revelación, si la carta tiene uno cargado
-  if(revealed && !wasRevealed){
-    const cur = currentCard();
-    if(cur && cur.revealType && cur.revealType !== 'none'){
-      const src = cur.revealUrl || cur.revealData;
-      if(src) revealCueState = { src, kind: cur.revealType.startsWith('video') ? 'video' : 'audio', ts: Date.now() };
-    }
-  }
   renderCard();
-}
-function replayRevealCue(){
-  const cur = currentCard();
-  if(!cur){ return; }
-  const src = cur.revealUrl || cur.revealData;
-  if(!src){ toast('Esta carta no tiene clip de revelación cargado'); return; }
-  revealCueState = { src, kind: cur.revealType && cur.revealType.startsWith('video') ? 'video' : 'audio', ts: Date.now() };
-  fbPushLive();
-  toast('▶️ Reproduciendo en pantalla de participantes');
 }
 
 // ── ASSIGN POINTS ──
-function openAssign(keepWinner){
+function openAssign(type){
   const cur = currentCard();
   if(!cur){ toast('No hay carta cargada'); return; }
-  assignKeepWinner = !!keepWinner;
-  document.getElementById('assign-panel').style.display = 'flex';
-  showAssignAmountStep();
-  document.getElementById('assign-panel').scrollIntoView({behavior:'smooth', block:'end'});
-}
-function showAssignAmountStep(){
-  assignAmount = null;
-  document.getElementById('assign-title').textContent = '¿Cuánto acertó?';
-  document.getElementById('assign-sub').textContent = 'Elegí si acertó todo o solo una parte de la frase';
-  document.getElementById('assign-players').innerHTML = '';
-  const wrap = document.getElementById('assign-amount-choices');
-  wrap.style.display = 'flex';
-  wrap.innerHTML = `
-    <button class="act-btn green" onclick="chooseAssignAmount(1)">✅ Acertó todo — 1 pt</button>
-    <button class="act-btn gold" onclick="chooseAssignAmount(0.5)">➗ Acertó una parte — 0.5 pt</button>
-  `;
-}
-function chooseAssignAmount(amount){
-  assignAmount = amount;
-  document.getElementById('assign-amount-choices').style.display = 'none';
-  document.getElementById('assign-title').textContent = `Asignar ${amount === 1 ? '1 pt' : '0.5 pt'}`;
-  const winnerHint = (assignKeepWinner && _winnerName) ? ` · <b style="color:var(--gold)">🏆 ${escapeHtml(_winnerName)} buzzeó primero</b>` : '';
-  document.getElementById('assign-sub').innerHTML = 'Tocá el nombre del jugador que acertó' + winnerHint;
+  assignFor = type;
+  const panel = document.getElementById('assign-panel');
+  const label = type === 'who' ? 'QUIÉN lo dijo' : 'el FINAL';
+  document.getElementById('assign-title').textContent = `+1 por acertar ${label}`;
+  document.getElementById('assign-sub').textContent = 'Tocá el nombre del jugador que acertó';
   const wrap = document.getElementById('assign-players');
-  wrap.innerHTML = players.map(p => {
-    const isWinner = assignKeepWinner && _winnerName && p === _winnerName;
-    return `<button class="assign-player ${isWinner?'winner':''}" onclick="doAssign('${escapeHtml(p)}')">${isWinner?'🏆 ':''}${escapeHtml(p)}</button>`;
-  }).join('');
+  wrap.innerHTML = players.map(p => `<button class="assign-player" onclick="doAssign('${escapeHtml(p)}')">${escapeHtml(p)}</button>`).join('');
+  panel.style.display = 'flex';
+  panel.scrollIntoView({behavior:'smooth', block:'end'});
 }
 function closeAssign(){
   document.getElementById('assign-panel').style.display = 'none';
-  document.getElementById('assign-amount-choices').style.display = 'none';
-  assignAmount = null;
-  assignKeepWinner = false;
+  assignFor = null;
 }
 function doAssign(name){
-  if(!assignAmount) return;
-  scores[name] = (scores[name]||0) + assignAmount;
+  if(!assignFor) return;
+  scores[name] = (scores[name]||0) + 1;
   scoresRecent[name] = Date.now();
   saveScores();
   renderScores();
-  // Si alguien acertó, damos por hecho que la carta se jugó
-  const cur = currentCard();
-  if(cur && !cur.played){ cur.played = true; saveDeckLocal(); fbPushDeck(); renderEditorList();
-    const markBtn = document.getElementById('mark-played-btn'); if(markBtn) markBtn.textContent = '↺ Marcar sin jugar'; }
+  playCardReveal(currentCard());
   fbPushLive();
-  toast(`+${assignAmount} para ${name}`);
+  toast(`+1 para ${name} (${assignFor === 'who' ? 'quién' : 'final'})`);
   closeAssign();
   setTimeout(renderScores, 2600); // limpia el "+1" pin
-  // Después de asignar, bloqueamos el buzzer para la próxima ronda
-  _winnerName = null;
-  fbLockBuzzer();
+  checkGoal(name);
+}
+
+// ── CLIP AL REVELAR (audio o video) ──
+let revealEvent = null; // { type, url, t } — se comparte por Firebase para que el participante también lo vea/escuche
+function playCardReveal(cur){
+  if(!cur || !cur.revealType || cur.revealType === 'none') return;
+  const src = cur.revealData || cur.revealUrl;
+  if(!src) return;
+  showRevealMedia('reveal-media-content', 'reveal-media-overlay', cur.revealType, src);
+  // Solo avisamos a los participantes si es una URL pública (lo subido queda local en este dispositivo)
+  const isUpload = cur.revealData && String(cur.revealData).startsWith('data:');
+  if(cur.revealUrl && !isUpload){
+    revealEvent = { type: cur.revealType, url: cur.revealUrl, t: Date.now() };
+  }
+}
+function showRevealMedia(contentId, overlayId, type, src){
+  const content = document.getElementById(contentId);
+  const overlay = document.getElementById(overlayId);
+  if(!content || !overlay) return;
+  let html = '';
+  if(type === 'audio-url' || type === 'audio-upload'){
+    html = `<div class="reveal-audio-vis">🔊</div><audio autoplay controls style="padding:0 1rem 1.25rem" src="${escapeHtml(src)}" onended="document.getElementById('${overlayId}').classList.remove('open')"></audio>`;
+  } else if(type === 'video-url' || type === 'video-upload'){
+    html = `<video autoplay controls playsinline src="${escapeHtml(src)}" onended="document.getElementById('${overlayId}').classList.remove('open')"></video>`;
+  } else if(type === 'youtube'){
+    const id = youtubeId(src);
+    if(!id) return;
+    html = `<iframe src="https://www.youtube.com/embed/${id}?autoplay=1&rel=0" allow="autoplay; encrypted-media" allowfullscreen></iframe>`;
+  } else { return; }
+  content.innerHTML = html;
+  overlay.classList.add('open');
+  const media = content.querySelector('audio,video');
+  if(media){
+    media.play().catch(() => {
+      if(overlayId === 'part-reveal-overlay') showAudioTapFallback(type, src);
+    });
+  }
+}
+function closeRevealMedia(){
+  document.getElementById('reveal-media-overlay').classList.remove('open');
+  document.getElementById('reveal-media-content').innerHTML = '';
+}
+function playCurrentRevealManually(){
+  playCardReveal(currentCard());
+  fbPushLive();
+}
+function stopCondAudio(){
+  closeRevealMedia();
 }
 
 // ── PARTICIPANT VIEW ──
@@ -1178,11 +1189,10 @@ function liveStateSnapshot(){
   const cur = currentCard();
   return {
     cardIdx, revealed, hintsShown,
-    scores, players,
-    videoSync: videoSyncState,
-    revealCue: revealCueState,
+    scores, players, goal: goalScore, winnerEvent, revealEvent,
     card: cur ? {
       id: cur.id, category: cur.category, prompt: cur.prompt || '',
+      dialogue: cur.dialogue || null,
       mediaType: cur.mediaType || 'none',
       // No enviamos mediaData (base64) por Firebase — solo URLs
       mediaUrl: (cur.mediaData && String(cur.mediaData).startsWith('data:')) ? null : (cur.mediaUrl || cur.mediaData || ''),
@@ -1190,172 +1200,74 @@ function liveStateSnapshot(){
       who: cur.who || '', ending: cur.ending || '',
       hint1: cur.hint1 || '', hint2: cur.hint2 || '',
       options: cur.options || [], optionsFor: cur.optionsFor || null,
-      title: cur.title || ''
+      title: cur.title || '',
+      revealType: (cur.revealData && String(cur.revealData).startsWith('data:')) ? null : (cur.revealType || null),
+      revealUrl: (cur.revealData && String(cur.revealData).startsWith('data:')) ? '' : (cur.revealUrl || '')
     } : null,
     t: Date.now()
   };
 }
+let _lastSeenWinnerT = null;
+let _lastSeenRevealT = null;
+let _liveInited = false;
 function applyLive(st){
   if(!st) return;
   if(st.scores) scores = st.scores;
   if(st.players) players = st.players;
+  if(st.goal) goalScore = st.goal;
   renderPartScores();
   renderPartCard(st);
-  if(st.revealCue && st.revealCue.ts && st.revealCue.ts !== _lastRevealCueTs){
-    _lastRevealCueTs = st.revealCue.ts;
-    playRevealCue(st.revealCue);
-  }
-}
-let _lastPartCardId = null;
-let partYtPlayer = null;
-let partVideoEl = null;
-let _lastVideoSyncTs = 0;
-let _pendingVideoSync = null;
-let _partAudioUnlocked = false;
-let _lastRevealCueTs = 0;
-let _revealAudioEl = null;
-
-function playRevealCue(cue){
-  if(!cue || !cue.src) return;
-  const overlay = document.getElementById('reveal-cue-overlay');
-  const videoEl = document.getElementById('reveal-cue-video');
-  const audioVis = document.getElementById('reveal-cue-audio-vis');
-  if(!overlay || !videoEl || !audioVis) return;
-  overlay.classList.add('show');
-  if(cue.kind === 'video'){
-    audioVis.classList.remove('show');
-    videoEl.style.display = 'block';
-    videoEl.src = cue.src;
-    videoEl.currentTime = 0;
-    videoEl.onended = () => overlay.classList.remove('show');
-    const pr = videoEl.play();
-    if(pr && pr.catch) pr.catch(() => maybeShowAudioUnlock());
+  const incomingT = st.winnerEvent ? st.winnerEvent.t : null;
+  const incomingRevealT = st.revealEvent ? st.revealEvent.t : null;
+  if(!_liveInited){
+    _liveInited = true;
+    _lastSeenWinnerT = incomingT; // no mostrar banner de una victoria vieja al recién conectarse
+    _lastSeenRevealT = incomingRevealT; // ídem para el clip
   } else {
-    videoEl.style.display = 'none';
-    audioVis.classList.add('show');
-    if(!_revealAudioEl) _revealAudioEl = new Audio();
-    _revealAudioEl.src = cue.src;
-    _revealAudioEl.currentTime = 0;
-    _revealAudioEl.onended = () => overlay.classList.remove('show');
-    const pr = _revealAudioEl.play();
-    if(pr && pr.catch) pr.catch(() => maybeShowAudioUnlock());
-  }
-}
-function closeRevealCue(){
-  const overlay = document.getElementById('reveal-cue-overlay');
-  if(overlay) overlay.classList.remove('show');
-  try{ document.getElementById('reveal-cue-video').pause(); }catch(e){}
-  try{ if(_revealAudioEl) _revealAudioEl.pause(); }catch(e){}
-}
-
-function destroyPartPlayers(){
-  if(partYtPlayer){ try{ partYtPlayer.destroy(); }catch(e){} partYtPlayer = null; }
-  partVideoEl = null;
-}
-function mountPartMedia(c){
-  const mount = document.getElementById('part-media-mount');
-  if(!mount) return;
-  if(!c.mediaType || c.mediaType === 'none'){ mount.innerHTML = ''; return; }
-  if(c.mediaIsLocal && !c.mediaUrl){
-    mount.innerHTML = `<div class="part-media" style="min-height:80px;color:var(--muted);font-size:12px;padding:1rem">📁 El video/imagen está solo en la pantalla del conductor</div>`;
-    return;
-  }
-  const src = c.mediaUrl;
-  if(!src) return;
-  if(c.mediaType === 'youtube'){
-    const id = youtubeId(src);
-    if(!id) return;
-    mount.innerHTML = '<div class="part-media"><div id="part-yt-el" style="width:100%;aspect-ratio:16/9"></div></div>';
-    onYtApiReady(() => {
-      if(!document.getElementById('part-yt-el')) return;
-      partYtPlayer = new YT.Player('part-yt-el', {
-        videoId: id, width:'100%', height:'100%',
-        playerVars: { autoplay:0, controls:0, modestbranding:1, rel:0, fs:0, disablekb:1 },
-        events: { onReady: () => { if(_pendingVideoSync){ applyVideoSync(_pendingVideoSync, c); _pendingVideoSync = null; } } }
-      });
-    });
-  } else if(c.mediaType === 'video-url'){
-    mount.innerHTML = `<div class="part-media"><video id="part-video-el" src="${escapeHtml(src)}" playsinline preload="metadata"></video></div>`;
-    partVideoEl = document.getElementById('part-video-el');
-    if(_pendingVideoSync){ applyVideoSync(_pendingVideoSync, c); _pendingVideoSync = null; }
-  } else {
-    mount.innerHTML = `<div class="part-media"><img src="${escapeHtml(src)}" alt=""></div>`;
-  }
-}
-function applyVideoSync(sync, c){
-  if(c.mediaType === 'youtube'){
-    if(!partYtPlayer){ _pendingVideoSync = sync; return; }
-    const targetT = sync.playing ? sync.t + (Date.now() - sync.ts) / 1000 : sync.t;
-    try{
-      partYtPlayer.seekTo(targetT, true);
-      if(sync.playing){ partYtPlayer.playVideo(); maybeShowAudioUnlock(); }
-      else partYtPlayer.pauseVideo();
-    }catch(e){ _pendingVideoSync = sync; }
-  } else if(c.mediaType === 'video-url'){
-    if(!partVideoEl){ _pendingVideoSync = sync; return; }
-    const targetT = sync.playing ? sync.t + (Date.now() - sync.ts) / 1000 : sync.t;
-    const setNow = () => { try{ partVideoEl.currentTime = targetT; }catch(e){} };
-    if(partVideoEl.readyState >= 1) setNow();
-    else partVideoEl.addEventListener('loadedmetadata', setNow, { once:true });
-    if(sync.playing){
-      const pr = partVideoEl.play();
-      if(pr && pr.catch) pr.catch(() => maybeShowAudioUnlock());
-    } else {
-      partVideoEl.pause();
+    if(incomingT && incomingT !== _lastSeenWinnerT){
+      _lastSeenWinnerT = incomingT;
+      showPartWinBanner(st.winnerEvent.name);
+    }
+    if(incomingRevealT && incomingRevealT !== _lastSeenRevealT){
+      _lastSeenRevealT = incomingRevealT;
+      showRevealMedia('part-reveal-content', 'part-reveal-overlay', st.revealEvent.type, st.revealEvent.url);
     }
   }
 }
-function maybeShowAudioUnlock(){
-  if(_partAudioUnlocked) return;
-  const el = document.getElementById('audio-unlock');
-  if(el) el.style.display = 'flex';
+function showAudioTapFallback(type, src){
+  const b = document.getElementById('part-audio-tap');
+  if(!b) return;
+  b.style.display = 'flex';
+  b.onclick = () => {
+    document.getElementById('part-reveal-overlay').classList.remove('open');
+    showRevealMedia('part-reveal-content', 'part-reveal-overlay', type, src);
+    b.style.display = 'none';
+  };
+  clearTimeout(showAudioTapFallback._t);
+  showAudioTapFallback._t = setTimeout(() => { b.style.display = 'none'; }, 8000);
 }
-function unlockPartAudio(){
-  _partAudioUnlocked = true;
-  const el = document.getElementById('audio-unlock');
-  if(el) el.style.display = 'none';
-  try{ if(partYtPlayer) partYtPlayer.playVideo(); }catch(e){}
-  try{ if(partVideoEl) partVideoEl.play().catch(()=>{}); }catch(e){}
-  try{ const v = document.getElementById('reveal-cue-video'); if(v && v.src) v.play().catch(()=>{}); }catch(e){}
-  try{ if(_revealAudioEl) _revealAudioEl.play().catch(()=>{}); }catch(e){}
+function showPartWinBanner(name){
+  const b = document.getElementById('part-win-banner');
+  if(!b) return;
+  document.getElementById('part-win-name').textContent = name;
+  b.classList.add('show');
+  clearTimeout(showPartWinBanner._t);
+  showPartWinBanner._t = setTimeout(() => b.classList.remove('show'), 4500);
 }
 function renderPartCard(st){
   const cont = document.getElementById('part-main');
   if(!cont) return;
   if(!st || !st.card){
     cont.innerHTML = `<div class="part-idle"><div class="part-idle-icon">🎤</div><div class="part-idle-text">Esperando al conductor…</div></div>`;
-    _lastPartCardId = null;
-    destroyPartPlayers();
     return;
   }
   const c = st.card;
   const cat = CAT_BY_ID[c.category] || CATEGORIES[0];
-  const isNewCard = _lastPartCardId !== c.id;
-  if(isNewCard){
-    cont.innerHTML = `
-      <div class="part-card">
-        <div class="part-cat">${cat.icon} ${cat.name}</div>
-        <div id="part-media-mount"></div>
-        <div id="part-text-mount"></div>
-      </div>
-    `;
-    destroyPartPlayers();
-    _lastVideoSyncTs = 0;
-    _lastRevealCueTs = 0;
-    closeRevealCue();
-    mountPartMedia(c);
-    _lastPartCardId = c.id;
-  }
-  renderPartText(c, st);
-  if(st.videoSync && st.videoSync.ts && st.videoSync.ts !== _lastVideoSyncTs){
-    _lastVideoSyncTs = st.videoSync.ts;
-    applyVideoSync(st.videoSync, c);
-  }
-}
-function renderPartText(c, st){
-  const mount = document.getElementById('part-text-mount');
-  if(!mount) return;
-  const promptHtml = renderPromptWithGap(c.prompt, !!st.revealed, c.ending);
+  const mediaHtml = renderPartMedia(c);
+  const hasDialogue = c.dialogue && c.dialogue.length;
+  const promptBlockHtml = hasDialogue
+    ? `<div class="part-prompt part-dlg ${st.revealed?'revealed':''}">${renderDialogueHtml(c.dialogue, !!st.revealed, c.ending)}</div>`
+    : (c.prompt ? `<div class="part-prompt ${st.revealed?'revealed':''}">${renderPromptWithGap(c.prompt, !!st.revealed, c.ending)}</div>` : '');
   const optionsHtml = renderPartOptions(c, !!st.revealed);
   const hints = [];
   if(st.hintsShown && st.hintsShown[1] && c.hint1) hints.push(`<div class="part-hint"><div class="part-hint-tag">💡 Pista 1</div>${escapeHtml(c.hint1)}</div>`);
@@ -1364,13 +1276,35 @@ function renderPartText(c, st){
     <div class="part-answer">
       <div><span class="aq">✓ Quién lo dijo</span><div class="av">${escapeHtml(c.who || '—')}</div></div>
       ${c.ending ? `<div style="margin-top:.4rem"><span class="aq">✓ Cómo termina</span><div class="av">${escapeHtml(c.ending)}</div></div>` : ''}
+      ${(c.revealType && c.revealUrl) ? `<button class="act-btn gold" style="margin-top:.6rem" onclick="showRevealMedia('part-reveal-content','part-reveal-overlay','${escapeHtml(c.revealType)}','${escapeHtml(c.revealUrl)}')">🔊 Escuchar/ver clip original</button>` : ''}
     </div>` : '';
-  mount.innerHTML = `
-    ${c.prompt ? `<div class="part-prompt ${st.revealed?'revealed':''}">${promptHtml}</div>` : ''}
-    ${optionsHtml}
-    ${hints.join('')}
-    ${answerHtml}
+  cont.innerHTML = `
+    <div class="part-card">
+      <div class="part-cat">${cat.icon} ${cat.name}</div>
+      ${mediaHtml}
+      ${promptBlockHtml}
+      ${optionsHtml}
+      ${hints.join('')}
+      ${answerHtml}
+    </div>
   `;
+}
+function renderPartMedia(c){
+  if(!c.mediaType || c.mediaType === 'none') return '';
+  if(c.mediaIsLocal && !c.mediaUrl){
+    return `<div class="part-media" style="min-height:80px;color:var(--muted);font-size:12px;padding:1rem">📁 El video/imagen está solo en la pantalla del conductor</div>`;
+  }
+  const src = c.mediaUrl;
+  if(!src) return '';
+  if(c.mediaType === 'youtube'){
+    const id = youtubeId(src);
+    if(!id) return '';
+    return `<div class="part-media"><iframe src="https://www.youtube.com/embed/${id}?rel=0&modestbranding=1&autoplay=0" allowfullscreen allow="autoplay; encrypted-media"></iframe></div>`;
+  }
+  if(c.mediaType === 'video-url'){
+    return `<div class="part-media"><video src="${escapeHtml(src)}" controls playsinline preload="metadata"></video></div>`;
+  }
+  return `<div class="part-media"><img src="${escapeHtml(src)}" alt=""></div>`;
 }
 function renderPartOptions(c, isRevealed){
   if(!c.options || !c.options.length || !c.optionsFor) return '';
@@ -1398,43 +1332,28 @@ function edSwitch(which){
 function renderEditorList(){
   // filter bar
   const filterWrap = document.getElementById('ed-filters');
-  const counts = { all: deck.length, unplayed: deck.filter(c=>!c.played).length, played: deck.filter(c=>c.played).length };
+  const counts = { all: deck.length };
   deck.forEach(c => { counts[c.category] = (counts[c.category]||0)+1; });
-  filterWrap.innerHTML =
-    `<button class="ed-filter ${_edFilter==='all'?'on':''}" onclick="edSetFilter('all')">Todas (${counts.all})</button>` +
-    `<button class="ed-filter ${_edFilter==='unplayed'?'on':''}" onclick="edSetFilter('unplayed')">🔲 Sin jugar (${counts.unplayed})</button>` +
-    `<button class="ed-filter ${_edFilter==='played'?'on':''}" onclick="edSetFilter('played')">✅ Jugadas (${counts.played})</button>` +
+  filterWrap.innerHTML = `<button class="ed-filter ${_edFilter==='all'?'on':''}" onclick="edSetFilter('all')">Todas (${counts.all})</button>` +
     CATEGORIES.map(c => `<button class="ed-filter ${_edFilter===c.id?'on':''}" onclick="edSetFilter('${c.id}')">${c.icon} ${c.name} (${counts[c.id]||0})</button>`).join('');
 
   const list = document.getElementById('ed-list');
-  let filtered = _edFilter==='all' ? deck
-    : _edFilter==='unplayed' ? deck.filter(c=>!c.played)
-    : _edFilter==='played' ? deck.filter(c=>c.played)
-    : deck.filter(c => c.category === _edFilter);
-
-  if(_edSearch){
-    filtered = filtered.filter(c => {
-      const hay = [c.title, c.prompt, c.who, c.ending].filter(Boolean).join(' ').toLowerCase();
-      return hay.includes(_edSearch);
-    });
-  }
-
+  const filtered = _edFilter==='all' ? deck : deck.filter(c => c.category === _edFilter);
   if(!filtered.length){
-    list.innerHTML = `<div class="ed-empty">${_edSearch ? 'Sin resultados para tu búsqueda.' : 'Sin cartas acá. Tocá <b>➕ Nueva</b> para agregar.'}</div>`;
+    list.innerHTML = `<div class="ed-empty">Sin cartas en esta categoría. Tocá <b>➕ Nueva</b> para agregar.</div>`;
     return;
   }
   list.innerHTML = filtered.map(c => {
     const cat = CAT_BY_ID[c.category] || CATEGORIES[0];
     const label = c.title || (c.prompt ? c.prompt.slice(0, 60) : (c.who || '(sin título)'));
-    const sub = `${c.who || '—'} · ${c.mediaType && c.mediaType !== 'none' ? '📎 ' + c.mediaType : 'solo frase'}${c.revealType && c.revealType !== 'none' ? (c.revealType.startsWith('video') ? ' · 🎬 clip' : ' · 🔊 clip') : ''}`;
-    return `<div class="ed-item ${c.played?'played':''}">
-      <div class="ed-item-icon">${c.played ? '✅' : cat.icon}</div>
+    const sub = `${c.who || '—'} · ${c.mediaType && c.mediaType !== 'none' ? '📎 ' + c.mediaType : 'solo frase'}`;
+    return `<div class="ed-item">
+      <div class="ed-item-icon">${cat.icon}</div>
       <div class="ed-item-body">
         <div class="ed-item-title">${escapeHtml(label)}</div>
         <div class="ed-item-sub">${escapeHtml(sub)}</div>
       </div>
       <div class="ed-item-actions">
-        <button class="ed-mini-btn ${c.played?'':'purple'}" onclick="edTogglePlayed(${c.id})" title="${c.played?'Marcar sin jugar':'Marcar como jugada'}">${c.played?'↺':'✓'}</button>
         <button class="ed-mini-btn purple" onclick="edEdit(${c.id})">✏️</button>
         <button class="ed-mini-btn danger" onclick="edDelete(${c.id})">🗑</button>
       </div>
@@ -1442,15 +1361,6 @@ function renderEditorList(){
   }).join('');
 }
 function edSetFilter(f){ _edFilter = f; renderEditorList(); }
-function edSetSearch(v){ _edSearch = (v||'').trim().toLowerCase(); renderEditorList(); }
-function edTogglePlayed(id){
-  const c = deck.find(x => x.id === id);
-  if(!c) return;
-  c.played = !c.played;
-  saveDeckLocal(); fbPushDeck(); renderEditorList();
-  const cur = currentCard();
-  if(cur && cur.id === id) renderCondText(cur);
-}
 
 function populateCategoryOptions(){
   const sel = document.getElementById('f-cat');
@@ -1463,17 +1373,58 @@ function clearEditorForm(){
   document.getElementById('f-media').value = 'none';
   document.getElementById('f-media-url').value = '';
   document.getElementById('f-prompt').value = '';
+  document.querySelectorAll('input[name="f-prompt-mode"]').forEach(r => r.checked = r.value === 'simple');
+  edRenderDialogueList([]);
+  edPromptModeChanged();
   document.getElementById('f-who').value = '';
   document.getElementById('f-ending').value = '';
   document.getElementById('f-hint1').value = '';
   document.getElementById('f-hint2').value = '';
-  document.getElementById('f-reveal-type').value = 'none';
-  document.getElementById('f-reveal-url').value = '';
-  _edRevealFileData = null;
   ['f-opt1','f-opt2','f-opt3','f-opt4'].forEach(id => document.getElementById(id).value = '');
   document.querySelectorAll('input[name="f-opt-for"]').forEach(r => r.checked = r.value === 'none');
   _edMediaFileData = null;
-  edMediaChanged(); edOptsChanged(); edRevealChanged();
+  edMediaChanged(); edOptsChanged();
+  document.getElementById('f-reveal-type').value = 'none';
+  document.getElementById('f-reveal-url').value = '';
+  _edRevealFileData = null;
+  edRevealChanged();
+}
+// ── EDITOR: modo diálogo por personajes ──
+function edPromptModeChanged(){
+  const mode = document.querySelector('input[name="f-prompt-mode"]:checked').value;
+  document.getElementById('f-prompt-simple-row').style.display = mode === 'simple' ? '' : 'none';
+  document.getElementById('f-dialogue-row').style.display = mode === 'dialogue' ? '' : 'none';
+  if(mode === 'dialogue' && !document.querySelectorAll('#f-dialogue-list .dlg-edit-row').length){
+    edRenderDialogueList([{who:'',text:''},{who:'',text:''}]);
+  }
+}
+function edReadDialogueFromDom(){
+  return Array.from(document.querySelectorAll('#f-dialogue-list .dlg-edit-row')).map(row => ({
+    who: row.querySelector('.dlg-edit-who').value.trim(),
+    text: row.querySelector('.dlg-edit-text').value.trim()
+  }));
+}
+function edRenderDialogueList(lines){
+  const wrap = document.getElementById('f-dialogue-list');
+  wrap.innerHTML = lines.map((l, i) => `
+    <div class="dlg-edit-row">
+      <input class="form-in dlg-edit-who" placeholder="Personaje" value="${escapeHtml(l.who||'')}">
+      <textarea class="form-ta dlg-edit-text" placeholder="Lo que dice…">${escapeHtml(l.text||'')}</textarea>
+      <button type="button" class="cta-btn danger dlg-edit-del" data-i="${i}">🗑</button>
+    </div>
+  `).join('');
+  wrap.querySelectorAll('.dlg-edit-del').forEach(btn => {
+    btn.onclick = () => {
+      const cur = edReadDialogueFromDom();
+      cur.splice(parseInt(btn.dataset.i), 1);
+      edRenderDialogueList(cur);
+    };
+  });
+}
+function edAddDialogueLine(){
+  const cur = edReadDialogueFromDom();
+  cur.push({who:'', text:''});
+  edRenderDialogueList(cur);
 }
 function edMediaChanged(){
   const v = document.getElementById('f-media').value;
@@ -1491,7 +1442,7 @@ function edMediaChanged(){
   else if(v === 'image-upload'){
     lbl.textContent = '🖼 Subir imagen del dispositivo';
     url.style.display = 'none'; file.style.display = ''; file.accept = 'image/*';
-    help.innerHTML = 'La imagen se comprime automáticamente (ancho máx. 900px, JPEG) antes de guardarse en el mazo. No se muestra a los participantes en otros dispositivos (por peso) — para eso usá la opción de URL pública.';
+    help.innerHTML = 'La imagen queda guardada en <b>tu navegador</b> (base64). Los participantes en otro dispositivo no la verán vía Firebase — para eso usá URL pública.';
     if(_edMediaFileData){ prev.style.display = 'flex'; prev.innerHTML = `<img src="${_edMediaFileData}" alt="">`; }
   }
   else if(v === 'video-url'){ lbl.textContent = '🎥 URL directa de video (.mp4 / .webm)'; url.placeholder = 'https://…/video.mp4'; help.textContent = 'Debe ser una URL directa al archivo de video (mp4, webm). No sirve un link de YouTube — para eso usá la opción de YouTube.'; }
@@ -1516,80 +1467,79 @@ function edPreviewUrl(mediaType, src){
 }
 function edFileChosen(e){
   const f = e.target.files[0]; if(!f) return;
-  if(!/^image\//.test(f.type)){ toast('Elegí un archivo de imagen'); return; }
-  if(f.size > 15*1024*1024){ toast('Imagen demasiado pesada (máx 15MB de archivo original)'); return; }
-  const prev = document.getElementById('f-media-preview');
-  prev.style.display = 'flex'; prev.innerHTML = '<span style="font-size:11px;color:var(--muted)">Comprimiendo imagen…</span>';
+  if(f.size > 5*1024*1024){ toast('Imagen muy pesada (máx 5MB)'); return; }
   const r = new FileReader();
   r.onload = () => {
-    const img = new Image();
-    img.onload = () => {
-      const MAX_W = 900;
-      const scale = Math.min(1, MAX_W / img.width);
-      const w = Math.max(1, Math.round(img.width * scale));
-      const h = Math.max(1, Math.round(img.height * scale));
-      const canvas = document.createElement('canvas');
-      canvas.width = w; canvas.height = h;
-      const ctx = canvas.getContext('2d');
-      ctx.drawImage(img, 0, 0, w, h);
-      const dataUrl = canvas.toDataURL('image/jpeg', 0.82);
-      _edMediaFileData = dataUrl;
-      const approxKb = Math.round(dataUrl.length * 0.75 / 1024);
-      prev.innerHTML = `<img src="${_edMediaFileData}" alt="">`;
-      toast(`🖼 Imagen comprimida (~${approxKb} KB)`);
-    };
-    img.onerror = () => { toast('No se pudo leer la imagen'); prev.style.display = 'none'; };
-    img.src = r.result;
+    _edMediaFileData = r.result;
+    const prev = document.getElementById('f-media-preview');
+    prev.style.display = 'flex'; prev.innerHTML = `<img src="${_edMediaFileData}" alt="">`;
   };
-  r.onerror = () => { toast('Error al leer el archivo'); prev.style.display = 'none'; };
   r.readAsDataURL(f);
 }
-
-// ── VOZ ORIGINAL (audio que suena en la pantalla de participantes al revelar) ──
-function showRevealPreview(type, src){
-  const prev = document.getElementById('f-reveal-preview');
-  prev.style.display = 'flex';
-  if(type.startsWith('video')) prev.innerHTML = `<video src="${escapeHtml(src)}" controls playsinline style="max-width:100%;max-height:180px"></video>`;
-  else prev.innerHTML = `<audio src="${escapeHtml(src)}" controls style="width:100%"></audio>`;
-}
+// ── CLIP AL REVELAR (audio o video, opcional) ──
 function edRevealChanged(){
   const v = document.getElementById('f-reveal-type').value;
-  const row = document.getElementById('f-reveal-row');
-  const url = document.getElementById('f-reveal-url');
-  const file = document.getElementById('f-reveal-file');
+  const urlInp = document.getElementById('f-reveal-url');
+  const fileInp = document.getElementById('f-reveal-file');
+  const uploadBtn = document.getElementById('f-reveal-upload-btn');
+  const clearBtn = document.getElementById('f-reveal-clear-btn');
   const help = document.getElementById('f-reveal-help');
-  const prev = document.getElementById('f-reveal-preview');
-  prev.style.display = 'none'; prev.innerHTML = '';
-  if(v === 'none'){ row.style.display = 'none'; return; }
-  row.style.display = 'block';
-  const isUpload = v.endsWith('upload');
-  const isVideo = v.startsWith('video');
-  url.style.display = isUpload ? 'none' : '';
-  file.style.display = isUpload ? '' : 'none';
-  file.accept = isVideo ? 'video/*' : 'audio/*';
-  if(v === 'audio-url'){ help.textContent = 'Link directo a un archivo de audio (mp3, ogg, wav).'; url.placeholder = 'https://…/audio.mp3'; }
-  else if(v === 'video-url'){ help.textContent = 'Link directo a un archivo de video (mp4, webm) — no sirve un link de YouTube.'; url.placeholder = 'https://…/clip.mp4'; }
-  else if(v === 'audio-upload'){ help.innerHTML = 'Se guarda en el mazo y se sincroniza a los participantes. Usá clips cortos (2–10 segundos) para que no pese.'; if(_edRevealFileData) showRevealPreview(v, _edRevealFileData); }
-  else if(v === 'video-upload'){ help.innerHTML = 'Se guarda en el mazo y se sincroniza a los participantes. Un video pesa bastante más que un audio — usá clips de 2–8 segundos.'; if(_edRevealFileData) showRevealPreview(v, _edRevealFileData); }
-  if(!isUpload && url.value.trim()) showRevealPreview(v, url.value.trim());
-  url.oninput = () => { if(url.value.trim()) showRevealPreview(v, url.value.trim()); };
+  if(v === 'none'){
+    urlInp.style.display = 'none'; uploadBtn.style.display = 'none'; clearBtn.style.display = 'none';
+    help.textContent = ''; _edRevealFileData = null;
+    edRevealPreview(); return;
+  }
+  const isUpload = v === 'audio-upload' || v === 'video-upload';
+  urlInp.style.display = isUpload ? 'none' : '';
+  uploadBtn.style.display = isUpload ? '' : 'none';
+  fileInp.accept = v === 'video-upload' ? 'video/*' : 'audio/*';
+  if(v === 'audio-url'){ urlInp.placeholder = 'https://…/audio.mp3'; help.textContent = 'URL pública de audio — se reproduce también en la pantalla de los participantes.'; }
+  else if(v === 'audio-upload'){ help.innerHTML = 'Archivo de audio guardado en <b>este dispositivo</b> — solo lo escucha el conductor.'; }
+  else if(v === 'video-url'){ urlInp.placeholder = 'https://…/video.mp4'; help.textContent = 'URL directa a un archivo .mp4/.webm — se ve también en la pantalla de los participantes.'; }
+  else if(v === 'video-upload'){ help.innerHTML = 'Archivo de video guardado en <b>este dispositivo</b> — solo lo ve el conductor.'; }
+  else if(v === 'youtube'){ urlInp.placeholder = 'https://youtube.com/watch?v=… o solo el ID'; help.textContent = 'Link o ID de YouTube — se reproduce también en la pantalla de los participantes.'; }
+  clearBtn.style.display = (_edRevealFileData || urlInp.value.trim()) ? '' : 'none';
+  edRevealPreview();
+}
+function edRevealUrlChanged(){
+  document.getElementById('f-reveal-clear-btn').style.display = document.getElementById('f-reveal-url').value.trim() ? '' : (_edRevealFileData ? '' : 'none');
+  edRevealPreview();
 }
 function edRevealFileChosen(e){
   const f = e.target.files[0]; if(!f) return;
-  const type = document.getElementById('f-reveal-type').value;
-  const isVideo = type.startsWith('video');
-  if(isVideo && !/^video\//.test(f.type)){ toast('Elegí un archivo de video'); return; }
-  if(!isVideo && !/^audio\//.test(f.type)){ toast('Elegí un archivo de audio'); return; }
-  const maxSize = isVideo ? 8*1024*1024 : 4*1024*1024;
-  if(f.size > maxSize){ toast(`Archivo muy pesado — máx ${isVideo?'8':'4'}MB para que sincronice bien`); return; }
+  const v = document.getElementById('f-reveal-type').value;
+  const maxMB = v === 'video-upload' ? 15 : 8;
+  if(f.size > maxMB*1024*1024){ toast(`Archivo muy pesado (máx ${maxMB}MB)`); return; }
   const r = new FileReader();
   r.onload = () => {
     _edRevealFileData = r.result;
-    showRevealPreview(type, _edRevealFileData);
-    toast(isVideo ? '🎬 Video cargado' : '🔊 Audio cargado');
+    document.getElementById('f-reveal-url').value = '';
+    document.getElementById('f-reveal-clear-btn').style.display = '';
+    edRevealPreview();
   };
-  r.onerror = () => toast('Error al leer el archivo');
   r.readAsDataURL(f);
+}
+function edRevealClear(){
+  _edRevealFileData = null;
+  document.getElementById('f-reveal-url').value = '';
+  document.getElementById('f-reveal-file').value = '';
+  document.getElementById('f-reveal-clear-btn').style.display = 'none';
+  edRevealPreview();
+}
+function edRevealPreview(){
+  const v = document.getElementById('f-reveal-type').value;
+  const prev = document.getElementById('f-reveal-preview');
+  const src = _edRevealFileData || document.getElementById('f-reveal-url').value.trim();
+  if(v === 'none' || !src){ prev.style.display = 'none'; prev.innerHTML = ''; return; }
+  prev.style.display = 'block';
+  if(v === 'audio-url' || v === 'audio-upload'){
+    prev.innerHTML = `<audio controls style="width:100%" src="${escapeHtml(src)}"></audio>`;
+  } else if(v === 'video-url' || v === 'video-upload'){
+    prev.innerHTML = `<video controls style="width:100%;border-radius:8px" src="${escapeHtml(src)}"></video>`;
+  } else if(v === 'youtube'){
+    const id = youtubeId(src);
+    prev.innerHTML = id ? `<iframe style="width:100%;aspect-ratio:16/9;border:none;border-radius:8px" src="https://www.youtube.com/embed/${id}" allowfullscreen></iframe>` : '<span>⚠️ ID inválido</span>';
+  }
 }
 function edOptsChanged(){
   const val = document.querySelector('input[name="f-opt-for"]:checked').value;
@@ -1608,25 +1558,22 @@ function edEdit(id){
   _edMediaFileData = (c.mediaData && String(c.mediaData).startsWith('data:')) ? c.mediaData : null;
   document.getElementById('f-media-url').value = _edMediaFileData ? '' : (c.mediaUrl || '');
   document.getElementById('f-prompt').value = c.prompt || '';
+  const hasDlg = c.dialogue && c.dialogue.length;
+  document.querySelectorAll('input[name="f-prompt-mode"]').forEach(r => r.checked = r.value === (hasDlg ? 'dialogue' : 'simple'));
+  edRenderDialogueList(hasDlg ? c.dialogue : []);
+  edPromptModeChanged();
   document.getElementById('f-who').value = c.who || '';
   document.getElementById('f-ending').value = c.ending || '';
   document.getElementById('f-hint1').value = c.hint1 || '';
   document.getElementById('f-hint2').value = c.hint2 || '';
-  // Migración: la versión anterior solo tenía audio bajo voiceType/voiceUrl/voiceData
-  let revealType = c.revealType || 'none';
-  let revealUrl = c.revealUrl || '';
-  let revealData = c.revealData || null;
-  if(revealType === 'none' && c.voiceType && c.voiceType !== 'none'){
-    revealType = c.voiceType === 'upload' ? 'audio-upload' : 'audio-url';
-    revealUrl = c.voiceUrl || ''; revealData = c.voiceData || null;
-  }
-  document.getElementById('f-reveal-type').value = revealType;
-  _edRevealFileData = revealType.endsWith('upload') ? revealData : null;
-  document.getElementById('f-reveal-url').value = revealType.endsWith('url') ? revealUrl : '';
   const opts = c.options || [];
   ['f-opt1','f-opt2','f-opt3','f-opt4'].forEach((id, i) => document.getElementById(id).value = opts[i] || '');
   document.querySelectorAll('input[name="f-opt-for"]').forEach(r => r.checked = r.value === (c.optionsFor || 'none'));
-  edMediaChanged(); edOptsChanged(); edRevealChanged();
+  edMediaChanged(); edOptsChanged();
+  document.getElementById('f-reveal-type').value = c.revealType || 'none';
+  _edRevealFileData = (c.revealData && String(c.revealData).startsWith('data:')) ? c.revealData : null;
+  document.getElementById('f-reveal-url').value = _edRevealFileData ? '' : (c.revealUrl || '');
+  edRevealChanged();
 }
 function edDelete(id){
   const c = deck.find(x => x.id === id); if(!c) return;
@@ -1643,13 +1590,20 @@ function edSave(){
   const title = document.getElementById('f-title').value.trim();
   const mediaType = document.getElementById('f-media').value;
   const mediaUrl = document.getElementById('f-media-url').value.trim();
-  const prompt = document.getElementById('f-prompt').value.trim();
+  const promptMode = document.querySelector('input[name="f-prompt-mode"]:checked').value;
+  let prompt = document.getElementById('f-prompt').value.trim();
+  let dialogue = null;
+  if(promptMode === 'dialogue'){
+    const lines = edReadDialogueFromDom().filter(l => l.who || l.text);
+    if(lines.length){
+      dialogue = lines;
+      prompt = lines.map(l => l.who ? `${l.who}: ${l.text}` : l.text).join(' '); // texto plano de respaldo (listado, búsqueda)
+    }
+  }
   const who = document.getElementById('f-who').value.trim();
   const ending = document.getElementById('f-ending').value.trim();
   const hint1 = document.getElementById('f-hint1').value.trim();
   const hint2 = document.getElementById('f-hint2').value.trim();
-  const revealTypeVal = document.getElementById('f-reveal-type').value;
-  const revealUrlVal = document.getElementById('f-reveal-url').value.trim();
   const optsForRaw = document.querySelector('input[name="f-opt-for"]:checked').value;
   let options = null, optionsFor = null;
   if(optsForRaw !== 'none'){
@@ -1669,25 +1623,30 @@ function edSave(){
     id: _editCardId || nextId(),
     category: cat, title, mediaType, prompt, who, ending, hint1, hint2, options, optionsFor
   };
+  if(dialogue) card.dialogue = dialogue;
   if(mediaType !== 'none'){
     if(mediaType === 'image-upload' && _edMediaFileData){ card.mediaData = _edMediaFileData; }
     else if(mediaUrl){ card.mediaUrl = mediaUrl; }
   }
-  if(revealTypeVal !== 'none'){
-    card.revealType = revealTypeVal;
-    if(revealTypeVal.endsWith('url') && revealUrlVal) card.revealUrl = revealUrlVal;
-    else if(revealTypeVal.endsWith('upload') && _edRevealFileData) card.revealData = _edRevealFileData;
+  const revealType = document.getElementById('f-reveal-type').value;
+  if(revealType !== 'none'){
+    card.revealType = revealType;
+    if((revealType === 'audio-upload' || revealType === 'video-upload') && _edRevealFileData){
+      card.revealData = _edRevealFileData;
+    } else {
+      const revealUrl = document.getElementById('f-reveal-url').value.trim();
+      if(revealUrl) card.revealUrl = revealUrl;
+    }
   }
   if(_editCardId){
     const i = deck.findIndex(x => x.id === _editCardId);
-    if(i >= 0){ card.played = deck[i].played || false; deck[i] = card; } // preservamos el estado "jugada"
+    if(i >= 0) deck[i] = card;
   } else {
     deck.push(card);
   }
   saveDeckLocal(); fbPushDeck();
   toast(_editCardId ? '💾 Carta actualizada' : '➕ Carta agregada');
   _editCardId = null;
-  _lastRenderedCardId = null; // fuerza remount de media por si se editó la carta visible
   renderCard();
   edSwitch('list');
 }
@@ -1759,22 +1718,16 @@ function importDeck(){
 function resetScores(){
   if(!confirm('¿Reiniciar los puntajes de todos los jugadores?')) return;
   Object.keys(scores).forEach(k => scores[k] = 0);
+  _wonThisPartida = {};
   saveScores(); renderScores(); fbPushLive();
   toast('↺ Puntajes reiniciados');
-}
-function resetPlayedFlags(){
-  if(!confirm('¿Marcar todas las cartas del mazo como "sin jugar"?\n(Útil para arrancar una nueva ronda con el mismo mazo.)')) return;
-  deck.forEach(c => { c.played = false; });
-  saveDeckLocal(); fbPushDeck();
-  renderEditorList();
-  const cur = currentCard(); if(cur) renderCondText(cur);
-  toast('🔲 Cartas reiniciadas — todas sin jugar');
 }
 function resetAll(){
   if(!confirm('⚠️ Esto borra TODO: mazo, puntajes y cartas.\n¿Seguro?')) return;
   if(!confirm('Última chance. ¿Realmente borrar todo?')) return;
   deck = DEFAULT_DECK(); cardIdx = 0; revealed = false; hintsShown = {1:false,2:false};
   Object.keys(scores).forEach(k => scores[k] = 0);
+  _wonThisPartida = {};
   saveDeckLocal(); saveScores(); saveIdx(); fbPushDeck(); fbPushLive();
   renderCard(); renderScores(); renderEditorList();
   toast('🗑 Todo reiniciado');
