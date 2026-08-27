@@ -7738,11 +7738,30 @@ function saveTercerEdits() {
   renderFinal();
 }
 
-// Guarda los dos campeones desde la card directa del cierre
+// ============================================================
+// 2DO PUESTO (solo el nombre del ganador, para los créditos)
+// ============================================================
+const SEGUNDO_CONFIG_DEFAULT = { ganador: '' };
+let SEGUNDO_CONFIG = null;
+
+function loadSegundoConfig() {
+  try {
+    const s = localStorage.getItem('ndj_segundo_config');
+    if (s) SEGUNDO_CONFIG = Object.assign({}, SEGUNDO_CONFIG_DEFAULT, JSON.parse(s));
+    else SEGUNDO_CONFIG = Object.assign({}, SEGUNDO_CONFIG_DEFAULT);
+  } catch(e) { SEGUNDO_CONFIG = Object.assign({}, SEGUNDO_CONFIG_DEFAULT); }
+}
+function saveSegundoConfig() {
+  localStorage.setItem('ndj_segundo_config', JSON.stringify(SEGUNDO_CONFIG));
+}
+
+// Guarda los tres puestos desde la card directa del cierre
 function saveCampeones() {
   const cf = document.getElementById('campeon-final-input')?.value?.trim();
+  const cs = document.getElementById('campeon-segundo-input')?.value?.trim();
   const ct = document.getElementById('campeon-tercer-input')?.value?.trim();
   if (FINAL_CONFIG) { FINAL_CONFIG.ganador = (cf || ''); saveFinalConfig(); }
+  if (typeof SEGUNDO_CONFIG !== 'undefined' && SEGUNDO_CONFIG) { SEGUNDO_CONFIG.ganador = (cs || ''); saveSegundoConfig(); }
   if (typeof TERCER_CONFIG !== 'undefined' && TERCER_CONFIG) { TERCER_CONFIG.ganador = (ct || ''); saveTercerConfig(); }
   showToast('🏆', 'Campeones guardados', false);
   renderFinal();
@@ -8130,6 +8149,11 @@ function renderFinal() {
         <input class="final-edit-input" id="campeon-final-input" style="margin-top:0.4rem" placeholder="…o escribí un nombre a mano (ej: equipo nuevo)" value="${(FINAL_CONFIG && FINAL_CONFIG.ganador ? FINAL_CONFIG.ganador : '').replace(/"/g,'&quot;')}">
       </div>
       <div class="final-edit-field">
+        <label class="final-edit-label">🥈 2do puesto</label>
+        ${champPickerHtml('campeon-segundo-input', typeof SEGUNDO_CONFIG!=='undefined' && SEGUNDO_CONFIG && SEGUNDO_CONFIG.ganador)}
+        <input class="final-edit-input" id="campeon-segundo-input" style="margin-top:0.4rem" placeholder="…o escribí un nombre a mano (ej: equipo nuevo)" value="${(typeof SEGUNDO_CONFIG!=='undefined' && SEGUNDO_CONFIG && SEGUNDO_CONFIG.ganador ? SEGUNDO_CONFIG.ganador : '').replace(/"/g,'&quot;')}">
+      </div>
+      <div class="final-edit-field">
         <label class="final-edit-label">🥉 Ganador del 3er puesto</label>
         ${champPickerHtml('campeon-tercer-input', typeof TERCER_CONFIG!=='undefined' && TERCER_CONFIG && TERCER_CONFIG.ganador)}
         <input class="final-edit-input" id="campeon-tercer-input" style="margin-top:0.4rem" placeholder="…o escribí un nombre a mano (ej: equipo nuevo)" value="${(typeof TERCER_CONFIG!=='undefined' && TERCER_CONFIG && TERCER_CONFIG.ganador ? TERCER_CONFIG.ganador : '').replace(/"/g,'&quot;')}">
@@ -8362,6 +8386,10 @@ function rollCredits() {
       + (FINAL_CONFIG.ganador ? `<div class="cr-role" style="margin-top:0.6rem">Campeón de la gran final</div><div class="cr-champ-av">${playerAvatarHtml(FINAL_CONFIG.ganador, 0)}</div><div class="cr-name champ" style="color:var(--gold)">🏆 ${esc(FINAL_CONFIG.ganador)}</div>` : '')
     : '';
 
+  const segundoGame = (typeof SEGUNDO_CONFIG !== 'undefined' && SEGUNDO_CONFIG && SEGUNDO_CONFIG.ganador)
+    ? `<div class="cr-role" style="margin-top:0.6rem">2do puesto</div><div class="cr-champ-av">${playerAvatarHtml(SEGUNDO_CONFIG.ganador, 0)}</div><div class="cr-name champ" style="color:var(--silver)">🥈 ${esc(SEGUNDO_CONFIG.ganador)}</div>`
+    : '';
+
   const tercerGame = (typeof TERCER_CONFIG !== 'undefined' && TERCER_CONFIG && (TERCER_CONFIG.juego || TERCER_CONFIG.ganador))
     ? (TERCER_CONFIG.juego ? `<div class="cr-role">Disputa por el 3er puesto</div><div class="cr-name" style="color:#cd7f32">🥉 ${esc(TERCER_CONFIG.juego)}</div>` : '')
       + (TERCER_CONFIG.ganador ? `<div class="cr-role" style="margin-top:0.6rem">Ganador del 3er puesto</div><div class="cr-champ-av">${playerAvatarHtml(TERCER_CONFIG.ganador, 0)}</div><div class="cr-name champ" style="color:#cd7f32">🥉 ${esc(TERCER_CONFIG.ganador)}</div>` : '')
@@ -8397,6 +8425,7 @@ function rollCredits() {
       <div class="cr-role">Los juegos</div>
       <div class="cr-games">${games}</div>
       ${finalGame}
+      ${segundoGame}
       ${tercerGame}
 
       ${motesHtml}
@@ -11044,6 +11073,7 @@ loadState();
 loadRulesConfig();
 loadFinalConfig();
 loadTercerConfig();
+loadSegundoConfig();
 loadElencoConfig();
 syncRulestoRuntime();
 restoreRosterAndFixtures();
