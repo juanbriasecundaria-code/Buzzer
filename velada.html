@@ -158,6 +158,18 @@
   .player-avatar-img { width: 26px; height: 26px; border-radius: 50%; object-fit: cover; flex-shrink: 0; border: 1px solid var(--border2); }
   .player-avatar-fallback { width: 26px; height: 26px; border-radius: 50%; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; color: var(--text); opacity: 0.85; }
 
+  /* Equipos de dos: avatares solapados en las tablas */
+  .player-avatar-duo { display: inline-flex; align-items: center; flex-shrink: 0; }
+  .player-avatar-duo > * { width: 24px; height: 24px; font-size: 10px; }
+  .player-avatar-duo > *:nth-child(2) { margin-left: -9px; }
+  .player-avatar-duo > *:nth-child(1) { z-index: 2; position: relative; }
+
+  /* Equipos de dos: figuras abrazadas en los podios */
+  .mii-duo { display: flex; align-items: flex-end; justify-content: center; }
+  .mii-duo-fig { flex: 0 0 auto; display: flex; align-items: flex-end; }
+  .mii-duo-l { margin-right: -11%; z-index: 2; }
+  .mii-duo-r { margin-left: -11%; z-index: 1; }
+
   /* Filtro "buscá tu nombre" (próximo partido personal) */
   .who-filter-select {
     background: var(--surface2);
@@ -2255,11 +2267,37 @@ body.started .velada-bg-scrim { display: block; }
 .op-rail.all-in .op-playercard .op-member { font-size: clamp(0.6rem, 2.2vw, 0.82rem); }
 .op-rail.all-in .op-playercard .op-pcard-num { font-size: 0.75rem; }
 
-.op-pcard-top { display: flex; align-items: flex-start; justify-content: space-between; width: 100%; margin-bottom: 0.2rem; }
+.op-pcard-top { display: flex; align-items: flex-start; justify-content: space-between; width: 100%; margin-bottom: 0.2rem; position: relative; z-index: 2; }
 .op-pcard-badge { font-size: 9px; font-weight: 900; letter-spacing: 0.2em; text-transform: uppercase;
   color: color-mix(in srgb, var(--team) 25%, white 70%); opacity: 0.9; max-width: 55%; line-height: 1.3; }
 .op-pcard-num { font-size: clamp(1.05rem, 4.2vw, 1.4rem); font-weight: 900; color: #fff; line-height: 1; flex-shrink: 0; }
 .op-pcard-num-total { font-size: 0.6em; color: rgba(255,255,255,0.32); font-weight: 800; }
+
+/* Número gigante de fondo, estilo alineación de equipo (EA FC) */
+.op-pcard-bignum {
+  position: absolute; left: 50%; top: 34%; transform: translate(-50%, -50%);
+  font-size: clamp(7rem, 34vw, 13rem); font-weight: 900; line-height: 0.8;
+  letter-spacing: -0.06em; z-index: 0; pointer-events: none;
+  color: rgba(255,255,255,0.09);
+  -webkit-text-stroke: 1px rgba(255,255,255,0.06);
+}
+.op-playercard.past .op-pcard-bignum,
+.op-rail.all-in .op-playercard .op-pcard-bignum { font-size: clamp(3rem, 14vw, 5rem); }
+
+/* Barra inferior con el nombre, como el chyron de la alineación */
+.op-playercard .op-names {
+  margin-top: auto; margin-bottom: 0; position: relative; z-index: 2;
+  width: calc(100% + 1.5rem); margin-left: -0.75rem; margin-right: -0.75rem;
+  background: linear-gradient(to top, rgba(0,0,0,0.72), rgba(0,0,0,0.35) 70%, transparent);
+  padding: 0.5rem 0.4rem 0.15rem;
+}
+.op-playercard .op-member {
+  font-size: clamp(1.05rem, 4.8vw, 1.55rem); font-weight: 900;
+  letter-spacing: 0.02em; text-transform: uppercase;
+  color: #fff; text-shadow: 0 2px 12px rgba(0,0,0,0.7);
+}
+.op-playercard .op-amp { color: color-mix(in srgb, var(--team) 30%, white 60%); }
+.op-playercard .op-label-tag { margin-top: 0.4rem; position: relative; z-index: 2; }
 
 /* La figura ocupa el grueso de la tarjeta */
 .op-playercard .op-fig {
@@ -2287,10 +2325,6 @@ body.started .velada-bg-scrim { display: block; }
   0%   { transform: translateX(-140%); }
   100% { transform: translateX(140%); }
 }
-
-.op-playercard .op-names { margin-top: auto; margin-bottom: 0.15rem; }
-.op-playercard .op-member { font-size: clamp(1.15rem, 5.2vw, 1.7rem); }
-.op-playercard .op-label-tag { margin-top: 0.5rem; }
 
 /* ── EFECTOS ÉPICOS ── */
 
@@ -3765,10 +3799,17 @@ function renderF2RosterAdmin() {
   }
 
   const rows = TEAMS.map((t, i) => {
-    const photo = getPlayerPhoto(t);
-    const photoBtn = photo
-      ? `<button onclick="removePlayerPhoto('${t.replace(/'/g,"\\'")}');renderF2RosterAdmin();renderFase2();" title="Quitar foto" style="padding:0.45rem 0.5rem;border-radius:var(--radius);border:1px solid var(--border2);background:var(--surface2);cursor:pointer;font-size:11px;line-height:1;display:flex;align-items:center;gap:3px;color:var(--muted)"><img src="${photo}" style="width:20px;height:20px;border-radius:50%;object-fit:cover"> ✕</button>`
-      : `<button onclick="triggerPhotoUpload('${t.replace(/'/g,"\\'")}','f2');" title="Agregar foto" style="padding:0.45rem 0.5rem;border-radius:var(--radius);border:1px dashed var(--border2);background:transparent;cursor:pointer;font-size:13px;line-height:1;color:var(--muted)">📷</button>`;
+    // Un botón de foto por integrante del equipo
+    const members = entityMembers(t);
+    const esc = s => s.replace(/'/g, "\\'");
+    const photoBtns = (members.length ? members : [t]).map(m => {
+      const ph = getPlayerPhoto(m) || (members.length <= 1 ? getPlayerPhoto(t) : null);
+      const short = m.split(' ')[0];
+      return ph
+        ? `<button onclick="removePlayerPhoto('${esc(m)}');renderF2RosterAdmin();renderFase2();" title="Quitar foto de ${short}" style="padding:0.35rem 0.4rem;border-radius:var(--radius);border:1px solid var(--border2);background:var(--surface2);cursor:pointer;font-size:10px;line-height:1;display:flex;align-items:center;gap:2px;color:var(--muted)"><img src="${ph}" style="width:20px;height:20px;border-radius:50%;object-fit:cover"> ✕</button>`
+        : `<button onclick="triggerPhotoUpload('${esc(m)}','f2');" title="Agregar foto de ${short}" style="padding:0.35rem 0.45rem;border-radius:var(--radius);border:1px dashed var(--border2);background:transparent;cursor:pointer;font-size:11px;line-height:1;color:var(--muted);white-space:nowrap">📷<span style="font-size:9px;opacity:0.8"> ${short}</span></button>`;
+    }).join('');
+    const photoBtn = `<span style="display:flex;gap:3px;flex-shrink:0">${photoBtns}</span>`;
     const f2Color = getEntityColor(t);
     const f2ColorBtn = `<button onclick="openColorPicker('${t.replace(/'/g,"\\'")}','f2',this)" title="Cambiar color" style="padding:0.45rem 0.5rem;border-radius:var(--radius);border:1px solid var(--border2);background:${f2Color||'var(--surface2)'};cursor:pointer;font-size:13px;line-height:1;min-width:30px;box-shadow:${f2Color?'0 0 8px '+f2Color+'66':'none'}">🎨</button>`;
     return `
@@ -6782,6 +6823,34 @@ function savePlayerPhotos() {
   try { localStorage.setItem('ndj_photos', JSON.stringify(_playerPhotos)); } catch(e) {}
 }
 function getPlayerPhoto(name) { return _playerPhotos[name] || null; }
+
+// ── EQUIPOS DE DOS: helpers ────────────────────────────────────────────
+// Un equipo se escribe "Fulano / Mengano". Cada integrante puede tener su
+// propia foto (clave = su nombre); si no hay, cae a la foto del equipo entero.
+function entityMembers(name) {
+  return String(name || '').split('/').map(s => s.trim()).filter(Boolean);
+}
+function entityPhotos(name) {
+  const parts = entityMembers(name);
+  if (parts.length > 1) {
+    const teamPhoto = getPlayerPhoto(name);
+    return parts.map(p => getPlayerPhoto(p) || null).map((p, i) => p || (i === 0 ? teamPhoto : null));
+  }
+  return [getPlayerPhoto(name) || null];
+}
+// Devuelve la figura (o el dúo abrazado) de una entidad, lista para insertar.
+function entityFigureHtml(name, color, size, pose) {
+  if (typeof miiFigureSVG !== 'function') return '';
+  const parts = entityMembers(name);
+  if (parts.length > 1) {
+    const ph = entityPhotos(name);
+    return '<div class="mii-duo">'
+      + '<div class="mii-duo-fig mii-duo-l">' + miiFigureSVG(color, Math.round(size * 0.86), 'hug-right', ph[0]) + '</div>'
+      + '<div class="mii-duo-fig mii-duo-r">' + miiFigureSVG(color, Math.round(size * 0.86), 'hug-left',  ph[1]) + '</div>'
+      + '</div>';
+  }
+  return miiFigureSVG(color, size, pose, getPlayerPhoto(name));
+}
 function setPlayerPhoto(name, dataUrl) {
   _playerPhotos[name] = dataUrl;
   savePlayerPhotos();
@@ -6818,9 +6887,18 @@ function entityColor(name, idx) {
 // Avatar chico para las tablas de ranking en vivo (Fase 1 / Fase 2): foto si
 // hay, sino un círculo de color con la inicial (mismo criterio que el podio).
 function playerAvatarHtml(name, idx) {
+  const parts = entityMembers(name);
+  const color = entityColor(name, idx);
+  // Equipo de dos: dos avatares solapados
+  if (parts.length > 1) {
+    const ph = entityPhotos(name);
+    const one = (p, m) => p
+      ? `<img class="player-avatar-img" src="${p}" alt="">`
+      : `<div class="player-avatar-fallback" style="background:${color}">${(m.trim()[0] || '?').toUpperCase()}</div>`;
+    return `<span class="player-avatar-duo">${one(ph[0], parts[0])}${one(ph[1], parts[1])}</span>`;
+  }
   const photo = getPlayerPhoto(name);
   if (photo) return `<img class="player-avatar-img" src="${photo}" alt="">`;
-  const color = entityColor(name, idx);
   const initial = (name.split('/')[0].trim()[0] || '?').toUpperCase();
   return `<div class="player-avatar-fallback" style="background:${color}">${initial}</div>`;
 }
@@ -7193,7 +7271,7 @@ function renderPodium(containerId, sorted, phase) {
     const pts   = entry ? entry.pts.total : 0;
     const color = entry ? (entityColor(entry.n, entry.i) || colors[slotIdx]) : colors[slotIdx];
     const photo = entry ? getPlayerPhoto(entry.n) : null;
-    const fig   = entry ? miiFigureSVG(color, figSizes[slotIdx], poses[slotIdx], photo) : '';
+    const fig   = entry ? entityFigureHtml(entry.n, color, figSizes[slotIdx], poses[slotIdx]) : '';
     const isFirst = slotIdx === 1;
     const animCls = changed ? enterCls[slotIdx] : '';
 
@@ -8600,7 +8678,8 @@ function _runCeremony({ items, title, eyebrow, labelFn, colorFn, figFn, finishTi
     cardEl.id = 'op-pcard-' + i;
     cardEl.style.setProperty('--team', color);
     cardEl.innerHTML =
-      '  <div class="op-pcard-top"><span class="op-pcard-badge">' + _escC(title) + '</span><span class="op-pcard-num">' + numStr + '<span class="op-pcard-num-total">/' + totalStr + '</span></span></div>'
+      '  <div class="op-pcard-bignum">' + numStr + '</div>'
+      + '  <div class="op-pcard-top"><span class="op-pcard-badge">' + _escC(title) + '</span><span class="op-pcard-num">' + numStr + '<span class="op-pcard-num-total">/' + totalStr + '</span></span></div>'
       + '  <div class="op-fig" id="op-fig-el">' + fig + '</div>'
       + '  <div class="op-pcard-shine" id="op-shine-el"></div>'
       + '  <div class="op-burst" id="op-burst-el"></div>'
@@ -8717,12 +8796,12 @@ function openCeremony() {
     figFn: (name, color, i) => {
       if (typeof miiFigureSVG !== 'function') return '';
       // Un equipo son dos personas separadas por "/" — las mostramos abrazadas
-      const parts = String(name).split('/').map(s => s.trim()).filter(Boolean);
+      const parts = entityMembers(name);
       if (parts.length > 1) {
+        const ph = entityPhotos(name);
         return '<div class="op-duo">' + parts.slice(0, 2).map(function(p, pi) {
-          const ph = (typeof getPlayerPhoto === 'function') ? getPlayerPhoto(p) : null;
           return '<div class="op-duo-fig' + (pi === 0 ? ' op-duo-l' : ' op-duo-r') + '">'
-            + miiFigureSVG(color, 200, pi === 0 ? 'hug-right' : 'hug-left', ph) + '</div>';
+            + miiFigureSVG(color, 200, pi === 0 ? 'hug-right' : 'hug-left', ph[pi]) + '</div>';
         }).join('') + '</div>';
       }
       const photo = (typeof getPlayerPhoto === 'function') ? getPlayerPhoto(name) : null;
@@ -8832,7 +8911,7 @@ function podiumReveal(phaseKind, onContinue) {
     const m = META[place];
     const figColor = entityColor(entry.n, entry.i);
     const photo = (typeof getPlayerPhoto === 'function') ? getPlayerPhoto(entry.n) : null;
-    const fig = (typeof miiFigureSVG === 'function') ? miiFigureSVG(figColor, m.fig, m.pose, photo) : '';
+    const fig = (typeof entityFigureHtml === 'function') ? entityFigureHtml(entry.n, figColor, m.fig, m.pose) : '';
     return `<div class="pr-slot pr-place-${place}" style="--accent-team:${m.color}">`
       + `<div class="pr-fig">${place === 1 ? '<div class="pr-crown">👑</div>' : ''}${fig}</div>`
       + `<div class="pr-medal">${m.medal}</div>`
@@ -9632,6 +9711,15 @@ function openTVMode() {
     border-radius: 50%; flex-shrink: 0; display: flex; align-items: center; justify-content: center;
     font-size: clamp(10px,1.1vw,15px); font-weight: 700; color: var(--text); opacity: 0.85;
   }
+  /* Equipos de dos: avatares solapados en el ranking del TV */
+  .tv-avatar-duo { display: inline-flex; align-items: center; flex-shrink: 0; }
+  .tv-avatar-duo > *:nth-child(2) { margin-left: -34%; }
+  .tv-avatar-duo > *:nth-child(1) { z-index: 2; position: relative; }
+  /* Equipos de dos: figuras abrazadas en el podio del TV */
+  .mii-duo { display: flex; align-items: flex-end; justify-content: center; }
+  .mii-duo-fig { flex: 0 0 auto; display: flex; align-items: flex-end; }
+  .mii-duo-l { margin-right: -11%; z-index: 2; }
+  .mii-duo-r { margin-left: -11%; z-index: 1; }
   .tv-rank-pts {
     font-size: clamp(13px, 1.8vw, 24px);
     font-weight: 800;
@@ -10214,6 +10302,45 @@ function tvEntityColor(name, idx) {
   return (colors && colors[name]) || TV_PALETTE[idx % TV_PALETTE.length];
 }
 
+// ── EQUIPOS DE DOS en el TV: cada integrante puede tener su propia foto ──
+function tvMembers(name) {
+  return String(name || '').split('/').map(function(s) { return s.trim(); }).filter(Boolean);
+}
+function tvPhotosFor(name, photos) {
+  const parts = tvMembers(name);
+  if (parts.length > 1) {
+    return parts.map(function(p, i) { return photos[p] || (i === 0 ? (photos[name] || null) : null); });
+  }
+  return [photos[name] || null];
+}
+function tvFigureHtml(name, color, size, pose, photos) {
+  const parts = tvMembers(name);
+  if (parts.length > 1) {
+    const ph = tvPhotosFor(name, photos);
+    const s2 = Math.round(size * 0.86);
+    return '<div class="mii-duo">'
+      + '<div class="mii-duo-fig mii-duo-l">' + miiFigureSVG(color, s2, 'hug-right', ph[0]) + '</div>'
+      + '<div class="mii-duo-fig mii-duo-r">' + miiFigureSVG(color, s2, 'hug-left',  ph[1]) + '</div>'
+      + '</div>';
+  }
+  return miiFigureSVG(color, size, pose, photos[name] || null);
+}
+function tvAvatarHtml(name, idx, photos) {
+  const parts = tvMembers(name);
+  const color = tvEntityColor(name, idx);
+  if (parts.length > 1) {
+    const ph = tvPhotosFor(name, photos);
+    const one = function(p, m) {
+      return p ? '<img class="tv-rank-avatar-img" src="' + p + '" alt="">'
+               : '<div class="tv-rank-avatar-fallback" style="background:' + color + '">' + ((m.trim()[0] || '?').toUpperCase()) + '</div>';
+    };
+    return '<span class="tv-avatar-duo">' + one(ph[0], parts[0]) + one(ph[1], parts[1]) + '</span>';
+  }
+  const ph = photos[name] || null;
+  return ph ? '<img class="tv-rank-avatar-img" src="' + ph + '" alt="">'
+            : '<div class="tv-rank-avatar-fallback" style="background:' + color + '">' + ((name.split('/')[0].trim()[0] || '?').toUpperCase()) + '</div>';
+}
+
 // Apply single-phase layout immediately
 (function applyPhaseLayout() {
   const podiums = document.getElementById('tv-podiums');
@@ -10381,7 +10508,7 @@ function renderTV() {
       const color=entry?tvEntityColor(entry.n,entry.i):COLORS[slotIdx];
       const photo=entry?photos[entry.n]||null:null;
       const sz=figSize(slotIdx);
-      const fig=entry?miiFigureSVG(color,sz,POSES[slotIdx],photo):'';
+      const fig=entry?tvFigureHtml(entry.n,color,sz,POSES[slotIdx],photos):'';
       const crown=slotIdx===1&&entry?'<div class="podium-crown">👑</div>':'';
       const figHtml=entry?'<div class="podium-glow"></div>'+fig:'<div style="height:'+sz+'px;opacity:0.15;display:flex;align-items:center;justify-content:center;font-size:'+(sz*0.5)+'px">?</div>';
       let badge='';
@@ -10397,8 +10524,7 @@ function renderTV() {
     const rankEl=document.getElementById('tv-rank-'+phase);
     const rest=sorted.slice(3);
     rankEl.innerHTML=rest.length?rest.map((e,i)=>{
-      const ph=photos[e.n]||null;
-      const av=ph?'<img class="tv-rank-avatar-img" src="'+ph+'" alt="">':'<div class="tv-rank-avatar-fallback" style="background:'+tvEntityColor(e.n,e.i)+'">'+((e.n.split('/')[0].trim()[0]||'?').toUpperCase())+'</div>';
+      const av=tvAvatarHtml(e.n,e.i,photos);
       return '<div class="tv-rank-row"><span class="tv-rank-pos">'+(i+4)+'°</span><span class="tv-rank-name">'+av+'<span>'+e.n+'</span></span><span class="tv-rank-pts'+(isF1?'':' f2')+'">'+e.pts.total+' pts</span></div>';
     }).join(''):'';
   });
