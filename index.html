@@ -701,11 +701,20 @@ function startBuzzListener(){
       }
     } else if(state==='open'){
       hideResult(); _resultShownFor = null;
-      btn.classList.remove('locked','won-me');
-      btn.classList.add('open');
-      statusEl.textContent = '¡Tocá cuando sepas la respuesta!';
-      statusEl.className = 'bz-status open';
-      if(navigator.vibrate) navigator.vibrate(30);
+      if(d.blocked && d.blocked===bzTeam){
+        // Este equipo ya erró esta carta — le toca al otro
+        btn.classList.add('locked');
+        btn.classList.remove('open','won-me');
+        const otro = bzTeam==='a' ? nameB : nameA;
+        statusEl.textContent = '✗ Erraron — ahora responde ' + otro;
+        statusEl.className = 'bz-status lost';
+      } else {
+        btn.classList.remove('locked','won-me');
+        btn.classList.add('open');
+        statusEl.textContent = '¡Tocá cuando sepas la respuesta!';
+        statusEl.className = 'bz-status open';
+        if(navigator.vibrate) navigator.vibrate(30);
+      }
     } else {
       hideResult(); _resultShownFor = null;
       btn.classList.add('locked');
@@ -735,6 +744,9 @@ function doBuzz(){
     if(!current) return;
     // Movies & Songs usa { state:'open', winner:null }
     // 100 Argentinos usa { state:'open', winner:null } también
+    // `blocked` (opcional): equipo que ya erró esta carta y no puede volver a buzzear.
+    // Si el juego no lo manda, el comportamiento es el de siempre.
+    if(current.blocked && current.blocked===bzTeam) return; // abort — te toca esperar
     if(current.state==='open' && !current.winner){
       return Object.assign({}, current, {
         winner: { team:bzTeam, name:tName },
