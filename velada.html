@@ -186,6 +186,10 @@
   .match-row.row-dim { opacity: 0.38; }
   .total-pts { font-size: 18px; font-weight: 700; color: var(--accent); }
   .round-pts { font-size: 12px; color: var(--muted); min-width: 28px; text-align: center; }
+  .round-pts[onclick]:hover { background: rgba(255,255,255,0.06); border-radius: 6px; }
+  /* Celda pisada a mano: marquita para no confundirla con el resultado real */
+  .round-pts.overridden { position: relative; }
+  .round-pts.overridden::after { content: '✎'; position: absolute; top: 1px; right: 3px; font-size: 8px; color: var(--gold); opacity: 0.9; }
   .round-pts.win { color: var(--success); font-weight: 600; }
   .round-pts.bonus { color: var(--gold); font-weight: 600; }
   .round-pts.pending { color: var(--border2); }
@@ -2649,7 +2653,8 @@ body.started .velada-bg-scrim { display: block; }
             <th>R1</th><th>R2</th><th>R3</th><th>R4</th><th>R5</th><th>R6</th>
             <th title="Puntos especiales (Impostor)">Esp.</th>
             <th title="Bonus previo (Kahoot u otras actividades)">🎯</th>
-            <th id="th-vsjc" title="Resultado vs Juan Cruz" style="cursor:pointer;white-space:nowrap;color:var(--info)" onclick="toggleVsJCEdit()">vs JC ✏️</th>
+            <th title="Apuestas acertadas">🃏</th>
+            <th title="Puntos manuales — tocá una celda para editar">⚖️</th>
             <th style="text-align:right">Total</th>
           </tr>
         </thead>
@@ -4154,6 +4159,7 @@ let state = {
   bets: {},      // key "r-a-b" => { nombreApostador: idxGanadorApostado }
   adjust: { f1: [], f2: [] }, // ajustes manuales: [{id, name, pts, label, ts}]
   betWindow: { open: false, round: 0 }, // ventana de apuestas: qué ronda está abierta
+  cellPts: { f1: {}, f2: {} }, // override manual de una celda: "nombre||ronda" => pts
 };
 
 // ── COMODINES: catálogo ──────────────────────────────────────────────
@@ -4475,6 +4481,15 @@ function getPlayerPoints() {
     if (blown) pts[idx].betsBlown = won; // cuánto se le anuló, para mostrarlo
   });
 
+  // Overrides de celda: pisan el valor calculado de esa ronda
+  const ovF1 = (state.cellPts && state.cellPts.f1) || {};
+  PLAYERS.forEach((name, idx) => {
+    pts[idx].rounds.forEach((v, ri) => {
+      const k = name + '||' + ri;
+      if (Object.prototype.hasOwnProperty.call(ovF1, k)) pts[idx].rounds[ri] = Number(ovF1[k]) || 0;
+    });
+  });
+
   // Ajustes manuales cargados a mano durante la noche
   const adjF1 = (state.adjust && state.adjust.f1) || [];
   PLAYERS.forEach((name, idx) => {
@@ -4562,6 +4577,15 @@ function getTeamPoints() {
   // una vez que el conductor finaliza la ronda especial.
   const qldTeamPoints = window._qldTeamPoints || {};
   pts.forEach((p, idx) => { p.qld = qldTeamPoints[idx] || 0; });
+
+  // Overrides de celda: pisan el valor calculado de esa ronda
+  const ovF2 = (state.cellPts && state.cellPts.f2) || {};
+  TEAMS.forEach((name, idx) => {
+    pts[idx].rounds.forEach((v, ri) => {
+      const k = name + '||' + ri;
+      if (Object.prototype.hasOwnProperty.call(ovF2, k)) pts[idx].rounds[ri] = Number(ovF2[k]) || 0;
+    });
+  });
 
   // Ajustes manuales cargados a mano durante la noche
   const adjF2 = (state.adjust && state.adjust.f2) || [];
@@ -4709,25 +4733,26 @@ function renderFase1() {
   if (theadRowF1) {
     const numRoundsF1 = F1_FIXTURE.reduce((m, x) => Math.max(m, x[0]), 0);
     const roundThs = Array.from({length: numRoundsF1}, (_, i) => `<th>R${i+1}</th>`).join('');
-    const vsjcLabel = _vsJCEditMode ? 'vs JC ✓' : 'vs JC ✏️';
-    const vsjcColor = _vsJCEditMode ? 'var(--accent)' : 'var(--info)';
-    theadRowF1.innerHTML = `<th style="width:36px">#</th><th>Jugador</th>${roundThs}<th title="Puntos especiales (Impostor)">Esp.</th><th title="Bonus previo (Kahoot u otras actividades)">🎯</th><th id="th-vsjc" title="Resultado vs Juan Cruz" style="cursor:pointer;white-space:nowrap;color:${vsjcColor}" onclick="toggleVsJCEdit()">${vsjcLabel}</th><th style="text-align:right">Total</th>`;
+    theadRowF1.innerHTML = `<th style="width:36px">#</th><th>Jugador</th>${roundThs}<th title="Puntos especiales (Impostor)">Esp.</th><th title="Bonus previo (Kahoot u otras actividades)">🎯</th><th title="Apuestas acertadas">🃏</th><th title="Puntos manuales — tocá una celda para editar">⚖️</th><th style="text-align:right">Total</th>`;
   }
   const tbody = document.getElementById('tbody-fase1');
   tbody.innerHTML = sorted.map(({n,i,pts}, pos) => {
     const badgeClass = pos === 0 ? 'gold' : pos === 1 ? 'accent' : '';
     const rowClass = pos < 1 ? 'classifica' : '';
-    const rounds = pts.rounds.map((v, ri) =>
-      v === 'bye' ? (() => {
+    const nSafe = n.replace(/'/g,"\\'");
+    const rounds = pts.rounds.map((v, ri) => {
+      const ov = cellIsOverridden('f1', n, ri) ? ' overridden' : '';
+      const click = ` onclick="editCellPts('f1','${nSafe}',${ri})" style="cursor:pointer" title="Tocá para editar los puntos de esta ronda"`;
+      if (v === 'bye') {
         const { missingNames } = getF1StationStatus(i, ri + 1);
-        const title = missingNames.length ? `Descansa esta ronda — le falta: ${missingNames.join(', ')}` : 'Descansa esta ronda — ya completó todas las estaciones';
-        return `<td class="round-pts bye" title="${title}">😴</td>`;
-      })()
-      : v === null ? `<td class="round-pts pending">—</td>`
-      : v >= 4 ? `<td class="round-pts bonus">${v}</td>`
-      : v > 0 ? `<td class="round-pts win">${v}</td>`
-      : `<td class="round-pts">${v}</td>`
-    ).join('');
+        const t = missingNames.length ? `Descansa — le falta: ${missingNames.join(', ')}` : 'Descansa esta ronda';
+        return `<td class="round-pts bye${ov}" onclick="editCellPts('f1','${nSafe}',${ri})" style="cursor:pointer" title="${t}">😴</td>`;
+      }
+      if (v === null)  return `<td class="round-pts pending${ov}"${click}>—</td>`;
+      if (v >= 4)      return `<td class="round-pts bonus${ov}"${click}>${v}</td>`;
+      if (v > 0)       return `<td class="round-pts win${ov}"${click}>${v}</td>`;
+      return `<td class="round-pts${ov}"${click}>${v}</td>`;
+    }).join('');
     const special = pts.special !== null
       ? `<td class="round-pts bonus">${pts.special}</td>`
       : `<td class="round-pts pending">—</td>`;
@@ -4735,28 +4760,23 @@ function renderFase1() {
     const bmCell = bm
       ? `<td class="round-pts bonus" title="Bonus previo: +${bm} pts">+${bm}</td>`
       : `<td class="round-pts pending">—</td>`;
-    const vsJCval = pts.vsJC;
-    const vsJCSafe = n.replace(/'/g,"\\'");
-    const vsJCCell = _vsJCEditMode
-      ? `<td style="padding:2px 4px">
-          <input
-            type="number" min="0" step="1"
-            value="${vsJCval !== null ? vsJCval : ''}"
-            placeholder="—"
-            onchange="setVsJC('${vsJCSafe}', this.value)"
-            style="width:46px;padding:3px 5px;border-radius:6px;border:1px solid var(--info);background:var(--surface2);color:var(--info);font-size:12px;font-weight:700;text-align:center"
-          >
-        </td>`
-      : vsJCval !== null
-        ? `<td class="round-pts ${vsJCval > 0 ? 'win' : ''}">${vsJCval}</td>`
+    const betsCell = pts.betsBlown
+      ? `<td class="round-pts" style="color:var(--danger);font-weight:800" title="Apostó a su propio duelo y lo perdió: se anularon ${pts.betsBlown} pts">💥</td>`
+      : pts.bets
+        ? `<td class="round-pts win" title="Apuestas acertadas">+${pts.bets}</td>`
         : `<td class="round-pts pending">—</td>`;
+    const adjVal = pts.adjust || 0;
+    const adjCell = adjVal
+      ? `<td class="round-pts" onclick="editManualPts('f1','${nSafe}')" style="cursor:pointer;color:${adjVal > 0 ? 'var(--success)' : 'var(--danger)'};font-weight:800" title="Puntos manuales — tocá para editar">${adjVal > 0 ? '+' : ''}${adjVal}</td>`
+      : `<td class="round-pts pending" onclick="editManualPts('f1','${nSafe}')" style="cursor:pointer" title="Tocá para agregar puntos manuales">—</td>`;
     return `<tr class="${rowClass}">
       <td><div class="pos-badge ${badgeClass}">${pos+1}</div></td>
       <td class="player-name">${playerAvatarHtml(n, i)}<span>${n}</span></td>
       ${rounds}
       ${special}
       ${bmCell}
-      ${vsJCCell}
+      ${betsCell}
+      ${adjCell}
       <td style="text-align:right"><span class="total-pts">${pts.total}</span></td>
     </tr>`;
   }).join('');
@@ -5178,23 +5198,26 @@ function renderFase2() {
   tbody.innerHTML = sorted.map(({n,i,pts}, pos) => {
     const badgeClass = pos === 0 ? 'gold' : pos === 1 ? 'accent' : '';
     const rowClass = pos < 1 ? 'classifica' : '';
+    const nSafe = n.replace(/'/g,"\\'");
     const rounds = pts.rounds.map((v, ri) => {
+      const ov = cellIsOverridden('f2', n, ri) ? ' overridden' : '';
+      const click = ` onclick="editCellPts('f2','${nSafe}',${ri})" style="cursor:pointer" title="Tocá para editar los puntos de esta ronda"`;
       if (v === 'bye') {
         const { missingNames } = getF2StationStatus(i, ri + 1);
-        const title = missingNames.length ? `Descansa esta ronda — le falta: ${missingNames.join(', ')}` : 'Descansa esta ronda — ya completó todas las estaciones';
-        return `<td class="round-pts bye" title="${title}">😴</td>`;
+        const t = missingNames.length ? `Descansa — le falta: ${missingNames.join(', ')}` : 'Descansa esta ronda';
+        return `<td class="round-pts bye${ov}" onclick="editCellPts('f2','${nSafe}',${ri})" style="cursor:pointer" title="${t}">😴</td>`;
       }
-      return v === null ? `<td class="round-pts pending">—</td>`
-        : v >= 4 ? `<td class="round-pts bonus">${v}</td>`
-        : v > 0 ? `<td class="round-pts win">${v}</td>`
-        : `<td class="round-pts">${v}</td>`;
+      if (v === null)  return `<td class="round-pts pending${ov}"${click}>—</td>`;
+      if (v >= 4)      return `<td class="round-pts bonus${ov}"${click}>${v}</td>`;
+      if (v > 0)       return `<td class="round-pts win${ov}"${click}>${v}</td>`;
+      return `<td class="round-pts${ov}"${click}>${v}</td>`;
     }).join('');
     const qldCell = pts.qld > 0
       ? `<td class="round-pts" style="color:var(--purple);font-weight:800" title="Puntos de ¿Quién lo dijo?">${pts.qld}</td>`
       : `<td class="round-pts pending">—</td>`;
     const adjCell = pts.adjust
-      ? `<td class="round-pts" style="color:${pts.adjust > 0 ? 'var(--success)' : 'var(--danger)'};font-weight:800" title="Puntos manuales">${pts.adjust > 0 ? '+' : ''}${pts.adjust}</td>`
-      : `<td class="round-pts pending">—</td>`;
+      ? `<td class="round-pts" onclick="editManualPts('f2','${nSafe}')" style="cursor:pointer;color:${pts.adjust > 0 ? 'var(--success)' : 'var(--danger)'};font-weight:800" title="Puntos manuales — tocá para editar">${pts.adjust > 0 ? '+' : ''}${pts.adjust}</td>`
+      : `<td class="round-pts pending" onclick="editManualPts('f2','${nSafe}')" style="cursor:pointer" title="Tocá para agregar puntos manuales">—</td>`;
     return `<tr class="${rowClass}">
       <td><div class="pos-badge ${badgeClass}">${pos+1}</div></td>
       <td class="player-name" style="font-size:12px">${playerAvatarHtml(n, i)}<span>${n}</span></td>
@@ -5496,6 +5519,74 @@ function ruletaBad() {
     o.connect(lp); lp.connect(g); g.connect(ctx.destination);
     o.start(t + i * 0.12); o.stop(t + i * 0.12 + 0.45);
   });
+}
+
+// ── EDICIÓN DIRECTA DESDE LA TABLA ───────────────────────────────────
+// Cualquier celda de ronda se puede pisar a mano, por si hay que corregir algo
+// en vivo sin tocar el resultado del duelo.
+function cellKey(name, ri) { return name + '||' + ri; }
+function cellIsOverridden(phase, name, ri) {
+  const m = (state.cellPts && state.cellPts[phase]) || {};
+  return Object.prototype.hasOwnProperty.call(m, cellKey(name, ri));
+}
+function editCellPts(phase, name, ri) {
+  state.cellPts = state.cellPts || { f1: {}, f2: {} };
+  state.cellPts[phase] = state.cellPts[phase] || {};
+  const k = cellKey(name, ri);
+  const cur = state.cellPts[phase][k];
+  const who = String(name).split('/')[0].trim().split(' ')[0];
+  const val = prompt(
+    `Puntos de ${who} en la Ronda ${ri + 1}\n\n` +
+    `Escribí un número para fijarlo a mano.\n` +
+    `Dejalo vacío para volver al valor calculado por el resultado.`,
+    (cur !== undefined && cur !== null) ? String(cur) : ''
+  );
+  if (val === null) return; // canceló
+  if (String(val).trim() === '') {
+    delete state.cellPts[phase][k];
+  } else {
+    const num = parseFloat(val);
+    if (isNaN(num)) { showToast('⚠️', 'Poné un número válido', false); return; }
+    state.cellPts[phase][k] = num;
+  }
+  saveState();
+  if (phase === 'f1') renderFase1(); else renderFase2();
+}
+
+// Puntos manuales (columna ⚖️): suma o resta libre, con motivo opcional
+function editManualPts(phase, name) {
+  state.adjust = state.adjust || { f1: [], f2: [] };
+  state.adjust[phase] = state.adjust[phase] || [];
+  const mine = state.adjust[phase].filter(a => a.name === name);
+  const total = mine.reduce((s, a) => s + (Number(a.pts) || 0), 0);
+  const who = String(name).split('/')[0].trim().split(' ')[0];
+  const detail = mine.length
+    ? '\n\nActual: ' + mine.map(a => `${a.pts > 0 ? '+' : ''}${a.pts}${a.label ? ' (' + a.label + ')' : ''}`).join(', ') + ` = ${total > 0 ? '+' : ''}${total}`
+    : '';
+  const val = prompt(
+    `Puntos manuales para ${who}${detail}\n\n` +
+    `Escribí cuánto sumar o restar (ej: 2, -1, 0.5).\n` +
+    `Escribí 0 o dejalo vacío para borrar todos los suyos.`,
+    ''
+  );
+  if (val === null) return;
+  if (String(val).trim() === '' || parseFloat(val) === 0) {
+    state.adjust[phase] = state.adjust[phase].filter(a => a.name !== name);
+    saveState();
+    if (phase === 'f1') renderFase1(); else renderFase2();
+    showToast('⚖️', 'Puntos manuales de ' + who + ' borrados', true);
+    return;
+  }
+  const num = parseFloat(val);
+  if (isNaN(num)) { showToast('⚠️', 'Poné un número válido', false); return; }
+  const label = (prompt('Motivo (opcional)', '') || '').trim();
+  state.adjust[phase].push({
+    id: 'a' + Date.now() + Math.floor(Math.random() * 999),
+    name: name, pts: num, label: label, ts: Date.now()
+  });
+  saveState();
+  if (phase === 'f1') renderFase1(); else renderFase2();
+  showToast('⚖️', who + ' ' + (num > 0 ? '+' : '') + num, true);
 }
 
 // ── VENTANA DE APUESTAS ──────────────────────────────────────────────
