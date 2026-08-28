@@ -2283,15 +2283,24 @@ body.started .velada-bg-scrim { display: block; }
   color: var(--muted); font-size: 18px; cursor: pointer; padding: 0.2rem 0.4rem; }
 .ruleta-eyebrow { font-size: 10px; font-weight: 900; letter-spacing: 0.28em; text-transform: uppercase;
   color: var(--gold); margin-bottom: 1rem; }
-.ruleta-slot { border: 2px dashed var(--border2); border-radius: 16px; padding: 1.3rem 0.8rem;
-  background: var(--surface2); transition: border-color 0.3s, box-shadow 0.3s; overflow: hidden; }
-.ruleta-slot.spinning { border-color: var(--gold); }
-.ruleta-slot.landed { border-style: solid; border-color: var(--gold);
-  box-shadow: 0 0 26px rgba(245,200,66,0.35); animation: ruLand 0.5s cubic-bezier(.2,1.3,.4,1); }
-@keyframes ruLand { 0% { transform: scale(1.12); } 100% { transform: scale(1); } }
-.ruleta-name { font-size: clamp(1.6rem, 8vw, 2.4rem); font-weight: 900; color: var(--text);
-  letter-spacing: -0.01em; line-height: 1.1; }
-.ruleta-slot.spinning .ruleta-name { opacity: 0.55; filter: blur(0.4px); }
+.ruleta-wheel-area { position: relative; width: min(76vw, 300px); aspect-ratio: 1 / 1; margin: 0 auto 0.2rem; }
+.ruleta-pointer { position: absolute; top: -13px; left: 50%; transform: translateX(-50%); width: 0; height: 0;
+  border-left: 13px solid transparent; border-right: 13px solid transparent; border-top: 22px solid var(--gold);
+  z-index: 6; filter: drop-shadow(0 2px 5px rgba(0,0,0,0.55)); }
+.ruleta-wheel-outer { position: absolute; inset: 0; border-radius: 50%; padding: 4%;
+  background: radial-gradient(circle at 50% 42%, #3a3120, #100e08 74%);
+  box-shadow: 0 0 0 3px rgba(245,200,66,0.35), 0 18px 44px rgba(0,0,0,0.55), inset 0 0 18px rgba(0,0,0,0.6); }
+.ruleta-wheel-svg { display: block; width: 100%; height: 100%; border-radius: 50%;
+  transform: rotate(0deg); transition: transform 3.7s cubic-bezier(0.13,0.7,0.18,1);
+  filter: drop-shadow(0 6px 16px rgba(0,0,0,0.5)); }
+.ruleta-hub { position: absolute; top: 50%; left: 50%; width: 21%; height: 21%; transform: translate(-50%,-50%);
+  border-radius: 50%; background: radial-gradient(circle at 34% 28%, #fff2ca, var(--gold) 55%, #a97e12 100%);
+  box-shadow: 0 0 0 3px rgba(0,0,0,0.42), 0 4px 10px rgba(0,0,0,0.5);
+  display: flex; align-items: center; justify-content: center; font-size: 18px; z-index: 4; }
+.ruleta-result-name { margin-top: 0.9rem; min-height: 1.5em; font-size: clamp(1.4rem, 7.5vw, 2.1rem);
+  font-weight: 900; color: var(--gold); letter-spacing: -0.01em; line-height: 1.1;
+  opacity: 0; transform: translateY(6px); transition: opacity 0.35s ease, transform 0.35s ease; }
+.ruleta-result-name.show { opacity: 1; transform: none; }
 .ruleta-card { margin-top: 1rem; opacity: 0; transform: translateY(14px) scale(0.95);
   transition: opacity 0.4s, transform 0.45s cubic-bezier(.2,1.2,.35,1); }
 .ruleta-card.show { opacity: 1; transform: none; border-radius: 16px; padding: 1.1rem 0.9rem;
@@ -3197,6 +3206,7 @@ function renderReglas() {
       <a href="#reglas-impostor" class="rules-chip"><span class="dot-indicator impostor"></span>Impostor</a>
       <a href="#reglas-fase2" class="rules-chip"><span class="dot-indicator fase2"></span>Fase 2</a>
       <a href="#reglas-quien" class="rules-chip"><span class="dot-indicator quien"></span>¿Quién lo dijo?</a>
+      <a href="#reglas-ruleta" class="rules-chip"><span class="dot-indicator impostor"></span>Ruleta</a>
       <a href="#reglas-final" class="rules-chip"><span class="dot-indicator final"></span>Final</a>
     </div>
 
@@ -3307,6 +3317,57 @@ function renderReglas() {
         </div>
       </div>
     </details>
+
+    <!-- RULETA DE COMODINES -->
+    <div class="section-header anchor-target" id="reglas-ruleta" style="margin-top:2rem">
+      <span class="section-title"><span class="dot-indicator impostor"></span>Ruleta de comodines</span>
+    </div>
+    <div class="card">
+      <p class="rules-intro" style="margin-bottom:1rem">Esto es todo lo que puede salir al girar la ruleta en Fase 1 y Fase 2. Ninguno mueve más de ${Math.max(1, ...COMODINES.map(c => Math.abs(c.delta||1)))} punto${Math.max(1, ...COMODINES.map(c => Math.abs(c.delta||1))) === 1 ? '' : 's'} de diferencia por defecto, pero podés ajustarlo al agregar uno nuevo.</p>
+      <div style="display:flex;flex-direction:column;gap:0.5rem">
+        ${COMODINES.map(c => `
+          <div style="display:flex;align-items:center;gap:0.6rem;padding:0.6rem 0.7rem;border:1px solid var(--border);border-radius:var(--radius);background:var(--surface2)">
+            <span style="font-size:20px;flex-shrink:0">${c.emoji}</span>
+            <div style="flex:1;min-width:0">
+              <div style="font-size:13px;font-weight:800;color:${c.kind === 'bueno' ? 'var(--success)' : 'var(--danger)'}">${c.name}</div>
+              <div style="font-size:11.5px;color:var(--muted);line-height:1.4;margin-top:0.1rem">${c.desc}</div>
+              <div style="font-size:10px;color:var(--muted);margin-top:0.25rem;text-transform:uppercase;letter-spacing:0.04em">${COMODIN_WHEN_LABEL[c.when] || c.when}</div>
+            </div>
+            ${editing ? `<button onclick="deleteComodinCatalog('${c.key}')" title="Eliminar" style="padding:0.35rem 0.5rem;border-radius:8px;border:1px solid rgba(255,95,95,0.25);background:transparent;color:var(--danger);cursor:pointer;font-size:12px;flex-shrink:0">✕</button>` : ''}
+          </div>`).join('')}
+      </div>
+      ${editing ? `
+        <div style="border-top:0.5px solid var(--border);margin-top:1rem;padding-top:1rem">
+          <div class="rule-label" style="margin-top:0">Agregar un comodín nuevo</div>
+          <div style="display:flex;flex-direction:column;gap:0.55rem">
+            <div style="display:flex;gap:0.5rem">
+              <input id="nc-emoji" type="text" placeholder="🎲" maxlength="4" style="width:56px;padding:0.55rem 0.5rem;text-align:center;border-radius:var(--radius);border:1px solid var(--border2);background:var(--surface2);color:var(--text);font-size:16px">
+              <input id="nc-name" type="text" placeholder="Nombre del comodín..." style="flex:1;padding:0.55rem 0.75rem;border-radius:var(--radius);border:1px solid var(--border2);background:var(--surface2);color:var(--text);font-size:13px">
+            </div>
+            <input id="nc-desc" type="text" placeholder="Descripción que se muestra al salir..." style="padding:0.55rem 0.75rem;border-radius:var(--radius);border:1px solid var(--border2);background:var(--surface2);color:var(--text);font-size:13px">
+            <div style="display:flex;gap:0.5rem;flex-wrap:wrap">
+              <select id="nc-kind" style="flex:1;min-width:110px;padding:0.55rem 0.5rem;border-radius:var(--radius);border:1px solid var(--border2);background:var(--surface2);color:var(--text);font-size:13px">
+                <option value="bueno">✅ Comodín bueno</option>
+                <option value="malo">❌ Comodín malo</option>
+              </select>
+              <select id="nc-when" style="flex:1;min-width:150px;padding:0.55rem 0.5rem;border-radius:var(--radius);border:1px solid var(--border2);background:var(--surface2);color:var(--text);font-size:13px">
+                <option value="now">Al toque (ya mismo)</option>
+                <option value="target">Le roba puntos a otro</option>
+                <option value="donate">Dona puntos al último</option>
+                <option value="win">En su próxima victoria</option>
+                <option value="bonus">En su próximo bonus</option>
+                <option value="lose">Si pierde la próxima</option>
+              </select>
+              <input id="nc-delta" type="number" step="1" placeholder="±pts" value="1" style="width:80px;padding:0.55rem 0.5rem;border-radius:var(--radius);border:1px solid var(--border2);background:var(--surface2);color:var(--text);font-size:13px">
+            </div>
+            <div style="font-size:11px;color:var(--muted)">"Al toque" aplica los puntos ya mismo. "Roba"/"Dona" mueven puntos entre jugadores en el momento. Las otras tres quedan pendientes hasta que se cargue el próximo resultado de esa persona o equipo.</div>
+            <button class="btn" style="padding:0.6rem 1rem" onclick="addComodinCatalog()">+ Agregar comodín</button>
+          </div>
+        </div>
+        <div style="margin-top:0.75rem">
+          <button class="btn btn-danger" style="width:100%;padding:0.55rem;font-size:12.5px" onclick="resetComodinesConfig()">↩️ Restaurar comodines originales</button>
+        </div>` : ''}
+    </div>
 
     <!-- FINAL -->
     <div class="section-header anchor-target" id="reglas-final" style="margin-top:2rem">
@@ -4175,31 +4236,113 @@ let state = {
   cellPts: { f1: {}, f2: {} }, // override manual de una celda: "nombre||ronda" => pts
 };
 
-// ── COMODINES: catálogo ──────────────────────────────────────────────
+// ── COMODINES: catálogo (editable desde "Reglas") ────────────────────
 // Diseñados para mover ±1 punto como máximo: condimentan sin romper el torneo.
-const COMODINES = [
+// "when" define cómo se resuelve cada comodín:
+//   now    → aplica cm.delta al toque.
+//   target → quien gira le saca cm.delta puntos a otro jugador/equipo elegido.
+//   donate → quien gira le regala cm.delta puntos al último de la tabla.
+//   win    → se resuelve solo cuando el que lo tiene gana su próxima partida (cm.delta).
+//   bonus  → se resuelve solo cuando el que lo tiene gana Y logra el bonus (cm.delta).
+//   lose   → se resuelve solo cuando el que lo tiene pierde su próxima partida (cm.delta).
+const COMODINES_DEFAULT = [
   // BUENOS
   { key:'victoria_plus', kind:'bueno', emoji:'🔥', name:'Golpe de Suerte',
-    desc:'Tu próxima victoria vale 4 en vez de 3.', when:'pending' },
+    desc:'Tu próxima victoria vale 4 en vez de 3.', when:'win', delta:1 },
   { key:'bonus_doble',   kind:'bueno', emoji:'⭐', name:'Doble Bonus',
-    desc:'Tu próximo bonus vale 2 en vez de 1.', when:'pending' },
+    desc:'Tu próximo bonus vale 2 en vez de 1.', when:'bonus', delta:1 },
   { key:'escudo',        kind:'bueno', emoji:'🛡️', name:'Escudo',
-    desc:'Tu próxima derrota igual te da 1 punto.', when:'pending' },
+    desc:'Tu próxima derrota igual te da 1 punto.', when:'lose', delta:1 },
   { key:'robo',          kind:'bueno', emoji:'🥷', name:'Robo',
-    desc:'Le sacás 1 punto al jugador que vos elijas.', when:'target' },
+    desc:'Le sacás 1 punto al jugador que vos elijas.', when:'target', delta:1 },
   { key:'propina',       kind:'bueno', emoji:'🎁', name:'Propina',
     desc:'+1 punto, ya mismo, sin hacer nada.', when:'now', delta:1 },
   // MALOS
   { key:'peaje',         kind:'malo',  emoji:'💸', name:'Peaje',
     desc:'−1 punto, ya mismo. Mala suerte.', when:'now', delta:-1 },
   { key:'lastre',        kind:'malo',  emoji:'🪨', name:'Lastre',
-    desc:'Tu próxima victoria vale 2 en vez de 3.', when:'pending' },
+    desc:'Tu próxima victoria vale 2 en vez de 3.', when:'win', delta:-1 },
   { key:'sin_bonus',     kind:'malo',  emoji:'🚫', name:'Sin Bonus',
-    desc:'Tu próximo bonus no cuenta.', when:'pending' },
+    desc:'Tu próximo bonus no cuenta.', when:'bonus', delta:-1 },
   { key:'donacion',      kind:'malo',  emoji:'🤝', name:'Donación Forzada',
-    desc:'Le regalás 1 punto al último de la tabla.', when:'donate' },
+    desc:'Le regalás 1 punto al último de la tabla.', when:'donate', delta:1 },
 ];
+let COMODINES = JSON.parse(JSON.stringify(COMODINES_DEFAULT));
 function comodinByKey(k) { return COMODINES.find(c => c.key === k) || null; }
+
+const COMODIN_WHEN_LABEL = {
+  now: 'Al toque', target: 'Le roba a otro', donate: 'Dona al último',
+  win: 'En su próxima victoria', bonus: 'En su próximo bonus', lose: 'Si pierde la próxima'
+};
+
+function loadComodinesConfig() {
+  try {
+    const s = localStorage.getItem('ndj_comodines');
+    if (s) {
+      const parsed = JSON.parse(s);
+      if (Array.isArray(parsed) && parsed.length) COMODINES = parsed;
+    }
+  } catch(e) {}
+  function tryFbLoad() {
+    if (window._fbReady && window._fbRead) {
+      window._fbRead('comodines').then(data => {
+        if (data) {
+          try {
+            const parsed = JSON.parse(data);
+            if (Array.isArray(parsed) && parsed.length) {
+              COMODINES = parsed;
+              localStorage.setItem('ndj_comodines', data);
+              renderReglas();
+            }
+          } catch(e) { console.warn('Error al parsear comodines de Firebase:', e); }
+        }
+      });
+    } else {
+      setTimeout(tryFbLoad, 500);
+    }
+  }
+  setTimeout(tryFbLoad, 300);
+}
+function saveComodinesConfig() {
+  const json = JSON.stringify(COMODINES);
+  localStorage.setItem('ndj_comodines', json);
+  function tryFbSave() {
+    if (window._fbReady && window._fbWrite) window._fbWrite('comodines', json);
+    else setTimeout(tryFbSave, 500);
+  }
+  tryFbSave();
+}
+function deleteComodinCatalog(key) {
+  if (!confirm('¿Eliminar este comodín de la ruleta? Ya no podrá volver a salir.')) return;
+  COMODINES = COMODINES.filter(c => c.key !== key);
+  saveComodinesConfig();
+  renderReglas();
+  showToast('✓', 'Comodín eliminado', false);
+}
+function resetComodinesConfig() {
+  if (!confirm('¿Restaurar el listado original de comodines? Se perderán los que hayas agregado o borrado.')) return;
+  COMODINES = JSON.parse(JSON.stringify(COMODINES_DEFAULT));
+  localStorage.removeItem('ndj_comodines');
+  if (window._fbReady && window._fbWrite) window._fbWrite('comodines', JSON.stringify(COMODINES_DEFAULT));
+  renderReglas();
+  showToast('✓', 'Comodines restaurados', false);
+}
+function addComodinCatalog() {
+  const getVal = id => { const el = document.getElementById(id); return el ? el.value.trim() : ''; };
+  const emoji = getVal('nc-emoji') || '🎲';
+  const name  = getVal('nc-name');
+  const desc  = getVal('nc-desc');
+  const kind  = getVal('nc-kind') || 'bueno';
+  const when  = getVal('nc-when') || 'now';
+  let delta = parseFloat(getVal('nc-delta'));
+  if (isNaN(delta)) delta = kind === 'bueno' ? 1 : -1;
+  if (!name || !desc) { showToast('⚠️', 'Completá nombre y descripción', false); return; }
+  const key = 'custom_' + Date.now() + Math.floor(Math.random() * 999);
+  COMODINES.push({ key, kind, emoji, name, desc, when, delta });
+  saveComodinesConfig();
+  renderReglas();
+  showToast('✓', name + ' agregado a la ruleta', false);
+}
 
 // Load from localStorage
 function loadState() {
@@ -5489,18 +5632,19 @@ function resolvePendingComodines(phase, key, winner, bonus) {
     const won  = (winner !== 'empate' && winner === pIdx);
     const lost = (winner !== 'empate' && winner !== pIdx);
     const short = String(c.player).split(' ')[0];
+    const cm = comodinByKey(c.key);
     let delta = null, note = '';
-    if (c.key === 'victoria_plus' && won) { delta = 1;  note = 'victoria vale 4'; }
-    else if (c.key === 'lastre'    && won) { delta = -1; note = 'victoria vale 2'; }
-    else if (c.key === 'bonus_doble' && won && bonus) { delta = 1;  note = 'bonus doble'; }
-    else if (c.key === 'sin_bonus'   && won && bonus) { delta = -1; note = 'bonus anulado'; }
-    else if (c.key === 'escudo'    && lost) { delta = 1; note = 'escudo: +1 pese a perder'; }
+    if (cm) {
+      const d = cm.delta || 0;
+      if (cm.when === 'win' && won) { delta = d; note = (d >= 0 ? '+' : '') + d + ' por su victoria'; }
+      else if (cm.when === 'bonus' && won && bonus) { delta = d; note = (d >= 0 ? '+' : '') + d + ' por su bonus'; }
+      else if (cm.when === 'lose' && lost) { delta = d; note = (d >= 0 ? '+' : '') + d + ' pese a perder'; }
+    }
     if (delta !== null) {
       c.status = 'done';
       c.delta = delta;
       c.note = note;
       c.resolvedKey = key;
-      const cm = comodinByKey(c.key);
       msgs.push((cm ? cm.emoji + ' ' : '') + short + ': ' + note);
     }
   });
@@ -5828,6 +5972,40 @@ function deleteComodin(id, phase) {
 // ── RULETA ───────────────────────────────────────────────────────────
 let _ruletaBusy = false;
 let _ruletaPhase = 'f1';
+let _wheelRot = 0;
+const RULETA_SPIN_MS = 3700;
+
+// Construye el SVG de la ruleta con un gajo por nombre. Todo en coordenadas
+// del viewBox (0..200) para que escale perfecto sin importar el tamaño real.
+function buildWheelSVG(names) {
+  const n = names.length;
+  const cx = 100, cy = 100, r = 96;
+  const seg = 360 / n;
+  const palette = ['#1b1b26', '#2b141c'];
+  const fontSize = n > 10 ? 8 : n > 7 ? 9 : n > 5 ? 10.5 : 12;
+  const textR = r * 0.62;
+  const pt = (radius, angleDeg) => {
+    const rad = angleDeg * Math.PI / 180;
+    return { x: cx + radius * Math.sin(rad), y: cy - radius * Math.cos(rad) };
+  };
+  const esc = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  let paths = '', texts = '';
+  for (let i = 0; i < n; i++) {
+    const start = i * seg, end = (i + 1) * seg, mid = start + seg / 2;
+    const p1 = pt(r, start), p2 = pt(r, end);
+    const largeArc = (end - start) > 180 ? 1 : 0;
+    const fill = palette[i % palette.length];
+    paths += `<path d="M ${cx} ${cy} L ${p1.x.toFixed(2)} ${p1.y.toFixed(2)} A ${r} ${r} 0 ${largeArc} 1 ${p2.x.toFixed(2)} ${p2.y.toFixed(2)} Z" fill="${fill}" stroke="rgba(245,200,66,0.3)" stroke-width="0.8"/>`;
+    const tp = pt(textR, mid);
+    const short = esc(String(names[i]).split(' ')[0]);
+    texts += `<text x="${tp.x.toFixed(2)}" y="${tp.y.toFixed(2)}" transform="rotate(${mid.toFixed(2)} ${tp.x.toFixed(2)} ${tp.y.toFixed(2)})" text-anchor="middle" dominant-baseline="middle" style="font-size:${fontSize}px;font-weight:800;fill:#f0efe8;letter-spacing:0.2px">${short}</text>`;
+  }
+  return `<svg id="ruleta-wheel-svg" class="ruleta-wheel-svg" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+    <circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="rgba(245,200,66,0.45)" stroke-width="1.5"/>
+    ${paths}${texts}
+  </svg>`;
+}
+
 function openRuleta(phase) {
   _ruletaPhase = phase || 'f1';
   const ROSTER = _ruletaPhase === 'f1' ? PLAYERS : TEAMS;
@@ -5840,13 +6018,19 @@ function openRuleta(phase) {
     ov.className = 'ruleta-overlay';
     document.body.appendChild(ov);
   }
+  _wheelRot = 0;
   ov.innerHTML = `
     <div class="ruleta-box">
       <button class="ruleta-close" onclick="closeRuleta()">✕</button>
       <div class="ruleta-eyebrow">Ruleta de comodines</div>
-      <div class="ruleta-slot" id="ruleta-slot">
-        <div class="ruleta-name" id="ruleta-name">?</div>
+      <div class="ruleta-wheel-area">
+        <div class="ruleta-pointer"></div>
+        <div class="ruleta-wheel-outer">
+          ${buildWheelSVG(ROSTER)}
+          <div class="ruleta-hub">🎰</div>
+        </div>
       </div>
+      <div class="ruleta-result-name" id="ruleta-result-name">&nbsp;</div>
       <div class="ruleta-card" id="ruleta-card"></div>
       <button class="ruleta-go" id="ruleta-go" onclick="spinRuleta()">🎰 Girar</button>
     </div>`;
@@ -5862,35 +6046,49 @@ function spinRuleta() {
   if (_ruletaBusy) return;
   _ruletaBusy = true;
   const ROSTER = _ruletaPhase === 'f1' ? PLAYERS : TEAMS;
-  const goBtn = document.getElementById('ruleta-go');
-  const nameEl = document.getElementById('ruleta-name');
-  const slotEl = document.getElementById('ruleta-slot');
-  const cardEl = document.getElementById('ruleta-card');
-  if (!nameEl) return;
+  const goBtn   = document.getElementById('ruleta-go');
+  const svg     = document.getElementById('ruleta-wheel-svg');
+  const nameEl  = document.getElementById('ruleta-result-name');
+  const cardEl  = document.getElementById('ruleta-card');
+  if (!svg) { _ruletaBusy = false; return; }
   goBtn.disabled = true; goBtn.textContent = 'Girando…';
   cardEl.innerHTML = ''; cardEl.className = 'ruleta-card';
-  slotEl.classList.add('spinning');
+  nameEl.classList.remove('show');
 
-  const chosen = ROSTER[Math.floor(Math.random() * ROSTER.length)];
+  const n = ROSTER.length;
+  const idx = Math.floor(Math.random() * n);
+  const chosen = ROSTER[idx];
   const como   = COMODINES[Math.floor(Math.random() * COMODINES.length)];
+  const seg = 360 / n;
+  const mid = idx * seg + seg / 2;
 
-  // Barajado visual de nombres, desacelerando
-  let t = 0, delay = 55;
-  const tick = () => {
-    nameEl.textContent = ROSTER[Math.floor(Math.random() * ROSTER.length)].split(' ')[0];
-    try { ruletaTick(); } catch(e) {}
-    t += delay;
-    delay *= 1.13;
-    if (t < 2600) setTimeout(tick, delay);
-    else {
-      nameEl.textContent = chosen.split(' ')[0];
-      slotEl.classList.remove('spinning');
-      slotEl.classList.add('landed');
-      try { ruletaLand(); } catch(e) {}
-      setTimeout(() => revealComodin(chosen, como), 600);
-    }
+  // La aguja está fija arriba (ángulo 0). Rotamos la ruleta para que el
+  // gajo elegido termine justo debajo de la aguja, sumando varias vueltas
+  // completas para que el giro se sienta real.
+  const targetMod  = ((360 - mid) % 360 + 360) % 360;
+  const currentMod = ((_wheelRot % 360) + 360) % 360;
+  let delta = targetMod - currentMod;
+  if (delta <= 0) delta += 360;
+  const extraSpins = 4 + Math.floor(Math.random() * 2);
+  _wheelRot += delta + 360 * extraSpins;
+  svg.style.transform = `rotate(${_wheelRot}deg)`;
+
+  // Tics de sonido mientras gira (se van espaciando como una ruleta real)
+  let elapsed = 0, tickDelay = 60;
+  const doTick = () => {
+    try { ruletaTick(); } catch (e) {}
+    elapsed += tickDelay;
+    tickDelay *= 1.09;
+    if (elapsed < RULETA_SPIN_MS - 200) setTimeout(doTick, tickDelay);
   };
-  tick();
+  doTick();
+
+  setTimeout(() => {
+    try { ruletaLand(); } catch (e) {}
+    nameEl.textContent = chosen.split(' ')[0];
+    nameEl.classList.add('show');
+    setTimeout(() => revealComodin(chosen, como), 550);
+  }, RULETA_SPIN_MS);
 }
 function revealComodin(player, cm) {
   const phase = _ruletaPhase;
@@ -5939,15 +6137,15 @@ function applyComodin(player, cm, extra) {
   if (cm.when === 'now') {
     entry.status = 'done'; entry.delta = cm.delta; entry.note = cm.name;
   } else if (cm.when === 'target' && extra.victim) {
-    entry.status = 'done'; entry.delta = 0; entry.note = 'le robó a ' + extra.victim.split(' ')[0];
+    const d = cm.delta || 1;
+    entry.status = 'done'; entry.delta = d; entry.note = 'le robó a ' + extra.victim.split(' ')[0];
     state[comosArr] = state[comosArr] || [];
-    state[comosArr].push({ id: id + 'v', player: extra.victim, key: 'robo_victima', status: 'done', delta: -1, note: 'robado por ' + player.split(' ')[0], ts: Date.now() });
-    // el ladrón gana el punto
-    entry.delta = 1;
+    state[comosArr].push({ id: id + 'v', player: extra.victim, key: cm.key, status: 'done', delta: -d, note: 'robado por ' + player.split(' ')[0], ts: Date.now() });
   } else if (cm.when === 'donate' && extra.lucky) {
-    entry.status = 'done'; entry.delta = -1; entry.note = 'donó a ' + extra.lucky.split(' ')[0];
+    const d = cm.delta || 1;
+    entry.status = 'done'; entry.delta = -d; entry.note = 'donó a ' + extra.lucky.split(' ')[0];
     state[comosArr] = state[comosArr] || [];
-    state[comosArr].push({ id: id + 'd', player: extra.lucky, key: 'donacion_recibe', status: 'done', delta: 1, note: 'regalo de ' + player.split(' ')[0], ts: Date.now() });
+    state[comosArr].push({ id: id + 'd', player: extra.lucky, key: cm.key, status: 'done', delta: d, note: 'regalo de ' + player.split(' ')[0], ts: Date.now() });
   }
   state[comosArr] = state[comosArr] || [];
   state[comosArr].push(entry);
@@ -13123,6 +13321,7 @@ window._ndjWall = JSON.stringify(_wall);
   setInterval(pull, 12000);
 })();
 loadRulesConfig();
+loadComodinesConfig();
 loadFinalConfig();
 loadTercerConfig();
 loadSegundoConfig();
