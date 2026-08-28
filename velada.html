@@ -2005,6 +2005,16 @@
   /* Figura del campeón (abrazados si es equipo de dos) */
   .cr-champ-fig { display: flex; align-items: flex-end; justify-content: center; margin: 0.5rem 0 0.2rem;
     filter: drop-shadow(0 10px 22px rgba(0,0,0,0.55)); }
+  /* Muro de fotos en los créditos */
+  .cr-wall { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    gap: 0.5rem; max-width: 620px; margin: 0.8rem auto 0; padding: 0 0.5rem; }
+  .cr-wall-cell { position: relative; border-radius: 10px; overflow: hidden;
+    border: 1px solid var(--border2); box-shadow: 0 4px 18px rgba(0,0,0,0.4); }
+  .cr-wall-cell img { width: 100%; aspect-ratio: 1/1; object-fit: cover; display: block; }
+  .cr-wall-cell span { position: absolute; left: 0; right: 0; bottom: 0; padding: 12px 6px 4px;
+    background: linear-gradient(to top, rgba(0,0,0,0.8), transparent);
+    font-size: 9px; font-weight: 700; color: #fff; letter-spacing: 0.05em;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .cr-games { font-size: clamp(1.05rem, 4vw, 1.4rem); line-height: 2.1; }
   .cr-mote { font-size: clamp(1rem, 3.8vw, 1.3rem); margin: 0.35rem 0; }
   .cr-mote b { color: var(--gold); font-weight: 700; }
@@ -2256,6 +2266,52 @@ body.started .velada-bg-scrim { display: block; }
   opacity: 0; transition: opacity 0.5s ease;
   pointer-events: none;
 }
+
+/* ── RULETA DE COMODINES ── */
+.ruleta-overlay { position: fixed; inset: 0; z-index: 9500; display: none;
+  align-items: center; justify-content: center; padding: 1rem;
+  background: rgba(6,6,10,0.93); backdrop-filter: blur(6px); }
+.ruleta-overlay.open { display: flex; }
+.ruleta-box { position: relative; width: 100%; max-width: 420px; text-align: center;
+  background: var(--surface); border: 1px solid var(--border2); border-radius: 20px;
+  padding: 1.6rem 1.25rem 1.4rem; box-shadow: 0 20px 70px rgba(0,0,0,0.6); }
+.ruleta-close { position: absolute; top: 0.6rem; right: 0.7rem; background: none; border: none;
+  color: var(--muted); font-size: 18px; cursor: pointer; padding: 0.2rem 0.4rem; }
+.ruleta-eyebrow { font-size: 10px; font-weight: 900; letter-spacing: 0.28em; text-transform: uppercase;
+  color: var(--gold); margin-bottom: 1rem; }
+.ruleta-slot { border: 2px dashed var(--border2); border-radius: 16px; padding: 1.3rem 0.8rem;
+  background: var(--surface2); transition: border-color 0.3s, box-shadow 0.3s; overflow: hidden; }
+.ruleta-slot.spinning { border-color: var(--gold); }
+.ruleta-slot.landed { border-style: solid; border-color: var(--gold);
+  box-shadow: 0 0 26px rgba(245,200,66,0.35); animation: ruLand 0.5s cubic-bezier(.2,1.3,.4,1); }
+@keyframes ruLand { 0% { transform: scale(1.12); } 100% { transform: scale(1); } }
+.ruleta-name { font-size: clamp(1.6rem, 8vw, 2.4rem); font-weight: 900; color: var(--text);
+  letter-spacing: -0.01em; line-height: 1.1; }
+.ruleta-slot.spinning .ruleta-name { opacity: 0.55; filter: blur(0.4px); }
+.ruleta-card { margin-top: 1rem; opacity: 0; transform: translateY(14px) scale(0.95);
+  transition: opacity 0.4s, transform 0.45s cubic-bezier(.2,1.2,.35,1); }
+.ruleta-card.show { opacity: 1; transform: none; border-radius: 16px; padding: 1.1rem 0.9rem;
+  border: 1.5px solid; }
+.ruleta-card.good { border-color: var(--success); background: rgba(78,203,126,0.09); }
+.ruleta-card.bad  { border-color: var(--danger);  background: rgba(255,95,95,0.09); }
+.rc-emoji { font-size: 2.6rem; line-height: 1; margin-bottom: 0.35rem; }
+.rc-kind { font-size: 9px; font-weight: 900; letter-spacing: 0.2em; text-transform: uppercase; opacity: 0.75; }
+.ruleta-card.good .rc-kind { color: var(--success); }
+.ruleta-card.bad  .rc-kind { color: var(--danger); }
+.rc-name { font-size: 1.25rem; font-weight: 900; color: var(--text); margin: 0.25rem 0 0.3rem; }
+.rc-desc { font-size: 13px; color: var(--muted); line-height: 1.5; }
+.rc-actions { margin-top: 0.9rem; }
+.rc-pick-label { font-size: 11px; color: var(--muted); margin-bottom: 0.5rem; }
+.rc-pick { display: flex; flex-wrap: wrap; gap: 0.35rem; justify-content: center; }
+.rc-pick button { padding: 0.45rem 0.7rem; border-radius: 10px; border: 1px solid var(--border2);
+  background: var(--surface2); color: var(--text); font-family: inherit; font-size: 12px;
+  font-weight: 700; cursor: pointer; }
+.rc-pick button:hover { border-color: var(--gold); color: var(--gold); }
+.ruleta-go, .ruleta-confirm { margin-top: 1.1rem; width: 100%; padding: 0.85rem; border-radius: 14px;
+  border: none; background: var(--gold); color: #14140c; font-family: inherit; font-size: 15px;
+  font-weight: 900; cursor: pointer; letter-spacing: 0.02em; }
+.ruleta-go:disabled { opacity: 0.55; cursor: default; }
+.ruleta-confirm { margin-top: 0.8rem; }
 
 /* Progress dots */
 .op-dot { width: 7px; height: 7px; border-radius: 50%; background: rgba(255,255,255,0.15);
@@ -2572,6 +2628,8 @@ body.started .velada-bg-scrim { display: block; }
 
   <div id="bonus-manual-f1"></div>
 
+  <div id="comodines-f1"></div>
+
   <div id="podium-fase1"></div>
 
   <div class="section-header">
@@ -2649,6 +2707,7 @@ body.started .velada-bg-scrim { display: block; }
 <!-- ======================== FINAL ======================== -->
 <div class="page" id="page-final">
   <div id="final-root"></div>
+  <div id="wall-panel"></div>
 </div>
 
 <!-- ======================== REGLAS ======================== -->
@@ -4086,7 +4145,34 @@ let state = {
   lastTab: null, // last tab viewed, restored on reload
   bonusManual: {}, // key: playerName => {pts: number, label: string}
   vsJC: {}, // key: playerName => 'win'|'lose'|null  (resultado del jugador vs Juan Cruz)
+  comodines: [], // [{id, player, key, status:'pending'|'done', delta, note, ts}]
 };
+
+// ── COMODINES: catálogo ──────────────────────────────────────────────
+// Diseñados para mover ±1 punto como máximo: condimentan sin romper el torneo.
+const COMODINES = [
+  // BUENOS
+  { key:'victoria_plus', kind:'bueno', emoji:'🔥', name:'Golpe de Suerte',
+    desc:'Tu próxima victoria vale 4 en vez de 3.', when:'pending' },
+  { key:'bonus_doble',   kind:'bueno', emoji:'⭐', name:'Doble Bonus',
+    desc:'Tu próximo bonus vale 2 en vez de 1.', when:'pending' },
+  { key:'escudo',        kind:'bueno', emoji:'🛡️', name:'Escudo',
+    desc:'Tu próxima derrota igual te da 1 punto.', when:'pending' },
+  { key:'robo',          kind:'bueno', emoji:'🥷', name:'Robo',
+    desc:'Le sacás 1 punto al jugador que vos elijas.', when:'target' },
+  { key:'propina',       kind:'bueno', emoji:'🎁', name:'Propina',
+    desc:'+1 punto, ya mismo, sin hacer nada.', when:'now', delta:1 },
+  // MALOS
+  { key:'peaje',         kind:'malo',  emoji:'💸', name:'Peaje',
+    desc:'−1 punto, ya mismo. Mala suerte.', when:'now', delta:-1 },
+  { key:'lastre',        kind:'malo',  emoji:'🪨', name:'Lastre',
+    desc:'Tu próxima victoria vale 2 en vez de 3.', when:'pending' },
+  { key:'sin_bonus',     kind:'malo',  emoji:'🚫', name:'Sin Bonus',
+    desc:'Tu próximo bonus no cuenta.', when:'pending' },
+  { key:'donacion',      kind:'malo',  emoji:'🤝', name:'Donación Forzada',
+    desc:'Le regalás 1 punto al último de la tabla.', when:'donate' },
+];
+function comodinByKey(k) { return COMODINES.find(c => c.key === k) || null; }
 
 // Load from localStorage
 function loadState() {
@@ -4348,8 +4434,16 @@ function getPlayerPoints() {
     pts[idx].vsJC = (typeof val === 'number') ? val : null;
   });
 
+  // Comodines de la ruleta (solo los ya resueltos suman/restan)
+  const comos = state.comodines || [];
+  PLAYERS.forEach((name, idx) => {
+    let d = 0;
+    comos.forEach(c => { if (c.status === 'done' && c.player === name) d += (c.delta || 0); });
+    if (d) pts[idx].comodin = d;
+  });
+
   pts.forEach(p => {
-    p.total = p.rounds.reduce((s,v) => s + (typeof v === 'number' ? v : 0), 0) + (p.special || 0) + (p.bonusManual || 0) + (p.vsJC || 0);
+    p.total = p.rounds.reduce((s,v) => s + (typeof v === 'number' ? v : 0), 0) + (p.special || 0) + (p.bonusManual || 0) + (p.vsJC || 0) + (p.comodin || 0);
   });
   return pts;
 }
@@ -4543,6 +4637,7 @@ function setVsJC(playerName, value) {
 function renderFase1() {
   renderF1RosterAdmin();
   renderBonusManualF1();
+  renderComodinesPanel();
   renderNextMatch('f1');
   renderMyNext('f1');
   const ppts = getPlayerPoints();
@@ -5241,6 +5336,9 @@ function saveResult() {
     next: { winner: modalCtx.winner, bonus: modalCtx.bonus },
   };
   store[modalCtx.key] = { winner: modalCtx.winner, bonus: modalCtx.bonus };
+  const comoMsgs = (modalCtx.phase === 'f1')
+    ? resolvePendingComodines(modalCtx.key, modalCtx.winner, modalCtx.bonus)
+    : [];
   saveState();
   closeModal();
   playSaveSound();
@@ -5250,7 +5348,338 @@ function saveResult() {
     ? 'Empate'
     : (modalCtx.phase === 'f1' ? PLAYERS[modalCtx.winner] : TEAMS[modalCtx.winner]).split('/')[0].trim().split(' ')[0];
   showToast('✓', 'Guardado · ' + winnerName + (modalCtx.bonus ? ' +bonus' : ''), true);
+  if (comoMsgs && comoMsgs.length) {
+    setTimeout(() => showToast('🎰', comoMsgs.join(' · '), false), 1400);
+  }
   updateNavProgress();
+}
+
+// Cuando se carga un resultado de Fase 1, los comodines pendientes de los
+// jugadores involucrados se resuelven solos y quedan registrados con su delta.
+function resolvePendingComodines(key, winner, bonus) {
+  const parts = String(key).split('-').map(Number);
+  const a = parts[1], b = parts[2];
+  if (isNaN(a) || isNaN(b)) return [];
+  const msgs = [];
+  const involved = [a, b];
+  (state.comodines || []).forEach(c => {
+    if (c.status !== 'pending') return;
+    const pIdx = PLAYERS.indexOf(c.player);
+    if (pIdx === -1 || involved.indexOf(pIdx) === -1) return;
+    const won  = (winner !== 'empate' && winner === pIdx);
+    const lost = (winner !== 'empate' && winner !== pIdx);
+    const short = String(c.player).split(' ')[0];
+    let delta = null, note = '';
+    if (c.key === 'victoria_plus' && won) { delta = 1;  note = 'victoria vale 4'; }
+    else if (c.key === 'lastre'    && won) { delta = -1; note = 'victoria vale 2'; }
+    else if (c.key === 'bonus_doble' && won && bonus) { delta = 1;  note = 'bonus doble'; }
+    else if (c.key === 'sin_bonus'   && won && bonus) { delta = -1; note = 'bonus anulado'; }
+    else if (c.key === 'escudo'    && lost) { delta = 1; note = 'escudo: +1 pese a perder'; }
+    if (delta !== null) {
+      c.status = 'done';
+      c.delta = delta;
+      c.note = note;
+      c.resolvedKey = key;
+      const cm = comodinByKey(c.key);
+      msgs.push((cm ? cm.emoji + ' ' : '') + short + ': ' + note);
+    }
+  });
+  return msgs;
+}
+
+// ── SONIDOS DE LA RULETA ─────────────────────────────────────────────
+function ruletaTick() {
+  const ctx = getAudioCtx(); const t = ctx.currentTime;
+  const o = ctx.createOscillator(), g = ctx.createGain();
+  o.type = 'square'; o.frequency.setValueAtTime(1400, t);
+  g.gain.setValueAtTime(0.06, t); g.gain.exponentialRampToValueAtTime(0.001, t + 0.04);
+  o.connect(g); g.connect(ctx.destination); o.start(t); o.stop(t + 0.05);
+}
+function ruletaLand() {
+  const ctx = getAudioCtx(); const t = ctx.currentTime;
+  const o = ctx.createOscillator(), g = ctx.createGain();
+  o.type = 'sine'; o.frequency.setValueAtTime(180, t);
+  o.frequency.exponentialRampToValueAtTime(70, t + 0.18);
+  g.gain.setValueAtTime(0.4, t); g.gain.exponentialRampToValueAtTime(0.001, t + 0.3);
+  o.connect(g); g.connect(ctx.destination); o.start(t); o.stop(t + 0.32);
+}
+function ruletaGood() {
+  const ctx = getAudioCtx(); const t = ctx.currentTime;
+  [523.25, 659.25, 783.99, 1046.5].forEach((f, i) => {
+    const o = ctx.createOscillator(), g = ctx.createGain();
+    o.type = 'triangle'; o.frequency.setValueAtTime(f, t + i * 0.07);
+    g.gain.setValueAtTime(0.0, t + i * 0.07);
+    g.gain.linearRampToValueAtTime(0.15, t + i * 0.07 + 0.02);
+    g.gain.exponentialRampToValueAtTime(0.001, t + i * 0.07 + 0.5);
+    o.connect(g); g.connect(ctx.destination); o.start(t + i * 0.07); o.stop(t + i * 0.07 + 0.55);
+  });
+}
+function ruletaBad() {
+  const ctx = getAudioCtx(); const t = ctx.currentTime;
+  [330, 262, 208].forEach((f, i) => {
+    const o = ctx.createOscillator(), g = ctx.createGain();
+    o.type = 'sawtooth'; o.frequency.setValueAtTime(f, t + i * 0.12);
+    const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 900;
+    g.gain.setValueAtTime(0.0, t + i * 0.12);
+    g.gain.linearRampToValueAtTime(0.13, t + i * 0.12 + 0.03);
+    g.gain.exponentialRampToValueAtTime(0.001, t + i * 0.12 + 0.4);
+    o.connect(lp); lp.connect(g); g.connect(ctx.destination);
+    o.start(t + i * 0.12); o.stop(t + i * 0.12 + 0.45);
+  });
+}
+
+// ── COMODINES: panel en Fase 1 ───────────────────────────────────────
+function renderComodinesPanel() {
+  const el = document.getElementById('comodines-f1');
+  if (!el) return;
+  const list = state.comodines || [];
+  const rows = list.slice().reverse().map(c => {
+    const cm = comodinByKey(c.key) || { emoji:'🎲', name:c.key, kind:'bueno' };
+    const col = cm.kind === 'bueno' ? 'var(--success)' : 'var(--danger)';
+    const short = String(c.player).split(' ')[0];
+    const st = c.status === 'pending'
+      ? '<span style="font-size:10px;color:var(--gold);font-weight:700">⏳ pendiente</span>'
+      : `<span style="font-size:10px;color:${(c.delta||0) >= 0 ? 'var(--success)' : 'var(--danger)'};font-weight:700">${(c.delta||0) > 0 ? '+' : ''}${c.delta||0} pt${c.note ? ' · ' + c.note : ''}</span>`;
+    return `<div style="display:flex;align-items:center;gap:0.5rem;padding:0.5rem 0.6rem;border:1px solid var(--border);border-radius:var(--radius);background:var(--surface2);margin-bottom:0.35rem">
+      <span style="font-size:18px;flex-shrink:0">${cm.emoji}</span>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:12px;font-weight:700;color:${col}">${cm.name} <span style="color:var(--text);font-weight:600">— ${short}</span></div>
+        <div>${st}</div>
+      </div>
+      <button onclick="deleteComodin('${c.id}')" title="Borrar" style="padding:0.3rem 0.45rem;border-radius:8px;border:1px solid rgba(255,95,95,0.25);background:transparent;color:var(--danger);cursor:pointer;font-size:11px">✕</button>
+    </div>`;
+  }).join('');
+
+  el.innerHTML = `
+    <div class="section-header">
+      <span class="section-title"><span class="dot-indicator impostor"></span>Ruleta de comodines</span>
+    </div>
+    <div class="card" style="margin-bottom:1.25rem">
+      <p style="font-size:12px;color:var(--muted);line-height:1.5;margin-bottom:0.75rem">
+        Girala cuando quieras condimentar la noche: elige un jugador al azar y le toca un comodín (bueno o malo). Ninguno mueve más de 1 punto.
+      </p>
+      <button onclick="openRuleta()" style="width:100%;padding:0.85rem;border-radius:var(--radius);border:1.5px solid var(--gold);background:var(--gold-dim);color:var(--gold);font-family:inherit;font-size:14px;font-weight:800;cursor:pointer;letter-spacing:0.02em">🎰 Girar la ruleta</button>
+      ${list.length ? `<div style="margin-top:0.9rem">${rows}</div>` : ''}
+    </div>`;
+}
+function deleteComodin(id) {
+  if (!confirm('¿Borrar este comodín? Si ya sumó/restó puntos, se revierte.')) return;
+  state.comodines = (state.comodines || []).filter(c => c.id !== id);
+  saveState(); renderFase1();
+}
+
+// ── RULETA ───────────────────────────────────────────────────────────
+let _ruletaBusy = false;
+function openRuleta() {
+  if (!PLAYERS.length) return;
+  _resumeAudio();
+  let ov = document.getElementById('ruleta-overlay');
+  if (!ov) {
+    ov = document.createElement('div');
+    ov.id = 'ruleta-overlay';
+    ov.className = 'ruleta-overlay';
+    document.body.appendChild(ov);
+  }
+  ov.innerHTML = `
+    <div class="ruleta-box">
+      <button class="ruleta-close" onclick="closeRuleta()">✕</button>
+      <div class="ruleta-eyebrow">Ruleta de comodines</div>
+      <div class="ruleta-slot" id="ruleta-slot">
+        <div class="ruleta-name" id="ruleta-name">?</div>
+      </div>
+      <div class="ruleta-card" id="ruleta-card"></div>
+      <button class="ruleta-go" id="ruleta-go" onclick="spinRuleta()">🎰 Girar</button>
+    </div>`;
+  ov.classList.add('open');
+  _ruletaBusy = false;
+}
+function closeRuleta() {
+  const ov = document.getElementById('ruleta-overlay');
+  if (ov) ov.classList.remove('open');
+  _ruletaBusy = false;
+}
+function spinRuleta() {
+  if (_ruletaBusy) return;
+  _ruletaBusy = true;
+  const goBtn = document.getElementById('ruleta-go');
+  const nameEl = document.getElementById('ruleta-name');
+  const slotEl = document.getElementById('ruleta-slot');
+  const cardEl = document.getElementById('ruleta-card');
+  if (!nameEl) return;
+  goBtn.disabled = true; goBtn.textContent = 'Girando…';
+  cardEl.innerHTML = ''; cardEl.className = 'ruleta-card';
+  slotEl.classList.add('spinning');
+
+  const chosen = PLAYERS[Math.floor(Math.random() * PLAYERS.length)];
+  const como   = COMODINES[Math.floor(Math.random() * COMODINES.length)];
+
+  // Barajado visual de nombres, desacelerando
+  let t = 0, delay = 55;
+  const tick = () => {
+    nameEl.textContent = PLAYERS[Math.floor(Math.random() * PLAYERS.length)].split(' ')[0];
+    try { ruletaTick(); } catch(e) {}
+    t += delay;
+    delay *= 1.13;
+    if (t < 2600) setTimeout(tick, delay);
+    else {
+      nameEl.textContent = chosen.split(' ')[0];
+      slotEl.classList.remove('spinning');
+      slotEl.classList.add('landed');
+      try { ruletaLand(); } catch(e) {}
+      setTimeout(() => revealComodin(chosen, como), 600);
+    }
+  };
+  tick();
+}
+function revealComodin(player, cm) {
+  const cardEl = document.getElementById('ruleta-card');
+  const goBtn  = document.getElementById('ruleta-go');
+  if (!cardEl) return;
+  cardEl.className = 'ruleta-card show ' + (cm.kind === 'bueno' ? 'good' : 'bad');
+  cardEl.innerHTML = `
+    <div class="rc-emoji">${cm.emoji}</div>
+    <div class="rc-kind">${cm.kind === 'bueno' ? 'Comodín a favor' : 'Comodín en contra'}</div>
+    <div class="rc-name">${cm.name}</div>
+    <div class="rc-desc">${cm.desc}</div>
+    <div class="rc-actions" id="rc-actions"></div>`;
+  try { cm.kind === 'bueno' ? ruletaGood() : ruletaBad(); } catch(e) {}
+
+  const actions = document.getElementById('rc-actions');
+  const finish = (extra) => { applyComodin(player, cm, extra); };
+
+  if (cm.when === 'target') {
+    // Robo: elegir a quién sacarle el punto
+    actions.innerHTML = `<div class="rc-pick-label">¿A quién le saca el punto?</div>
+      <div class="rc-pick">${PLAYERS.filter(p => p !== player).map(p =>
+        `<button onclick="_ruletaTarget('${p.replace(/'/g,"\\'")}')">${p.split(' ')[0]}</button>`).join('')}</div>`;
+    window._ruletaTarget = (victim) => finish({ victim });
+  } else if (cm.when === 'donate') {
+    // Donación: al último de la tabla (automático)
+    const pts = getPlayerPoints();
+    const sorted = PLAYERS.map((n, i) => ({ n, t: pts[i].total })).filter(x => x.n !== player).sort((a,b) => a.t - b.t);
+    const lucky = sorted.length ? sorted[0].n : null;
+    actions.innerHTML = `<div class="rc-pick-label">El punto va para <b style="color:var(--success)">${lucky ? lucky.split(' ')[0] : '—'}</b> (último de la tabla)</div>
+      <button class="ruleta-confirm" onclick="_ruletaConfirm()">Aplicar</button>`;
+    window._ruletaConfirm = () => finish({ lucky });
+  } else {
+    actions.innerHTML = `<button class="ruleta-confirm" onclick="_ruletaConfirm()">Aplicar</button>`;
+    window._ruletaConfirm = () => finish({});
+  }
+  goBtn.style.display = 'none';
+}
+function applyComodin(player, cm, extra) {
+  const id = 'c' + Date.now() + Math.floor(Math.random() * 999);
+  const entry = { id, player, key: cm.key, status: 'pending', delta: 0, note: '', ts: Date.now() };
+  if (cm.when === 'now') {
+    entry.status = 'done'; entry.delta = cm.delta; entry.note = cm.name;
+  } else if (cm.when === 'target' && extra.victim) {
+    entry.status = 'done'; entry.delta = 0; entry.note = 'le robó a ' + extra.victim.split(' ')[0];
+    state.comodines = state.comodines || [];
+    state.comodines.push({ id: id + 'v', player: extra.victim, key: 'robo_victima', status: 'done', delta: -1, note: 'robado por ' + player.split(' ')[0], ts: Date.now() });
+    // el ladrón gana el punto
+    entry.delta = 1;
+  } else if (cm.when === 'donate' && extra.lucky) {
+    entry.status = 'done'; entry.delta = -1; entry.note = 'donó a ' + extra.lucky.split(' ')[0];
+    state.comodines = state.comodines || [];
+    state.comodines.push({ id: id + 'd', player: extra.lucky, key: 'donacion_recibe', status: 'done', delta: 1, note: 'regalo de ' + player.split(' ')[0], ts: Date.now() });
+  }
+  state.comodines = state.comodines || [];
+  state.comodines.push(entry);
+  saveState();
+  closeRuleta();
+  renderFase1();
+  showToast(cm.emoji, player.split(' ')[0] + ' — ' + cm.name, false);
+}
+
+// ── MURO DE FOTOS ────────────────────────────────────────────────────
+// Se guarda aparte de `state` (clave propia en localStorage + Firebase) para
+// no inflar el payload que se sincroniza en cada resultado cargado.
+let _wall = [];
+const WALL_MAX = 40;
+function loadWall() {
+  try { _wall = JSON.parse(localStorage.getItem('ndj_wall') || '[]') || []; } catch(e) { _wall = []; }
+}
+function saveWall() {
+  const json = JSON.stringify(_wall);
+  try { localStorage.setItem('ndj_wall', json); } catch(e) {
+    // Si se llenó el localStorage, tiramos las más viejas y reintentamos
+    _wall = _wall.slice(-20);
+    try { localStorage.setItem('ndj_wall', JSON.stringify(_wall)); } catch(e2) {}
+  }
+  window._ndjWall = JSON.stringify(_wall);
+  if (window._tvWin && !window._tvWin.closed) {
+    try { window._tvWin.postMessage({ type: 'ndj_wall', data: window._ndjWall }, '*'); } catch(e) {}
+  }
+  if (window._bc) window._bc.postMessage({ key: 'ndj_wall', data: window._ndjWall });
+  if (window._fbReady && window._fbWrite) window._fbWrite('wall', window._ndjWall);
+}
+function addWallPhoto(dataUrl, by) {
+  _wall.push({ id: 'w' + Date.now() + Math.floor(Math.random()*999), src: dataUrl, by: by || '', ts: Date.now() });
+  if (_wall.length > WALL_MAX) _wall = _wall.slice(-WALL_MAX);
+  saveWall();
+}
+function removeWallPhoto(id) {
+  _wall = _wall.filter(p => p.id !== id);
+  saveWall();
+  renderWallPanel();
+}
+// Comprime fuerte: el muro puede tener decenas de fotos y el localStorage es chico
+function compressPhoto(file, cb) {
+  const r = new FileReader();
+  r.onload = e => {
+    const img = new Image();
+    img.onload = () => {
+      const MAX = 720;
+      const scale = Math.min(1, MAX / Math.max(img.width, img.height));
+      const w = Math.round(img.width * scale), h = Math.round(img.height * scale);
+      const c = document.createElement('canvas');
+      c.width = w; c.height = h;
+      c.getContext('2d').drawImage(img, 0, 0, w, h);
+      cb(c.toDataURL('image/jpeg', 0.68));
+    };
+    img.onerror = () => cb(null);
+    img.src = e.target.result;
+  };
+  r.onerror = () => cb(null);
+  r.readAsDataURL(file);
+}
+function triggerWallUpload() {
+  const inp = document.createElement('input');
+  inp.type = 'file'; inp.accept = 'image/*'; inp.multiple = true;
+  inp.onchange = () => {
+    const files = Array.from(inp.files || []);
+    if (!files.length) return;
+    let pending = files.length;
+    files.forEach(f => {
+      compressPhoto(f, dataUrl => {
+        if (dataUrl) addWallPhoto(dataUrl, '');
+        if (--pending === 0) { renderWallPanel(); showToast('📸', files.length + ' foto(s) al muro', true); }
+      });
+    });
+  };
+  inp.click();
+}
+function renderWallPanel() {
+  const el = document.getElementById('wall-panel');
+  if (!el) return;
+  const thumbs = _wall.slice().reverse().map(p =>
+    '<div style="position:relative;flex:0 0 auto">'
+    + '<img src="' + p.src + '" style="width:74px;height:74px;object-fit:cover;border-radius:10px;border:1px solid var(--border2)">'
+    + '<button onclick="removeWallPhoto(\'' + p.id + '\')" title="Borrar" style="position:absolute;top:-6px;right:-6px;width:20px;height:20px;border-radius:50%;border:1px solid var(--border2);background:var(--surface);color:var(--danger);cursor:pointer;font-size:11px;line-height:1;padding:0">✕</button>'
+    + (p.by ? '<div style="font-size:9px;color:var(--muted);text-align:center;margin-top:2px;max-width:74px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + p.by + '</div>' : '')
+    + '</div>').join('');
+  el.innerHTML = `
+    <div class="section-header">
+      <span class="section-title"><span class="dot-indicator final"></span>Muro de fotos</span>
+      <span class="especial-badge">${_wall.length} foto${_wall.length === 1 ? '' : 's'}</span>
+    </div>
+    <div class="card" style="margin-bottom:1.25rem">
+      <p style="font-size:12px;color:var(--muted);line-height:1.5;margin-bottom:0.75rem">
+        Van rotando en una esquina del modo TV y al final pasan todas juntas en los créditos. Los invitados también pueden subir desde su celular.
+      </p>
+      <button onclick="triggerWallUpload()" style="width:100%;padding:0.8rem;border-radius:var(--radius);border:1.5px solid var(--info);background:rgba(96,180,240,0.1);color:var(--info);font-family:inherit;font-size:14px;font-weight:800;cursor:pointer">📸 Subir fotos</button>
+      ${_wall.length ? '<div style="display:flex;gap:0.4rem;overflow-x:auto;padding:0.85rem 0 0.2rem">' + thumbs + '</div>' : ''}
+    </div>`;
 }
 
 function undoLastResult() {
@@ -7874,6 +8303,7 @@ function resetElencoEdits() {
 }
 
 function renderFinal() {
+  renderWallPanel();
   const root = document.getElementById('final-root');
   if (!root) return;
 
@@ -8455,6 +8885,18 @@ function rollCredits() {
     }
   } catch (e) {}
 
+  // Muro de fotos: todas las de la noche, en grilla
+  let wallHtml = '';
+  try {
+    if (_wall && _wall.length) {
+      const cells = _wall.map(p =>
+        '<div class="cr-wall-cell"><img src="' + p.src + '" alt="">'
+        + (p.by ? '<span>' + esc(p.by) + '</span>' : '') + '</div>').join('');
+      wallHtml = '<div class="cr-divider"></div><div class="cr-role">La noche en fotos</div>'
+        + '<div class="cr-wall">' + cells + '</div>';
+    }
+  } catch (e) {}
+
   const finalGame = (FINAL_CONFIG && (FINAL_CONFIG.juego || FINAL_CONFIG.ganador))
     ? `<div class="cr-divider"></div>`
       + (FINAL_CONFIG.juego ? `<div class="cr-role">La gran final</div><div class="cr-name" style="color:var(--gold)">🏆 ${esc(FINAL_CONFIG.juego)}</div>` : '')
@@ -8504,6 +8946,8 @@ function rollCredits() {
       ${tercerGame}
 
       ${motesHtml}
+
+      ${wallHtml}
 
       <div class="cr-divider"></div>
       <div class="cr-foot">Una producción de<br><div class="cr-producer-av">${producerAvatarHtml('Juan Cruz Bria')}</div><b style="color:var(--text);font-size:1.2em">Juan Cruz Bria</b><br><br>Gracias por venir 🎮</div>
@@ -9453,6 +9897,115 @@ function computeMotes() {
     });
   }
 
+  // ── MOTES NUEVOS ─────────────────────────────────────────────
+
+  // "El Paranoico" — más veces acusó mal (acusó a alguien que no era el impostor)
+  if (impRounds.length > 0) {
+    const wrongAccusers = {};
+    impRounds.forEach(rd => {
+      if (rd.mode === 'descubierto') return;             // lo agarraron: la acusación fue buena
+      if (!rd.accusedName || rd.accusedName === rd.impostorName) return;
+      wrongAccusers[rd.accusedName] = (wrongAccusers[rd.accusedName] || 0) + 1;
+    });
+    const paranoid = stats.filter(s => s.timesAccused >= 2);
+    if (paranoid.length) {
+      const top = paranoid.sort((a, b) => b.timesAccused - a.timesAccused)[0];
+      const tied = paranoid.filter(s => s.timesAccused === top.timesAccused);
+      if (tied.length === 1) motes.push({
+        emoji: '🎯', type: 'impostor', title: 'El Sospechoso de Siempre',
+        player: top.name,
+        reason: `Lo acusaron ${top.timesAccused} veces siendo inocente. Cara de culpable.`,
+      });
+    }
+  }
+
+  // "Cenicienta" — remontó desde el fondo hasta el podio
+  (function cenicienta() {
+    const sortedNow = PLAYERS.map((n, i) => ({ n, i, t: ppts[i].total })).sort((a, b) => b.t - a.t);
+    const top3 = sortedNow.slice(0, 3).map(x => x.n);
+    stats.forEach(s => {
+      const rounds = ppts[s.idx].rounds.filter(v => typeof v === 'number');
+      if (rounds.length < 4) return;
+      const firstHalf = rounds.slice(0, Math.floor(rounds.length / 2));
+      const secondHalf = rounds.slice(Math.floor(rounds.length / 2));
+      const badStart = firstHalf.every(v => v === 0);
+      const goodEnd  = secondHalf.filter(v => v >= 3).length >= 2;
+      if (badStart && goodEnd && top3.indexOf(s.name) !== -1) motes.push({
+        emoji: '👑', type: 'honor', title: 'Cenicienta',
+        player: s.name,
+        reason: `Arrancó perdiendo todo y terminó en el podio. Remontada de película.`,
+      });
+    });
+  })();
+
+  // "El Rival" — perdió 3 o más veces contra la misma persona
+  (function nemesis() {
+    const lossesBy = {}; // víctima -> { verdugo: veces }
+    Object.entries(state.f1 || {}).forEach(([key, res]) => {
+      if (!res || res.winner === 'empate') return;
+      const [r, a, b] = key.split('-').map(Number);
+      const wIdx = res.winner, lIdx = (res.winner === a ? b : a);
+      const w = PLAYERS[wIdx], l = PLAYERS[lIdx];
+      if (!w || !l) return;
+      lossesBy[l] = lossesBy[l] || {};
+      lossesBy[l][w] = (lossesBy[l][w] || 0) + 1;
+    });
+    Object.keys(lossesBy).forEach(victim => {
+      Object.keys(lossesBy[victim]).forEach(bully => {
+        if (lossesBy[victim][bully] >= 2) motes.push({
+          emoji: '😾', type: 'shame', title: 'La Bestia Negra',
+          player: victim,
+          reason: `Perdió ${lossesBy[victim][bully]} veces contra ${String(bully).split(' ')[0]}. Su karma personal.`,
+        });
+      });
+    });
+  })();
+
+  // "El Reloj" — ganó todos los juegos que dependen del tiempo
+  (function elReloj() {
+    const timeGames = ['Palabras a Tiempo', "Time's Up", 'Carrera de Mentes'];
+    const wonTime = {};
+    Object.entries(state.f1 || {}).forEach(([key, res]) => {
+      if (!res || res.winner === 'empate') return;
+      const [r, a, b] = key.split('-').map(Number);
+      const match = F1_FIXTURE.find(m => m[0] === r && m[1] === a && m[2] === b);
+      if (!match) return;
+      const gname = (RULES_CONFIG && RULES_CONFIG.f1 && RULES_CONFIG.f1[match[3]])
+        ? RULES_CONFIG.f1[match[3]].name : (GAMES_F1[match[3]] || '');
+      if (timeGames.indexOf(gname) === -1) return;
+      const w = PLAYERS[res.winner];
+      if (w) wonTime[w] = (wonTime[w] || 0) + 1;
+    });
+    const best = Object.keys(wonTime).sort((a, b) => wonTime[b] - wonTime[a])[0];
+    if (best && wonTime[best] >= 2) motes.push({
+      emoji: '⏱️', type: 'honor', title: 'El Reloj',
+      player: best,
+      reason: `Ganó ${wonTime[best]} juegos contrarreloj. Rinde bajo presión.`,
+    });
+  })();
+
+  // "El Bendecido / El Maldito" — la ruleta de comodines lo trató bien o mal
+  (function ruletaMotes() {
+    const comos = (state.comodines || []).filter(c => c.status === 'done');
+    if (comos.length < 2) return;
+    const tally = {};
+    comos.forEach(c => { tally[c.player] = (tally[c.player] || 0) + (c.delta || 0); });
+    const names = Object.keys(tally);
+    if (!names.length) return;
+    const bestN  = names.sort((a, b) => tally[b] - tally[a])[0];
+    const worstN = names.sort((a, b) => tally[a] - tally[b])[0];
+    if (tally[bestN] >= 2) motes.push({
+      emoji: '🍀', type: 'honor', title: 'El Bendecido',
+      player: bestN,
+      reason: `La ruleta le regaló ${tally[bestN]} puntos. Nació con estrella.`,
+    });
+    if (tally[worstN] <= -2) motes.push({
+      emoji: '☠️', type: 'shame', title: 'El Maldito',
+      player: worstN,
+      reason: `La ruleta le sacó ${Math.abs(tally[worstN])} puntos. Alguien le hizo un trabajo.`,
+    });
+  })();
+
   // ── FASE 2 (motes por equipo) ─────────────────────────────────
   const f2Done = F2_FIXTURE.filter(([r,a,b]) => state.f2[`${r}-${a}-${b}`]).length;
   if (f2Done >= 3 && TEAMS && TEAMS.length >= 2) {
@@ -9977,6 +10530,49 @@ function openTVMode() {
     letter-spacing: 0.05em;
   }
 
+  /* ── MURO DE FOTOS ── */
+  .tv-wall {
+    position: fixed; z-index: 55;
+    right: clamp(10px,2vw,28px);
+    bottom: calc(clamp(30px,4.4vh,56px) + clamp(56px,7vh,90px));
+    width: clamp(140px,15vw,260px);
+    border-radius: 14px; overflow: hidden;
+    background: var(--surface); border: 1.5px solid var(--border2);
+    box-shadow: 0 10px 44px rgba(0,0,0,0.62);
+    opacity: 0; transform: translateY(16px) scale(0.96);
+    transition: opacity 0.6s ease, transform 0.6s cubic-bezier(.2,1.1,.35,1);
+    pointer-events: none;
+  }
+  .tv-wall.show { opacity: 1; transform: none; }
+  .tv-wall img { width: 100%; aspect-ratio: 4/3; object-fit: cover; display: block; }
+  .tv-wall-tag {
+    position: absolute; left: 0; right: 0; bottom: 0;
+    padding: 16px 10px 6px;
+    background: linear-gradient(to top, rgba(0,0,0,0.82), transparent);
+    font-size: clamp(9px,0.9vw,12px); font-weight: 800; color: #fff;
+    letter-spacing: 0.06em; text-transform: uppercase;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+
+  /* ── RELATOR ── */
+  .tv-relator {
+    position: fixed; left: 50%; transform: translateX(-50%);
+    bottom: calc(clamp(30px,4.4vh,56px) + clamp(10px,1.4vh,18px));
+    z-index: 60; max-width: min(88vw, 1100px);
+    padding: clamp(8px,1vh,14px) clamp(16px,2vw,28px);
+    background: linear-gradient(100deg, rgba(20,20,28,0.94), rgba(28,24,14,0.94));
+    border: 1.5px solid var(--gold); border-radius: 99px;
+    box-shadow: 0 8px 40px rgba(0,0,0,0.6), 0 0 26px rgba(245,200,66,0.18);
+    font-size: clamp(13px,1.5vw,22px); font-weight: 800; color: var(--text);
+    text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    opacity: 0; pointer-events: none;
+    transition: opacity 0.5s ease, transform 0.5s cubic-bezier(.2,1.1,.35,1);
+  }
+  .tv-relator.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+  .tv-relator:not(.show) { transform: translateX(-50%) translateY(14px); }
+  .tv-relator b { color: var(--gold); }
+  .tv-relator .rl-emoji { margin-right: 8px; }
+
   /* ── TICKER ── */
   .tv-ticker {
     position: fixed;
@@ -10306,6 +10902,15 @@ function openTVMode() {
 </div>
 
 <div class="tv-footer" id="tv-footer">Actualizando...</div>
+
+<!-- ── MURO DE FOTOS ── -->
+<div class="tv-wall" id="tv-wall">
+  <img id="tv-wall-img" alt="">
+  <div class="tv-wall-tag" id="tv-wall-tag"></div>
+</div>
+
+<!-- ── RELATOR ── -->
+<div class="tv-relator" id="tv-relator"><span id="tv-relator-text"></span></div>
 
 <!-- ── TICKER ── -->
 <div class="tv-ticker" id="tv-ticker">
@@ -10729,6 +11334,15 @@ function renderTV() {
 
   document.getElementById('tv-footer').textContent='🔴 En vivo · ' + new Date().toLocaleTimeString('es-AR');
   renderTicker(state, PLAYERS, TEAMS);
+  // El relator lee siempre el último snapshot (state es local a renderTV)
+  window._tvLastState   = state;
+  window._tvLastPlayers = PLAYERS;
+  window._tvLastTeams   = TEAMS;
+  if (!window._relatorStarted) {
+    window._relatorStarted = true;
+    startRelator();
+    startWall();
+  }
   renderEstado(state);
 }
 
@@ -10843,6 +11457,166 @@ function buildTickerItems(state, PLAYERS, TEAMS) {
   return items;
 }
 
+// ── RELATOR: frases automáticas según lo que va pasando ──────────────
+let _relatorQueue = [], _relatorSeen = {}, _relatorTimer = null, _relatorShowing = false;
+
+// ── MURO DE FOTOS en el TV: rota una foto cada tanto ─────────────────
+let _tvWall = [], _tvWallIdx = 0, _tvWallTimer = null;
+function loadTVWall() {
+  try {
+    let raw = null;
+    if (window._tvCachedWall) raw = window._tvCachedWall;
+    else if (window.opener && window.opener._ndjWall) raw = window.opener._ndjWall;
+    else raw = localStorage.getItem('ndj_wall');
+    if (raw) {
+      const arr = JSON.parse(raw);
+      if (Array.isArray(arr)) _tvWall = arr;
+    }
+  } catch(e) {}
+}
+function tickWall() {
+  loadTVWall();
+  const box = document.getElementById('tv-wall');
+  const img = document.getElementById('tv-wall-img');
+  const tag = document.getElementById('tv-wall-tag');
+  if (!box || !img) return;
+  if (!_tvWall.length) { box.classList.remove('show'); return; }
+  box.classList.remove('show');
+  setTimeout(() => {
+    _tvWallIdx = (_tvWallIdx + 1) % _tvWall.length;
+    const p = _tvWall[_tvWallIdx];
+    if (!p) return;
+    img.src = p.src;
+    if (tag) tag.textContent = p.by ? ('\u{1F4F8} ' + p.by) : '\u{1F4F8} La Velada';
+    box.classList.add('show');
+  }, 650);
+}
+function startWall() {
+  if (_tvWallTimer) clearInterval(_tvWallTimer);
+  setTimeout(tickWall, 2500);
+  _tvWallTimer = setInterval(tickWall, 11000);
+}
+
+function buildRelatorLines(state, PLAYERS, TEAMS) {
+  const out = [];
+  const push = (id, emoji, html) => { out.push({ id: id, emoji: emoji, html: html }); };
+  const short = n => String(n || '').split('/')[0].trim().split(' ')[0];
+
+  let ppts = [], tpts = [];
+  try { ppts = getPoints('f1', state, PLAYERS, TEAMS) || []; } catch(e) {}
+  try { tpts = getPoints('f2', state, PLAYERS, TEAMS) || []; } catch(e) {}
+
+  // Rachas de victorias / derrotas en Fase 1
+  if (ppts.length) {
+    PLAYERS.forEach((n, i) => {
+      if (!ppts[i]) return;
+      const played = (ppts[i].rounds || []).filter(v => typeof v === 'number');
+      let streak = 0;
+      for (let k = played.length - 1; k >= 0; k--) { if (played[k] >= 3) streak++; else break; }
+      if (streak >= 3) push('streak-' + n + '-' + streak, '\u{1F525}',
+        '<b>' + short(n) + '</b> lleva ' + streak + ' victorias seguidas');
+      let lstreak = 0;
+      for (let k = played.length - 1; k >= 0; k--) { if (played[k] === 0) lstreak++; else break; }
+      if (lstreak >= 3) push('lstreak-' + n + '-' + lstreak, '\u{1F976}',
+        '<b>' + short(n) + '</b> encadena ' + lstreak + ' derrotas al hilo');
+    });
+
+    const sortedP = PLAYERS.map((n, i) => ({ n: n, t: ppts[i] ? ppts[i].total : 0 })).sort((a, b) => b.t - a.t);
+    if (sortedP.length >= 2 && sortedP[0].t > 0) {
+      const gap = sortedP[0].t - sortedP[1].t;
+      if (gap === 0) push('tie-f1-' + sortedP[0].t, '\u2696\uFE0F',
+        '<b>' + short(sortedP[0].n) + '</b> y <b>' + short(sortedP[1].n) + '</b> empatados en la punta con ' + sortedP[0].t);
+      else if (gap >= 5) push('lead-f1-' + sortedP[0].n + '-' + gap, '\u{1F451}',
+        '<b>' + short(sortedP[0].n) + '</b> se escapa: ' + gap + ' puntos de ventaja');
+      else push('close-f1-' + sortedP[0].n + '-' + gap, '\u{1F3AF}',
+        '<b>' + short(sortedP[0].n) + '</b> puntero por ' + gap + ' \u2014 ' + short(sortedP[1].n) + ' lo persigue');
+    }
+  }
+
+  // Fase 2
+  if (tpts.length && TEAMS.length) {
+    const sortedT = TEAMS.map((n, i) => ({ n: n, t: tpts[i] ? tpts[i].total : 0 })).sort((a, b) => b.t - a.t);
+    if (sortedT.length && sortedT[0].t > 0) {
+      push('lead-f2-' + sortedT[0].n + '-' + sortedT[0].t, '\u{1F3C6}',
+        '<b>' + sortedT[0].n + '</b> manda en la Fase Grupal con ' + sortedT[0].t + ' puntos');
+      if (sortedT.length >= 2 && sortedT[0].t - sortedT[1].t <= 1)
+        push('close-f2-' + sortedT[1].n, '\u{1F525}',
+          '<b>' + sortedT[1].n + '</b> a un suspiro de la punta');
+    }
+  }
+
+  // Progreso de fases
+  try {
+    const f1Done = F1_FIXTURE.filter(m => state.f1[m[0] + '-' + m[1] + '-' + m[2]]).length;
+    const f2Done = F2_FIXTURE.filter(m => state.f2[m[0] + '-' + m[1] + '-' + m[2]]).length;
+    if (f1Done && f1Done === F1_FIXTURE.length) push('f1-done', '\u2705', 'Fase Individual completa \u2014 se viene el Impostor');
+    else if (f1Done && F1_FIXTURE.length - f1Done <= 2) push('f1-almost-' + f1Done, '\u23F3',
+      'Quedan ' + (F1_FIXTURE.length - f1Done) + ' duelos para cerrar la Fase Individual');
+    if (f2Done && f2Done === F2_FIXTURE.length) push('f2-done', '\u2705', 'Fase Grupal completa \u2014 a la gran final');
+    else if (f2Done && F2_FIXTURE.length - f2Done <= 2) push('f2-almost-' + f2Done, '\u23F3',
+      'Quedan ' + (F2_FIXTURE.length - f2Done) + ' duelos de Fase Grupal');
+  } catch(e) {}
+
+  // Impostor
+  try {
+    const rounds = (state.impostor && state.impostor.rounds) || [];
+    if (rounds.length) {
+      const last = rounds[rounds.length - 1];
+      if (last && last.impostorName) {
+        push('imp-' + rounds.length, last.mode === 'noDescubierto' ? '\u{1F575}\uFE0F' : '\u{1F3AD}',
+          last.mode === 'noDescubierto'
+            ? '<b>' + short(last.impostorName) + '</b> fue impostor y nadie se dio cuenta'
+            : 'Descubrieron a <b>' + short(last.impostorName) + '</b> como impostor');
+      }
+    }
+  } catch(e) {}
+
+  // Comodines de la ruleta
+  try {
+    const comos = (state.comodines || []).filter(c => c.status === 'done');
+    if (comos.length) {
+      const last = comos[comos.length - 1];
+      const d = last.delta || 0;
+      push('como-' + last.id, d >= 0 ? '\u{1F340}' : '\u{1F480}',
+        '<b>' + short(last.player) + '</b>: ' + (last.note || 'comod\u00EDn aplicado') + ' (' + (d > 0 ? '+' : '') + d + ')');
+    }
+  } catch(e) {}
+
+  return out;
+}
+
+function tickRelator(state, PLAYERS, TEAMS) {
+  const el = document.getElementById('tv-relator');
+  const txt = document.getElementById('tv-relator-text');
+  if (!el || !txt) return;
+  const lines = buildRelatorLines(state, PLAYERS, TEAMS);
+  if (!lines.length) return;
+
+  const fresh = lines.filter(l => !_relatorSeen[l.id]);
+  const pool = fresh.length ? fresh : lines;
+  const pick = pool[Math.floor(Math.random() * pool.length)];
+  _relatorSeen[pick.id] = true;
+  const keys = Object.keys(_relatorSeen);
+  if (keys.length > 80) keys.slice(0, 40).forEach(k => delete _relatorSeen[k]);
+
+  txt.innerHTML = '<span class="rl-emoji">' + pick.emoji + '</span>' + pick.html;
+  el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), 7000);
+}
+
+function startRelator() {
+  if (_relatorTimer) clearInterval(_relatorTimer);
+  const run = () => {
+    try {
+      const st = window._tvLastState;
+      if (!st) return;
+      tickRelator(st, window._tvLastPlayers || [], window._tvLastTeams || []);
+    } catch(e) {}
+  };
+  setTimeout(run, 4000);
+  _relatorTimer = setInterval(run, 16000);
+}
+
 function renderTicker(state, PLAYERS, TEAMS) {
   const inner = document.getElementById('tv-ticker-inner');
   const track = document.getElementById('tv-ticker-track');
@@ -10927,6 +11701,10 @@ function renderTicker(state, PLAYERS, TEAMS) {
       _tvCachedState = e.data.data; // string JSON, renderTV lo parsea
       renderTV();
     }
+    if (e.data && e.data.type === 'ndj_wall') {
+      window._tvCachedWall = e.data.data;
+      try { localStorage.setItem('ndj_wall', e.data.data); } catch(err) {}
+    }
   });
 
   // ── 0b. Pull desde window.opener (solo si el origin lo permite) ──
@@ -10961,11 +11739,16 @@ function renderTicker(state, PLAYERS, TEAMS) {
         _tvCachedState = e.data.data; // que gane el dato más reciente
         renderTV();
       }
+      if (e.data && e.data.key === 'ndj_wall') {
+        window._tvCachedWall = e.data.data;
+        try { localStorage.setItem('ndj_wall', e.data.data); } catch(err) {}
+      }
     };
   } catch(e) { console.warn('BroadcastChannel no disponible:', e); }
 
   // ── 2. storage event (otras pestañas, mismo origen) ──────
   window.addEventListener('storage', (e) => {
+    if (e.key === 'ndj_wall') { window._tvCachedWall = e.newValue; return; }
     if (!e.key || e.key === 'ndj_state' || e.key === 'ndj_rules' || e.key === 'ndj_photos') {
       renderTV();
     }
@@ -11145,6 +11928,34 @@ function updateNavProgress() {
 }
 
 loadState();
+loadWall();
+window._ndjWall = JSON.stringify(_wall);
+// Traer el muro desde Firebase (fotos subidas por los invitados desde el celu)
+(function syncWallFromFB() {
+  const tryRead = () => {
+    if (window._fbReady && window._fbRead) {
+      window._fbRead('wall').then(data => {
+        if (!data) return;
+        try {
+          const remote = JSON.parse(data);
+          if (!Array.isArray(remote)) return;
+          const seen = {};
+          _wall.forEach(p => { seen[p.id] = true; });
+          let added = 0;
+          remote.forEach(p => { if (p && p.id && !seen[p.id]) { _wall.push(p); added++; } });
+          if (added) {
+            _wall.sort((a, b) => (a.ts || 0) - (b.ts || 0));
+            if (_wall.length > WALL_MAX) _wall = _wall.slice(-WALL_MAX);
+            saveWall();
+            renderWallPanel();
+          }
+        } catch(e) {}
+      }).catch(() => {});
+    } else setTimeout(tryRead, 1200);
+  };
+  setTimeout(tryRead, 1500);
+  setInterval(tryRead, 25000); // el muro se va llenando durante la noche
+})();
 loadRulesConfig();
 loadFinalConfig();
 loadTercerConfig();
