@@ -512,9 +512,8 @@ function _onFbScriptError(){ window._fbScriptsDone = true; console.warn('[Fireba
       <div class="er-dart er-dart-a"></div>
       <div class="er-dart er-dart-b"></div>
     </div>
-    <div class="er-splash-eyebrow">🧠 La Velada del Año</div>
+    <div class="er-splash-eyebrow">🧠 Juego de aproximación</div>
     <h1 class="er-title"><span class="et-1">El</span><span class="et-2">Erudito</span></h1>
-    <div class="er-splash-badge">◎ Aproximación · ±5%</div>
     <button class="er-splash-start" onclick="dismissSplash()">Comenzar <span style="font-size:1.05em">→</span></button>
   </div>
 </div>
@@ -522,7 +521,7 @@ function _onFbScriptError(){ window._fbScriptsDone = true; console.warn('[Fireba
 <!-- ① SELECCIÓN DE EQUIPO -->
 <div class="screen pad" id="screen-team">
   <div class="er-header">
-    <div class="er-eyebrow">🧠 La Velada del Año</div>
+    <div class="er-eyebrow">🧠 Juego de aproximación</div>
     <h1 class="er-title"><span class="et-1">El</span><span class="et-2">Erudito</span></h1>
   </div>
   <div class="fb-status"><span class="fb-dot" id="fb-dot"></span><span id="fb-txt">Conectando…</span></div>
@@ -638,8 +637,8 @@ function _onFbScriptError(){ window._fbScriptsDone = true; console.warn('[Fireba
 
 <!-- WIN -->
 <div class="win-overlay" id="win-overlay">
-  <div class="win-trophy">🏆</div>
-  <div class="win-label">Ganador del duelo</div>
+  <div class="win-trophy" id="win-trophy">🏆</div>
+  <div class="win-label" id="win-label">Ganador del duelo</div>
   <div class="win-name" id="win-name">—</div>
   <div class="win-score" id="win-score">—</div>
   <button class="big-btn gold" style="max-width:300px" onclick="newDuel()">↺ Nuevo duelo</button>
@@ -1061,8 +1060,7 @@ function submitNext(){
       const sa = cur.teams.a.score||0, sb = cur.teams.b.score||0;
       if(sa >= lim || sb >= lim){
         cur.phase = 'finished';
-        cur.winner = sa >= sb ? 'a' : 'b';
-        if(sa === sb) cur.winner = sa>=lim ? 'a' : 'b'; // borde raro
+        cur.winner = sa === sb ? 'tie' : (sa > sb ? 'a' : 'b');
       } else {
         cur.round = (cur.round||1) + 1;
         cur.phase = 'answering';
@@ -1207,9 +1205,12 @@ function closeRevealOverlay(){
 function showWin(){
   closeRevealOverlay();
   const w = G.winner;
-  const wName = w ? (G.teams[w].name || (w==='a'?'Equipo 1':'Equipo 2')) : '—';
+  const isTie = w === 'tie';
+  const wName = isTie ? '¡Empate!' : (w ? (G.teams[w].name || (w==='a'?'Equipo 1':'Equipo 2')) : '—');
+  _setText('win-label', isTie ? 'Fin del duelo' : 'Ganador del duelo');
   _setText('win-name', wName);
   _setText('win-score', (G.teams.a.score||0) + ' – ' + (G.teams.b.score||0));
+  document.getElementById('win-trophy').textContent = isTie ? '🤝' : '🏆';
   document.getElementById('win-overlay').classList.add('open');
   launchConfetti();
   playDing();
@@ -1236,7 +1237,7 @@ function finishDuelNow(){
       if(!cur) return cur;
       const sa = cur.teams.a.score||0, sb = cur.teams.b.score||0;
       cur.phase = 'finished';
-      cur.winner = sa >= sb ? 'a' : 'b';
+      cur.winner = sa === sb ? 'tie' : (sa > sb ? 'a' : 'b');
       return cur;
     });
     if(navigator.vibrate) navigator.vibrate(30);
@@ -1541,7 +1542,7 @@ function launchConfetti(){
   if(!container) return;
   const NUMS = [];
   // genera "cifras" variadas con onda numérica/aproximación
-  const samples = ['206','7,4','1.927','42','3,14','99','12.500','365','1.000.000','2026','88','0,5','451','321','9.000','64','10⁹','÷','%','≈','±5%','150','2.500','37°','100','50/50','π','√','1.609','60','24','4K','180°','f1.8','ISO','215','290','70'];
+  const samples = ['206','7,4','1.927','42','3,14','99','12.500','365','1.000.000','2026','88','0,5','451','321','9.000','64','10⁹','÷','%','≈','150','2.500','37°','100','50/50','π','√','1.609','60','24','4K','180°','f1.8','ISO','215','290','70'];
   for(let i=0;i<80;i++) NUMS.push(samples[i % samples.length]);
   const COLORS = ['rgba(255,95,95,IDX)','rgba(245,200,66,IDX)','rgba(96,180,240,IDX)','rgba(240,239,232,IDX)'];
   function randColor(o){ return COLORS[Math.floor(Math.random()*COLORS.length)].replace('IDX', o.toFixed(2)); }
