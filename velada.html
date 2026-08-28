@@ -2620,6 +2620,7 @@ body.started .velada-bg-scrim { display: block; }
 
 <!-- ======================== FASE 1 ======================== -->
 <div class="page" id="page-fase1">
+  <div id="bet-control-f1"></div>
   <div id="next-match-f1" style="margin-bottom:0.75rem"></div>
   <div id="my-next-f1" style="margin-bottom:0.75rem"></div>
   <div class="stats-grid" id="stats-fase1"></div>
@@ -4152,6 +4153,7 @@ let state = {
   comodines: [], // [{id, player, key, status:'pending'|'done', delta, note, ts}]
   bets: {},      // key "r-a-b" => { nombreApostador: idxGanadorApostado }
   adjust: { f1: [], f2: [] }, // ajustes manuales: [{id, name, pts, label, ts}]
+  betWindow: { open: false, round: 0 }, // ventana de apuestas: qué ronda está abierta
 };
 
 // ── COMODINES: catálogo ──────────────────────────────────────────────
@@ -4684,6 +4686,7 @@ function setVsJC(playerName, value) {
 function renderFase1() {
   renderF1RosterAdmin();
   renderBonusManualF1();
+  renderBetControl();
   renderComodinesPanel();
   renderAdjustPanel('f1');
   renderNextMatch('f1');
@@ -5493,6 +5496,86 @@ function ruletaBad() {
     o.connect(lp); lp.connect(g); g.connect(ctx.destination);
     o.start(t + i * 0.12); o.stop(t + i * 0.12 + 0.45);
   });
+}
+
+// ── VENTANA DE APUESTAS ──────────────────────────────────────────────
+// El conductor abre las apuestas de una ronda, se cierran antes de jugar, y
+// al reabrirlas saltan solas a la ronda siguiente que quede pendiente.
+function firstPendingRound() {
+  const rounds = [...new Set(F1_FIXTURE.map(m => m[0]))].sort((a, b) => a - b);
+  for (const r of rounds) {
+    const some = F1_FIXTURE.some(m => m[0] === r && !state.f1[m[0] + '-' + m[1] + '-' + m[2]]);
+    if (some) return r;
+  }
+  return 0; // no queda nada pendiente
+}
+function roundProgress(r) {
+  const all = F1_FIXTURE.filter(m => m[0] === r);
+  const done = all.filter(m => state.f1[m[0] + '-' + m[1] + '-' + m[2]]).length;
+  return { done: done, total: all.length };
+}
+function openBets() {
+  const r = firstPendingRound();
+  if (!r) { showToast('🏁', 'No quedan rondas pendientes en Fase 1', false); return; }
+  state.betWindow = { open: true, round: r, ts: Date.now() };
+  saveState(); renderFase1();
+  showToast('🔓', 'Apuestas ABIERTAS · Ronda ' + r, true);
+}
+function closeBets() {
+  const r = (state.betWindow && state.betWindow.round) || 0;
+  state.betWindow = { open: false, round: r, ts: Date.now() };
+  saveState(); renderFase1();
+  showToast('🔒', 'Apuestas cerradas' + (r ? ' · Ronda ' + r : ''), true);
+}
+function renderBetControl() {
+  const el = document.getElementById('bet-control-f1');
+  if (!el) return;
+  const bw = state.betWindow || { open: false, round: 0 };
+  const pending = firstPendingRound();
+  const open = !!bw.open;
+
+  // Contamos cuántos apostaron en la ronda abierta
+  let bettors = 0;
+  if (open && bw.round) {
+    const keys = F1_FIXTURE.filter(m => m[0] === bw.round).map(m => m[0] + '-' + m[1] + '-' + m[2]);
+    const who = new Set();
+    keys.forEach(k => Object.keys((state.bets || {})[k] || {}).forEach(n => who.add(n)));
+    bettors = who.size;
+  }
+
+  const prog = bw.round ? roundProgress(bw.round) : { done: 0, total: 0 };
+  const nextR = open ? null : pending;
+
+  let body;
+  if (open) {
+    body = `
+      <div style="font-size:12px;color:var(--muted);margin:0.5rem 0 0.7rem;line-height:1.5">
+        Los invitados pueden apostar los duelos de la <b style="color:var(--gold)">Ronda ${bw.round}</b>.
+        Cerralas antes de empezar a jugar.${bettors ? ` <b style="color:var(--success)">${bettors} ya apostaron.</b>` : ''}
+      </div>
+      <button onclick="closeBets()" style="width:100%;padding:0.8rem;border-radius:var(--radius);border:1.5px solid var(--danger);background:rgba(255,95,95,0.12);color:var(--danger);font-family:inherit;font-size:14px;font-weight:800;cursor:pointer">🔒 Cerrar apuestas de la Ronda ${bw.round}</button>`;
+  } else if (nextR) {
+    const doneTxt = bw.round && bw.round !== nextR
+      ? `<div style="font-size:11px;color:var(--muted);margin-bottom:0.5rem">Última ronda apostada: ${bw.round}</div>` : '';
+    body = `
+      ${doneTxt}
+      <div style="font-size:12px;color:var(--muted);margin:0.5rem 0 0.7rem;line-height:1.5">
+        Apuestas cerradas. Al abrirlas van a corresponder a la <b style="color:var(--gold)">Ronda ${nextR}</b>${
+          bw.round === nextR && prog.total ? ` (${prog.done}/${prog.total} duelos jugados)` : ''}.
+      </div>
+      <button onclick="openBets()" style="width:100%;padding:0.8rem;border-radius:var(--radius);border:1.5px solid var(--success);background:rgba(78,203,126,0.12);color:var(--success);font-family:inherit;font-size:14px;font-weight:800;cursor:pointer">🔓 Abrir apuestas · Ronda ${nextR}</button>`;
+  } else {
+    body = `<div style="font-size:12px;color:var(--muted);margin-top:0.5rem">🏁 Fase 1 completa: no quedan rondas para apostar.</div>`;
+  }
+
+  el.innerHTML = `
+    <div class="card" style="margin-bottom:0.75rem;border-color:${open ? 'var(--gold)' : 'var(--border2)'}">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:0.5rem">
+        <span style="font-size:12px;font-weight:700;color:${open ? 'var(--gold)' : 'var(--muted)'}">🃏 Apuestas ${open ? '· ABIERTAS' : '· cerradas'}</span>
+        <span style="font-size:10px;font-weight:800;letter-spacing:0.08em;text-transform:uppercase;padding:3px 9px;border-radius:99px;background:${open ? 'rgba(245,200,66,0.15)' : 'var(--surface2)'};color:${open ? 'var(--gold)' : 'var(--muted)'}">${open ? 'Ronda ' + bw.round : 'en pausa'}</span>
+      </div>
+      ${body}
+    </div>`;
 }
 
 // ── AJUSTES MANUALES DE PUNTAJE (Fase 1 y Fase 2) ────────────────────
