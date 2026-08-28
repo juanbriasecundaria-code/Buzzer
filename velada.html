@@ -1482,6 +1482,19 @@
     width: clamp(46px, 12vw, 66px); height: clamp(46px, 12vw, 66px);
     font-size: clamp(16px, 4.4vw, 22px);
   }
+
+  /* Foto del organizador en "Una producción de" — un poco más grande que las demás */
+  .cr-producer-av { display: flex; justify-content: center; margin: 0.9rem 0 0.5rem; }
+  .cr-producer-av .player-avatar-img,
+  .cr-producer-av .player-avatar-fallback {
+    width: clamp(64px, 17vw, 92px); height: clamp(64px, 17vw, 92px);
+    font-size: clamp(22px, 6vw, 32px);
+    border-width: 2px; border-color: var(--gold);
+  }
+  .producer-photo-row { display: flex; align-items: center; gap: 0.75rem; margin-top: 0.5rem; }
+  .producer-photo-preview { display: inline-flex; align-items: center; flex-shrink: 0; }
+  .producer-photo-preview .player-avatar-img,
+  .producer-photo-preview .player-avatar-fallback { width: 44px; height: 44px; font-size: 16px; }
   .final-clasificado-none {
     font-size: 12px; color: var(--muted); font-style: italic;
     padding: 0.5rem 0;
@@ -6878,6 +6891,56 @@ function savePlayerPhotos() {
 }
 function getPlayerPhoto(name) { return _playerPhotos[name] || null; }
 
+// ── FOTO DEL ORGANIZADOR ("Una producción de…" en los créditos) ──
+const KEY_PRODUCER_PHOTO = 'ndj_producer_photo';
+function getProducerPhoto() {
+  try { return localStorage.getItem(KEY_PRODUCER_PHOTO) || null; } catch(e) { return null; }
+}
+function setProducerPhoto(dataUrl) {
+  try { localStorage.setItem(KEY_PRODUCER_PHOTO, dataUrl); } catch(e) {}
+}
+function removeProducerPhoto() {
+  try { localStorage.removeItem(KEY_PRODUCER_PHOTO); } catch(e) {}
+}
+function triggerProducerPhotoUpload() {
+  const inp = document.createElement('input');
+  inp.type = 'file';
+  inp.accept = 'image/*';
+  inp.onchange = function() {
+    const file = inp.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      const img = new Image();
+      img.onload = function() {
+        const canvas = document.createElement('canvas');
+        canvas.width = 160; canvas.height = 160;
+        const ctx = canvas.getContext('2d');
+        const minDim = Math.min(img.width, img.height);
+        const sx = (img.width - minDim) / 2;
+        const sy = (img.height - minDim) / 2;
+        ctx.drawImage(img, sx, sy, minDim, minDim, 0, 0, 160, 160);
+        setProducerPhoto(canvas.toDataURL('image/jpeg', 0.85));
+        if (typeof renderFinal === 'function') renderFinal();
+      };
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+  };
+  inp.click();
+}
+function clearProducerPhoto() {
+  removeProducerPhoto();
+  if (typeof renderFinal === 'function') renderFinal();
+}
+// Avatar circular de la foto del organizador (o iniciales si no hay foto)
+function producerAvatarHtml(nombre) {
+  const photo = getProducerPhoto();
+  if (photo) return `<img class="player-avatar-img" src="${photo}" alt="">`;
+  const initial = (String(nombre || '?').trim()[0] || '?').toUpperCase();
+  return `<div class="player-avatar-fallback" style="background:var(--gold-dim);color:var(--gold)">${initial}</div>`;
+}
+
 // ── EQUIPOS DE DOS: helpers ────────────────────────────────────────────
 // Un equipo se escribe "Fulano / Mengano". Cada integrante puede tener su
 // propia foto (clave = su nombre); si no hay, cae a la foto del equipo entero.
@@ -8161,6 +8224,17 @@ function renderFinal() {
       <button class="final-edit-save" onclick="saveCampeones()">Guardar campeones</button>
     </div>
 
+    <!-- FOTO DEL ORGANIZADOR (para "Una producción de" en los créditos) -->
+    <div class="card">
+      <div style="font-size:15px;font-weight:600;margin-bottom:0.3rem"><span class="dot-indicator" style="background:var(--gold);box-shadow:0 0 8px rgba(245,200,66,0.6)"></span>Tu foto</div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:0.75rem;line-height:1.5">Aparece junto a "Una producción de" al final de los créditos.</div>
+      <div class="producer-photo-row">
+        <span class="producer-photo-preview">${producerAvatarHtml('Juan Cruz Bria')}</span>
+        <button class="fn-btn" onclick="triggerProducerPhotoUpload()">📷 ${getProducerPhoto() ? 'Cambiar foto' : 'Subir foto'}</button>
+        ${getProducerPhoto() ? `<button class="fn-btn" style="color:var(--danger);border-color:rgba(255,95,95,0.25)" onclick="clearProducerPhoto()">Quitar</button>` : ''}
+      </div>
+    </div>
+
     <!-- CIERRE / CRÉDITOS -->
     <div class="card" style="text-align:center">
       <div style="font-size:13px;color:var(--muted);margin-bottom:0.9rem">Cuando la velada llegue a su fin, bajá las luces.</div>
@@ -8266,6 +8340,7 @@ let _creditsPaused = false;
 let _creditsAudio = null;
 let _countdownInterval = null;
 let _creditsEndTimer = null;
+let _creditsAutoCloseTimer = null;
 let _rollStarted = false;
 let _grooveGuard = null;
 
@@ -8431,7 +8506,7 @@ function rollCredits() {
       ${motesHtml}
 
       <div class="cr-divider"></div>
-      <div class="cr-foot">Una producción de<br><b style="color:var(--text);font-size:1.2em">Juan Cruz Bria</b><br><br>Gracias por venir 🎮</div>
+      <div class="cr-foot">Una producción de<br><div class="cr-producer-av">${producerAvatarHtml('Juan Cruz Bria')}</div><b style="color:var(--text);font-size:1.2em">Juan Cruz Bria</b><br><br>Gracias por venir 🎮</div>
       <div class="cr-fin">FIN</div>
     </div>
   `;
@@ -8448,6 +8523,7 @@ function rollCredits() {
 
   _creditsPaused = false;
   _rollStarted = false;
+  if (_creditsAutoCloseTimer) { clearTimeout(_creditsAutoCloseTimer); _creditsAutoCloseTimer = null; }
   overlay.onclick = () => { _creditsPaused = !_creditsPaused; };
   _creditsKeyHandler = (e) => { if (e.key === 'Escape') { e.preventDefault(); closeCredits(); } };
   document.addEventListener('keydown', _creditsKeyHandler);
@@ -8582,6 +8658,9 @@ function showCountdown() {
     <button class="credits-close" onclick="event.stopPropagation(); closeCredits()">✕ Salir</button>`;
   overlay.onclick = null;
   startCountdownTicker(nextSep29());
+  // AUTOMÁTICO: tras mostrar el contador final, cierra solo a los 10s
+  if (_creditsAutoCloseTimer) clearTimeout(_creditsAutoCloseTimer);
+  _creditsAutoCloseTimer = setTimeout(closeCredits, 10000);
 }
 
 function closeCredits() {
@@ -8591,6 +8670,7 @@ function closeCredits() {
   if (_creditsKeyHandler) { document.removeEventListener('keydown', _creditsKeyHandler); _creditsKeyHandler = null; }
   if (_countdownInterval) { clearInterval(_countdownInterval); _countdownInterval = null; }
   if (_creditsEndTimer) { clearTimeout(_creditsEndTimer); _creditsEndTimer = null; }
+  if (_creditsAutoCloseTimer) { clearTimeout(_creditsAutoCloseTimer); _creditsAutoCloseTimer = null; }
   stopCreditsAudio();
   overlay.onclick = null;
   overlay.classList.add('credits-out');
@@ -9050,14 +9130,12 @@ function podiumReveal(phaseKind, onContinue) {
     + '<div class="pr-stage"><div class="pr-row">'
     + slotFor(2) + slotFor(1) + slotFor(3)
     + '</div></div>'
-    + '<div class="pr-caption" id="pr-caption"></div>'
-    + '<button class="pr-cta pr-skip" id="pr-cta">' + (phaseKind === 'individual' ? 'Saltar al podio grupal →' : 'Saltar a los créditos →') + '</button>';
+    + '<div class="pr-caption" id="pr-caption"></div>';
   overlay.classList.remove('ceremony-out');
   overlay.classList.add('show');
   overlay.setAttribute('aria-hidden', 'false');
 
   const caption = overlay.querySelector('#pr-caption');
-  const cta     = overlay.querySelector('#pr-cta');
   const slots = { 1: overlay.querySelector('.pr-place-1'), 2: overlay.querySelector('.pr-place-2'), 3: overlay.querySelector('.pr-place-3') };
 
   let advanced = false;
@@ -9069,16 +9147,13 @@ function podiumReveal(phaseKind, onContinue) {
     // reemplaza el contenido directamente, así nunca se ve el menú de fondo entre medio.
     if (onContinue) onContinue();
   };
-  // El botón "saltar" adelanta la ceremonia manualmente (emergencia)
-  cta.onclick = (e) => { e.stopPropagation(); advance(); };
 
   const order = [3, 2, 1].filter(p => slots[p]); // revela de menor a mayor
   let k = 0;
 
   function finishPodium() {
     caption.textContent = '';
-    cta.classList.add('show');
-    // AUTOMÁTICO: tras revelar el campeón, espera 5s y avanza solo
+    // AUTOMÁTICO: tras revelar el campeón, espera 5s y avanza solo (sin botón de "saltar")
     if (_ceremonyTimer) clearTimeout(_ceremonyTimer);
     _ceremonyTimer = setTimeout(advance, 5000);
   }
@@ -9101,7 +9176,7 @@ function podiumReveal(phaseKind, onContinue) {
 
   // Tap saltea solo la animación de revelado (muestra el podio completo), no avanza de fase
   overlay.onclick = (e) => {
-    if (e.target.closest('.ceremony-close') || e.target.closest('.pr-cta')) return;
+    if (e.target.closest('.ceremony-close')) return;
     if (k >= order.length) return;
     if (_podiumTimer) { clearTimeout(_podiumTimer); _podiumTimer = null; }
     order.forEach(p => slots[p] && slots[p].classList.add('revealed'));
