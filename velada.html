@@ -9329,8 +9329,9 @@ function rollCredits() {
   // Todos los juegos: Fase 1 + Fase 2 + Impostor (deduplicados)
   const allGames = [];
   if (typeof GAMES_F1 !== 'undefined') allGames.push(...GAMES_F1);
-  if (typeof GAMES_F2 !== 'undefined') allGames.push(...GAMES_F2);
   allGames.push('Impostor');
+  if (typeof GAMES_F2 !== 'undefined') allGames.push(...GAMES_F2);
+  allGames.push('¿Quién lo dijo?');
   const games = [...new Set(allGames)].map(g => `<div>${esc(g)}</div>`).join('');
 
   let motesHtml = '';
@@ -12469,8 +12470,7 @@ function loadTVWall() {
     }
   } catch(e) {}
 }
-function tickWall() {
-  loadTVWall();
+function showWallAt(idx) {
   const box = document.getElementById('tv-wall');
   const img = document.getElementById('tv-wall-img');
   const tag = document.getElementById('tv-wall-tag');
@@ -12478,13 +12478,18 @@ function tickWall() {
   if (!_tvWall.length) { box.classList.remove('show'); return; }
   box.classList.remove('show');
   setTimeout(() => {
-    _tvWallIdx = (_tvWallIdx + 1) % _tvWall.length;
+    _tvWallIdx = ((idx % _tvWall.length) + _tvWall.length) % _tvWall.length;
     const p = _tvWall[_tvWallIdx];
     if (!p) return;
     img.src = p.src;
     if (tag) tag.textContent = p.by ? ('\u{1F4F8} ' + p.by) : '\u{1F4F8} La Velada';
     box.classList.add('show');
   }, 650);
+}
+function tickWall() {
+  loadTVWall();
+  if (!_tvWall.length) { const box = document.getElementById('tv-wall'); if (box) box.classList.remove('show'); return; }
+  showWallAt(_tvWallIdx + 1);
 }
 function startWall() {
   if (_tvWallTimer) clearInterval(_tvWallTimer);
@@ -12809,8 +12814,13 @@ function renderTicker(state, PLAYERS, TEAMS) {
             if (Array.isArray(arr)) {
               const was = _tvWall.length;
               _tvWall = arr;
-              // Primera foto de la noche: mostrarla enseguida en vez de esperar el ciclo
-              if (!was && arr.length) tickWall();
+              // Foto nueva (o primera de la noche): mostrarla enseguida en vez de
+              // esperar a que la rotación normal (una cada 11s) le llegue el turno.
+              if (arr.length > was) {
+                if (_tvWallTimer) clearInterval(_tvWallTimer);
+                showWallAt(arr.length - 1);
+                _tvWallTimer = setInterval(tickWall, 11000);
+              }
             }
           } catch(e) {}
         }, () => {});
