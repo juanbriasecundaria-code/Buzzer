@@ -6863,7 +6863,9 @@ function renderImpSetup() {
             : `<div style="font-size:12px;color:var(--muted)">${wordCount} palabras disponibles</div>`
           }
         </div>
-        <div style="display:flex;align-items:center;gap:0.75rem">
+        <div style="display:flex;align-items:center;gap:0.75rem;flex-wrap:wrap;justify-content:flex-end">
+          <button onclick="exportImpWords()" title="Descargar un backup de las palabras usadas y propias" style="padding:0.4rem 0.8rem;border-radius:var(--radius);border:1px solid var(--border2);background:var(--surface);color:var(--muted);cursor:pointer;font-size:12px;font-weight:600;transition:border-color 0.15s,color 0.15s" onmouseover="this.style.borderColor='var(--accent)';this.style.color='var(--accent)'" onmouseout="this.style.borderColor='var(--border2)';this.style.color='var(--muted)'">⬇️ Exportar</button>
+          <button onclick="importImpWordsFile()" title="Restaurar desde un backup" style="padding:0.4rem 0.8rem;border-radius:var(--radius);border:1px solid var(--border2);background:var(--surface);color:var(--muted);cursor:pointer;font-size:12px;font-weight:600;transition:border-color 0.15s,color 0.15s" onmouseover="this.style.borderColor='var(--accent)';this.style.color='var(--accent)'" onmouseout="this.style.borderColor='var(--border2)';this.style.color='var(--muted)'">⬆️ Importar</button>
           ${usedCount > 0
             ? `<button onclick="resetWordPool()" style="padding:0.4rem 0.8rem;border-radius:var(--radius);border:1px solid var(--border2);background:var(--surface);color:var(--muted);cursor:pointer;font-size:12px;font-weight:600;transition:border-color 0.15s,color 0.15s" onmouseover="this.style.borderColor='var(--danger)';this.style.color='var(--danger)'" onmouseout="this.style.borderColor='var(--border2)';this.style.color='var(--muted)'">🔄 Resetear</button>`
             : ''
@@ -6904,6 +6906,62 @@ function resetWordPool() {
   saveImpGame();
   showToast('🔄', 'Pool de palabras reiniciado', false);
   renderImpSetup();
+}
+
+// ── EXPORTAR / IMPORTAR PALABRAS DEL IMPOSTOR ──
+// Backup manual por si se resetea el estado (localStorage) sin querer:
+// guarda las palabras usadas + las categorías/palabras propias creadas.
+function impWordsExportData() {
+  return {
+    kind: 'impostor-palabras',
+    exportedAt: new Date().toISOString(),
+    usedWords: impGame.usedWords || [],
+    customWords: impGame.customWords || [],
+    customCatWords: impGame.customCatWords || {},
+    excludedWords: impGame.excludedWords || [],
+    userCats: impGame.userCats || [],
+  };
+}
+function exportImpWords() {
+  const data = impWordsExportData();
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'impostor-palabras-' + new Date().toISOString().slice(0, 10) + '.json';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(url), 2000);
+  showToast('⬇️', 'Palabras exportadas', false);
+}
+function importImpWordsFile() {
+  const inp = document.createElement('input');
+  inp.type = 'file';
+  inp.accept = 'application/json,.json';
+  inp.onchange = () => {
+    const file = inp.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const data = JSON.parse(e.target.result);
+        if (Array.isArray(data.usedWords)) impGame.usedWords = data.usedWords;
+        impGame.usedWordIndices = []; // formato viejo — se reconstruye por string, no hace falta
+        if (Array.isArray(data.customWords)) impGame.customWords = data.customWords;
+        if (data.customCatWords && typeof data.customCatWords === 'object') impGame.customCatWords = data.customCatWords;
+        if (Array.isArray(data.excludedWords)) impGame.excludedWords = data.excludedWords;
+        if (Array.isArray(data.userCats)) impGame.userCats = data.userCats;
+        saveImpGame();
+        renderImpSetup();
+        showToast('⬆️', 'Palabras importadas', false);
+      } catch (err) {
+        showToast('⚠️', 'Ese archivo no es un backup válido', true);
+      }
+    };
+    reader.readAsText(file);
+  };
+  inp.click();
 }
 
 function toggleCat(btn, cat) {
@@ -11183,6 +11241,7 @@ function openTVMode() {
   .tv-estado-phase.f1::before { background: linear-gradient(90deg, var(--accent), transparent); }
   .tv-estado-phase.imp::before { background: linear-gradient(90deg, var(--danger), transparent); }
   .tv-estado-phase.f2::before { background: linear-gradient(90deg, var(--info), transparent); }
+  .tv-estado-phase.qld::before { background: linear-gradient(90deg, var(--gold), transparent); }
 
   .tv-estado-label {
     font-size: clamp(9px,0.9vw,12px);
@@ -11196,6 +11255,7 @@ function openTVMode() {
   .tv-estado-label.f1  { color: var(--accent); }
   .tv-estado-label.imp { color: var(--danger); }
   .tv-estado-label.f2  { color: var(--info); }
+  .tv-estado-label.qld { color: var(--gold); }
 
   .tv-estado-bar-wrap {
     height: 4px;
@@ -11211,6 +11271,7 @@ function openTVMode() {
   .f1  .tv-estado-bar { background: var(--accent); }
   .imp .tv-estado-bar { background: var(--danger); }
   .f2  .tv-estado-bar { background: var(--info); }
+  .qld .tv-estado-bar { background: var(--gold); }
 
   .tv-estado-info {
     display: flex;
@@ -11230,6 +11291,7 @@ function openTVMode() {
   .f1  .tv-estado-pct { color: var(--accent); }
   .imp .tv-estado-pct { color: var(--danger); }
   .f2  .tv-estado-pct { color: var(--info); }
+  .qld .tv-estado-pct { color: var(--gold); }
   .tv-estado-pct.done { color: var(--success) !important; }
 </style>
 <style>.hub-link{position:fixed;top:max(0.75rem,env(safe-area-inset-top));left:max(0.75rem,env(safe-area-inset-left));z-index:99999;font-size:11px;font-weight:700;color:rgba(240,239,232,0.7);background:rgba(10,10,14,0.6);border:1px solid rgba(255,255,255,0.1);border-radius:99px;padding:0.38rem 0.85rem;text-decoration:none;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);letter-spacing:0.04em;transition:color 0.15s,border-color 0.15s;white-space:nowrap}.hub-link:hover{color:#f0efe8;border-color:rgba(255,255,255,0.25)}</style>
@@ -11328,6 +11390,14 @@ function openTVMode() {
       <span class="tv-estado-pct f2" id="tv-estado-f2-pct">0%</span>
     </div>
     <div class="tv-estado-bar-wrap"><div class="tv-estado-bar" id="tv-estado-f2-bar" style="width:0%"></div></div>
+  </div>
+  <div class="tv-estado-phase qld" id="tv-estado-qld">
+    <div class="tv-estado-label qld"><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--gold);box-shadow:0 0 8px rgba(245,200,66,0.7)"></span>Ronda ¿Quién lo dijo?</div>
+    <div class="tv-estado-info">
+      <span class="tv-estado-count" id="tv-estado-qld-count">pendiente</span>
+      <span class="tv-estado-pct qld" id="tv-estado-qld-pct">0%</span>
+    </div>
+    <div class="tv-estado-bar-wrap"><div class="tv-estado-bar" id="tv-estado-qld-bar" style="width:0%"></div></div>
   </div>
 </div>
 
@@ -11840,6 +11910,7 @@ function renderTV() {
   if (TV_PHASE === 'fase1') {
     document.getElementById('tv-estado-f2').style.display  = 'none';
     document.getElementById('tv-estado-imp').style.display = 'none';
+    document.getElementById('tv-estado-qld').style.display = 'none';
     estadoEl.style.maxWidth = '820px';
     estadoEl.style.margin   = 'clamp(10px,2vh,22px) auto 0';
     estadoEl.style.width    = '100%';
@@ -11858,10 +11929,12 @@ function renderEstado(state) {
   const f1Done  = F1_FIXTURE.filter(([r,a,b]) => state.f1 && state.f1[r+'-'+a+'-'+b]).length;
   const f2Done  = F2_FIXTURE.filter(([r,a,b]) => state.f2 && state.f2[r+'-'+a+'-'+b]).length;
   const impDone = state.impostor && Array.isArray(state.impostor.rounds) && state.impostor.rounds.length > 0;
+  const qldDone = !!(state.qldTeamPoints && Object.keys(state.qldTeamPoints).length > 0);
 
   const f1Pct  = f1Total  ? Math.round((f1Done  / f1Total)  * 100) : 0;
   const f2Pct  = f2Total  ? Math.round((f2Done  / f2Total)  * 100) : 0;
   const impPct = impDone  ? 100 : 0;
+  const qldPct = qldDone  ? 100 : 0;
 
   function setPhase(id, count, pct, done) {
     const countEl = document.getElementById('tv-estado-'+id+'-count');
@@ -11875,6 +11948,7 @@ function renderEstado(state) {
   if (TV_PHASE !== 'fase2') setPhase('f1',  f1Done + '/' + f1Total + ' partidos', f1Pct, f1Done === f1Total);
   if (TV_PHASE === 'both')  setPhase('imp', impDone ? '✓ completada' : 'pendiente', impPct, impDone);
   if (TV_PHASE !== 'fase1') setPhase('f2',  f2Done + '/' + f2Total + ' partidos',  f2Pct, f2Done === f2Total);
+  if (TV_PHASE !== 'fase1') setPhase('qld', qldDone ? '✓ completada' : 'pendiente', qldPct, qldDone);
 }
 
 // ── TICKER (estado) ─────────────────────────────────────────
