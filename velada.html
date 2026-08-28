@@ -131,16 +131,16 @@
     color: var(--muted);
     text-align: left;
     padding: 0.5rem 0.75rem;
-    border-bottom: 0.5px solid var(--border);
+    border-bottom: 1px solid var(--border);
   }
   .ranking td {
     padding: 0.75rem;
-    border-bottom: 0.5px solid var(--border);
+    border-bottom: 1px solid var(--border);
     vertical-align: middle;
   }
   .ranking tr:last-child td { border-bottom: none; }
   .ranking tr.classifica td { background: rgba(200,240,96,0.04); }
-  .ranking tr.classifica td:first-child { border-left: 2px solid var(--accent); }
+  .ranking tr.classifica td:first-child { box-shadow: inset 2px 0 0 0 var(--accent); }
 
   .pos-badge {
     width: 26px; height: 26px;
@@ -197,7 +197,7 @@
 
   /* Fase 2 usa identidad celeste en vez de lima, para diferenciarse de Fase 1 */
   #page-fase2 .ranking tr.classifica td { background: rgba(96,180,240,0.06); }
-  #page-fase2 .ranking tr.classifica td:first-child { border-left: 2px solid var(--info); }
+  #page-fase2 .ranking tr.classifica td:first-child { box-shadow: inset 2px 0 0 0 var(--info); }
   #page-fase2 .pos-badge.accent { background: rgba(96,180,240,0.12); color: var(--info); }
   #page-fase2 .total-pts { color: var(--info); }
   #page-fase2 .stat-num { color: var(--info); }
@@ -2283,15 +2283,24 @@ body.started .velada-bg-scrim { display: block; }
   color: var(--muted); font-size: 18px; cursor: pointer; padding: 0.2rem 0.4rem; }
 .ruleta-eyebrow { font-size: 10px; font-weight: 900; letter-spacing: 0.28em; text-transform: uppercase;
   color: var(--gold); margin-bottom: 1rem; }
-.ruleta-slot { border: 2px dashed var(--border2); border-radius: 16px; padding: 1.3rem 0.8rem;
-  background: var(--surface2); transition: border-color 0.3s, box-shadow 0.3s; overflow: hidden; }
-.ruleta-slot.spinning { border-color: var(--gold); }
-.ruleta-slot.landed { border-style: solid; border-color: var(--gold);
-  box-shadow: 0 0 26px rgba(245,200,66,0.35); animation: ruLand 0.5s cubic-bezier(.2,1.3,.4,1); }
-@keyframes ruLand { 0% { transform: scale(1.12); } 100% { transform: scale(1); } }
-.ruleta-name { font-size: clamp(1.6rem, 8vw, 2.4rem); font-weight: 900; color: var(--text);
-  letter-spacing: -0.01em; line-height: 1.1; }
-.ruleta-slot.spinning .ruleta-name { opacity: 0.55; filter: blur(0.4px); }
+.ruleta-wheel-area { position: relative; width: min(76vw, 300px); aspect-ratio: 1 / 1; margin: 0 auto 0.2rem; }
+.ruleta-pointer { position: absolute; top: -13px; left: 50%; transform: translateX(-50%); width: 0; height: 0;
+  border-left: 13px solid transparent; border-right: 13px solid transparent; border-top: 22px solid var(--gold);
+  z-index: 6; filter: drop-shadow(0 2px 5px rgba(0,0,0,0.55)); }
+.ruleta-wheel-outer { position: absolute; inset: 0; border-radius: 50%; padding: 4%;
+  background: radial-gradient(circle at 50% 42%, #3a3120, #100e08 74%);
+  box-shadow: 0 0 0 3px rgba(245,200,66,0.35), 0 18px 44px rgba(0,0,0,0.55), inset 0 0 18px rgba(0,0,0,0.6); }
+.ruleta-wheel-svg { display: block; width: 100%; height: 100%; border-radius: 50%;
+  transform: rotate(0deg); transition: transform 3.7s cubic-bezier(0.13,0.7,0.18,1);
+  filter: drop-shadow(0 6px 16px rgba(0,0,0,0.5)); }
+.ruleta-hub { position: absolute; top: 50%; left: 50%; width: 21%; height: 21%; transform: translate(-50%,-50%);
+  border-radius: 50%; background: radial-gradient(circle at 34% 28%, #fff2ca, var(--gold) 55%, #a97e12 100%);
+  box-shadow: 0 0 0 3px rgba(0,0,0,0.42), 0 4px 10px rgba(0,0,0,0.5);
+  display: flex; align-items: center; justify-content: center; font-size: 18px; z-index: 4; }
+.ruleta-result-name { margin-top: 0.9rem; min-height: 1.5em; font-size: clamp(1.4rem, 7.5vw, 2.1rem);
+  font-weight: 900; color: var(--gold); letter-spacing: -0.01em; line-height: 1.1;
+  opacity: 0; transform: translateY(6px); transition: opacity 0.35s ease, transform 0.35s ease; }
+.ruleta-result-name.show { opacity: 1; transform: none; }
 .ruleta-card { margin-top: 1rem; opacity: 0; transform: translateY(14px) scale(0.95);
   transition: opacity 0.4s, transform 0.45s cubic-bezier(.2,1.2,.35,1); }
 .ruleta-card.show { opacity: 1; transform: none; border-radius: 16px; padding: 1.1rem 0.9rem;
@@ -2393,6 +2402,16 @@ body.started .velada-bg-scrim { display: block; }
 .op-rail.all-in .op-playercard .op-label-tag { display: none; }
 .op-rail.all-in .op-playercard .op-member { font-size: clamp(0.6rem, 2.2vw, 0.82rem); }
 .op-rail.all-in .op-playercard .op-pcard-num { font-size: 0.75rem; }
+/* Cuando hay muchos participantes, se acomodan en varias filas en vez de una sola fila apretada */
+.op-rail.all-in.wrap-rows {
+  display: grid;
+  grid-template-columns: repeat(var(--allin-cols, 5), min(22vw, 116px));
+  justify-content: center;
+  align-content: center;
+  row-gap: clamp(10px, 2.4vw, 22px);
+  overflow: visible;
+}
+.op-rail.all-in.wrap-rows .op-playercard { width: 100%; }
 
 .op-pcard-top { display: flex; align-items: flex-start; justify-content: space-between; width: 100%; margin-bottom: 0.2rem; position: relative; z-index: 2; }
 .op-pcard-badge { font-size: 9px; font-weight: 900; letter-spacing: 0.2em; text-transform: uppercase;
@@ -2679,6 +2698,8 @@ body.started .velada-bg-scrim { display: block; }
 
   <div id="f2-roster-admin"></div>
 
+  <div id="comodines-f2"></div>
+
   <div id="adjust-f2"></div>
 
   <div id="podium-fase2"></div>
@@ -2757,20 +2778,20 @@ const RULES_DEFAULT = {
     desc: 'Todos reciben la misma palabra secreta en su carta, excepto el impostor, que no la sabe y tiene que camuflarse. Cada uno da una pista sobre la palabra sin decirla directamente y después se vota quién creen que es el impostor. Si la votación falla, se repite con la misma palabra hasta que lo descubran; recién ahí arranca una ronda nueva con palabra e impostor distintos. Se puede sumar jugadores entre rondas si llegan invitados.',
   },
   f1: [
-    { name: 'Curling', icon: '🥌', desc: 'Cada jugador lanza 5 piedras por ronda buscando quedar lo más cerca posible del centro. Se pueden desplazar las piedras del rival.', format: 'Mejor de 3 rondas (salvo que termine muy rápido y si los participantes quieren pueden seguir hasta que las demás mesas terminen)', pts_win: 3, pts_bonus: 1, pts_draw: 0, pts_lose: 0, bonus_label: 'Ganar sin haber perdido ninguna ronda o con marcador final con diferencia de 2 rondas (Por ej.: 4 a 2)', allow_draw: false, rules: ['Círculo azul → 1 pt','Círculo blanco intermedio → 2 pts','Círculo rojo → 3 pts','Círculo blanco pequeño → 5 pts','Se puede empujar las piedras del rival para hacerle perder puntos.','Puntaje máximo: 4pts'] },
-    { name: '100 Argentinos Dicen', icon: '🪄', desc: 'Cada equipo compite ronda por ronda. El ganador del duelo inicial controla el tablero. Si completa las respuestas sin 3 strikes, gana el punto. Si falla 3 veces, el rival puede robar con una sola respuesta.', format: 'Mejor de 5 rondas', pts_win: 3, pts_bonus: 1, pts_draw: 0, pts_lose: 0, bonus_label: 'El que gane el dinero rápido se lleva 1 punto', allow_draw: false, rules: ['El duelo inicial define quién controla el tablero','El equipo que controla completa respuestas del tablero sin 3 strikes','3 strikes = pierde el control, el rival puede robar con 1 respuesta','El primer equipo en ganar la meta de rondas gana el match','Puntaje máximo: 4pts'] },
-    { name: 'UNO', icon: '🃏', desc: 'Juego clásico, con las siguientes variantes de reglas especiales.', format: 'Mejor de 3 partidas (salvo que termine muy rápido y si los participantes quieren pueden seguir hasta que las demás mesas terminen)', pts_win: 3, pts_bonus: 1, pts_draw: 0, pts_lose: 0, bonus_label: 'Ganar sin haber perdido ninguna ronda o con marcador final con diferencia de 2 rondas (Por ej.: 4 a 2)', allow_draw: false, rules: ['Se puede responder un +2 con un +4.','Se puede responder un +4 con un +2.','Puntaje máximo: 4pts'] },
-    { name: 'Palabras a Tiempo', icon: '⏱️', desc: 'Juego clásico de palabras, con categorías elegidas por el organizador.', format: '10 minutos de juego o hasta que los participantes se cansen', pts_win: 3, pts_bonus: 1, pts_draw: 0, pts_lose: 0, bonus_label: 'Ganar sin haber perdido ninguna ronda o con marcador final con diferencia de 2 rondas (Por ej.: 4 a 2)', allow_draw: false, rules: ['1 categoría por ronda.','Cada jugador puede usar una sola vez un comodín para cambiar la categoría antes de empezar.','Se puede pedir VAR (osea yo). Sí considero que el que pidió el VAR se equivocó, pierde la ronda y sí no, se sigue con otra carta','Puntaje máximo: 4pts'] },
-    { name: 'Carrera de Mentes', icon: '👑', desc: 'Modo solo preguntas (sin tablero). Se juega al mejor de 3 coronas. Se tienen que responder 3 preguntas bien para obtener una corona.', format: '3 coronas', pts_win: 3, pts_bonus: 1, pts_draw: 0, pts_lose: 0, bonus_label: 'Si el rival no obtiene coronas.', allow_draw: false, rules: ['Se hace un sorteo para definir quién empieza. El que gana el sorteo elige el libro.','El jugador que eligió el libro responde primero. Si acierta, el rival responde una pregunta del mismo libro. Si el rival falla, el que eligió se lleva la corona. Si el rival también acierta, se continúa en ese mismo libro alternando preguntas hasta que uno falle: quien falla pierde la corona.','Cada jugador puede usar una sola vez el comodín para cambiar una pregunta ya leída.','Una vez que se gana una corona (sin importar quién), el rival elige el siguiente libro.','El lector no está obligado a decir las opciones si no se las piden.','Puntaje máximo: 4pts'] },
-    { name: 'Spot It', icon: '👀', desc: 'Juego de velocidad visual con las 53 cartas completas. Siempre hay un único símbolo que coincide entre cualquier par de cartas.', format: '1 partida completa (si termina muy rápido pueden seguir o descansar hasta que terminen las demás mesas)', pts_win: 3, pts_bonus: 1, pts_draw: 0, pts_lose: 0, bonus_label: 'Rival con 5+ cartas (solo se aplica una vez)', allow_draw: false, rules: ['Se mezcla el mazo y se reparten 26 cartas para cada jugador.','Se coloca 1 carta boca arriba en el centro.','Ambos dan vuelta sus cartas al mismo tiempo buscando el símbolo igual.','Al encontrarlo, se descarta la carta diciendo el símbolo en voz alta.','NO SE PUEDE ir cambiando de carta antes de encontrar el símbolo.','Gana quien descarte todas sus cartas primero.','Puntaje máximo: 4pts'] },
+    { name: 'Curling', icon: '🥌', desc: 'Cada jugador lanza 5 piedras por ronda buscando quedar lo más cerca posible del centro. Se pueden desplazar las piedras del rival.', format: 'Mejor de 3 rondas (salvo que termine muy rápido y si los participantes quieren pueden seguir hasta que las demás mesas terminen)', pts_win: 3, pts_bonus: 1, pts_draw: 1, pts_lose: 0, bonus_label: 'Ganar sin haber perdido ninguna ronda o con marcador final con diferencia de 2 rondas (Por ej.: 4 a 2)', allow_draw: true, rules: ['Círculo azul → 1 pt','Círculo blanco intermedio → 2 pts','Círculo rojo → 3 pts','Círculo blanco pequeño → 5 pts','Se puede empujar las piedras del rival para hacerle perder puntos.','Puntaje máximo: 4pts'] },
+    { name: '100 Argentinos Dicen', icon: '🪄', desc: 'Cada equipo compite ronda por ronda. El ganador del duelo inicial controla el tablero. Si completa las respuestas sin 3 strikes, gana el punto. Si falla 3 veces, el rival puede robar con una sola respuesta.', format: 'Mejor de 5 rondas', pts_win: 3, pts_bonus: 1, pts_draw: 1, pts_lose: 0, bonus_label: 'El que gane el dinero rápido se lleva 1 punto', allow_draw: true, rules: ['El duelo inicial define quién controla el tablero','El equipo que controla completa respuestas del tablero sin 3 strikes','3 strikes = pierde el control, el rival puede robar con 1 respuesta','El primer equipo en ganar la meta de rondas gana el match','Puntaje máximo: 4pts'] },
+    { name: 'UNO', icon: '🃏', desc: 'Juego clásico, con las siguientes variantes de reglas especiales.', format: 'Mejor de 3 partidas (salvo que termine muy rápido y si los participantes quieren pueden seguir hasta que las demás mesas terminen)', pts_win: 3, pts_bonus: 1, pts_draw: 1, pts_lose: 0, bonus_label: 'Ganar sin haber perdido ninguna ronda o con marcador final con diferencia de 2 rondas (Por ej.: 4 a 2)', allow_draw: true, rules: ['Se puede responder un +2 con un +4.','Se puede responder un +4 con un +2.','Puntaje máximo: 4pts'] },
+    { name: 'Palabras a Tiempo', icon: '⏱️', desc: 'Juego clásico de palabras, con categorías elegidas por el organizador.', format: '10 minutos de juego o hasta que los participantes se cansen', pts_win: 3, pts_bonus: 1, pts_draw: 1, pts_lose: 0, bonus_label: 'Ganar sin haber perdido ninguna ronda o con marcador final con diferencia de 2 rondas (Por ej.: 4 a 2)', allow_draw: true, rules: ['1 categoría por ronda.','Cada jugador puede usar una sola vez un comodín para cambiar la categoría antes de empezar.','Se puede pedir VAR (osea yo). Sí considero que el que pidió el VAR se equivocó, pierde la ronda y sí no, se sigue con otra carta','Puntaje máximo: 4pts'] },
+    { name: 'Carrera de Mentes', icon: '👑', desc: 'Modo solo preguntas (sin tablero). Se juega al mejor de 3 coronas. Se tienen que responder 3 preguntas bien para obtener una corona.', format: '3 coronas', pts_win: 3, pts_bonus: 1, pts_draw: 1, pts_lose: 0, bonus_label: 'Si el rival no obtiene coronas.', allow_draw: true, rules: ['Se hace un sorteo para definir quién empieza. El que gana el sorteo elige el libro.','El jugador que eligió el libro responde primero. Si acierta, el rival responde una pregunta del mismo libro. Si el rival falla, el que eligió se lleva la corona. Si el rival también acierta, se continúa en ese mismo libro alternando preguntas hasta que uno falle: quien falla pierde la corona.','Cada jugador puede usar una sola vez el comodín para cambiar una pregunta ya leída.','Una vez que se gana una corona (sin importar quién), el rival elige el siguiente libro.','El lector no está obligado a decir las opciones si no se las piden.','Puntaje máximo: 4pts'] },
+    { name: 'Spot It', icon: '👀', desc: 'Juego de velocidad visual con las 53 cartas completas. Siempre hay un único símbolo que coincide entre cualquier par de cartas.', format: '1 partida completa (si termina muy rápido pueden seguir o descansar hasta que terminen las demás mesas)', pts_win: 3, pts_bonus: 1, pts_draw: 1, pts_lose: 0, bonus_label: 'Rival con 5+ cartas (solo se aplica una vez)', allow_draw: true, rules: ['Se mezcla el mazo y se reparten 26 cartas para cada jugador.','Se coloca 1 carta boca arriba en el centro.','Ambos dan vuelta sus cartas al mismo tiempo buscando el símbolo igual.','Al encontrarlo, se descarta la carta diciendo el símbolo en voz alta.','NO SE PUEDE ir cambiando de carta antes de encontrar el símbolo.','Gana quien descarte todas sus cartas primero.','Puntaje máximo: 4pts'] },
   ],
   f2: [
-    { name: 'Mario Party', icon: '🎲', desc: 'Minijuegos rápidos 2v2. Cada equipo compite en una tanda de minijuegos, gana el que acumule más victorias.', format: 'Primero en ganar 5 minijuegos', pts_win: 3, pts_bonus: 1, pts_draw: 0, pts_lose: 0, bonus_label: 'Ganar por 3+ de diferencia (Por ej.: 5-2)', allow_draw: false, rules: ['Gana el primer equipo en llegar a 5 victorias de minijuego','Si se acaba el tiempo (15 min) antes, gana quien lleve más victorias','En caso de empate al acabar el tiempo, se juega un minijuego desempate','Puntaje máximo: 4pts'] },
-    { name: "Time's Up", icon: '⏰', desc: 'Juego de adivinanza por pistas. El equipo intenta adivinar la mayor cantidad de personajes/famosos en 1 minuto.', format: 'Turnos de 1 min (hasta que terminen las demás mesas o se cansen)', pts_win: 3, pts_bonus: 1, pts_draw: 0, pts_lose: 0, bonus_label: 'Si duplican la cantidad de personajes/famosos adivinados del rival', allow_draw: false, rules: ['Si es una celebridad o famoso, NO se puede decir ni el nombre ni ninguna parte del mismo.','Turnos de 1 minuto por equipo.','Gana el equipo que más adivina en su minuto.','Puntaje máximo: 4pts'] },
+    { name: 'Mario Party', icon: '🎲', desc: 'Minijuegos rápidos 2v2. Cada equipo compite en una tanda de minijuegos, gana el que acumule más victorias.', format: 'Primero en ganar 5 minijuegos', pts_win: 3, pts_bonus: 1, pts_draw: 1, pts_lose: 0, bonus_label: 'Ganar por 3+ de diferencia (Por ej.: 5-2)', allow_draw: true, rules: ['Gana el primer equipo en llegar a 5 victorias de minijuego','Si se acaba el tiempo (15 min) antes, gana quien lleve más victorias','En caso de empate al acabar el tiempo, se juega un minijuego desempate','Puntaje máximo: 4pts'] },
+    { name: "Time's Up", icon: '⏰', desc: 'Juego de adivinanza por pistas. El equipo intenta adivinar la mayor cantidad de personajes/famosos en 1 minuto.', format: 'Turnos de 1 min (hasta que terminen las demás mesas o se cansen)', pts_win: 3, pts_bonus: 1, pts_draw: 1, pts_lose: 0, bonus_label: 'Si duplican la cantidad de personajes/famosos adivinados del rival', allow_draw: true, rules: ['Si es una celebridad o famoso, NO se puede decir ni el nombre ni ninguna parte del mismo.','Turnos de 1 minuto por equipo.','Gana el equipo que más adivina en su minuto.','Puntaje máximo: 4pts'] },
     { name: 'Beer Pong', icon: '🍺', desc: 'Formato clásico adaptado. Cada equipo tiene 6 vasos de su lado.', format: 'Hasta vaciar los vasos o por tiempo (depende de las demás mesas)', pts_win: 3, pts_bonus: 1, pts_draw: 1, pts_lose: 0, bonus_label: '3+ vasos en pie', allow_draw: true, rules: ['6 vasos por lado.','Cada jugador tira 1 vez por turno.','Si emboca, se retira el vaso.','Si un equipo emboca dos pelotas seguidas, puede cambiar la posición de un vaso propio o del rival.','Gana el equipo que elimine todos los vasos del rival.','Tiempo máximo: 7 minutos (o hasta que terminen las demás estaciones).','Puntaje máximo: 4pts','Puntaje mínimo (empate): 1pts'] },
-    { name: 'Guess Movie/Song', icon: '🎬', desc: 'Juego de cultura pop. Se muestra una imagen (película) o se reproduce un fragmento de audio (canción). Los equipos usan el multibuzzer del celular para responder.', format: 'Hasta que terminen las demás mesas o por tiempo (mayormente 10 minutos / 15 minutos)', pts_win: 3, pts_bonus: 1, pts_draw: 0, pts_lose: 0, bonus_label: '5 o más adivinados de diferencia', allow_draw: false, rules: ['El primero en presionar el buzzer tiene derecho a responder.','Solo puede responder el equipo que presionó primero.','Si responde mal: pierde el turno y el otro equipo puede intentarlo.','1 punto por canción o película adivinada.','Tiempo máximo para adivinar: 15 segundos.','Puntaje máximo: 4pts'] },
+    { name: 'Guess Movie/Song', icon: '🎬', desc: 'Juego de cultura pop. Se muestra una imagen (película) o se reproduce un fragmento de audio (canción). Los equipos usan el multibuzzer del celular para responder.', format: 'Hasta que terminen las demás mesas o por tiempo (mayormente 10 minutos / 15 minutos)', pts_win: 3, pts_bonus: 1, pts_draw: 1, pts_lose: 0, bonus_label: '5 o más adivinados de diferencia', allow_draw: true, rules: ['El primero en presionar el buzzer tiene derecho a responder.','Solo puede responder el equipo que presionó primero.','Si responde mal: pierde el turno y el otro equipo puede intentarlo.','1 punto por canción o película adivinada.','Tiempo máximo para adivinar: 15 segundos.','Puntaje máximo: 4pts'] },
     { name: 'El Erudito', icon: '🧠', desc: 'Versión rápida del Erudito, solo con preguntas de aproximación numérica.', format: 'Hasta 7 aciertos o por tiempo', pts_win: 3, pts_bonus: 1, pts_draw: 1, pts_lose: 0, bonus_label: '3+ respuestas de ventaja', allow_draw: true, rules: ['Se hacen preguntas de aproximación al mismo tiempo para ambos equipos.','1 minuto para pensar y anotar la respuesta.','Se respeta un ±5% de desvío.','Gana el equipo que acumule 7 respuestas correctas primero, o el que tenga más al terminar las demás estaciones.','1 minuto para pensar la respuesta','Puntaje máximo: 4pts','Puntaje mínimo (empate): 1pts'] },
-    { name: 'Jenga', icon: '🪵', desc: 'Juego clásico de equilibrio. El primero que derrumba la torre pierde.', format: 'Mejor de 3 rondas (salvo que termine muy rápido y si los participantes quieren pueden seguir hasta que las demás mesas terminen)', pts_win: 3, pts_bonus: 1, pts_draw: 0, pts_lose: 0, bonus_label: 'Ganar sin haber perdido ninguna ronda o con marcador final con diferencia de 2 rondas (Por ej.: 4 a 2)', allow_draw: false, rules: ['Puntaje máximo: 4pts'] },
+    { name: 'Jenga', icon: '🪵', desc: 'Juego clásico de equilibrio. El primero que derrumba la torre pierde.', format: 'Mejor de 3 rondas (salvo que termine muy rápido y si los participantes quieren pueden seguir hasta que las demás mesas terminen)', pts_win: 3, pts_bonus: 1, pts_draw: 1, pts_lose: 0, bonus_label: 'Ganar sin haber perdido ninguna ronda o con marcador final con diferencia de 2 rondas (Por ej.: 4 a 2)', allow_draw: true, rules: ['Puntaje máximo: 4pts'] },
   ]
 };
 
@@ -3057,7 +3078,7 @@ function renderReglas() {
           <label class="rule-edit-label">Condición del bonus</label>
           <input class="rule-edit-input" id="${prefix}-bonus_label" value="${g.bonus_label.replace(/"/g,'&quot;')}">
         </div>
-        ${phase === 'f2' ? `<label class="rule-edit-checkbox-row"><input type="checkbox" id="${prefix}-allow_draw" ${g.allow_draw?'checked':''}> Admite empate</label>` : `<input type="hidden" id="${prefix}-allow_draw">`}
+        <label class="rule-edit-checkbox-row"><input type="checkbox" id="${prefix}-allow_draw" ${g.allow_draw?'checked':''}> Admite empate</label>
         <div class="rule-edit-field">
           <label class="rule-edit-label">Lista de reglas</label>
           <div class="rule-edit-rules-list" id="${prefix}-rules-container">${existingRulesInputs}</div>
@@ -3185,6 +3206,7 @@ function renderReglas() {
       <a href="#reglas-impostor" class="rules-chip"><span class="dot-indicator impostor"></span>Impostor</a>
       <a href="#reglas-fase2" class="rules-chip"><span class="dot-indicator fase2"></span>Fase 2</a>
       <a href="#reglas-quien" class="rules-chip"><span class="dot-indicator quien"></span>¿Quién lo dijo?</a>
+      <a href="#reglas-ruleta" class="rules-chip"><span class="dot-indicator impostor"></span>Ruleta</a>
       <a href="#reglas-final" class="rules-chip"><span class="dot-indicator final"></span>Final</a>
     </div>
 
@@ -3295,6 +3317,57 @@ function renderReglas() {
         </div>
       </div>
     </details>
+
+    <!-- RULETA DE COMODINES -->
+    <div class="section-header anchor-target" id="reglas-ruleta" style="margin-top:2rem">
+      <span class="section-title"><span class="dot-indicator impostor"></span>Ruleta de comodines</span>
+    </div>
+    <div class="card">
+      <p class="rules-intro" style="margin-bottom:1rem">Esto es todo lo que puede salir al girar la ruleta en Fase 1 y Fase 2. Ninguno mueve más de ${Math.max(1, ...COMODINES.map(c => Math.abs(c.delta||1)))} punto${Math.max(1, ...COMODINES.map(c => Math.abs(c.delta||1))) === 1 ? '' : 's'} de diferencia por defecto, pero podés ajustarlo al agregar uno nuevo.</p>
+      <div style="display:flex;flex-direction:column;gap:0.5rem">
+        ${COMODINES.map(c => `
+          <div style="display:flex;align-items:center;gap:0.6rem;padding:0.6rem 0.7rem;border:1px solid var(--border);border-radius:var(--radius);background:var(--surface2)">
+            <span style="font-size:20px;flex-shrink:0">${c.emoji}</span>
+            <div style="flex:1;min-width:0">
+              <div style="font-size:13px;font-weight:800;color:${c.kind === 'bueno' ? 'var(--success)' : 'var(--danger)'}">${c.name}</div>
+              <div style="font-size:11.5px;color:var(--muted);line-height:1.4;margin-top:0.1rem">${c.desc}</div>
+              <div style="font-size:10px;color:var(--muted);margin-top:0.25rem;text-transform:uppercase;letter-spacing:0.04em">${COMODIN_WHEN_LABEL[c.when] || c.when}</div>
+            </div>
+            ${editing ? `<button onclick="deleteComodinCatalog('${c.key}')" title="Eliminar" style="padding:0.35rem 0.5rem;border-radius:8px;border:1px solid rgba(255,95,95,0.25);background:transparent;color:var(--danger);cursor:pointer;font-size:12px;flex-shrink:0">✕</button>` : ''}
+          </div>`).join('')}
+      </div>
+      ${editing ? `
+        <div style="border-top:0.5px solid var(--border);margin-top:1rem;padding-top:1rem">
+          <div class="rule-label" style="margin-top:0">Agregar un comodín nuevo</div>
+          <div style="display:flex;flex-direction:column;gap:0.55rem">
+            <div style="display:flex;gap:0.5rem">
+              <input id="nc-emoji" type="text" placeholder="🎲" maxlength="4" style="width:56px;padding:0.55rem 0.5rem;text-align:center;border-radius:var(--radius);border:1px solid var(--border2);background:var(--surface2);color:var(--text);font-size:16px">
+              <input id="nc-name" type="text" placeholder="Nombre del comodín..." style="flex:1;padding:0.55rem 0.75rem;border-radius:var(--radius);border:1px solid var(--border2);background:var(--surface2);color:var(--text);font-size:13px">
+            </div>
+            <input id="nc-desc" type="text" placeholder="Descripción que se muestra al salir..." style="padding:0.55rem 0.75rem;border-radius:var(--radius);border:1px solid var(--border2);background:var(--surface2);color:var(--text);font-size:13px">
+            <div style="display:flex;gap:0.5rem;flex-wrap:wrap">
+              <select id="nc-kind" style="flex:1;min-width:110px;padding:0.55rem 0.5rem;border-radius:var(--radius);border:1px solid var(--border2);background:var(--surface2);color:var(--text);font-size:13px">
+                <option value="bueno">✅ Comodín bueno</option>
+                <option value="malo">❌ Comodín malo</option>
+              </select>
+              <select id="nc-when" style="flex:1;min-width:150px;padding:0.55rem 0.5rem;border-radius:var(--radius);border:1px solid var(--border2);background:var(--surface2);color:var(--text);font-size:13px">
+                <option value="now">Al toque (ya mismo)</option>
+                <option value="target">Le roba puntos a otro</option>
+                <option value="donate">Dona puntos al último</option>
+                <option value="win">En su próxima victoria</option>
+                <option value="bonus">En su próximo bonus</option>
+                <option value="lose">Si pierde la próxima</option>
+              </select>
+              <input id="nc-delta" type="number" step="1" placeholder="±pts" value="1" style="width:80px;padding:0.55rem 0.5rem;border-radius:var(--radius);border:1px solid var(--border2);background:var(--surface2);color:var(--text);font-size:13px">
+            </div>
+            <div style="font-size:11px;color:var(--muted)">"Al toque" aplica los puntos ya mismo. "Roba"/"Dona" mueven puntos entre jugadores en el momento. Las otras tres quedan pendientes hasta que se cargue el próximo resultado de esa persona o equipo.</div>
+            <button class="btn" style="padding:0.6rem 1rem" onclick="addComodinCatalog()">+ Agregar comodín</button>
+          </div>
+        </div>
+        <div style="margin-top:0.75rem">
+          <button class="btn btn-danger" style="width:100%;padding:0.55rem;font-size:12.5px" onclick="resetComodinesConfig()">↩️ Restaurar comodines originales</button>
+        </div>` : ''}
+    </div>
 
     <!-- FINAL -->
     <div class="section-header anchor-target" id="reglas-final" style="margin-top:2rem">
@@ -4000,8 +4073,8 @@ function canEditStations(phase) {
 function _newDefaultGame(name) {
   return {
     name, icon: '🎯', desc: '', format: '',
-    pts_win: 3, pts_bonus: 1, pts_draw: 0, pts_lose: 0,
-    bonus_label: '', allow_draw: false, rules: []
+    pts_win: 3, pts_bonus: 1, pts_draw: 1, pts_lose: 0,
+    bonus_label: '', allow_draw: true, rules: []
   };
 }
 
@@ -4088,7 +4161,7 @@ const BONUS_F2 = {
   'El Erudito': '3+ respuestas de ventaja',
   'Jenga': 'Ganar sin haber perdido ninguna ronda o con marcador final con diferencia de 2 rondas (Por ej.: 4 a 2)'
 };
-const EMPATE_ALLOWED_F2 = ['Beer Pong','El Erudito'];
+const EMPATE_ALLOWED_F2 = ['Mario Party',"Time's Up",'Beer Pong','Guess Movie/Song','El Erudito','Jenga'];
 
 // Fixture fase 1: [ronda, jugadorA(idx), jugadorB(idx), juegoIdx]
 // Se genera dinámicamente (en vez de estar fijo a mano) para garantizar que
@@ -4155,38 +4228,121 @@ let state = {
   lastTab: null, // last tab viewed, restored on reload
   bonusManual: {}, // key: playerName => {pts: number, label: string}
   vsJC: {}, // key: playerName => 'win'|'lose'|null  (resultado del jugador vs Juan Cruz)
-  comodines: [], // [{id, player, key, status:'pending'|'done', delta, note, ts}]
+  comodines: [], // [{id, player, key, status:'pending'|'done', delta, note, ts}] — Fase 1 (jugadores)
+  comodinesF2: [], // idem, pero para Fase 2 (equipos)
   bets: {},      // key "r-a-b" => { nombreApostador: idxGanadorApostado }
   adjust: { f1: [], f2: [] }, // ajustes manuales: [{id, name, pts, label, ts}]
   betWindow: { open: false, round: 0 }, // ventana de apuestas: qué ronda está abierta
   cellPts: { f1: {}, f2: {} }, // override manual de una celda: "nombre||ronda" => pts
 };
 
-// ── COMODINES: catálogo ──────────────────────────────────────────────
+// ── COMODINES: catálogo (editable desde "Reglas") ────────────────────
 // Diseñados para mover ±1 punto como máximo: condimentan sin romper el torneo.
-const COMODINES = [
+// "when" define cómo se resuelve cada comodín:
+//   now    → aplica cm.delta al toque.
+//   target → quien gira le saca cm.delta puntos a otro jugador/equipo elegido.
+//   donate → quien gira le regala cm.delta puntos al último de la tabla.
+//   win    → se resuelve solo cuando el que lo tiene gana su próxima partida (cm.delta).
+//   bonus  → se resuelve solo cuando el que lo tiene gana Y logra el bonus (cm.delta).
+//   lose   → se resuelve solo cuando el que lo tiene pierde su próxima partida (cm.delta).
+const COMODINES_DEFAULT = [
   // BUENOS
   { key:'victoria_plus', kind:'bueno', emoji:'🔥', name:'Golpe de Suerte',
-    desc:'Tu próxima victoria vale 4 en vez de 3.', when:'pending' },
+    desc:'Tu próxima victoria vale 4 en vez de 3.', when:'win', delta:1 },
   { key:'bonus_doble',   kind:'bueno', emoji:'⭐', name:'Doble Bonus',
-    desc:'Tu próximo bonus vale 2 en vez de 1.', when:'pending' },
+    desc:'Tu próximo bonus vale 2 en vez de 1.', when:'bonus', delta:1 },
   { key:'escudo',        kind:'bueno', emoji:'🛡️', name:'Escudo',
-    desc:'Tu próxima derrota igual te da 1 punto.', when:'pending' },
+    desc:'Tu próxima derrota igual te da 1 punto.', when:'lose', delta:1 },
   { key:'robo',          kind:'bueno', emoji:'🥷', name:'Robo',
-    desc:'Le sacás 1 punto al jugador que vos elijas.', when:'target' },
+    desc:'Le sacás 1 punto al jugador que vos elijas.', when:'target', delta:1 },
   { key:'propina',       kind:'bueno', emoji:'🎁', name:'Propina',
     desc:'+1 punto, ya mismo, sin hacer nada.', when:'now', delta:1 },
   // MALOS
   { key:'peaje',         kind:'malo',  emoji:'💸', name:'Peaje',
     desc:'−1 punto, ya mismo. Mala suerte.', when:'now', delta:-1 },
   { key:'lastre',        kind:'malo',  emoji:'🪨', name:'Lastre',
-    desc:'Tu próxima victoria vale 2 en vez de 3.', when:'pending' },
+    desc:'Tu próxima victoria vale 2 en vez de 3.', when:'win', delta:-1 },
   { key:'sin_bonus',     kind:'malo',  emoji:'🚫', name:'Sin Bonus',
-    desc:'Tu próximo bonus no cuenta.', when:'pending' },
+    desc:'Tu próximo bonus no cuenta.', when:'bonus', delta:-1 },
   { key:'donacion',      kind:'malo',  emoji:'🤝', name:'Donación Forzada',
-    desc:'Le regalás 1 punto al último de la tabla.', when:'donate' },
+    desc:'Le regalás 1 punto al último de la tabla.', when:'donate', delta:1 },
 ];
+let COMODINES = JSON.parse(JSON.stringify(COMODINES_DEFAULT));
 function comodinByKey(k) { return COMODINES.find(c => c.key === k) || null; }
+
+const COMODIN_WHEN_LABEL = {
+  now: 'Al toque', target: 'Le roba a otro', donate: 'Dona al último',
+  win: 'En su próxima victoria', bonus: 'En su próximo bonus', lose: 'Si pierde la próxima'
+};
+
+function loadComodinesConfig() {
+  try {
+    const s = localStorage.getItem('ndj_comodines');
+    if (s) {
+      const parsed = JSON.parse(s);
+      if (Array.isArray(parsed) && parsed.length) COMODINES = parsed;
+    }
+  } catch(e) {}
+  function tryFbLoad() {
+    if (window._fbReady && window._fbRead) {
+      window._fbRead('comodines').then(data => {
+        if (data) {
+          try {
+            const parsed = JSON.parse(data);
+            if (Array.isArray(parsed) && parsed.length) {
+              COMODINES = parsed;
+              localStorage.setItem('ndj_comodines', data);
+              renderReglas();
+            }
+          } catch(e) { console.warn('Error al parsear comodines de Firebase:', e); }
+        }
+      });
+    } else {
+      setTimeout(tryFbLoad, 500);
+    }
+  }
+  setTimeout(tryFbLoad, 300);
+}
+function saveComodinesConfig() {
+  const json = JSON.stringify(COMODINES);
+  localStorage.setItem('ndj_comodines', json);
+  function tryFbSave() {
+    if (window._fbReady && window._fbWrite) window._fbWrite('comodines', json);
+    else setTimeout(tryFbSave, 500);
+  }
+  tryFbSave();
+}
+function deleteComodinCatalog(key) {
+  if (!confirm('¿Eliminar este comodín de la ruleta? Ya no podrá volver a salir.')) return;
+  COMODINES = COMODINES.filter(c => c.key !== key);
+  saveComodinesConfig();
+  renderReglas();
+  showToast('✓', 'Comodín eliminado', false);
+}
+function resetComodinesConfig() {
+  if (!confirm('¿Restaurar el listado original de comodines? Se perderán los que hayas agregado o borrado.')) return;
+  COMODINES = JSON.parse(JSON.stringify(COMODINES_DEFAULT));
+  localStorage.removeItem('ndj_comodines');
+  if (window._fbReady && window._fbWrite) window._fbWrite('comodines', JSON.stringify(COMODINES_DEFAULT));
+  renderReglas();
+  showToast('✓', 'Comodines restaurados', false);
+}
+function addComodinCatalog() {
+  const getVal = id => { const el = document.getElementById(id); return el ? el.value.trim() : ''; };
+  const emoji = getVal('nc-emoji') || '🎲';
+  const name  = getVal('nc-name');
+  const desc  = getVal('nc-desc');
+  const kind  = getVal('nc-kind') || 'bueno';
+  const when  = getVal('nc-when') || 'now';
+  let delta = parseFloat(getVal('nc-delta'));
+  if (isNaN(delta)) delta = kind === 'bueno' ? 1 : -1;
+  if (!name || !desc) { showToast('⚠️', 'Completá nombre y descripción', false); return; }
+  const key = 'custom_' + Date.now() + Math.floor(Math.random() * 999);
+  COMODINES.push({ key, kind, emoji, name, desc, when, delta });
+  saveComodinesConfig();
+  renderReglas();
+  showToast('✓', name + ' agregado a la ruleta', false);
+}
 
 // Load from localStorage
 function loadState() {
@@ -4318,6 +4474,10 @@ function saveState() {
         // Re-renderizar la Fase 2 si está activa
         if(typeof renderFase2 === 'function' && document.getElementById('page-fase2') && document.getElementById('page-fase2').classList.contains('active')){
           try{ renderFase2(); }catch(e){}
+        }
+        // Re-renderizar la Final si está activa (para reflejar la ronda ¿Quién lo dijo?)
+        if(typeof renderFinal === 'function' && document.getElementById('page-final') && document.getElementById('page-final').classList.contains('active')){
+          try{ renderFinal(); }catch(e){}
         }
       });
       console.log('QLD Firebase listo ✓');
@@ -4578,6 +4738,14 @@ function getTeamPoints() {
   const qldTeamPoints = window._qldTeamPoints || {};
   pts.forEach((p, idx) => { p.qld = qldTeamPoints[idx] || 0; });
 
+  // Comodines de la ruleta (solo los ya resueltos suman/restan)
+  const comosF2 = state.comodinesF2 || [];
+  TEAMS.forEach((name, idx) => {
+    let d = 0;
+    comosF2.forEach(c => { if (c.status === 'done' && c.player === name) d += (c.delta || 0); });
+    if (d) pts[idx].comodin = d;
+  });
+
   // Overrides de celda: pisan el valor calculado de esa ronda
   const ovF2 = (state.cellPts && state.cellPts.f2) || {};
   TEAMS.forEach((name, idx) => {
@@ -4596,7 +4764,7 @@ function getTeamPoints() {
   });
 
   pts.forEach(p => {
-    p.total = p.rounds.reduce((s,v) => s + (typeof v === 'number' ? v : 0), 0) + (p.qld || 0) + (p.adjust || 0);
+    p.total = p.rounds.reduce((s,v) => s + (typeof v === 'number' ? v : 0), 0) + (p.qld || 0) + (p.comodin || 0) + (p.adjust || 0);
   });
   return pts;
 }
@@ -4711,7 +4879,7 @@ function renderFase1() {
   renderF1RosterAdmin();
   renderBonusManualF1();
   renderBetControl();
-  renderComodinesPanel();
+  renderComodinesPanel('f1');
   renderAdjustPanel('f1');
   renderNextMatch('f1');
   renderMyNext('f1');
@@ -5172,6 +5340,7 @@ function renderMyNext(phase) {
 
 function renderFase2() {
   renderF2RosterAdmin();
+  renderComodinesPanel('f2');
   renderAdjustPanel('f2');
   renderNextMatch('f2');
   renderMyNext('f2');
@@ -5308,6 +5477,15 @@ function renderFixtureF2() {
 // ============================================================
 // MODAL
 // ============================================================
+// Busca la configuración de un juego por nombre dentro de su fase.
+function gameConfigByName(phase, gameName) {
+  try {
+    const list = (RULES_CONFIG && RULES_CONFIG[phase]) ? RULES_CONFIG[phase] : null;
+    if (!list) return null;
+    return list.find(g => g.name === gameName) || null;
+  } catch (e) { return null; }
+}
+
 let modalCtx = null;
 
 function openModal(phase, key, game, nameA, nameB, idxA, idxB) {
@@ -5321,9 +5499,17 @@ function openModal(phase, key, game, nameA, nameB, idxA, idxB) {
 
   // Players
   const bonusLabel = phase === 'f1' ? BONUS_F1[game] : BONUS_F2[game];
-  const empateAllowed = phase === 'f2' && EMPATE_ALLOWED_F2.includes(game);
+  // El empate se ofrece en las dos fases. Cada juego define cuánto vale (pts_draw);
+  // solo se oculta si ese juego está configurado explícitamente para no admitirlo.
+  const gCfgModal = gameConfigByName(phase, game);
+  const empateAllowed = gCfgModal ? (gCfgModal.allow_draw !== false) : true;
+  const drawPts = gCfgModal && gCfgModal.pts_draw != null ? gCfgModal.pts_draw : 1;
 
-  document.getElementById('empate-btn').style.display = empateAllowed ? '' : 'none';
+  const empBtn = document.getElementById('empate-btn');
+  empBtn.style.display = empateAllowed ? '' : 'none';
+  empBtn.textContent = drawPts === 1
+    ? 'Empate (1 pt cada uno)'
+    : `Empate (${drawPts} pts cada uno)`;
 
   const selA = existing && existing.winner === idxA;
   const selB = existing && existing.winner === idxB;
@@ -5415,9 +5601,7 @@ function saveResult() {
     next: { winner: modalCtx.winner, bonus: modalCtx.bonus },
   };
   store[modalCtx.key] = { winner: modalCtx.winner, bonus: modalCtx.bonus };
-  const comoMsgs = (modalCtx.phase === 'f1')
-    ? resolvePendingComodines(modalCtx.key, modalCtx.winner, modalCtx.bonus)
-    : [];
+  const comoMsgs = resolvePendingComodines(modalCtx.phase, modalCtx.key, modalCtx.winner, modalCtx.bonus);
   saveState();
   closeModal();
   playSaveSound();
@@ -5447,33 +5631,37 @@ function saveResult() {
   updateNavProgress();
 }
 
-// Cuando se carga un resultado de Fase 1, los comodines pendientes de los
-// jugadores involucrados se resuelven solos y quedan registrados con su delta.
-function resolvePendingComodines(key, winner, bonus) {
+// Cuando se carga un resultado de Fase 1 o Fase 2, los comodines pendientes
+// de los jugadores/equipos involucrados se resuelven solos y quedan
+// registrados con su delta.
+function resolvePendingComodines(phase, key, winner, bonus) {
+  const ROSTER = phase === 'f1' ? PLAYERS : TEAMS;
+  const comosArr = phase === 'f1' ? 'comodines' : 'comodinesF2';
   const parts = String(key).split('-').map(Number);
   const a = parts[1], b = parts[2];
   if (isNaN(a) || isNaN(b)) return [];
   const msgs = [];
   const involved = [a, b];
-  (state.comodines || []).forEach(c => {
+  (state[comosArr] || []).forEach(c => {
     if (c.status !== 'pending') return;
-    const pIdx = PLAYERS.indexOf(c.player);
+    const pIdx = ROSTER.indexOf(c.player);
     if (pIdx === -1 || involved.indexOf(pIdx) === -1) return;
     const won  = (winner !== 'empate' && winner === pIdx);
     const lost = (winner !== 'empate' && winner !== pIdx);
     const short = String(c.player).split(' ')[0];
+    const cm = comodinByKey(c.key);
     let delta = null, note = '';
-    if (c.key === 'victoria_plus' && won) { delta = 1;  note = 'victoria vale 4'; }
-    else if (c.key === 'lastre'    && won) { delta = -1; note = 'victoria vale 2'; }
-    else if (c.key === 'bonus_doble' && won && bonus) { delta = 1;  note = 'bonus doble'; }
-    else if (c.key === 'sin_bonus'   && won && bonus) { delta = -1; note = 'bonus anulado'; }
-    else if (c.key === 'escudo'    && lost) { delta = 1; note = 'escudo: +1 pese a perder'; }
+    if (cm) {
+      const d = cm.delta || 0;
+      if (cm.when === 'win' && won) { delta = d; note = (d >= 0 ? '+' : '') + d + ' por su victoria'; }
+      else if (cm.when === 'bonus' && won && bonus) { delta = d; note = (d >= 0 ? '+' : '') + d + ' por su bonus'; }
+      else if (cm.when === 'lose' && lost) { delta = d; note = (d >= 0 ? '+' : '') + d + ' pese a perder'; }
+    }
     if (delta !== null) {
       c.status = 'done';
       c.delta = delta;
       c.note = note;
       c.resolvedKey = key;
-      const cm = comodinByKey(c.key);
       msgs.push((cm ? cm.emoji + ' ' : '') + short + ': ' + note);
     }
   });
@@ -5752,11 +5940,14 @@ function deleteAdjust(phase, id) {
   if (phase === 'f1') renderFase1(); else renderFase2();
 }
 
-// ── COMODINES: panel en Fase 1 ───────────────────────────────────────
-function renderComodinesPanel() {
-  const el = document.getElementById('comodines-f1');
+// ── COMODINES: panel en Fase 1 y Fase 2 ──────────────────────────────
+function renderComodinesPanel(phase) {
+  phase = phase || 'f1';
+  const el = document.getElementById(phase === 'f1' ? 'comodines-f1' : 'comodines-f2');
   if (!el) return;
-  const list = state.comodines || [];
+  const comosArr = phase === 'f1' ? 'comodines' : 'comodinesF2';
+  const list = state[comosArr] || [];
+  const entityLabel = phase === 'f1' ? 'jugador' : 'equipo';
   const rows = list.slice().reverse().map(c => {
     const cm = comodinByKey(c.key) || { emoji:'🎲', name:c.key, kind:'bueno' };
     const col = cm.kind === 'bueno' ? 'var(--success)' : 'var(--danger)';
@@ -5770,7 +5961,7 @@ function renderComodinesPanel() {
         <div style="font-size:12px;font-weight:700;color:${col}">${cm.name} <span style="color:var(--text);font-weight:600">— ${short}</span></div>
         <div>${st}</div>
       </div>
-      <button onclick="deleteComodin('${c.id}')" title="Borrar" style="padding:0.3rem 0.45rem;border-radius:8px;border:1px solid rgba(255,95,95,0.25);background:transparent;color:var(--danger);cursor:pointer;font-size:11px">✕</button>
+      <button onclick="deleteComodin('${c.id}','${phase}')" title="Borrar" style="padding:0.3rem 0.45rem;border-radius:8px;border:1px solid rgba(255,95,95,0.25);background:transparent;color:var(--danger);cursor:pointer;font-size:11px">✕</button>
     </div>`;
   }).join('');
 
@@ -5780,22 +5971,62 @@ function renderComodinesPanel() {
     </div>
     <div class="card" style="margin-bottom:1.25rem">
       <p style="font-size:12px;color:var(--muted);line-height:1.5;margin-bottom:0.75rem">
-        Girala cuando quieras condimentar la noche: elige un jugador al azar y le toca un comodín (bueno o malo). Ninguno mueve más de 1 punto.
+        Girala cuando quieras condimentar la noche: elige un ${entityLabel} al azar y le toca un comodín (bueno o malo). Ninguno mueve más de 1 punto.
       </p>
-      <button onclick="openRuleta()" style="width:100%;padding:0.85rem;border-radius:var(--radius);border:1.5px solid var(--gold);background:var(--gold-dim);color:var(--gold);font-family:inherit;font-size:14px;font-weight:800;cursor:pointer;letter-spacing:0.02em">🎰 Girar la ruleta</button>
+      <button onclick="openRuleta('${phase}')" style="width:100%;padding:0.85rem;border-radius:var(--radius);border:1.5px solid var(--gold);background:var(--gold-dim);color:var(--gold);font-family:inherit;font-size:14px;font-weight:800;cursor:pointer;letter-spacing:0.02em">🎰 Girar la ruleta</button>
       ${list.length ? `<div style="margin-top:0.9rem">${rows}</div>` : ''}
     </div>`;
 }
-function deleteComodin(id) {
+function deleteComodin(id, phase) {
+  phase = phase || 'f1';
   if (!confirm('¿Borrar este comodín? Si ya sumó/restó puntos, se revierte.')) return;
-  state.comodines = (state.comodines || []).filter(c => c.id !== id);
-  saveState(); renderFase1();
+  const comosArr = phase === 'f1' ? 'comodines' : 'comodinesF2';
+  state[comosArr] = (state[comosArr] || []).filter(c => c.id !== id);
+  saveState();
+  if (phase === 'f1') renderFase1(); else renderFase2();
 }
 
 // ── RULETA ───────────────────────────────────────────────────────────
 let _ruletaBusy = false;
-function openRuleta() {
-  if (!PLAYERS.length) return;
+let _ruletaPhase = 'f1';
+let _wheelRot = 0;
+const RULETA_SPIN_MS = 3700;
+
+// Construye el SVG de la ruleta con un gajo por nombre. Todo en coordenadas
+// del viewBox (0..200) para que escale perfecto sin importar el tamaño real.
+function buildWheelSVG(names) {
+  const n = names.length;
+  const cx = 100, cy = 100, r = 96;
+  const seg = 360 / n;
+  const palette = ['#1b1b26', '#2b141c'];
+  const fontSize = n > 10 ? 8 : n > 7 ? 9 : n > 5 ? 10.5 : 12;
+  const textR = r * 0.62;
+  const pt = (radius, angleDeg) => {
+    const rad = angleDeg * Math.PI / 180;
+    return { x: cx + radius * Math.sin(rad), y: cy - radius * Math.cos(rad) };
+  };
+  const esc = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  let paths = '', texts = '';
+  for (let i = 0; i < n; i++) {
+    const start = i * seg, end = (i + 1) * seg, mid = start + seg / 2;
+    const p1 = pt(r, start), p2 = pt(r, end);
+    const largeArc = (end - start) > 180 ? 1 : 0;
+    const fill = palette[i % palette.length];
+    paths += `<path d="M ${cx} ${cy} L ${p1.x.toFixed(2)} ${p1.y.toFixed(2)} A ${r} ${r} 0 ${largeArc} 1 ${p2.x.toFixed(2)} ${p2.y.toFixed(2)} Z" fill="${fill}" stroke="rgba(245,200,66,0.3)" stroke-width="0.8"/>`;
+    const tp = pt(textR, mid);
+    const short = esc(String(names[i]).split(' ')[0]);
+    texts += `<text x="${tp.x.toFixed(2)}" y="${tp.y.toFixed(2)}" transform="rotate(${mid.toFixed(2)} ${tp.x.toFixed(2)} ${tp.y.toFixed(2)})" text-anchor="middle" dominant-baseline="middle" style="font-size:${fontSize}px;font-weight:800;fill:#f0efe8;letter-spacing:0.2px">${short}</text>`;
+  }
+  return `<svg id="ruleta-wheel-svg" class="ruleta-wheel-svg" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+    <circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="rgba(245,200,66,0.45)" stroke-width="1.5"/>
+    ${paths}${texts}
+  </svg>`;
+}
+
+function openRuleta(phase) {
+  _ruletaPhase = phase || 'f1';
+  const ROSTER = _ruletaPhase === 'f1' ? PLAYERS : TEAMS;
+  if (!ROSTER.length) return;
   _resumeAudio();
   let ov = document.getElementById('ruleta-overlay');
   if (!ov) {
@@ -5804,13 +6035,19 @@ function openRuleta() {
     ov.className = 'ruleta-overlay';
     document.body.appendChild(ov);
   }
+  _wheelRot = 0;
   ov.innerHTML = `
     <div class="ruleta-box">
       <button class="ruleta-close" onclick="closeRuleta()">✕</button>
       <div class="ruleta-eyebrow">Ruleta de comodines</div>
-      <div class="ruleta-slot" id="ruleta-slot">
-        <div class="ruleta-name" id="ruleta-name">?</div>
+      <div class="ruleta-wheel-area">
+        <div class="ruleta-pointer"></div>
+        <div class="ruleta-wheel-outer">
+          ${buildWheelSVG(ROSTER)}
+          <div class="ruleta-hub">🎰</div>
+        </div>
       </div>
+      <div class="ruleta-result-name" id="ruleta-result-name">&nbsp;</div>
       <div class="ruleta-card" id="ruleta-card"></div>
       <button class="ruleta-go" id="ruleta-go" onclick="spinRuleta()">🎰 Girar</button>
     </div>`;
@@ -5825,37 +6062,54 @@ function closeRuleta() {
 function spinRuleta() {
   if (_ruletaBusy) return;
   _ruletaBusy = true;
-  const goBtn = document.getElementById('ruleta-go');
-  const nameEl = document.getElementById('ruleta-name');
-  const slotEl = document.getElementById('ruleta-slot');
-  const cardEl = document.getElementById('ruleta-card');
-  if (!nameEl) return;
+  const ROSTER = _ruletaPhase === 'f1' ? PLAYERS : TEAMS;
+  const goBtn   = document.getElementById('ruleta-go');
+  const svg     = document.getElementById('ruleta-wheel-svg');
+  const nameEl  = document.getElementById('ruleta-result-name');
+  const cardEl  = document.getElementById('ruleta-card');
+  if (!svg) { _ruletaBusy = false; return; }
   goBtn.disabled = true; goBtn.textContent = 'Girando…';
   cardEl.innerHTML = ''; cardEl.className = 'ruleta-card';
-  slotEl.classList.add('spinning');
+  nameEl.classList.remove('show');
 
-  const chosen = PLAYERS[Math.floor(Math.random() * PLAYERS.length)];
+  const n = ROSTER.length;
+  const idx = Math.floor(Math.random() * n);
+  const chosen = ROSTER[idx];
   const como   = COMODINES[Math.floor(Math.random() * COMODINES.length)];
+  const seg = 360 / n;
+  const mid = idx * seg + seg / 2;
 
-  // Barajado visual de nombres, desacelerando
-  let t = 0, delay = 55;
-  const tick = () => {
-    nameEl.textContent = PLAYERS[Math.floor(Math.random() * PLAYERS.length)].split(' ')[0];
-    try { ruletaTick(); } catch(e) {}
-    t += delay;
-    delay *= 1.13;
-    if (t < 2600) setTimeout(tick, delay);
-    else {
-      nameEl.textContent = chosen.split(' ')[0];
-      slotEl.classList.remove('spinning');
-      slotEl.classList.add('landed');
-      try { ruletaLand(); } catch(e) {}
-      setTimeout(() => revealComodin(chosen, como), 600);
-    }
+  // La aguja está fija arriba (ángulo 0). Rotamos la ruleta para que el
+  // gajo elegido termine justo debajo de la aguja, sumando varias vueltas
+  // completas para que el giro se sienta real.
+  const targetMod  = ((360 - mid) % 360 + 360) % 360;
+  const currentMod = ((_wheelRot % 360) + 360) % 360;
+  let delta = targetMod - currentMod;
+  if (delta <= 0) delta += 360;
+  const extraSpins = 4 + Math.floor(Math.random() * 2);
+  _wheelRot += delta + 360 * extraSpins;
+  svg.style.transform = `rotate(${_wheelRot}deg)`;
+
+  // Tics de sonido mientras gira (se van espaciando como una ruleta real)
+  let elapsed = 0, tickDelay = 60;
+  const doTick = () => {
+    try { ruletaTick(); } catch (e) {}
+    elapsed += tickDelay;
+    tickDelay *= 1.09;
+    if (elapsed < RULETA_SPIN_MS - 200) setTimeout(doTick, tickDelay);
   };
-  tick();
+  doTick();
+
+  setTimeout(() => {
+    try { ruletaLand(); } catch (e) {}
+    nameEl.textContent = chosen.split(' ')[0];
+    nameEl.classList.add('show');
+    setTimeout(() => revealComodin(chosen, como), 550);
+  }, RULETA_SPIN_MS);
 }
 function revealComodin(player, cm) {
+  const phase = _ruletaPhase;
+  const ROSTER = phase === 'f1' ? PLAYERS : TEAMS;
   const cardEl = document.getElementById('ruleta-card');
   const goBtn  = document.getElementById('ruleta-go');
   if (!cardEl) return;
@@ -5870,17 +6124,18 @@ function revealComodin(player, cm) {
 
   const actions = document.getElementById('rc-actions');
   const finish = (extra) => { applyComodin(player, cm, extra); };
+  const pickLabel = phase === 'f1' ? '¿A quién le saca el punto?' : '¿A qué equipo le saca el punto?';
 
   if (cm.when === 'target') {
     // Robo: elegir a quién sacarle el punto
-    actions.innerHTML = `<div class="rc-pick-label">¿A quién le saca el punto?</div>
-      <div class="rc-pick">${PLAYERS.filter(p => p !== player).map(p =>
+    actions.innerHTML = `<div class="rc-pick-label">${pickLabel}</div>
+      <div class="rc-pick">${ROSTER.filter(p => p !== player).map(p =>
         `<button onclick="_ruletaTarget('${p.replace(/'/g,"\\'")}')">${p.split(' ')[0]}</button>`).join('')}</div>`;
     window._ruletaTarget = (victim) => finish({ victim });
   } else if (cm.when === 'donate') {
     // Donación: al último de la tabla (automático)
-    const pts = getPlayerPoints();
-    const sorted = PLAYERS.map((n, i) => ({ n, t: pts[i].total })).filter(x => x.n !== player).sort((a,b) => a.t - b.t);
+    const pts = phase === 'f1' ? getPlayerPoints() : getTeamPoints();
+    const sorted = ROSTER.map((n, i) => ({ n, t: pts[i].total })).filter(x => x.n !== player).sort((a,b) => a.t - b.t);
     const lucky = sorted.length ? sorted[0].n : null;
     actions.innerHTML = `<div class="rc-pick-label">El punto va para <b style="color:var(--success)">${lucky ? lucky.split(' ')[0] : '—'}</b> (último de la tabla)</div>
       <button class="ruleta-confirm" onclick="_ruletaConfirm()">Aplicar</button>`;
@@ -5892,26 +6147,28 @@ function revealComodin(player, cm) {
   goBtn.style.display = 'none';
 }
 function applyComodin(player, cm, extra) {
+  const phase = _ruletaPhase;
+  const comosArr = phase === 'f1' ? 'comodines' : 'comodinesF2';
   const id = 'c' + Date.now() + Math.floor(Math.random() * 999);
   const entry = { id, player, key: cm.key, status: 'pending', delta: 0, note: '', ts: Date.now() };
   if (cm.when === 'now') {
     entry.status = 'done'; entry.delta = cm.delta; entry.note = cm.name;
   } else if (cm.when === 'target' && extra.victim) {
-    entry.status = 'done'; entry.delta = 0; entry.note = 'le robó a ' + extra.victim.split(' ')[0];
-    state.comodines = state.comodines || [];
-    state.comodines.push({ id: id + 'v', player: extra.victim, key: 'robo_victima', status: 'done', delta: -1, note: 'robado por ' + player.split(' ')[0], ts: Date.now() });
-    // el ladrón gana el punto
-    entry.delta = 1;
+    const d = cm.delta || 1;
+    entry.status = 'done'; entry.delta = d; entry.note = 'le robó a ' + extra.victim.split(' ')[0];
+    state[comosArr] = state[comosArr] || [];
+    state[comosArr].push({ id: id + 'v', player: extra.victim, key: cm.key, status: 'done', delta: -d, note: 'robado por ' + player.split(' ')[0], ts: Date.now() });
   } else if (cm.when === 'donate' && extra.lucky) {
-    entry.status = 'done'; entry.delta = -1; entry.note = 'donó a ' + extra.lucky.split(' ')[0];
-    state.comodines = state.comodines || [];
-    state.comodines.push({ id: id + 'd', player: extra.lucky, key: 'donacion_recibe', status: 'done', delta: 1, note: 'regalo de ' + player.split(' ')[0], ts: Date.now() });
+    const d = cm.delta || 1;
+    entry.status = 'done'; entry.delta = -d; entry.note = 'donó a ' + extra.lucky.split(' ')[0];
+    state[comosArr] = state[comosArr] || [];
+    state[comosArr].push({ id: id + 'd', player: extra.lucky, key: cm.key, status: 'done', delta: d, note: 'regalo de ' + player.split(' ')[0], ts: Date.now() });
   }
-  state.comodines = state.comodines || [];
-  state.comodines.push(entry);
+  state[comosArr] = state[comosArr] || [];
+  state[comosArr].push(entry);
   saveState();
   closeRuleta();
-  renderFase1();
+  if (phase === 'f1') renderFase1(); else renderFase2();
   showToast(cm.emoji, player.split(' ')[0] + ' — ' + cm.name, false);
 }
 
@@ -5922,6 +6179,23 @@ let _wall = [];
 const WALL_MAX = 40;
 function loadWall() {
   try { _wall = JSON.parse(localStorage.getItem('ndj_wall') || '[]') || []; } catch(e) { _wall = []; }
+}
+// Firestore rechaza documentos de más de ~1MB. El muro guarda fotos como
+// data-URL (pesadas), así que si se dejara crecer libre, en algún momento
+// de la noche _fbWrite('wall', ...) empieza a fallar en silencio y el TV
+// deja de recibir fotos nuevas — aunque local y la ventana TV (misma PC)
+// sigan viéndose bien. Por eso lo que viaja a Firebase/otras ventanas se
+// recorta a un presupuesto de bytes seguro, quedándose con las más
+// recientes (lo que tiene sentido para un muro que va rotando igual).
+const WALL_FB_BUDGET = 700000; // ~700KB, con margen bajo el límite de 1MB
+function wallPayloadWithinBudget(arr) {
+  let list = arr.slice();
+  let json = JSON.stringify(list);
+  while (json.length > WALL_FB_BUDGET && list.length > 1) {
+    list = list.slice(1); // descartar la más vieja
+    json = JSON.stringify(list);
+  }
+  return json;
 }
 function saveWall() {
   const json = JSON.stringify(_wall);
@@ -5935,7 +6209,9 @@ function saveWall() {
     try { window._tvWin.postMessage({ type: 'ndj_wall', data: window._ndjWall }, '*'); } catch(e) {}
   }
   if (window._bc) window._bc.postMessage({ key: 'ndj_wall', data: window._ndjWall });
-  if (window._fbReady && window._fbWrite) window._fbWrite('wall', window._ndjWall);
+  if (window._fbReady && window._fbWrite) {
+    window._fbWrite('wall', wallPayloadWithinBudget(_wall));
+  }
 }
 function addWallPhoto(dataUrl, by) {
   _wall.push({ id: 'w' + Date.now() + Math.floor(Math.random()*999), src: dataUrl, by: by || '', ts: Date.now() });
@@ -6853,7 +7129,9 @@ function renderImpSetup() {
             : `<div style="font-size:12px;color:var(--muted)">${wordCount} palabras disponibles</div>`
           }
         </div>
-        <div style="display:flex;align-items:center;gap:0.75rem">
+        <div style="display:flex;align-items:center;gap:0.75rem;flex-wrap:wrap;justify-content:flex-end">
+          <button onclick="exportImpWords()" title="Descargar un backup de las palabras usadas y propias" style="padding:0.4rem 0.8rem;border-radius:var(--radius);border:1px solid var(--border2);background:var(--surface);color:var(--muted);cursor:pointer;font-size:12px;font-weight:600;transition:border-color 0.15s,color 0.15s" onmouseover="this.style.borderColor='var(--accent)';this.style.color='var(--accent)'" onmouseout="this.style.borderColor='var(--border2)';this.style.color='var(--muted)'">⬇️ Exportar</button>
+          <button onclick="importImpWordsFile()" title="Restaurar desde un backup" style="padding:0.4rem 0.8rem;border-radius:var(--radius);border:1px solid var(--border2);background:var(--surface);color:var(--muted);cursor:pointer;font-size:12px;font-weight:600;transition:border-color 0.15s,color 0.15s" onmouseover="this.style.borderColor='var(--accent)';this.style.color='var(--accent)'" onmouseout="this.style.borderColor='var(--border2)';this.style.color='var(--muted)'">⬆️ Importar</button>
           ${usedCount > 0
             ? `<button onclick="resetWordPool()" style="padding:0.4rem 0.8rem;border-radius:var(--radius);border:1px solid var(--border2);background:var(--surface);color:var(--muted);cursor:pointer;font-size:12px;font-weight:600;transition:border-color 0.15s,color 0.15s" onmouseover="this.style.borderColor='var(--danger)';this.style.color='var(--danger)'" onmouseout="this.style.borderColor='var(--border2)';this.style.color='var(--muted)'">🔄 Resetear</button>`
             : ''
@@ -6894,6 +7172,62 @@ function resetWordPool() {
   saveImpGame();
   showToast('🔄', 'Pool de palabras reiniciado', false);
   renderImpSetup();
+}
+
+// ── EXPORTAR / IMPORTAR PALABRAS DEL IMPOSTOR ──
+// Backup manual por si se resetea el estado (localStorage) sin querer:
+// guarda las palabras usadas + las categorías/palabras propias creadas.
+function impWordsExportData() {
+  return {
+    kind: 'impostor-palabras',
+    exportedAt: new Date().toISOString(),
+    usedWords: impGame.usedWords || [],
+    customWords: impGame.customWords || [],
+    customCatWords: impGame.customCatWords || {},
+    excludedWords: impGame.excludedWords || [],
+    userCats: impGame.userCats || [],
+  };
+}
+function exportImpWords() {
+  const data = impWordsExportData();
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'impostor-palabras-' + new Date().toISOString().slice(0, 10) + '.json';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(url), 2000);
+  showToast('⬇️', 'Palabras exportadas', false);
+}
+function importImpWordsFile() {
+  const inp = document.createElement('input');
+  inp.type = 'file';
+  inp.accept = 'application/json,.json';
+  inp.onchange = () => {
+    const file = inp.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const data = JSON.parse(e.target.result);
+        if (Array.isArray(data.usedWords)) impGame.usedWords = data.usedWords;
+        impGame.usedWordIndices = []; // formato viejo — se reconstruye por string, no hace falta
+        if (Array.isArray(data.customWords)) impGame.customWords = data.customWords;
+        if (data.customCatWords && typeof data.customCatWords === 'object') impGame.customCatWords = data.customCatWords;
+        if (Array.isArray(data.excludedWords)) impGame.excludedWords = data.excludedWords;
+        if (Array.isArray(data.userCats)) impGame.userCats = data.userCats;
+        saveImpGame();
+        renderImpSetup();
+        showToast('⬆️', 'Palabras importadas', false);
+      } catch (err) {
+        showToast('⚠️', 'Ese archivo no es un backup válido', true);
+      }
+    };
+    reader.readAsText(file);
+  };
+  inp.click();
 }
 
 function toggleCat(btn, cat) {
@@ -8674,8 +9008,9 @@ function renderFinal() {
   const f1Done = F1_FIXTURE.filter(([r,a,b]) => state.f1[`${r}-${a}-${b}`]).length;
   const f2Done = F2_FIXTURE.filter(([r,a,b]) => state.f2[`${r}-${a}-${b}`]).length;
   const impDone = (state.impostor.rounds || []).length > 0;
-  const totalDone = f1Done + f2Done + (impDone ? 1 : 0);
-  const totalAll = f1Total + f2Total + 1; // +1 for impostor
+  const qldDone = !!(state.qldTeamPoints && Object.keys(state.qldTeamPoints).length > 0);
+  const totalDone = f1Done + f2Done + (impDone ? 1 : 0) + (qldDone ? 1 : 0);
+  const totalAll = f1Total + f2Total + 2; // +1 impostor, +1 ¿quién lo dijo?
   const pct = Math.round((totalDone / totalAll) * 100);
 
   const f1Pend = f1Total - f1Done;
@@ -8699,6 +9034,7 @@ function renderFinal() {
     if (f1Pend > 0) pendItems.push(`<div class="final-pending-item"><span class="dot-indicator fase1"></span>Fase 1: faltan <b style="color:var(--text);margin:0 3px">${f1Pend}</b> partido${f1Pend>1?'s':''}</div>`);
     if (!impDone) pendItems.push(`<div class="final-pending-item"><span class="dot-indicator impostor"></span>Ronda Impostor: pendiente</div>`);
     if (f2Pend > 0) pendItems.push(`<div class="final-pending-item"><span class="dot-indicator fase2"></span>Fase 2: faltan <b style="color:var(--text);margin:0 3px">${f2Pend}</b> partido${f2Pend>1?'s':''}</div>`);
+    if (!qldDone) pendItems.push(`<div class="final-pending-item"><span class="dot-indicator quien"></span>Ronda ¿Quién lo dijo?: pendiente</div>`);
     if (pendItems.length) pendingHtml = `<div class="final-pending-list">${pendItems.join('')}</div>`;
   }
 
@@ -8706,6 +9042,7 @@ function renderFinal() {
   const f1Pct = f1Total ? Math.round((f1Done/f1Total)*100) : 0;
   const f2Pct = f2Total ? Math.round((f2Done/f2Total)*100) : 0;
   const impPct = impDone ? 100 : 0;
+  const qldPct = qldDone ? 100 : 0;
 
   const phaseRows = `
     <div class="final-phase-row">
@@ -8725,6 +9062,12 @@ function renderFinal() {
       <span class="final-phase-name">Fase 2 — Grupal</span>
       <span class="final-phase-count">${f2Done}/${f2Total} partidos</span>
       <span class="final-phase-pct" style="color:${f2Locked?'var(--success)':'var(--muted)'}">${f2Pct}%</span>
+    </div>
+    <div class="final-phase-row">
+      <span class="final-phase-dot" style="background:#c060e8"></span>
+      <span class="final-phase-name">Ronda ¿Quién lo dijo?</span>
+      <span class="final-phase-count">${qldDone ? '1 ronda' : 'pendiente'}</span>
+      <span class="final-phase-pct" style="color:${qldDone?'var(--success)':'var(--muted)'}">${qldPct}%</span>
     </div>
   `;
 
@@ -8833,7 +9176,8 @@ function renderFinal() {
       <div class="stat-card"><div class="stat-num">${f1Done}/${f1Total}</div><div class="stat-label">Duelos Fase 1</div></div>
       <div class="stat-card"><div class="stat-num">${f2Done}/${f2Total}</div><div class="stat-label">Duelos Fase 2</div></div>
       <div class="stat-card"><div class="stat-num">${(state.impostor.rounds||[]).length ? '✓' : '—'}</div><div class="stat-label">Ronda Impostor</div></div>
-      <div class="stat-card"><div class="stat-num">${f1Done + f2Done}</div><div class="stat-label">Total jugados</div></div>
+      <div class="stat-card"><div class="stat-num">${qldDone ? '✓' : '—'}</div><div class="stat-label">Ronda ¿Quién lo dijo?</div></div>
+      <div class="stat-card" style="grid-column:span 2"><div class="stat-num">${f1Done + f2Done}</div><div class="stat-label">Total jugados</div></div>
     </div>`;
 
   // ---- 3ER PUESTO: los segundos de cada fase ----
@@ -9228,8 +9572,9 @@ function rollCredits() {
   // Todos los juegos: Fase 1 + Fase 2 + Impostor (deduplicados)
   const allGames = [];
   if (typeof GAMES_F1 !== 'undefined') allGames.push(...GAMES_F1);
-  if (typeof GAMES_F2 !== 'undefined') allGames.push(...GAMES_F2);
   allGames.push('Impostor');
+  if (typeof GAMES_F2 !== 'undefined') allGames.push(...GAMES_F2);
+  allGames.push('¿Quién lo dijo?');
   const games = [...new Set(allGames)].map(g => `<div>${esc(g)}</div>`).join('');
 
   let motesHtml = '';
@@ -9754,6 +10099,14 @@ function _runCeremony({ items, title, eyebrow, labelFn, colorFn, figFn, finishTi
       rail.classList.add('all-in');
       rail.querySelectorAll('.op-playercard').forEach(function(c) { c.classList.remove('past'); });
       rail.scrollLeft = 0;
+      // Con muchos participantes, repartimos las tarjetas en varias filas
+      // en vez de una sola fila larga (ej: 10 → 5 arriba y 5 abajo).
+      const n = items.length;
+      const rows = n > 12 ? 3 : (n > 6 ? 2 : 1);
+      const cols = Math.ceil(n / rows);
+      rail.classList.toggle('wrap-rows', rows > 1);
+      if (rows > 1) rail.style.setProperty('--allin-cols', cols);
+      else rail.style.removeProperty('--allin-cols');
     }
     const outro = document.createElement('div');
     outro.className = 'op-outro';
@@ -10406,6 +10759,28 @@ function computeMotes() {
       player: rollers[0].name,
       reason: `${rollers[0].bonusWins2} victorias con bonus en Fase 2. No dejó pelear a nadie.`,
     });
+
+    // "El Bendecido / El Maldito" (equipos) — la ruleta de comodines lo trató bien o mal
+    const comosF2 = (state.comodinesF2 || []).filter(c => c.status === 'done');
+    if (comosF2.length >= 2) {
+      const tally2 = {};
+      comosF2.forEach(c => { tally2[c.player] = (tally2[c.player] || 0) + (c.delta || 0); });
+      const names2 = Object.keys(tally2);
+      if (names2.length) {
+        const bestT  = names2.sort((a, b) => tally2[b] - tally2[a])[0];
+        const worstT = names2.sort((a, b) => tally2[a] - tally2[b])[0];
+        if (tally2[bestT] >= 2) motes.push({
+          emoji: '🍀', type: 'honor', title: 'El Bendecido',
+          player: bestT,
+          reason: `La ruleta le regaló ${tally2[bestT]} puntos. Nació con estrella.`,
+        });
+        if (tally2[worstT] <= -2) motes.push({
+          emoji: '☠️', type: 'shame', title: 'El Maldito',
+          player: worstT,
+          reason: `La ruleta le sacó ${Math.abs(tally2[worstT])} puntos. Alguien le hizo un trabajo.`,
+        });
+      }
+    }
   }
 
   // Dedup: si un jugador ya tiene un mote de honor/shame, no acumular más de 2 motes del mismo tipo
@@ -11165,6 +11540,7 @@ function openTVMode() {
   .tv-estado-phase.f1::before { background: linear-gradient(90deg, var(--accent), transparent); }
   .tv-estado-phase.imp::before { background: linear-gradient(90deg, var(--danger), transparent); }
   .tv-estado-phase.f2::before { background: linear-gradient(90deg, var(--info), transparent); }
+  .tv-estado-phase.qld::before { background: linear-gradient(90deg, var(--gold), transparent); }
 
   .tv-estado-label {
     font-size: clamp(9px,0.9vw,12px);
@@ -11178,6 +11554,7 @@ function openTVMode() {
   .tv-estado-label.f1  { color: var(--accent); }
   .tv-estado-label.imp { color: var(--danger); }
   .tv-estado-label.f2  { color: var(--info); }
+  .tv-estado-label.qld { color: var(--gold); }
 
   .tv-estado-bar-wrap {
     height: 4px;
@@ -11193,6 +11570,7 @@ function openTVMode() {
   .f1  .tv-estado-bar { background: var(--accent); }
   .imp .tv-estado-bar { background: var(--danger); }
   .f2  .tv-estado-bar { background: var(--info); }
+  .qld .tv-estado-bar { background: var(--gold); }
 
   .tv-estado-info {
     display: flex;
@@ -11212,6 +11590,7 @@ function openTVMode() {
   .f1  .tv-estado-pct { color: var(--accent); }
   .imp .tv-estado-pct { color: var(--danger); }
   .f2  .tv-estado-pct { color: var(--info); }
+  .qld .tv-estado-pct { color: var(--gold); }
   .tv-estado-pct.done { color: var(--success) !important; }
 </style>
 <style>.hub-link{position:fixed;top:max(0.75rem,env(safe-area-inset-top));left:max(0.75rem,env(safe-area-inset-left));z-index:99999;font-size:11px;font-weight:700;color:rgba(240,239,232,0.7);background:rgba(10,10,14,0.6);border:1px solid rgba(255,255,255,0.1);border-radius:99px;padding:0.38rem 0.85rem;text-decoration:none;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);letter-spacing:0.04em;transition:color 0.15s,border-color 0.15s;white-space:nowrap}.hub-link:hover{color:#f0efe8;border-color:rgba(255,255,255,0.25)}</style>
@@ -11310,6 +11689,14 @@ function openTVMode() {
       <span class="tv-estado-pct f2" id="tv-estado-f2-pct">0%</span>
     </div>
     <div class="tv-estado-bar-wrap"><div class="tv-estado-bar" id="tv-estado-f2-bar" style="width:0%"></div></div>
+  </div>
+  <div class="tv-estado-phase qld" id="tv-estado-qld">
+    <div class="tv-estado-label qld"><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--gold);box-shadow:0 0 8px rgba(245,200,66,0.7)"></span>Ronda ¿Quién lo dijo?</div>
+    <div class="tv-estado-info">
+      <span class="tv-estado-count" id="tv-estado-qld-count">pendiente</span>
+      <span class="tv-estado-pct qld" id="tv-estado-qld-pct">0%</span>
+    </div>
+    <div class="tv-estado-bar-wrap"><div class="tv-estado-bar" id="tv-estado-qld-bar" style="width:0%"></div></div>
   </div>
 </div>
 
@@ -11704,10 +12091,11 @@ function getPoints(type, state, PLAYERS, TEAMS) {
       if(res.winner==='empate'){pts[a].total+=drawPts;pts[b].total+=drawPts;}
       else{const w=res.winner,l=(w===a?b:a);pts[w].total+=winPts+(res.bonus?bonusPts:0);if(pts[w])pts[w].wins++;if(pts[l])pts[l].losses++;}
     });
-    // Ronda especial "¿Quién lo dijo?" y ajustes manuales
+    // Ronda especial "¿Quién lo dijo?", comodines y ajustes manuales
     try{
       const qld=(state.qldTeamPoints)||{};
       Object.keys(qld).forEach(k=>{ const i=parseInt(k,10); if(pts[i]) pts[i].total+=Number(qld[k])||0; });
+      (state.comodinesF2||[]).forEach(c=>{ if(c.status==='done'){const i=TEAMS.indexOf(c.player); if(i>=0) pts[i].total+=Number(c.delta)||0;} });
       (((state.adjust||{}).f2)||[]).forEach(a=>{ const i=TEAMS.indexOf(a.name); if(i>=0) pts[i].total+=Number(a.pts)||0; });
     }catch(e){}
     return pts;
@@ -11795,7 +12183,7 @@ function renderTV() {
   window._tvLastTeams   = TEAMS;
   // Cambió algo real → cortamos el modo "mientras tanto" y buscamos logros nuevos
   try {
-    const sig = JSON.stringify([state.f1, state.f2, (state.impostor || {}).rounds, state.comodines]);
+    const sig = JSON.stringify([state.f1, state.f2, (state.impostor || {}).rounds, state.comodines, state.comodinesF2]);
     if (sig !== window._tvLastSig) {
       window._tvLastSig = sig;
       _idleLastChange = Date.now();
@@ -11807,12 +12195,15 @@ function renderTV() {
   scanLogros(state, PLAYERS, TEAMS);
   if (!window._relatorStarted) {
     window._relatorStarted = true;
-    startRelator();
-    startWall();
-    startIdle();
-    if (!window._dragBooted) { window._dragBooted = true; try { initDraggables(); } catch(e) {} }
+    // Cada arranque va en su propio try/catch: si alguno falla, no se
+    // lleva puestos a los demás (antes un solo error acá abortaba todo
+    // el script, incluida la sincronización en vivo de más abajo).
+    try { startRelator(); } catch(e) { console.warn('startRelator:', e); }
+    try { startWall(); } catch(e) { console.warn('startWall:', e); }
+    try { startIdle(); } catch(e) { console.warn('startIdle:', e); }
+    if (!window._dragBooted) { window._dragBooted = true; try { initDraggables(); } catch(e) { console.warn('initDraggables:', e); } }
   }
-  renderEstado(state);
+  try { renderEstado(state); } catch(e) { console.warn('renderEstado:', e); }
 }
 
 // Apply estado layout once at init (hides irrelevant phase cards permanently)
@@ -11822,6 +12213,7 @@ function renderTV() {
   if (TV_PHASE === 'fase1') {
     document.getElementById('tv-estado-f2').style.display  = 'none';
     document.getElementById('tv-estado-imp').style.display = 'none';
+    document.getElementById('tv-estado-qld').style.display = 'none';
     estadoEl.style.maxWidth = '820px';
     estadoEl.style.margin   = 'clamp(10px,2vh,22px) auto 0';
     estadoEl.style.width    = '100%';
@@ -11840,10 +12232,12 @@ function renderEstado(state) {
   const f1Done  = F1_FIXTURE.filter(([r,a,b]) => state.f1 && state.f1[r+'-'+a+'-'+b]).length;
   const f2Done  = F2_FIXTURE.filter(([r,a,b]) => state.f2 && state.f2[r+'-'+a+'-'+b]).length;
   const impDone = state.impostor && Array.isArray(state.impostor.rounds) && state.impostor.rounds.length > 0;
+  const qldDone = !!(state.qldTeamPoints && Object.keys(state.qldTeamPoints).length > 0);
 
   const f1Pct  = f1Total  ? Math.round((f1Done  / f1Total)  * 100) : 0;
   const f2Pct  = f2Total  ? Math.round((f2Done  / f2Total)  * 100) : 0;
   const impPct = impDone  ? 100 : 0;
+  const qldPct = qldDone  ? 100 : 0;
 
   function setPhase(id, count, pct, done) {
     const countEl = document.getElementById('tv-estado-'+id+'-count');
@@ -11857,6 +12251,7 @@ function renderEstado(state) {
   if (TV_PHASE !== 'fase2') setPhase('f1',  f1Done + '/' + f1Total + ' partidos', f1Pct, f1Done === f1Total);
   if (TV_PHASE === 'both')  setPhase('imp', impDone ? '✓ completada' : 'pendiente', impPct, impDone);
   if (TV_PHASE !== 'fase1') setPhase('f2',  f2Done + '/' + f2Total + ' partidos',  f2Pct, f2Done === f2Total);
+  if (TV_PHASE !== 'fase1') setPhase('qld', qldDone ? '✓ completada' : 'pendiente', qldPct, qldDone);
 }
 
 // ── TICKER (estado) ─────────────────────────────────────────
@@ -11864,13 +12259,37 @@ function renderEstado(state) {
 // renderTV() -> renderTicker() usa estas variables; si quedan declaradas
 // más abajo, la llamada inicial cae en la Temporal Dead Zone y aborta todo
 // el script (incluido startSync), dejando la TV congelada.
+//
+// IMPORTANTE: renderTV() también dispara, en su primera ejecución,
+// startRelator() / startWall() / startIdle() / initDraggables() — así que
+// TODAS las variables que esas funciones tocan tienen que estar declaradas
+// (con let/const) ANTES de esta primera llamada, por la misma razón. Antes
+// vivían más abajo, en el bloque "natural" de cada feature, y como ninguna
+// de esas tres llamadas está en un try/catch, la primera de ellas que
+// pisaba una variable en TDZ (Temporal Dead Zone) tiraba un ReferenceError
+// que abortaba TODO el script — incluido startSync() más abajo, que es
+// justamente el que conecta Firebase/BroadcastChannel/polling. Por eso
+// fallaban a la vez el muro de fotos, el drag del QR/cronómetro y la
+// actualización en vivo: ninguno llegaba a inicializarse nunca.
 let _tickerAnim = null;
 let _tickerPos = 0;
 let _tickerWidth = 0;
 let _tickerSpeed = 50; // px/s
 let _tickerGen = 0; // generación: solo el loop más nuevo sobrevive
 
-renderTV();
+let _relatorQueue = [], _relatorSeen = {}, _relatorTimer = null, _relatorShowing = false;
+
+let _logrosShown = {}, _logroQueue = [], _logroBusy = false;
+try { _logrosShown = JSON.parse(localStorage.getItem('ndj_logros_tv') || '{}'); } catch(e) { _logrosShown = {}; }
+
+let _idleLastChange = Date.now(), _idleTimer = null, _idleOn = false, _idleIdx = 0;
+const IDLE_AFTER_MS = 150000; // 2 min y medio sin novedades
+
+let _tvWall = [], _tvWallIdx = 0, _tvWallTimer = null;
+
+// Blindado: un error acá no debe impedir que el resto del script (sync,
+// drag, QR, etc.) se termine de definir y ejecutar más abajo.
+try { renderTV(); } catch(e) { console.warn('renderTV inicial:', e); }
 
 function buildTickerItems(state, PLAYERS, TEAMS) {
   const items = [];
@@ -11927,13 +12346,12 @@ function buildTickerItems(state, PLAYERS, TEAMS) {
 }
 
 // ── RELATOR: frases automáticas según lo que va pasando ──────────────
-let _relatorQueue = [], _relatorSeen = {}, _relatorTimer = null, _relatorShowing = false;
+// (variables declaradas más arriba, antes de la primera llamada a renderTV())
 
 // ── LOGROS EN VIVO ───────────────────────────────────────────────────
 // Se detectan sobre el estado y se muestran en el TV apenas se desbloquean.
 // Cada uno tiene un id único: si ya se mostró, no vuelve a saltar.
-let _logrosShown = {}, _logroQueue = [], _logroBusy = false;
-try { _logrosShown = JSON.parse(localStorage.getItem('ndj_logros_tv') || '{}'); } catch(e) { _logrosShown = {}; }
+// (variables declaradas más arriba, antes de la primera llamada a renderTV())
 function markLogro(id) {
   _logrosShown[id] = 1;
   try { localStorage.setItem('ndj_logros_tv', JSON.stringify(_logrosShown)); } catch(e) {}
@@ -12026,6 +12444,11 @@ function detectLogros(state, PLAYERS, TEAMS) {
       if (c.key === 'robo')  add('ladron-' + c.id, '\u{1F977}', 'Ladrón', c.player, c.note || 'Le robó un punto a otro');
       if (c.key === 'peaje') add('peaje-' + c.id, '\u{1F4B8}', 'Mala Racha', c.player, 'La ruleta le sacó un punto');
     });
+    (state.comodinesF2 || []).forEach(c => {
+      if (c.status !== 'done') return;
+      if (c.key === 'robo')  add('ladron-eq-' + c.id, '\u{1F977}', 'Ladrón', c.player, c.note || 'Le robó un punto a otro equipo');
+      if (c.key === 'peaje') add('peaje-eq-' + c.id, '\u{1F4B8}', 'Mala Racha', c.player, 'La ruleta le sacó un punto');
+    });
   } catch(e) {}
 
   return found;
@@ -12093,8 +12516,7 @@ function scanLogros(state, PLAYERS, TEAMS) {
 // ── PANTALLA "MIENTRAS TANTO" ────────────────────────────────────────
 // Si pasan varios minutos sin cargar un resultado, el TV pasa a un modo de
 // datos curiosos para no quedarse mostrando siempre lo mismo.
-let _idleLastChange = Date.now(), _idleTimer = null, _idleOn = false, _idleIdx = 0;
-const IDLE_AFTER_MS = 150000; // 2 min y medio sin novedades
+// (variables declaradas más arriba, antes de la primera llamada a renderTV())
 
 function buildIdleFacts(state, PLAYERS, TEAMS) {
   const facts = [];
@@ -12306,7 +12728,7 @@ function initDraggables() {
 })();
 
 // ── MURO DE FOTOS en el TV: rota una foto cada tanto ─────────────────
-let _tvWall = [], _tvWallIdx = 0, _tvWallTimer = null;
+// (variables declaradas más arriba, antes de la primera llamada a renderTV())
 function loadTVWall() {
   try {
     let raw = null;
@@ -12319,8 +12741,7 @@ function loadTVWall() {
     }
   } catch(e) {}
 }
-function tickWall() {
-  loadTVWall();
+function showWallAt(idx) {
   const box = document.getElementById('tv-wall');
   const img = document.getElementById('tv-wall-img');
   const tag = document.getElementById('tv-wall-tag');
@@ -12328,13 +12749,18 @@ function tickWall() {
   if (!_tvWall.length) { box.classList.remove('show'); return; }
   box.classList.remove('show');
   setTimeout(() => {
-    _tvWallIdx = (_tvWallIdx + 1) % _tvWall.length;
+    _tvWallIdx = ((idx % _tvWall.length) + _tvWall.length) % _tvWall.length;
     const p = _tvWall[_tvWallIdx];
     if (!p) return;
     img.src = p.src;
     if (tag) tag.textContent = p.by ? ('\u{1F4F8} ' + p.by) : '\u{1F4F8} La Velada';
     box.classList.add('show');
   }, 650);
+}
+function tickWall() {
+  loadTVWall();
+  if (!_tvWall.length) { const box = document.getElementById('tv-wall'); if (box) box.classList.remove('show'); return; }
+  showWallAt(_tvWallIdx + 1);
 }
 function startWall() {
   if (_tvWallTimer) clearInterval(_tvWallTimer);
@@ -12423,6 +12849,13 @@ function buildRelatorLines(state, PLAYERS, TEAMS) {
       const last = comos[comos.length - 1];
       const d = last.delta || 0;
       push('como-' + last.id, d >= 0 ? '\u{1F340}' : '\u{1F480}',
+        '<b>' + short(last.player) + '</b>: ' + (last.note || 'comod\u00EDn aplicado') + ' (' + (d > 0 ? '+' : '') + d + ')');
+    }
+    const comosF2 = (state.comodinesF2 || []).filter(c => c.status === 'done');
+    if (comosF2.length) {
+      const last = comosF2[comosF2.length - 1];
+      const d = last.delta || 0;
+      push('como-eq-' + last.id, d >= 0 ? '\u{1F340}' : '\u{1F480}',
         '<b>' + short(last.player) + '</b>: ' + (last.note || 'comod\u00EDn aplicado') + ' (' + (d > 0 ? '+' : '') + d + ')');
     }
   } catch(e) {}
@@ -12659,8 +13092,13 @@ function renderTicker(state, PLAYERS, TEAMS) {
             if (Array.isArray(arr)) {
               const was = _tvWall.length;
               _tvWall = arr;
-              // Primera foto de la noche: mostrarla enseguida en vez de esperar el ciclo
-              if (!was && arr.length) tickWall();
+              // Foto nueva (o primera de la noche): mostrarla enseguida en vez de
+              // esperar a que la rotación normal (una cada 11s) le llegue el turno.
+              if (arr.length > was) {
+                if (_tvWallTimer) clearInterval(_tvWallTimer);
+                showWallAt(arr.length - 1);
+                _tvWallTimer = setInterval(tickWall, 11000);
+              }
             }
           } catch(e) {}
         }, () => {});
@@ -12900,6 +13338,7 @@ window._ndjWall = JSON.stringify(_wall);
   setInterval(pull, 12000);
 })();
 loadRulesConfig();
+loadComodinesConfig();
 loadFinalConfig();
 loadTercerConfig();
 loadSegundoConfig();
