@@ -117,6 +117,14 @@
   @keyframes gh-pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.35; } }
 
   .gh-switch { display: block; margin: 0 auto 1rem; background: transparent; border: 1px solid var(--border2); color: var(--muted); border-radius: var(--radius); padding: 0.5rem 1rem; font-size: 12px; font-weight: 600; cursor: pointer; }
+
+  .gh-wall-card { background: var(--surface); border: 1px solid var(--border2); border-radius: 14px; padding: 1rem; margin-bottom: 1rem; text-align: center; }
+  .gh-wall-title { font-size: 14px; font-weight: 800; color: var(--text); margin-bottom: 0.3rem; }
+  .gh-wall-sub { font-size: 11px; color: var(--muted); line-height: 1.5; margin-bottom: 0.8rem; }
+  .gh-wall-btn { width: 100%; padding: 0.75rem; border-radius: 12px; border: 1.5px solid #60b4f0; background: rgba(96,180,240,0.12); color: #60b4f0; font-family: inherit; font-size: 14px; font-weight: 800; cursor: pointer; }
+  .gh-wall-btn:active { opacity: 0.8; }
+  .gh-wall-status { font-size: 11px; color: var(--muted); margin-top: 0.55rem; min-height: 14px; font-weight: 600; }
+  .gh-wall-status.ok { color: #4cdb7a; }
   .gh-switch:hover { color: var(--text); border-color: var(--border2); }
 
   .gh-loading { text-align: center; color: var(--muted); font-size: 13px; padding: 3rem 0; }
@@ -131,7 +139,7 @@
 
 <script type="module">
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
-import { getFirestore, doc, onSnapshot } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+import { getFirestore, doc, onSnapshot, getDoc, setDoc } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
 
 const firebaseConfig = {
   apiKey: "AIzaSyB-1B426OH2ZYKHT1n8VVzmv0h_10186Zo",
@@ -150,9 +158,8 @@ const TEAMS_DEFAULT = [
   'Martín H. / Valentín A.',
   'Lázaro G. / Tomás P.',
   'Thiago C. / Lara M.',
-  'Thomas C. / JM R.',
-  'Micaela B. / Florencia L.',
-  'Coral O. / (pendiente)'
+  'Totti / Risu',
+  'Coral O. / Florencia L.'
 ];
 const FULL_NAMES = {
   'Risu':'Risu','Totti':'Totti','Thiago':'Thiago C.','Mica':'Micaela B.','Valentín':'Valentín A.',
@@ -369,12 +376,79 @@ function renderDashboard(myName) {
     <button class="gh-switch" id="gh-switch-btn">Cambiar de jugador</button>
     ${renderPhaseCard('f1', myIdx, myName)}
     ${teamIdx >= 0 ? renderPhaseCard('f2', teamIdx, myName) : ''}
+    <div class="gh-wall-card">
+      <div class="gh-wall-title">📸 Muro de fotos</div>
+      <div class="gh-wall-sub">Subí fotos de la noche: aparecen en la pantalla grande y en los créditos finales.</div>
+      <button class="gh-wall-btn" id="gh-wall-btn">Elegir fotos</button>
+      <div class="gh-wall-status" id="gh-wall-status"></div>
+    </div>
     <div class="gh-footer"><span class="gh-dot"></span>En vivo · actualizado ${updatedTxt}</div>
   `;
   document.getElementById('gh-switch-btn').addEventListener('click', () => {
     localStorage.removeItem('ndj_guest_who');
     render();
   });
+  const wallBtn = document.getElementById('gh-wall-btn');
+  if (wallBtn) wallBtn.addEventListener('click', () => pickAndUploadPhotos(myName));
+}
+
+// ── MURO DE FOTOS: subida desde el celular ───────────────────
+const WALL_MAX_GUEST = 40;
+function compressPhotoGuest(file) {
+  return new Promise((resolve) => {
+    const r = new FileReader();
+    r.onload = e => {
+      const img = new Image();
+      img.onload = () => {
+        const MAX = 720;
+        const scale = Math.min(1, MAX / Math.max(img.width, img.height));
+        const w = Math.round(img.width * scale), h = Math.round(img.height * scale);
+        const c = document.createElement('canvas');
+        c.width = w; c.height = h;
+        c.getContext('2d').drawImage(img, 0, 0, w, h);
+        resolve(c.toDataURL('image/jpeg', 0.68));
+      };
+      img.onerror = () => resolve(null);
+      img.src = e.target.result;
+    };
+    r.onerror = () => resolve(null);
+    r.readAsDataURL(file);
+  });
+}
+function pickAndUploadPhotos(myName) {
+  const inp = document.createElement('input');
+  inp.type = 'file';
+  inp.accept = 'image/*';
+  inp.multiple = true;
+  inp.onchange = async () => {
+    const files = Array.from(inp.files || []);
+    if (!files.length) return;
+    const status = document.getElementById('gh-wall-status');
+    const setStatus = (t, ok) => { if (status) { status.textContent = t; status.className = 'gh-wall-status' + (ok ? ' ok' : ''); } };
+    setStatus('Comprimiendo…', false);
+    try {
+      const shots = [];
+      for (const f of files) {
+        const d = await compressPhotoGuest(f);
+        if (d) shots.push({ id: 'w' + Date.now() + Math.floor(Math.random() * 9999), src: d, by: myName, ts: Date.now() });
+      }
+      if (!shots.length) { setStatus('No se pudo leer las fotos', false); return; }
+      setStatus('Subiendo…', false);
+      // Merge con lo que ya haya para no pisar las fotos de los demás
+      let wall = [];
+      try {
+        const snap = await getDoc(doc(db, 'ndj', 'wall'));
+        if (snap.exists()) { const arr = JSON.parse(snap.data().data); if (Array.isArray(arr)) wall = arr; }
+      } catch (e) {}
+      wall = wall.concat(shots).sort((a, b) => (a.ts || 0) - (b.ts || 0));
+      if (wall.length > WALL_MAX_GUEST) wall = wall.slice(-WALL_MAX_GUEST);
+      await setDoc(doc(db, 'ndj', 'wall'), { data: JSON.stringify(wall), ts: Date.now() });
+      setStatus('✓ ' + shots.length + ' foto(s) subida(s)', true);
+    } catch (e) {
+      setStatus('Error al subir. Probá de nuevo.', false);
+    }
+  };
+  inp.click();
 }
 
 function render() {
