@@ -4146,6 +4146,7 @@ let state = {
   bonusManual: {}, // key: playerName => {pts: number, label: string}
   vsJC: {}, // key: playerName => 'win'|'lose'|null  (resultado del jugador vs Juan Cruz)
   comodines: [], // [{id, player, key, status:'pending'|'done', delta, note, ts}]
+  bets: {},      // key "r-a-b" => { nombreApostador: idxGanadorApostado }
 };
 
 // ── COMODINES: catálogo ──────────────────────────────────────────────
@@ -4442,8 +4443,22 @@ function getPlayerPoints() {
     if (d) pts[idx].comodin = d;
   });
 
+  // Apuestas acertadas: +1 punto por cada duelo que el espectador clavó
+  const bets = state.bets || {};
+  PLAYERS.forEach((name, idx) => {
+    let won = 0;
+    Object.keys(bets).forEach(key => {
+      const res = state.f1[key];
+      if (!res || res.winner === 'empate') return;
+      const b = bets[key] && bets[key][name];
+      if (typeof b !== 'number') return;
+      if (b === res.winner) won++;
+    });
+    if (won) pts[idx].bets = won;
+  });
+
   pts.forEach(p => {
-    p.total = p.rounds.reduce((s,v) => s + (typeof v === 'number' ? v : 0), 0) + (p.special || 0) + (p.bonusManual || 0) + (p.vsJC || 0) + (p.comodin || 0);
+    p.total = p.rounds.reduce((s,v) => s + (typeof v === 'number' ? v : 0), 0) + (p.special || 0) + (p.bonusManual || 0) + (p.vsJC || 0) + (p.comodin || 0) + (p.bets || 0);
   });
   return pts;
 }
@@ -5350,6 +5365,14 @@ function saveResult() {
   showToast('✓', 'Guardado · ' + winnerName + (modalCtx.bonus ? ' +bonus' : ''), true);
   if (comoMsgs && comoMsgs.length) {
     setTimeout(() => showToast('🎰', comoMsgs.join(' · '), false), 1400);
+  }
+  // Quién le acertó a este duelo
+  if (modalCtx.phase === 'f1' && modalCtx.winner !== 'empate') {
+    const bk = (state.bets || {})[modalCtx.key] || {};
+    const hits = Object.keys(bk).filter(n => bk[n] === modalCtx.winner);
+    if (hits.length) {
+      setTimeout(() => showToast('🃏', 'Acertaron: ' + hits.map(n => n.split(' ')[0]).join(', ') + ' (+1)', false), comoMsgs.length ? 2800 : 1400);
+    }
   }
   updateNavProgress();
 }
@@ -7391,11 +7414,11 @@ function entityFigureHtml(name, color, size, pose) {
   if (parts.length > 1) {
     const ph = entityPhotos(name);
     return '<div class="mii-duo">'
-      + '<div class="mii-duo-fig mii-duo-l">' + miiFigureSVG(color, Math.round(size * 0.86), 'hug-right', ph[0]) + '</div>'
-      + '<div class="mii-duo-fig mii-duo-r">' + miiFigureSVG(color, Math.round(size * 0.86), 'hug-left',  ph[1]) + '</div>'
+      + '<div class="mii-duo-fig mii-duo-l">' + miiFigureSVG(getEntityColor(parts[0]) || color, Math.round(size * 0.86), 'hug-right', ph[0], miiAccFor(parts[0])) + '</div>'
+      + '<div class="mii-duo-fig mii-duo-r">' + miiFigureSVG(getEntityColor(parts[1]) || color, Math.round(size * 0.86), 'hug-left',  ph[1], miiAccFor(parts[1])) + '</div>'
       + '</div>';
   }
-  return miiFigureSVG(color, size, pose, getPlayerPhoto(name));
+  return miiFigureSVG(color, size, miiPoseFor(name, pose), getPlayerPhoto(name), miiAccFor(name));
 }
 function setPlayerPhoto(name, dataUrl) {
   _playerPhotos[name] = dataUrl;
@@ -7424,6 +7447,30 @@ function getEntityColor(name) { return _entityColors[name] || null; }
 function setEntityColor(name, color) { _entityColors[name] = color; saveEntityColors(); }
 function removeEntityColor(name) { delete _entityColors[name]; saveEntityColors(); }
 loadEntityColors();
+
+// ── PERSONALIZACIÓN DE FIGURAS (Mii) ─────────────────────────────────
+// Cada jugador elige desde su celular: color, pose y accesorio.
+let _miis = {};
+function loadMiis() {
+  try { _miis = JSON.parse(localStorage.getItem('ndj_miis') || '{}'); } catch(e) { _miis = {}; }
+}
+function saveMiis() {
+  try { localStorage.setItem('ndj_miis', JSON.stringify(_miis)); } catch(e) {}
+  if (window._bc) window._bc.postMessage({ key: 'ndj_miis', data: JSON.stringify(_miis) });
+  if (window._tvWin && !window._tvWin.closed) {
+    try { window._tvWin.postMessage({ type: 'ndj_miis', data: JSON.stringify(_miis) }, '*'); } catch(e) {}
+  }
+}
+function getMii(name) { return _miis[name] || null; }
+function miiPoseFor(name, fallback) {
+  const m = getMii(name);
+  return (m && m.pose) ? m.pose : fallback;
+}
+function miiAccFor(name) {
+  const m = getMii(name);
+  return (m && m.acc) ? m.acc : null;
+}
+loadMiis();
 
 // Devuelve el color efectivo: custom si hay, sino la paleta por índice
 function entityColor(name, idx) {
@@ -7603,7 +7650,7 @@ function triggerPhotoUpload(entityName, phase) {
   inp.click();
 }
 
-function miiFigureSVG(color, size, pose, photoDataUrl) {
+function miiFigureSVG(color, size, pose, photoDataUrl, acc) {
   const s = size;
   const uid = 'mii' + Math.random().toString(36).slice(2,8);
   const cx = s / 2;
@@ -7668,6 +7715,22 @@ function miiFigureSVG(color, size, pose, photoDataUrl) {
       <rect x="${arx}" y="${armShoulderY - armH*0.85}" width="${armW}" height="${armH}"
         rx="${armRad}" fill="${light}"
         transform="rotate(38,${arx + armW/2},${armShoulderY})"/>`;
+  } else if (pose === 'wave') {
+    // Saludo: un brazo bien arriba, el otro al costado
+    const alx = torsoL - armW + s*0.01;
+    const arx = torsoR - s*0.01;
+    armLeftEl = `<rect x="${alx}" y="${armShoulderY}" width="${armW}" height="${armH}"
+        rx="${armRad}" fill="${light}" transform="rotate(16,${alx + armW/2},${armShoulderY})"/>`;
+    armRightEl = `<rect x="${arx}" y="${armShoulderY - armH*0.75}" width="${armW}" height="${armH*1.2}"
+        rx="${armRad}" fill="${light}" transform="rotate(-28,${arx + armW/2},${armShoulderY})"/>`;
+  } else if (pose === 'hip') {
+    // Canchero: manos en la cintura (brazos en jarra)
+    const alx = torsoL - armW*0.7;
+    const arx = torsoR - armW*0.3;
+    armLeftEl = `<rect x="${alx}" y="${armShoulderY}" width="${armW}" height="${armH*0.9}"
+        rx="${armRad}" fill="${light}" transform="rotate(48,${alx + armW/2},${armShoulderY})"/>`;
+    armRightEl = `<rect x="${arx}" y="${armShoulderY}" width="${armW}" height="${armH*0.9}"
+        rx="${armRad}" fill="${light}" transform="rotate(-48,${arx + armW/2},${armShoulderY})"/>`;
   } else if (pose === 'hug-right' || pose === 'hug-left') {
     // Abrazo: el brazo interior sube por encima del hombro del compañero,
     // el exterior queda relajado al costado. 'hug-right' abraza hacia la derecha.
@@ -7772,6 +7835,15 @@ function miiFigureSVG(color, size, pose, photoDataUrl) {
         stroke="#2a1f14" stroke-width="${s*0.025}" fill="none" stroke-linecap="round"/>`;
   }
 
+  // Accesorio elegido por el jugador desde su celular
+  let accEl = '';
+  if (acc) {
+    const ax = cx, ay = headCy - headR * 0.72, fs = headR * 1.25;
+    const em = { gorra:'\u{1F9E2}', corona:'\u{1F451}', lentes:'\u{1F576}\uFE0F', sombrero:'\u{1F3A9}',
+                 vincha:'\u{1F380}', casco:'\u{26D1}\uFE0F', fuego:'\u{1F525}', estrella:'\u{2B50}' }[acc];
+    if (em) accEl = `<text x="${ax}" y="${ay}" font-size="${fs}" text-anchor="middle" dominant-baseline="middle">${em}</text>`;
+  }
+
   return `<svg width="${s}" height="${s}" viewBox="0 0 ${s} ${s}" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
     ${armLeftEl}
     ${armRightEl}
@@ -7782,6 +7854,7 @@ function miiFigureSVG(color, size, pose, photoDataUrl) {
     ${shoeREl}
     ${neckEl}
     ${headEl}
+    ${accEl}
   </svg>`;
 }
 
@@ -10206,6 +10279,7 @@ function openTVMode() {
   // del padre, así que sin esto caía a una lista hardcodeada con nombres equivocados.
   const rulesStr    = RULES_CONFIG ? JSON.stringify(RULES_CONFIG) : (localStorage.getItem('ndj_rules') || 'null');
   const colorsStr   = JSON.stringify(_entityColors || {});
+  const miisStr     = JSON.stringify(_miis || {});
   // Se calcula acá (en la ventana principal) porque la ventana TV se abre
   // con window.open('', ...) y su location no apunta al archivo real.
   const guestUrlJson = JSON.stringify(new URL('participante.html', location.href).href);
@@ -10529,6 +10603,55 @@ function openTVMode() {
     opacity: 0.5;
     letter-spacing: 0.05em;
   }
+
+  /* ── MIENTRAS TANTO ── */
+  .tv-idle {
+    position: fixed; z-index: 58;
+    left: 50%; top: 50%; transform: translate(-50%, -50%) scale(0.92);
+    text-align: center; padding: clamp(20px,3vh,40px) clamp(30px,4vw,70px);
+    background: rgba(10,10,14,0.93); backdrop-filter: blur(10px);
+    border: 1.5px solid var(--border2); border-radius: 24px;
+    box-shadow: 0 20px 80px rgba(0,0,0,0.7);
+    opacity: 0; pointer-events: none;
+    transition: opacity 0.7s ease, transform 0.7s cubic-bezier(.2,1.1,.35,1);
+  }
+  .tv-idle.show { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+  .tv-idle-lbl { font-size: clamp(9px,0.9vw,13px); font-weight: 900; letter-spacing: 0.3em;
+    text-transform: uppercase; color: var(--muted); margin-bottom: clamp(10px,1.6vh,22px); }
+  .tv-idle-big { font-size: clamp(46px,9vw,140px); font-weight: 900; line-height: 0.9;
+    letter-spacing: -0.04em;
+    background: linear-gradient(115deg, var(--accent), #eaffa0 45%, var(--gold));
+    -webkit-background-clip: text; background-clip: text; color: transparent; -webkit-text-fill-color: transparent; }
+  .tv-idle-mid { font-size: clamp(13px,1.6vw,26px); font-weight: 800; color: var(--text);
+    margin-top: clamp(6px,1vh,14px); letter-spacing: 0.02em; }
+  .tv-idle-sub { font-size: clamp(11px,1.2vw,19px); color: var(--muted); margin-top: clamp(4px,0.7vh,10px); font-weight: 600; }
+
+  /* ── LOGRO DESBLOQUEADO ── */
+  .tv-logro {
+    position: fixed; z-index: 70;
+    left: clamp(10px,2vw,28px);
+    bottom: calc(clamp(30px,4.4vh,56px) + clamp(56px,7vh,90px));
+    display: flex; align-items: center; gap: clamp(10px,1.2vw,18px);
+    padding: clamp(10px,1.2vh,18px) clamp(16px,1.8vw,26px);
+    max-width: min(46vw, 620px);
+    background: linear-gradient(105deg, rgba(24,20,8,0.97), rgba(18,18,24,0.97));
+    border: 2px solid var(--gold); border-radius: 16px;
+    box-shadow: 0 12px 50px rgba(0,0,0,0.7), 0 0 34px rgba(245,200,66,0.3);
+    opacity: 0; transform: translateX(-40px) scale(0.94);
+    transition: opacity 0.55s ease, transform 0.6s cubic-bezier(.18,1.15,.34,1);
+    pointer-events: none;
+  }
+  .tv-logro.show { opacity: 1; transform: none; }
+  .tv-logro-emoji { font-size: clamp(30px,3.4vw,54px); line-height: 1; flex-shrink: 0;
+    filter: drop-shadow(0 3px 10px rgba(0,0,0,0.6)); animation: logroPop 0.7s cubic-bezier(.2,1.4,.4,1); }
+  @keyframes logroPop { 0% { transform: scale(0.2) rotate(-25deg); } 100% { transform: none; } }
+  .tv-logro-body { min-width: 0; }
+  .tv-logro-lbl { font-size: clamp(8px,0.75vw,11px); font-weight: 900; letter-spacing: 0.22em;
+    text-transform: uppercase; color: var(--gold); opacity: 0.9; }
+  .tv-logro-title { font-size: clamp(15px,1.7vw,26px); font-weight: 900; color: #fff; line-height: 1.15; margin-top: 2px; }
+  .tv-logro-who { font-size: clamp(12px,1.3vw,20px); font-weight: 800; color: var(--gold); margin-top: 3px;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .tv-logro-desc { font-size: clamp(9px,0.9vw,13px); color: var(--muted); margin-top: 3px; }
 
   /* ── MURO DE FOTOS ── */
   .tv-wall {
@@ -10903,6 +11026,12 @@ function openTVMode() {
 
 <div class="tv-footer" id="tv-footer">Actualizando...</div>
 
+<!-- ── MIENTRAS TANTO ── -->
+<div class="tv-idle" id="tv-idle"></div>
+
+<!-- ── LOGRO DESBLOQUEADO ── -->
+<div class="tv-logro" id="tv-logro"></div>
+
 <!-- ── MURO DE FOTOS ── -->
 <div class="tv-wall" id="tv-wall">
   <img id="tv-wall-img" alt="">
@@ -11063,6 +11192,10 @@ const F2_FIXTURE   = ${f2Fix};
 const TV_PHASE     = ${tvPhaseJson}; // 'fase1' | 'fase2' | 'both'
 const RULES_INIT   = ${rulesStr};    // reglas sembradas desde el padre (clave en file://)
 const ENTITY_COLORS_INIT = ${colorsStr}; // colores custom por jugador/equipo
+let   MIIS_INIT = ${miisStr}; // personalizacion (pose/accesorio) por jugador
+function tvMii(n){ try{ const raw=localStorage.getItem('ndj_miis'); if(raw){ const o=JSON.parse(raw); if(o&&o[n]) return o[n]; } }catch(e){} return MIIS_INIT[n]||null; }
+function tvPose(n,f){ const m=tvMii(n); return (m&&m.pose)?m.pose:f; }
+function tvAcc(n){ const m=tvMii(n); return (m&&m.acc)?m.acc:null; }
 const GUEST_URL    = ${guestUrlJson}; // link a participante.html (calculado en la ventana principal)
 
 // ── QR de invitados: siempre visible, se dibuja solo al abrir el TV ──
@@ -11122,11 +11255,11 @@ function tvFigureHtml(name, color, size, pose, photos) {
     const ph = tvPhotosFor(name, photos);
     const s2 = Math.round(size * 0.86);
     return '<div class="mii-duo">'
-      + '<div class="mii-duo-fig mii-duo-l">' + miiFigureSVG(color, s2, 'hug-right', ph[0]) + '</div>'
-      + '<div class="mii-duo-fig mii-duo-r">' + miiFigureSVG(color, s2, 'hug-left',  ph[1]) + '</div>'
+      + '<div class="mii-duo-fig mii-duo-l">' + miiFigureSVG(tvEntityColor(parts[0], 0) || color, s2, 'hug-right', ph[0], tvAcc(parts[0])) + '</div>'
+      + '<div class="mii-duo-fig mii-duo-r">' + miiFigureSVG(tvEntityColor(parts[1], 1) || color, s2, 'hug-left',  ph[1], tvAcc(parts[1])) + '</div>'
       + '</div>';
   }
-  return miiFigureSVG(color, size, pose, photos[name] || null);
+  return miiFigureSVG(color, size, tvPose(name, pose), photos[name] || null, tvAcc(name));
 }
 function tvAvatarHtml(name, idx, photos) {
   const parts = tvMembers(name);
@@ -11177,7 +11310,7 @@ function lighten(hex, amt) {
   return 'rgb('+r+','+g+','+b+')';
 }
 
-function miiFigureSVG(color, size, pose, photoDataUrl) {
+function miiFigureSVG(color, size, pose, photoDataUrl, acc) {
   const s=size, uid='tv'+Math.random().toString(36).slice(2,8), cx=s/2;
   const headR=s*0.215, headCy=headR+s*0.01, neckT=headCy+headR;
   const torsoT=neckT+s*0.04, torsoH=s*0.22, torsoW=s*0.38;
@@ -11195,6 +11328,18 @@ function miiFigureSVG(color, size, pose, photoDataUrl) {
   } else if(pose==='side'){
     aL='<rect x="'+(torsoL-armW-s*0.01)+'" y="'+armShY+'" width="'+armW+'" height="'+armH+'" rx="'+armRad+'" fill="'+light+'" transform="rotate(12,'+(torsoL-armW/2-s*0.01)+','+armShY+')"/>';
     aR='<rect x="'+(torsoR2+s*0.01)+'" y="'+armShY+'" width="'+armW+'" height="'+armH+'" rx="'+armRad+'" fill="'+light+'" transform="rotate(-12,'+(torsoR2+s*0.01+armW/2)+','+armShY+')"/>';
+  } else if(pose==='wave'){
+    aL='<rect x="'+(torsoL-armW+s*0.01)+'" y="'+armShY+'" width="'+armW+'" height="'+armH+'" rx="'+armRad+'" fill="'+light+'" transform="rotate(16,'+(torsoL-armW/2)+','+armShY+')"/>';
+    aR='<rect x="'+(torsoR2-s*0.01)+'" y="'+(armShY-armH*0.75)+'" width="'+armW+'" height="'+(armH*1.2)+'" rx="'+armRad+'" fill="'+light+'" transform="rotate(-28,'+(torsoR2-s*0.01+armW/2)+','+armShY+')"/>';
+  } else if(pose==='hip'){
+    aL='<rect x="'+(torsoL-armW*0.7)+'" y="'+armShY+'" width="'+armW+'" height="'+(armH*0.9)+'" rx="'+armRad+'" fill="'+light+'" transform="rotate(48,'+(torsoL-armW*0.7+armW/2)+','+armShY+')"/>';
+    aR='<rect x="'+(torsoR2-armW*0.3)+'" y="'+armShY+'" width="'+armW+'" height="'+(armH*0.9)+'" rx="'+armRad+'" fill="'+light+'" transform="rotate(-48,'+(torsoR2-armW*0.3+armW/2)+','+armShY+')"/>';
+  } else if(pose==='hug-right'||pose==='hug-left'){
+    const _up_r='<rect x="'+(torsoR2-s*0.01)+'" y="'+(armShY-armH*0.55)+'" width="'+armW+'" height="'+(armH*1.15)+'" rx="'+armRad+'" fill="'+light+'" transform="rotate(-72,'+(torsoR2-s*0.01+armW/2)+','+armShY+')"/>';
+    const _up_l='<rect x="'+(torsoL-armW+s*0.01)+'" y="'+(armShY-armH*0.55)+'" width="'+armW+'" height="'+(armH*1.15)+'" rx="'+armRad+'" fill="'+light+'" transform="rotate(72,'+(torsoL-armW+s*0.01+armW/2)+','+armShY+')"/>';
+    const _out_l='<rect x="'+(torsoL-armW+s*0.01)+'" y="'+armShY+'" width="'+armW+'" height="'+armH+'" rx="'+armRad+'" fill="'+light+'" transform="rotate(14,'+(torsoL-armW/2)+','+armShY+')"/>';
+    const _out_r='<rect x="'+(torsoR2-s*0.01)+'" y="'+armShY+'" width="'+armW+'" height="'+armH+'" rx="'+armRad+'" fill="'+light+'" transform="rotate(-14,'+(torsoR2-s*0.01+armW/2)+','+armShY+')"/>';
+    if(pose==='hug-right'){ aL=_out_l; aR=_up_r; } else { aL=_up_l; aR=_out_r; }
   } else {
     aL='<rect x="'+(torsoL-armW)+'" y="'+armShY+'" width="'+armW+'" height="'+armH+'" rx="'+armRad+'" fill="'+light+'" transform="rotate(22,'+(torsoL-armW/2)+','+armShY+')"/>';
     aR='<rect x="'+torsoR2+'" y="'+armShY+'" width="'+armW+'" height="'+armH+'" rx="'+armRad+'" fill="'+light+'" transform="rotate(-22,'+(torsoR2+armW/2)+','+armShY+')"/>';
@@ -11213,7 +11358,13 @@ function miiFigureSVG(color, size, pose, photoDataUrl) {
     const eRx=headR*0.115,eRy=headR*0.14,eY=headCy-headR*0.05,eOff=headR*0.3,smR=headR*0.28;
     headEl='<defs><radialGradient id="hg'+uid+'" cx="40%" cy="30%" r="65%"><stop offset="0%" stop-color="'+skinBase+'"/><stop offset="100%" stop-color="'+skinDark+'"/></radialGradient></defs><circle cx="'+cx+'" cy="'+headCy+'" r="'+headR+'" fill="url(#hg'+uid+')" stroke="'+light+'" stroke-width="'+(s*0.02)+'"/><ellipse cx="'+(cx-eOff)+'" cy="'+eY+'" rx="'+eRx+'" ry="'+eRy+'" fill="#2a1f14"/><ellipse cx="'+(cx+eOff)+'" cy="'+eY+'" rx="'+eRx+'" ry="'+eRy+'" fill="#2a1f14"/><circle cx="'+(cx-eOff+eRx*0.4)+'" cy="'+(eY-eRy*0.35)+'" r="'+(eRx*0.38)+'" fill="rgba(255,255,255,0.75)"/><circle cx="'+(cx+eOff+eRx*0.4)+'" cy="'+(eY-eRy*0.35)+'" r="'+(eRx*0.38)+'" fill="rgba(255,255,255,0.75)"/><path d="M'+(cx-smR)+','+(headCy+headR*0.22)+' Q'+cx+','+(headCy+headR*0.52)+' '+(cx+smR)+','+(headCy+headR*0.22)+'" stroke="#2a1f14" stroke-width="'+(s*0.025)+'" fill="none" stroke-linecap="round"/>';
   }
-  return '<svg width="'+s+'" height="'+s+'" viewBox="0 0 '+s+' '+s+'" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">'+aL+aR+torsoEl+legLEl+legREl+sL+sR+neckEl+headEl+'</svg>';
+  let accEl='';
+  if(acc){
+    const ax=cx, ay=headCy-headR*0.72, fs=headR*1.25;
+    const EM={gorra:'\u{1F9E2}',corona:'\u{1F451}',lentes:'\u{1F576}\uFE0F',sombrero:'\u{1F3A9}',vincha:'\u{1F380}',casco:'\u{26D1}\uFE0F',fuego:'\u{1F525}',estrella:'\u{2B50}'};
+    if(EM[acc]) accEl='<text x="'+cx+'" y="'+ay+'" font-size="'+fs+'" text-anchor="middle" dominant-baseline="middle">'+EM[acc]+'</text>';
+  }
+  return '<svg width="'+s+'" height="'+s+'" viewBox="0 0 '+s+' '+s+'" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">'+aL+aR+torsoEl+legLEl+legREl+sL+sR+neckEl+headEl+accEl+'</svg>';
 }
 
 function getPoints(type, state, PLAYERS, TEAMS) {
@@ -11338,10 +11489,23 @@ function renderTV() {
   window._tvLastState   = state;
   window._tvLastPlayers = PLAYERS;
   window._tvLastTeams   = TEAMS;
+  // Cambió algo real → cortamos el modo "mientras tanto" y buscamos logros nuevos
+  try {
+    const sig = JSON.stringify([state.f1, state.f2, (state.impostor || {}).rounds, state.comodines]);
+    if (sig !== window._tvLastSig) {
+      window._tvLastSig = sig;
+      _idleLastChange = Date.now();
+      const ib = document.getElementById('tv-idle');
+      if (ib) ib.classList.remove('show');
+      _idleOn = false;
+    }
+  } catch(e) {}
+  scanLogros(state, PLAYERS, TEAMS);
   if (!window._relatorStarted) {
     window._relatorStarted = true;
     startRelator();
     startWall();
+    startIdle();
   }
   renderEstado(state);
 }
@@ -11459,6 +11623,286 @@ function buildTickerItems(state, PLAYERS, TEAMS) {
 
 // ── RELATOR: frases automáticas según lo que va pasando ──────────────
 let _relatorQueue = [], _relatorSeen = {}, _relatorTimer = null, _relatorShowing = false;
+
+// ── LOGROS EN VIVO ───────────────────────────────────────────────────
+// Se detectan sobre el estado y se muestran en el TV apenas se desbloquean.
+// Cada uno tiene un id único: si ya se mostró, no vuelve a saltar.
+let _logrosShown = {}, _logroQueue = [], _logroBusy = false;
+try { _logrosShown = JSON.parse(localStorage.getItem('ndj_logros_tv') || '{}'); } catch(e) { _logrosShown = {}; }
+function markLogro(id) {
+  _logrosShown[id] = 1;
+  try { localStorage.setItem('ndj_logros_tv', JSON.stringify(_logrosShown)); } catch(e) {}
+}
+
+function detectLogros(state, PLAYERS, TEAMS) {
+  const found = [];
+  const short = n => String(n || '').split('/')[0].trim().split(' ')[0];
+  const add = (id, emoji, title, who, desc) => found.push({ id: id, emoji: emoji, title: title, who: who, desc: desc });
+
+  // Orden cronológico de los resultados de Fase 1 (por ronda y por orden del fixture)
+  const f1Seq = [];
+  try {
+    F1_FIXTURE.forEach(m => {
+      const k = m[0] + '-' + m[1] + '-' + m[2];
+      const res = state.f1[k];
+      if (res) f1Seq.push({ key: k, r: m[0], a: m[1], b: m[2], res: res });
+    });
+  } catch(e) {}
+
+  // "Primera sangre" — el primer ganador de la noche
+  if (f1Seq.length) {
+    const first = f1Seq.find(x => x.res.winner !== 'empate');
+    if (first) {
+      const w = PLAYERS[first.res.winner];
+      if (w) add('primera-sangre', '\u{1F4A5}', 'Primera Sangre', w, 'Ganó el primer duelo de la noche');
+    }
+  }
+
+  // Rachas: doblete, triplete, imparable
+  const streaks = {};
+  f1Seq.forEach(x => {
+    if (x.res.winner === 'empate') { streaks[PLAYERS[x.a]] = 0; streaks[PLAYERS[x.b]] = 0; return; }
+    const w = PLAYERS[x.res.winner];
+    const l = PLAYERS[x.res.winner === x.a ? x.b : x.a];
+    streaks[w] = (streaks[w] || 0) + 1;
+    streaks[l] = 0;
+    if (streaks[w] === 2) add('doblete-' + w, '\u26A1', 'Doblete', w, 'Dos victorias al hilo');
+    if (streaks[w] === 3) add('triplete-' + w, '\u{1F525}', 'Triplete', w, 'Tres victorias seguidas');
+    if (streaks[w] === 4) add('imparable-' + w, '\u{1F680}', 'Imparable', w, 'Cuatro victorias sin perder');
+    if (x.res.bonus) add('bonus-' + x.key, '\u2B50', 'Con Estilo', w, 'Ganó con bonus incluido');
+  });
+
+  // "Superviviente" — ganó un duelo estando último en la tabla
+  try {
+    const pts = getPoints('f1', state, PLAYERS, TEAMS) || [];
+    if (pts.length) {
+      const sorted = PLAYERS.map((n, i) => ({ n: n, t: pts[i] ? pts[i].total : 0 })).sort((a, b) => a.t - b.t);
+      const lastName = sorted.length ? sorted[0].n : null;
+      const lastWin = f1Seq.slice().reverse().find(x => x.res.winner !== 'empate' && PLAYERS[x.res.winner] === lastName);
+      if (lastName && lastWin) add('superviviente-' + lastWin.key, '\u{1F9DF}', 'Superviviente', lastName, 'Ganó estando último en la tabla');
+    }
+  } catch(e) {}
+
+  // Impostor
+  try {
+    const rounds = (state.impostor && state.impostor.rounds) || [];
+    rounds.forEach((rd, i) => {
+      if (!rd || !rd.impostorName) return;
+      if (rd.mode === 'noDescubierto')
+        add('villano-' + i, '\u{1F608}', 'El Villano', rd.impostorName, 'Fue impostor y nadie lo descubrió');
+      else
+        add('cazador-' + i, '\u{1F50D}', 'Cazado', rd.impostorName, 'Lo descubrieron como impostor');
+    });
+  } catch(e) {}
+
+  // Fase 2
+  try {
+    const f2Seq = [];
+    F2_FIXTURE.forEach(m => {
+      const k = m[0] + '-' + m[1] + '-' + m[2];
+      if (state.f2[k]) f2Seq.push({ key: k, a: m[1], b: m[2], res: state.f2[k] });
+    });
+    const tstreaks = {};
+    f2Seq.forEach(x => {
+      if (x.res.winner === 'empate') { tstreaks[TEAMS[x.a]] = 0; tstreaks[TEAMS[x.b]] = 0; return; }
+      const w = TEAMS[x.res.winner];
+      const l = TEAMS[x.res.winner === x.a ? x.b : x.a];
+      tstreaks[w] = (tstreaks[w] || 0) + 1;
+      tstreaks[l] = 0;
+      if (tstreaks[w] === 2) add('duo-doblete-' + w, '\u{1F91D}', 'Dupla Encendida', w, 'Dos victorias seguidas en equipo');
+      if (tstreaks[w] === 3) add('duo-triplete-' + w, '\u{1F3C6}', 'Dupla Imparable', w, 'Tres victorias al hilo');
+    });
+  } catch(e) {}
+
+  // Comodines
+  try {
+    (state.comodines || []).forEach(c => {
+      if (c.status !== 'done') return;
+      if (c.key === 'robo')  add('ladron-' + c.id, '\u{1F977}', 'Ladrón', c.player, c.note || 'Le robó un punto a otro');
+      if (c.key === 'peaje') add('peaje-' + c.id, '\u{1F4B8}', 'Mala Racha', c.player, 'La ruleta le sacó un punto');
+    });
+  } catch(e) {}
+
+  return found;
+}
+
+function pushLogro(l) {
+  if (_logrosShown[l.id]) return;
+  markLogro(l.id);
+  _logroQueue.push(l);
+  drainLogros();
+}
+function drainLogros() {
+  if (_logroBusy) return;
+  const l = _logroQueue.shift();
+  if (!l) return;
+  const box = document.getElementById('tv-logro');
+  if (!box) return;
+  _logroBusy = true;
+  box.innerHTML =
+    '<div class="tv-logro-emoji">' + l.emoji + '</div>'
+    + '<div class="tv-logro-body">'
+    + '  <div class="tv-logro-lbl">Logro desbloqueado</div>'
+    + '  <div class="tv-logro-title">' + l.title + '</div>'
+    + (l.who ? '<div class="tv-logro-who">' + l.who + '</div>' : '')
+    + (l.desc ? '<div class="tv-logro-desc">' + l.desc + '</div>' : '')
+    + '</div>';
+  box.classList.add('show');
+  try { logroSound(); } catch(e) {}
+  setTimeout(() => {
+    box.classList.remove('show');
+    setTimeout(() => { _logroBusy = false; drainLogros(); }, 700);
+  }, 5200);
+}
+function logroSound() {
+  const AC = window.AudioContext || window.webkitAudioContext;
+  if (!AC) return;
+  if (!window._tvAC) window._tvAC = new AC();
+  const ctx = window._tvAC;
+  if (ctx.state === 'suspended') ctx.resume();
+  const t = ctx.currentTime;
+  [1046.5, 1318.5, 1568, 2093].forEach((f, i) => {
+    const o = ctx.createOscillator(), g = ctx.createGain();
+    o.type = 'triangle'; o.frequency.setValueAtTime(f, t + i * 0.06);
+    g.gain.setValueAtTime(0.0, t + i * 0.06);
+    g.gain.linearRampToValueAtTime(0.12, t + i * 0.06 + 0.02);
+    g.gain.exponentialRampToValueAtTime(0.001, t + i * 0.06 + 0.55);
+    o.connect(g); g.connect(ctx.destination);
+    o.start(t + i * 0.06); o.stop(t + i * 0.06 + 0.6);
+  });
+}
+function scanLogros(state, PLAYERS, TEAMS) {
+  try {
+    const found = detectLogros(state, PLAYERS, TEAMS);
+    // Primer scan de la sesión: marcar todo lo viejo como visto sin mostrarlo
+    if (!window._logrosPrimed) {
+      window._logrosPrimed = true;
+      const isFresh = Object.keys(_logrosShown).length === 0;
+      found.forEach(l => { if (!isFresh) markLogro(l.id); });
+      if (!isFresh) return;
+    }
+    found.forEach(pushLogro);
+  } catch(e) {}
+}
+
+// ── PANTALLA "MIENTRAS TANTO" ────────────────────────────────────────
+// Si pasan varios minutos sin cargar un resultado, el TV pasa a un modo de
+// datos curiosos para no quedarse mostrando siempre lo mismo.
+let _idleLastChange = Date.now(), _idleTimer = null, _idleOn = false, _idleIdx = 0;
+const IDLE_AFTER_MS = 150000; // 2 min y medio sin novedades
+
+function buildIdleFacts(state, PLAYERS, TEAMS) {
+  const facts = [];
+  const short = n => String(n || '').split('/')[0].trim().split(' ')[0];
+  let ppts = [], tpts = [];
+  try { ppts = getPoints('f1', state, PLAYERS, TEAMS) || []; } catch(e) {}
+  try { tpts = getPoints('f2', state, PLAYERS, TEAMS) || []; } catch(e) {}
+
+  // Porcentaje de victorias
+  try {
+    const rec = {};
+    F1_FIXTURE.forEach(m => {
+      const res = state.f1[m[0] + '-' + m[1] + '-' + m[2]];
+      if (!res) return;
+      [m[1], m[2]].forEach(i => { rec[PLAYERS[i]] = rec[PLAYERS[i]] || { w: 0, p: 0 }; rec[PLAYERS[i]].p++; });
+      if (res.winner !== 'empate') { const w = PLAYERS[res.winner]; if (rec[w]) rec[w].w++; }
+    });
+    const elig = Object.keys(rec).filter(n => rec[n].p >= 2);
+    if (elig.length) {
+      const best = elig.sort((a, b) => (rec[b].w / rec[b].p) - (rec[a].w / rec[a].p))[0];
+      const pct = Math.round((rec[best].w / rec[best].p) * 100);
+      if (pct > 0) facts.push({ big: pct + '%', lbl: 'de victorias', sub: short(best) + ' \u2014 ' + rec[best].w + ' de ' + rec[best].p + ' duelos' });
+      const worst = elig.sort((a, b) => (rec[a].w / rec[a].p) - (rec[b].w / rec[b].p))[0];
+      const wpct = Math.round((rec[worst].w / rec[worst].p) * 100);
+      if (worst !== best) facts.push({ big: wpct + '%', lbl: 'de victorias', sub: short(worst) + ' la est\u00E1 sufriendo' });
+    }
+  } catch(e) {}
+
+  // Progreso
+  try {
+    const f1Done = F1_FIXTURE.filter(m => state.f1[m[0] + '-' + m[1] + '-' + m[2]]).length;
+    const f2Done = F2_FIXTURE.filter(m => state.f2[m[0] + '-' + m[1] + '-' + m[2]]).length;
+    if (f1Done < F1_FIXTURE.length) facts.push({ big: String(F1_FIXTURE.length - f1Done), lbl: 'duelos restantes', sub: 'para cerrar la Fase Individual' });
+    if (f2Done < F2_FIXTURE.length) facts.push({ big: String(F2_FIXTURE.length - f2Done), lbl: 'duelos restantes', sub: 'para cerrar la Fase Grupal' });
+    const totalDone = f1Done + f2Done, totalAll = F1_FIXTURE.length + F2_FIXTURE.length;
+    if (totalAll) facts.push({ big: Math.round((totalDone / totalAll) * 100) + '%', lbl: 'de la noche jugada', sub: totalDone + ' de ' + totalAll + ' duelos' });
+  } catch(e) {}
+
+  // Líderes
+  try {
+    if (ppts.length) {
+      const s = PLAYERS.map((n, i) => ({ n: n, t: ppts[i] ? ppts[i].total : 0 })).sort((a, b) => b.t - a.t);
+      if (s[0] && s[0].t > 0) facts.push({ big: String(s[0].t), lbl: 'puntos', sub: short(s[0].n) + ' lidera la Fase Individual' });
+      if (s.length >= 2 && s[0].t > 0) facts.push({ big: String(s[0].t - s[1].t), lbl: 'puntos de ventaja', sub: 'entre ' + short(s[0].n) + ' y ' + short(s[1].n) });
+    }
+    if (tpts.length && TEAMS.length) {
+      const s2 = TEAMS.map((n, i) => ({ n: n, t: tpts[i] ? tpts[i].total : 0 })).sort((a, b) => b.t - a.t);
+      if (s2[0] && s2[0].t > 0) facts.push({ big: String(s2[0].t), lbl: 'puntos', sub: s2[0].n + ' lidera la Fase Grupal' });
+    }
+  } catch(e) {}
+
+  // Bonus conseguidos
+  try {
+    const bonusCount = Object.values(state.f1 || {}).filter(r => r && r.bonus).length
+                     + Object.values(state.f2 || {}).filter(r => r && r.bonus).length;
+    if (bonusCount) facts.push({ big: String(bonusCount), lbl: 'bonus conseguidos', sub: 'en toda la noche' });
+  } catch(e) {}
+
+  // Impostor
+  try {
+    const rounds = (state.impostor && state.impostor.rounds) || [];
+    if (rounds.length) {
+      const escaped = rounds.filter(r => r.mode === 'noDescubierto').length;
+      facts.push({ big: escaped + '/' + rounds.length, lbl: 'impostores impunes', sub: escaped ? 'se salieron con la suya' : 'los agarraron a todos' });
+    }
+  } catch(e) {}
+
+  // Próximo partido
+  try {
+    const nxt = F1_FIXTURE.find(m => !state.f1[m[0] + '-' + m[1] + '-' + m[2]]);
+    if (nxt) facts.push({ big: '\u{1F3AE}', lbl: 'Pr\u00F3ximo duelo', sub: short(PLAYERS[nxt[1]]) + '  vs  ' + short(PLAYERS[nxt[2]]) });
+    else {
+      const nxt2 = F2_FIXTURE.find(m => !state.f2[m[0] + '-' + m[1] + '-' + m[2]]);
+      if (nxt2) facts.push({ big: '\u{1F3AE}', lbl: 'Pr\u00F3ximo duelo', sub: (TEAMS[nxt2[1]] || '?') + '  vs  ' + (TEAMS[nxt2[2]] || '?') });
+    }
+  } catch(e) {}
+
+  // Fotos del muro
+  try { if (_tvWall && _tvWall.length) facts.push({ big: String(_tvWall.length), lbl: 'fotos en el muro', sub: 'la noche va quedando registrada' }); } catch(e) {}
+
+  return facts;
+}
+
+function showIdleFact() {
+  const box = document.getElementById('tv-idle');
+  if (!box) return;
+  const st = window._tvLastState;
+  if (!st) return;
+  const facts = buildIdleFacts(st, window._tvLastPlayers || [], window._tvLastTeams || []);
+  if (!facts.length) { box.classList.remove('show'); return; }
+  box.classList.remove('show');
+  setTimeout(() => {
+    _idleIdx = (_idleIdx + 1) % facts.length;
+    const f = facts[_idleIdx];
+    box.innerHTML =
+      '<div class="tv-idle-lbl">Mientras tanto\u2026</div>'
+      + '<div class="tv-idle-big">' + f.big + '</div>'
+      + '<div class="tv-idle-mid">' + f.lbl + '</div>'
+      + '<div class="tv-idle-sub">' + f.sub + '</div>';
+    box.classList.add('show');
+  }, 500);
+}
+function idleTick() {
+  const box = document.getElementById('tv-idle');
+  if (!box) return;
+  const idle = (Date.now() - _idleLastChange) > IDLE_AFTER_MS;
+  if (idle) { _idleOn = true; showIdleFact(); }
+  else if (_idleOn) { _idleOn = false; box.classList.remove('show'); }
+}
+function startIdle() {
+  if (_idleTimer) clearInterval(_idleTimer);
+  _idleTimer = setInterval(idleTick, 9000);
+}
 
 // ── MURO DE FOTOS en el TV: rota una foto cada tanto ─────────────────
 let _tvWall = [], _tvWallIdx = 0, _tvWallTimer = null;
@@ -11705,6 +12149,10 @@ function renderTicker(state, PLAYERS, TEAMS) {
       window._tvCachedWall = e.data.data;
       try { localStorage.setItem('ndj_wall', e.data.data); } catch(err) {}
     }
+    if (e.data && e.data.type === 'ndj_miis') {
+      try { localStorage.setItem('ndj_miis', e.data.data); } catch(err) {}
+      renderTV();
+    }
   });
 
   // ── 0b. Pull desde window.opener (solo si el origin lo permite) ──
@@ -11742,6 +12190,10 @@ function renderTicker(state, PLAYERS, TEAMS) {
       if (e.data && e.data.key === 'ndj_wall') {
         window._tvCachedWall = e.data.data;
         try { localStorage.setItem('ndj_wall', e.data.data); } catch(err) {}
+      }
+      if (e.data && e.data.key === 'ndj_miis') {
+        try { localStorage.setItem('ndj_miis', e.data.data); } catch(err) {}
+        renderTV();
       }
     };
   } catch(e) { console.warn('BroadcastChannel no disponible:', e); }
@@ -11955,6 +12407,57 @@ window._ndjWall = JSON.stringify(_wall);
   };
   setTimeout(tryRead, 1500);
   setInterval(tryRead, 25000); // el muro se va llenando durante la noche
+})();
+
+// ── APUESTAS + MII: llegan desde los celulares vía Firebase ──────────
+(function syncGuestData() {
+  const pull = () => {
+    if (!(window._fbReady && window._fbRead)) { setTimeout(pull, 1200); return; }
+    // Apuestas
+    window._fbRead('bets').then(data => {
+      if (!data) return;
+      try {
+        const remote = JSON.parse(data);
+        if (!remote || typeof remote !== 'object') return;
+        state.bets = state.bets || {};
+        let changed = false;
+        Object.keys(remote).forEach(key => {
+          state.bets[key] = state.bets[key] || {};
+          Object.keys(remote[key]).forEach(who => {
+            if (state.bets[key][who] !== remote[key][who]) { state.bets[key][who] = remote[key][who]; changed = true; }
+          });
+        });
+        if (changed) {
+          try { localStorage.setItem('ndj_state', JSON.stringify(state)); } catch(e) {}
+          window._ndjState = JSON.stringify(state);
+          const tab = document.querySelector('.nav-tab.active');
+          if (tab && tab.dataset.tab === 'fase1') renderFase1();
+        }
+      } catch(e) {}
+    }).catch(() => {});
+    // Personalización de figuras (color / pose / accesorio)
+    window._fbRead('miis').then(data => {
+      if (!data) return;
+      try {
+        const remote = JSON.parse(data);
+        if (!remote || typeof remote !== 'object') return;
+        let changed = false;
+        Object.keys(remote).forEach(name => {
+          const m = remote[name] || {};
+          if (m.color && _entityColors[name] !== m.color) { _entityColors[name] = m.color; changed = true; }
+          if (!_miis[name] || JSON.stringify(_miis[name]) !== JSON.stringify(m)) { _miis[name] = m; changed = true; }
+        });
+        if (changed) {
+          saveEntityColors(); saveMiis();
+          const tab = document.querySelector('.nav-tab.active');
+          if (tab && tab.dataset.tab === 'fase1') renderFase1();
+          else if (tab && tab.dataset.tab === 'fase2') renderFase2();
+        }
+      } catch(e) {}
+    }).catch(() => {});
+  };
+  setTimeout(pull, 2000);
+  setInterval(pull, 12000);
 })();
 loadRulesConfig();
 loadFinalConfig();
