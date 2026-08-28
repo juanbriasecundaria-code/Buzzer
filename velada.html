@@ -11512,7 +11512,7 @@ function renderTV() {
     startRelator();
     startWall();
     startIdle();
-    initDraggables();
+    if (!window._dragBooted) { window._dragBooted = true; try { initDraggables(); } catch(e) {} }
   }
   renderEstado(state);
 }
@@ -11993,6 +11993,19 @@ function initDraggables() {
     });
   });
 }
+// Enganchar apenas carga el TV, sin esperar al primer dato del torneo
+(function bootDrag() {
+  if (window._dragBooted) return;
+  const go = () => {
+    if (window._dragBooted) return;
+    if (!document.querySelectorAll('.tv-drag').length) return;
+    window._dragBooted = true;
+    try { initDraggables(); } catch (e) { console.warn('drag:', e); }
+  };
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', go);
+  else go();
+  setTimeout(go, 500);
+})();
 
 // ── MURO DE FOTOS en el TV: rota una foto cada tanto ─────────────────
 let _tvWall = [], _tvWallIdx = 0, _tvWallTimer = null;
@@ -12911,6 +12924,7 @@ document.addEventListener('keydown', function(e) {
   }
   requestAnimationFrame(tick);
 })();
+
 
 </script>
 </body>
