@@ -2393,6 +2393,16 @@ body.started .velada-bg-scrim { display: block; }
 .op-rail.all-in .op-playercard .op-label-tag { display: none; }
 .op-rail.all-in .op-playercard .op-member { font-size: clamp(0.6rem, 2.2vw, 0.82rem); }
 .op-rail.all-in .op-playercard .op-pcard-num { font-size: 0.75rem; }
+/* Cuando hay muchos participantes, se acomodan en varias filas en vez de una sola fila apretada */
+.op-rail.all-in.wrap-rows {
+  display: grid;
+  grid-template-columns: repeat(var(--allin-cols, 5), min(22vw, 116px));
+  justify-content: center;
+  align-content: center;
+  row-gap: clamp(10px, 2.4vw, 22px);
+  overflow: visible;
+}
+.op-rail.all-in.wrap-rows .op-playercard { width: 100%; }
 
 .op-pcard-top { display: flex; align-items: flex-start; justify-content: space-between; width: 100%; margin-bottom: 0.2rem; position: relative; z-index: 2; }
 .op-pcard-badge { font-size: 9px; font-weight: 900; letter-spacing: 0.2em; text-transform: uppercase;
@@ -9754,6 +9764,14 @@ function _runCeremony({ items, title, eyebrow, labelFn, colorFn, figFn, finishTi
       rail.classList.add('all-in');
       rail.querySelectorAll('.op-playercard').forEach(function(c) { c.classList.remove('past'); });
       rail.scrollLeft = 0;
+      // Con muchos participantes, repartimos las tarjetas en varias filas
+      // en vez de una sola fila larga (ej: 10 → 5 arriba y 5 abajo).
+      const n = items.length;
+      const rows = n > 12 ? 3 : (n > 6 ? 2 : 1);
+      const cols = Math.ceil(n / rows);
+      rail.classList.toggle('wrap-rows', rows > 1);
+      if (rows > 1) rail.style.setProperty('--allin-cols', cols);
+      else rail.style.removeProperty('--allin-cols');
     }
     const outro = document.createElement('div');
     outro.className = 'op-outro';
