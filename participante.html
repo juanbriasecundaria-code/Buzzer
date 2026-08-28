@@ -129,12 +129,25 @@
   .gh-bet-card, .gh-mii-card { background: var(--surface); border: 1px solid var(--border2); border-radius: 14px; padding: 1rem; margin-bottom: 1rem; }
   .gh-bet-title, .gh-mii-title { font-size: 14px; font-weight: 800; color: var(--text); margin-bottom: 0.3rem; }
   .gh-bet-sub, .gh-mii-sub { font-size: 11px; color: var(--muted); line-height: 1.5; margin-bottom: 0.8rem; }
-  .gh-bet-opts { display: flex; gap: 0.5rem; }
-  .gh-bet-opt { flex: 1; padding: 0.85rem 0.5rem; border-radius: 12px; border: 1.5px solid var(--border2); background: var(--surface2); color: var(--text); font-family: inherit; font-size: 14px; font-weight: 800; cursor: pointer; }
-  .gh-bet-opt.picked { border-color: #f5c842; background: rgba(245,200,66,0.14); color: #f5c842; }
-  .gh-bet-status { font-size: 11px; color: #4cdb7a; margin-top: 0.55rem; min-height: 14px; font-weight: 700; }
-  .gh-bet-record { font-size: 11px; color: var(--muted); margin-top: 0.5rem; padding-top: 0.5rem; border-top: 1px solid var(--border); }
-  .gh-bet-record b { color: #f5c842; }
+  .gh-b-summary { font-size: 12px; color: var(--muted); background: var(--surface2); border-radius: 10px; padding: 0.55rem 0.7rem; margin-bottom: 0.7rem; line-height: 1.5; }
+  .gh-b-summary b { color: #f5c842; }
+  .gh-b-summary.blown { background: rgba(255,95,95,0.1); border: 1px solid rgba(255,95,95,0.35); color: #ff8f8f; }
+  .gh-b-list { display: flex; flex-direction: column; gap: 0.4rem; max-height: 340px; overflow-y: auto; }
+  .gh-b-row { display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem 0.6rem; border-radius: 10px; background: var(--surface2); border: 1px solid var(--border); }
+  .gh-b-row.own { border-color: rgba(245,200,66,0.45); background: rgba(245,200,66,0.07); }
+  .gh-b-row.done { opacity: 0.72; }
+  .gh-b-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+  .gh-b-vs { font-size: 13px; font-weight: 700; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .gh-b-game { font-size: 10px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .gh-b-game b { color: #f5c842; }
+  .gh-b-opts { display: flex; gap: 0.3rem; flex-shrink: 0; }
+  .gh-b-opt { padding: 0.42rem 0.6rem; border-radius: 8px; border: 1.5px solid var(--border2); background: var(--surface); color: var(--text); font-family: inherit; font-size: 12px; font-weight: 700; cursor: pointer; max-width: 84px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .gh-b-opt.picked { border-color: #f5c842; background: rgba(245,200,66,0.16); color: #f5c842; }
+  .gh-b-mark { font-size: 11px; font-weight: 800; flex-shrink: 0; }
+  .gh-b-hit { color: #4cdb7a; }
+  .gh-b-miss { color: #ff5f5f; }
+  .gh-b-blown { color: #ff5f5f; font-size: 10px; }
+  .gh-b-none { color: var(--muted); font-weight: 500; font-size: 10px; font-style: italic; }
 
   .gh-mii-row { display: flex; align-items: flex-start; gap: 0.6rem; margin-bottom: 0.7rem; }
   .gh-mii-row > span { font-size: 10px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); min-width: 62px; padding-top: 0.4rem; flex-shrink: 0; }
@@ -420,83 +433,101 @@ function renderDashboard(myName) {
 // Si una tarjeta opcional falla, no debe tumbar todo el dashboard
 function safeBlock(fn) { try { return fn() || ''; } catch (e) { console.warn('bloque omitido:', e); return ''; } }
 
-// ── APUESTAS PRE-PARTIDO ─────────────────────────────────────
-// Solo se puede apostar si NO jugás ese duelo y todavía no se cargó el resultado.
-function nextOpenF1Match() {
-  if (!F1_FIXTURE) return null;
-  for (const m of F1_FIXTURE) {
-    const key = m[0] + '-' + m[1] + '-' + m[2];
-    if (!(latestState.f1 || {})[key]) return { key: key, r: m[0], a: m[1], b: m[2], g: m[3] };
-  }
-  return null;
-}
+// ── APUESTAS ─────────────────────────────────────────────────
+// Se puede apostar en TODOS los duelos, incluido el propio.
+// Cada acierto = 1 pt. Pero si apostás a tu propio duelo y lo perdés,
+// se te borran todos los puntos que hayas ganado apostando.
 function myBetTally(myName) {
   const bets = latestState.bets || {};
-  let hits = 0, total = 0;
+  const myIdx = PLAYERS.indexOf(myName);
+  let hits = 0, misses = 0, blown = false, pending = 0;
   Object.keys(bets).forEach(key => {
     const b = bets[key][myName];
     if (typeof b !== 'number') return;
     const res = (latestState.f1 || {})[key];
-    if (!res || res.winner === 'empate') return;
-    total++;
+    if (!res) { pending++; return; }
+    if (res.winner === 'empate') return;
+    const p = key.split('-').map(Number);
+    const own = (p[1] === myIdx || p[2] === myIdx);
     if (res.winner === b) hits++;
+    else { misses++; if (own) blown = true; }
   });
-  return { hits: hits, total: total };
+  return { hits: hits, misses: misses, blown: blown, pending: pending, net: blown ? 0 : hits };
 }
+
 function renderBetCard(myName, myIdx) {
-  const nx = nextOpenF1Match();
-  const tally = myBetTally(myName);
-  const record = tally.total
-    ? `<div class="gh-bet-record">Tu récord: <b>${tally.hits}</b> de ${tally.total} · <b>+${tally.hits}</b> pt${tally.hits === 1 ? '' : 's'}</div>`
-    : '';
-  if (!nx) {
-    return `<div class="gh-bet-card">
-      <div class="gh-bet-title">🃏 Apuestas</div>
-      <div class="gh-bet-sub">No hay más duelos pendientes en la Fase Individual.</div>
-      ${record}
+  const bets = latestState.bets || {};
+  const t = myBetTally(myName);
+
+  const rows = (F1_FIXTURE || []).map(m => {
+    const key = m[0] + '-' + m[1] + '-' + m[2];
+    const res = (latestState.f1 || {})[key];
+    const own = (m[1] === myIdx || m[2] === myIdx);
+    const mine = (bets[key] || {})[myName];
+    const nA = String(PLAYERS[m[1]] || '?').split(' ')[0];
+    const nB = String(PLAYERS[m[2]] || '?').split(' ')[0];
+    const game = GAMES_F1_DEFAULT[m[3]] || '';
+
+    // Ya jugado: mostramos cómo salió
+    if (res) {
+      let mark = '<span class="gh-b-none">sin apuesta</span>';
+      if (typeof mine === 'number') {
+        if (res.winner === 'empate') mark = '<span class="gh-b-none">empate</span>';
+        else if (res.winner === mine) mark = '<span class="gh-b-hit">✓ +1</span>';
+        else mark = own ? '<span class="gh-b-blown">✕ perdiste el tuyo</span>' : '<span class="gh-b-miss">✕</span>';
+      }
+      const wName = res.winner === 'empate' ? 'Empate' : String(PLAYERS[res.winner] || '?').split(' ')[0];
+      return `<div class="gh-b-row done${own ? ' own' : ''}">
+        <div class="gh-b-info"><span class="gh-b-vs">${escapeHtml(nA)} vs ${escapeHtml(nB)}</span>
+        <span class="gh-b-game">${escapeHtml(game)} · ganó ${escapeHtml(wName)}</span></div>
+        <div class="gh-b-mark">${mark}</div>
+      </div>`;
+    }
+
+    // Pendiente: se puede apostar
+    const btn = (idx, nm) => `<button class="gh-b-opt${mine === idx ? ' picked' : ''}" data-key="${key}" data-bet="${idx}">${escapeHtml(nm)}</button>`;
+    return `<div class="gh-b-row${own ? ' own' : ''}">
+      <div class="gh-b-info"><span class="gh-b-vs">${escapeHtml(nA)} vs ${escapeHtml(nB)}</span>
+      <span class="gh-b-game">${escapeHtml(game)}${own ? ' · <b>tu duelo</b>' : ''}</span></div>
+      <div class="gh-b-opts">${btn(m[1], nA)}${btn(m[2], nB)}</div>
     </div>`;
-  }
-  // Si jugás este duelo, no podés apostar
-  if (nx.a === myIdx || nx.b === myIdx) {
-    return `<div class="gh-bet-card">
-      <div class="gh-bet-title">🃏 Apuestas</div>
-      <div class="gh-bet-sub">Te toca jugar el próximo duelo — esta ronda no apostás. ¡Suerte!</div>
-      ${record}
-    </div>`;
-  }
-  const mine = ((latestState.bets || {})[nx.key] || {})[myName];
-  const nameA = PLAYERS[nx.a] || '?', nameB = PLAYERS[nx.b] || '?';
-  const gname = GAMES_F1_DEFAULT[nx.g] || '';
-  const btn = (idx, nm) => `<button class="gh-bet-opt${mine === idx ? ' picked' : ''}" data-bet="${idx}">${escapeHtml(String(nm).split(' ')[0])}</button>`;
+  }).join('');
+
+  const resume = t.blown
+    ? `<div class="gh-b-summary blown">💥 Apostaste a tu propio duelo y lo perdiste: se te anularon ${t.hits} punto${t.hits === 1 ? '' : 's'}.</div>`
+    : `<div class="gh-b-summary">Aciertos: <b>${t.hits}</b> · Puntos ganados: <b>+${t.net}</b>${t.pending ? ' · ' + t.pending + ' pendiente' + (t.pending === 1 ? '' : 's') : ''}</div>`;
+
   return `<div class="gh-bet-card">
-    <div class="gh-bet-title">🃏 ¿Quién gana el próximo?</div>
-    <div class="gh-bet-sub">${gname ? escapeHtml(gname) + ' · ' : ''}Ronda ${nx.r} · acertás = <b>+1 punto</b></div>
-    <div class="gh-bet-opts">${btn(nx.a, nameA)}${btn(nx.b, nameB)}</div>
-    <div class="gh-bet-status" id="gh-bet-status">${mine !== undefined ? '✓ Apostaste por ' + escapeHtml(String(PLAYERS[mine] || '').split(' ')[0]) : ''}</div>
-    ${record}
+    <div class="gh-bet-title">🃏 Apuestas</div>
+    <div class="gh-bet-sub">Apostá en todos los duelos: <b>cada acierto suma 1 punto</b>.<br>
+      ⚠️ Podés apostar al tuyo, pero si lo perdés <b>se te borran todos los puntos de apuestas</b>.</div>
+    ${resume}
+    <div class="gh-b-list">${rows || '<div class="gh-b-none" style="padding:0.6rem 0">Todavía no hay duelos cargados.</div>'}</div>
+    <div class="gh-bet-status" id="gh-bet-status"></div>
   </div>`;
 }
+
 function wireBetCard(myName, myIdx) {
-  const nx = nextOpenF1Match();
-  if (!nx || nx.a === myIdx || nx.b === myIdx) return;
-  document.querySelectorAll('.gh-bet-opt').forEach(b => {
+  document.querySelectorAll('.gh-b-opt').forEach(b => {
     b.addEventListener('click', async () => {
+      const key  = b.getAttribute('data-key');
       const pick = Number(b.getAttribute('data-bet'));
+      const row  = b.closest('.gh-b-row');
       const status = document.getElementById('gh-bet-status');
-      document.querySelectorAll('.gh-bet-opt').forEach(x => x.classList.remove('picked'));
+      if (row) row.querySelectorAll('.gh-b-opt').forEach(x => x.classList.remove('picked'));
       b.classList.add('picked');
       if (status) status.textContent = 'Guardando…';
       try {
-        let bets = {};
+        let all = {};
         try {
           const snap = await getDoc(doc(db, 'ndj', 'bets'));
-          if (snap.exists()) { const o = JSON.parse(snap.data().data); if (o && typeof o === 'object') bets = o; }
+          if (snap.exists()) { const o = JSON.parse(snap.data().data); if (o && typeof o === 'object') all = o; }
         } catch (e) {}
-        bets[nx.key] = bets[nx.key] || {};
-        bets[nx.key][myName] = pick;
-        await setDoc(doc(db, 'ndj', 'bets'), { data: JSON.stringify(bets), ts: Date.now() });
-        latestState.bets = bets;
-        if (status) status.textContent = '✓ Apostaste por ' + String(PLAYERS[pick] || '').split(' ')[0];
+        all[key] = all[key] || {};
+        all[key][myName] = pick;
+        await setDoc(doc(db, 'ndj', 'bets'), { data: JSON.stringify(all), ts: Date.now() });
+        latestState.bets = all;
+        if (status) status.textContent = '✓ Apuesta guardada';
       } catch (e) {
         if (status) status.textContent = 'No se pudo guardar. Probá de nuevo.';
       }
@@ -506,15 +537,6 @@ function wireBetCard(myName, myIdx) {
 
 // ── PERSONALIZAR MI FIGURA ───────────────────────────────────
 const MII_COLORS = ['#c8f060','#f5c842','#60b4f0','#ff5f5f','#4cdb7a','#c060e8','#ff9f40','#a0b4c8','#ff6ec7','#40e0d0'];
-const MII_POSES = [
-  { k:'victory', n:'Victoria' }, { k:'side', n:'Relajado' },
-  { k:'wave',    n:'Saludo'   }, { k:'hip',  n:'Canchero' },
-];
-const MII_ACCS = [
-  { k:'',         n:'—'        }, { k:'gorra',  n:'🧢' }, { k:'corona',   n:'👑' },
-  { k:'lentes',   n:'🕶️'      }, { k:'sombrero', n:'🎩' }, { k:'vincha',  n:'🎀' },
-  { k:'casco',    n:'⛑️'      }, { k:'fuego',   n:'🔥' }, { k:'estrella', n:'⭐' },
-];
 let _myMii = {};
 function loadMyMii(myName) {
   try { _myMii = JSON.parse(localStorage.getItem('ndj_my_mii') || '{}'); } catch(e) { _myMii = {}; }
@@ -524,33 +546,23 @@ function renderMiiCard(myName) {
   const m = loadMyMii(myName);
   const colors = MII_COLORS.map(c =>
     `<button class="gh-mii-color${m.color === c ? ' picked' : ''}" data-color="${c}" style="background:${c}"></button>`).join('');
-  const poses = MII_POSES.map(p =>
-    `<button class="gh-mii-opt${(m.pose || 'victory') === p.k ? ' picked' : ''}" data-pose="${p.k}">${p.n}</button>`).join('');
-  const accs = MII_ACCS.map(a =>
-    `<button class="gh-mii-opt${(m.acc || '') === a.k ? ' picked' : ''}" data-acc="${a.k}">${a.n}</button>`).join('');
   return `<div class="gh-mii-card">
-    <div class="gh-mii-title">🎨 Tu personaje</div>
-    <div class="gh-mii-sub">Elegí cómo te ves en la pantalla grande.</div>
-    <div class="gh-mii-row"><span>Color</span><div class="gh-mii-opts">${colors}</div></div>
-    <div class="gh-mii-row"><span>Pose</span><div class="gh-mii-opts">${poses}</div></div>
-    <div class="gh-mii-row"><span>Accesorio</span><div class="gh-mii-opts">${accs}</div></div>
-    <button class="gh-mii-save" id="gh-mii-save">Guardar mi personaje</button>
+    <div class="gh-mii-title">🎨 Tu color</div>
+    <div class="gh-mii-sub">Con qué color te ves en la pantalla grande.</div>
+    <div class="gh-mii-opts">${colors}</div>
+    <button class="gh-mii-save" id="gh-mii-save">Guardar</button>
     <div class="gh-mii-status" id="gh-mii-status"></div>
   </div>`;
 }
+
 function wireMiiCard(myName) {
-  const pick = (sel, attr, key) => {
-    document.querySelectorAll(sel).forEach(b => {
-      b.addEventListener('click', () => {
-        document.querySelectorAll(sel).forEach(x => x.classList.remove('picked'));
-        b.classList.add('picked');
-        _myMii[key] = b.getAttribute(attr);
-      });
+  document.querySelectorAll('.gh-mii-color').forEach(b => {
+    b.addEventListener('click', () => {
+      document.querySelectorAll('.gh-mii-color').forEach(x => x.classList.remove('picked'));
+      b.classList.add('picked');
+      _myMii.color = b.getAttribute('data-color');
     });
-  };
-  pick('.gh-mii-color', 'data-color', 'color');
-  pick('.gh-mii-opt[data-pose]', 'data-pose', 'pose');
-  pick('.gh-mii-opt[data-acc]', 'data-acc', 'acc');
+  });
 
   const btn = document.getElementById('gh-mii-save');
   if (!btn) return;
