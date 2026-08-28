@@ -125,6 +125,27 @@
   .gh-wall-btn:active { opacity: 0.8; }
   .gh-wall-status { font-size: 11px; color: var(--muted); margin-top: 0.55rem; min-height: 14px; font-weight: 600; }
   .gh-wall-status.ok { color: #4cdb7a; }
+
+  .gh-bet-card, .gh-mii-card { background: var(--surface); border: 1px solid var(--border2); border-radius: 14px; padding: 1rem; margin-bottom: 1rem; }
+  .gh-bet-title, .gh-mii-title { font-size: 14px; font-weight: 800; color: var(--text); margin-bottom: 0.3rem; }
+  .gh-bet-sub, .gh-mii-sub { font-size: 11px; color: var(--muted); line-height: 1.5; margin-bottom: 0.8rem; }
+  .gh-bet-opts { display: flex; gap: 0.5rem; }
+  .gh-bet-opt { flex: 1; padding: 0.85rem 0.5rem; border-radius: 12px; border: 1.5px solid var(--border2); background: var(--surface2); color: var(--text); font-family: inherit; font-size: 14px; font-weight: 800; cursor: pointer; }
+  .gh-bet-opt.picked { border-color: #f5c842; background: rgba(245,200,66,0.14); color: #f5c842; }
+  .gh-bet-status { font-size: 11px; color: #4cdb7a; margin-top: 0.55rem; min-height: 14px; font-weight: 700; }
+  .gh-bet-record { font-size: 11px; color: var(--muted); margin-top: 0.5rem; padding-top: 0.5rem; border-top: 1px solid var(--border); }
+  .gh-bet-record b { color: #f5c842; }
+
+  .gh-mii-row { display: flex; align-items: flex-start; gap: 0.6rem; margin-bottom: 0.7rem; }
+  .gh-mii-row > span { font-size: 10px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); min-width: 62px; padding-top: 0.4rem; flex-shrink: 0; }
+  .gh-mii-opts { display: flex; flex-wrap: wrap; gap: 0.35rem; flex: 1; }
+  .gh-mii-opt { padding: 0.4rem 0.6rem; border-radius: 9px; border: 1.5px solid var(--border2); background: var(--surface2); color: var(--text); font-family: inherit; font-size: 12px; font-weight: 700; cursor: pointer; }
+  .gh-mii-opt.picked { border-color: #c060e8; background: rgba(192,96,232,0.16); color: #c060e8; }
+  .gh-mii-color { width: 26px; height: 26px; border-radius: 50%; border: 2px solid transparent; cursor: pointer; padding: 0; }
+  .gh-mii-color.picked { border-color: #fff; box-shadow: 0 0 0 2px rgba(255,255,255,0.25); }
+  .gh-mii-save { width: 100%; padding: 0.7rem; border-radius: 12px; border: 1.5px solid #c060e8; background: rgba(192,96,232,0.12); color: #c060e8; font-family: inherit; font-size: 13px; font-weight: 800; cursor: pointer; margin-top: 0.3rem; }
+  .gh-mii-status { font-size: 11px; color: var(--muted); margin-top: 0.5rem; min-height: 14px; font-weight: 600; }
+  .gh-mii-status.ok { color: #4cdb7a; }
   .gh-switch:hover { color: var(--text); border-color: var(--border2); }
 
   .gh-loading { text-align: center; color: var(--muted); font-size: 13px; padding: 3rem 0; }
@@ -376,6 +397,8 @@ function renderDashboard(myName) {
     <button class="gh-switch" id="gh-switch-btn">Cambiar de jugador</button>
     ${renderPhaseCard('f1', myIdx, myName)}
     ${teamIdx >= 0 ? renderPhaseCard('f2', teamIdx, myName) : ''}
+    ${renderBetCard(myName, myIdx)}
+    ${renderMiiCard(myName)}
     <div class="gh-wall-card">
       <div class="gh-wall-title">📸 Muro de fotos</div>
       <div class="gh-wall-sub">Subí fotos de la noche: aparecen en la pantalla grande y en los créditos finales.</div>
@@ -390,6 +413,161 @@ function renderDashboard(myName) {
   });
   const wallBtn = document.getElementById('gh-wall-btn');
   if (wallBtn) wallBtn.addEventListener('click', () => pickAndUploadPhotos(myName));
+  wireBetCard(myName, myIdx);
+  wireMiiCard(myName);
+}
+
+// ── APUESTAS PRE-PARTIDO ─────────────────────────────────────
+// Solo se puede apostar si NO jugás ese duelo y todavía no se cargó el resultado.
+function nextOpenF1Match() {
+  if (!F1_FIXTURE) return null;
+  for (const m of F1_FIXTURE) {
+    const key = m[0] + '-' + m[1] + '-' + m[2];
+    if (!(latestState.f1 || {})[key]) return { key: key, r: m[0], a: m[1], b: m[2], g: m[3] };
+  }
+  return null;
+}
+function myBetTally(myName) {
+  const bets = latestState.bets || {};
+  let hits = 0, total = 0;
+  Object.keys(bets).forEach(key => {
+    const b = bets[key][myName];
+    if (typeof b !== 'number') return;
+    const res = (latestState.f1 || {})[key];
+    if (!res || res.winner === 'empate') return;
+    total++;
+    if (res.winner === b) hits++;
+  });
+  return { hits: hits, total: total };
+}
+function renderBetCard(myName, myIdx) {
+  const nx = nextOpenF1Match();
+  const tally = myBetTally(myName);
+  const record = tally.total
+    ? `<div class="gh-bet-record">Tu récord: <b>${tally.hits}</b> de ${tally.total} · <b>+${tally.hits}</b> pt${tally.hits === 1 ? '' : 's'}</div>`
+    : '';
+  if (!nx) {
+    return `<div class="gh-bet-card">
+      <div class="gh-bet-title">🃏 Apuestas</div>
+      <div class="gh-bet-sub">No hay más duelos pendientes en la Fase Individual.</div>
+      ${record}
+    </div>`;
+  }
+  // Si jugás este duelo, no podés apostar
+  if (nx.a === myIdx || nx.b === myIdx) {
+    return `<div class="gh-bet-card">
+      <div class="gh-bet-title">🃏 Apuestas</div>
+      <div class="gh-bet-sub">Te toca jugar el próximo duelo — esta ronda no apostás. ¡Suerte!</div>
+      ${record}
+    </div>`;
+  }
+  const mine = ((latestState.bets || {})[nx.key] || {})[myName];
+  const nameA = PLAYERS[nx.a] || '?', nameB = PLAYERS[nx.b] || '?';
+  const gname = (GAMES_F1 && GAMES_F1[nx.g]) || (GAMES_F1_DEFAULT[nx.g] || '');
+  const btn = (idx, nm) => `<button class="gh-bet-opt${mine === idx ? ' picked' : ''}" data-bet="${idx}">${escapeHtml(String(nm).split(' ')[0])}</button>`;
+  return `<div class="gh-bet-card">
+    <div class="gh-bet-title">🃏 ¿Quién gana el próximo?</div>
+    <div class="gh-bet-sub">${gname ? escapeHtml(gname) + ' · ' : ''}Ronda ${nx.r} · acertás = <b>+1 punto</b></div>
+    <div class="gh-bet-opts">${btn(nx.a, nameA)}${btn(nx.b, nameB)}</div>
+    <div class="gh-bet-status" id="gh-bet-status">${mine !== undefined ? '✓ Apostaste por ' + escapeHtml(String(PLAYERS[mine] || '').split(' ')[0]) : ''}</div>
+    ${record}
+  </div>`;
+}
+function wireBetCard(myName, myIdx) {
+  const nx = nextOpenF1Match();
+  if (!nx || nx.a === myIdx || nx.b === myIdx) return;
+  document.querySelectorAll('.gh-bet-opt').forEach(b => {
+    b.addEventListener('click', async () => {
+      const pick = Number(b.getAttribute('data-bet'));
+      const status = document.getElementById('gh-bet-status');
+      document.querySelectorAll('.gh-bet-opt').forEach(x => x.classList.remove('picked'));
+      b.classList.add('picked');
+      if (status) status.textContent = 'Guardando…';
+      try {
+        let bets = {};
+        try {
+          const snap = await getDoc(doc(db, 'ndj', 'bets'));
+          if (snap.exists()) { const o = JSON.parse(snap.data().data); if (o && typeof o === 'object') bets = o; }
+        } catch (e) {}
+        bets[nx.key] = bets[nx.key] || {};
+        bets[nx.key][myName] = pick;
+        await setDoc(doc(db, 'ndj', 'bets'), { data: JSON.stringify(bets), ts: Date.now() });
+        latestState.bets = bets;
+        if (status) status.textContent = '✓ Apostaste por ' + String(PLAYERS[pick] || '').split(' ')[0];
+      } catch (e) {
+        if (status) status.textContent = 'No se pudo guardar. Probá de nuevo.';
+      }
+    });
+  });
+}
+
+// ── PERSONALIZAR MI FIGURA ───────────────────────────────────
+const MII_COLORS = ['#c8f060','#f5c842','#60b4f0','#ff5f5f','#4cdb7a','#c060e8','#ff9f40','#a0b4c8','#ff6ec7','#40e0d0'];
+const MII_POSES = [
+  { k:'victory', n:'Victoria' }, { k:'side', n:'Relajado' },
+  { k:'wave',    n:'Saludo'   }, { k:'hip',  n:'Canchero' },
+];
+const MII_ACCS = [
+  { k:'',         n:'—'        }, { k:'gorra',  n:'🧢' }, { k:'corona',   n:'👑' },
+  { k:'lentes',   n:'🕶️'      }, { k:'sombrero', n:'🎩' }, { k:'vincha',  n:'🎀' },
+  { k:'casco',    n:'⛑️'      }, { k:'fuego',   n:'🔥' }, { k:'estrella', n:'⭐' },
+];
+let _myMii = {};
+function loadMyMii(myName) {
+  try { _myMii = JSON.parse(localStorage.getItem('ndj_my_mii') || '{}'); } catch(e) { _myMii = {}; }
+  return _myMii;
+}
+function renderMiiCard(myName) {
+  const m = loadMyMii(myName);
+  const colors = MII_COLORS.map(c =>
+    `<button class="gh-mii-color${m.color === c ? ' picked' : ''}" data-color="${c}" style="background:${c}"></button>`).join('');
+  const poses = MII_POSES.map(p =>
+    `<button class="gh-mii-opt${(m.pose || 'victory') === p.k ? ' picked' : ''}" data-pose="${p.k}">${p.n}</button>`).join('');
+  const accs = MII_ACCS.map(a =>
+    `<button class="gh-mii-opt${(m.acc || '') === a.k ? ' picked' : ''}" data-acc="${a.k}">${a.n}</button>`).join('');
+  return `<div class="gh-mii-card">
+    <div class="gh-mii-title">🎨 Tu personaje</div>
+    <div class="gh-mii-sub">Elegí cómo te ves en la pantalla grande.</div>
+    <div class="gh-mii-row"><span>Color</span><div class="gh-mii-opts">${colors}</div></div>
+    <div class="gh-mii-row"><span>Pose</span><div class="gh-mii-opts">${poses}</div></div>
+    <div class="gh-mii-row"><span>Accesorio</span><div class="gh-mii-opts">${accs}</div></div>
+    <button class="gh-mii-save" id="gh-mii-save">Guardar mi personaje</button>
+    <div class="gh-mii-status" id="gh-mii-status"></div>
+  </div>`;
+}
+function wireMiiCard(myName) {
+  const pick = (sel, attr, key) => {
+    document.querySelectorAll(sel).forEach(b => {
+      b.addEventListener('click', () => {
+        document.querySelectorAll(sel).forEach(x => x.classList.remove('picked'));
+        b.classList.add('picked');
+        _myMii[key] = b.getAttribute(attr);
+      });
+    });
+  };
+  pick('.gh-mii-color', 'data-color', 'color');
+  pick('.gh-mii-opt[data-pose]', 'data-pose', 'pose');
+  pick('.gh-mii-opt[data-acc]', 'data-acc', 'acc');
+
+  const btn = document.getElementById('gh-mii-save');
+  if (!btn) return;
+  btn.addEventListener('click', async () => {
+    const status = document.getElementById('gh-mii-status');
+    if (status) { status.textContent = 'Guardando…'; status.className = 'gh-mii-status'; }
+    try { localStorage.setItem('ndj_my_mii', JSON.stringify(_myMii)); } catch(e) {}
+    try {
+      let all = {};
+      try {
+        const snap = await getDoc(doc(db, 'ndj', 'miis'));
+        if (snap.exists()) { const o = JSON.parse(snap.data().data); if (o && typeof o === 'object') all = o; }
+      } catch (e) {}
+      all[myName] = _myMii;
+      await setDoc(doc(db, 'ndj', 'miis'), { data: JSON.stringify(all), ts: Date.now() });
+      if (status) { status.textContent = '✓ Guardado — mirá la pantalla grande'; status.className = 'gh-mii-status ok'; }
+    } catch (e) {
+      if (status) status.textContent = 'No se pudo guardar. Probá de nuevo.';
+    }
+  });
 }
 
 // ── MURO DE FOTOS: subida desde el celular ───────────────────
@@ -478,6 +656,15 @@ onSnapshot(doc(db, 'ndj', 'state'), (snap) => {
   console.warn('Firebase onSnapshot error (state):', err);
   document.getElementById('app').innerHTML = '<div class="gh-loading">No se pudo conectar. Revisá tu conexión a internet.</div>';
 });
+
+// Apuestas en vivo: las escriben los propios invitados, no vienen en `state`
+onSnapshot(doc(db, 'ndj', 'bets'), (snap) => {
+  if (!snap.exists()) return;
+  try {
+    const o = JSON.parse(snap.data().data);
+    if (o && typeof o === 'object') { latestState.bets = o; if (ready) render(); }
+  } catch (e) {}
+}, () => {});
 
 onSnapshot(doc(db, 'ndj', 'rules'), (snap) => {
   if (snap.exists()) {
