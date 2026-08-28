@@ -148,6 +148,11 @@
   .gh-b-miss { color: #ff5f5f; }
   .gh-b-blown { color: #ff5f5f; font-size: 10px; }
   .gh-b-none { color: var(--muted); font-weight: 500; font-size: 10px; font-style: italic; }
+  .gh-b-locked { color: var(--muted); font-size: 11px; font-weight: 700; }
+  .gh-b-row.locked { opacity: 0.55; }
+  .gh-b-window { font-size: 12px; font-weight: 700; text-align: center; padding: 0.55rem; border-radius: 10px; margin-bottom: 0.6rem; background: var(--surface2); color: var(--muted); border: 1px solid var(--border2); }
+  .gh-b-window.open { background: rgba(245,200,66,0.14); border-color: #f5c842; color: #f5c842; }
+  .gh-b-window b { color: inherit; }
 
   .gh-mii-row { display: flex; align-items: flex-start; gap: 0.6rem; margin-bottom: 0.7rem; }
   .gh-mii-row > span { font-size: 10px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); min-width: 62px; padding-top: 0.4rem; flex-shrink: 0; }
@@ -457,6 +462,7 @@ function myBetTally(myName) {
 
 function renderBetCard(myName, myIdx) {
   const bets = latestState.bets || {};
+  const bw = latestState.betWindow || { open: false, round: 0 };
   const t = myBetTally(myName);
 
   const rows = (F1_FIXTURE || []).map(m => {
@@ -467,8 +473,9 @@ function renderBetCard(myName, myIdx) {
     const nA = String(PLAYERS[m[1]] || '?').split(' ')[0];
     const nB = String(PLAYERS[m[2]] || '?').split(' ')[0];
     const game = GAMES_F1_DEFAULT[m[3]] || '';
+    // Solo se puede apostar la ronda que el conductor tenga abierta
+    const bettable = bw.open && m[0] === bw.round && !res;
 
-    // Ya jugado: mostramos cómo salió
     if (res) {
       let mark = '<span class="gh-b-none">sin apuesta</span>';
       if (typeof mine === 'number') {
@@ -479,19 +486,33 @@ function renderBetCard(myName, myIdx) {
       const wName = res.winner === 'empate' ? 'Empate' : String(PLAYERS[res.winner] || '?').split(' ')[0];
       return `<div class="gh-b-row done${own ? ' own' : ''}">
         <div class="gh-b-info"><span class="gh-b-vs">${escapeHtml(nA)} vs ${escapeHtml(nB)}</span>
-        <span class="gh-b-game">${escapeHtml(game)} · ganó ${escapeHtml(wName)}</span></div>
+        <span class="gh-b-game">R${m[0]} · ${escapeHtml(game)} · ganó ${escapeHtml(wName)}</span></div>
         <div class="gh-b-mark">${mark}</div>
       </div>`;
     }
 
-    // Pendiente: se puede apostar
+    if (!bettable) {
+      const why = typeof mine === 'number'
+        ? '<span class="gh-b-locked">🔒 ' + escapeHtml(String(PLAYERS[mine] || '').split(' ')[0]) + '</span>'
+        : '<span class="gh-b-locked">🔒</span>';
+      return `<div class="gh-b-row locked${own ? ' own' : ''}">
+        <div class="gh-b-info"><span class="gh-b-vs">${escapeHtml(nA)} vs ${escapeHtml(nB)}</span>
+        <span class="gh-b-game">R${m[0]} · ${escapeHtml(game)}${own ? ' · <b>tu duelo</b>' : ''}</span></div>
+        <div class="gh-b-mark">${why}</div>
+      </div>`;
+    }
+
     const btn = (idx, nm) => `<button class="gh-b-opt${mine === idx ? ' picked' : ''}" data-key="${key}" data-bet="${idx}">${escapeHtml(nm)}</button>`;
     return `<div class="gh-b-row${own ? ' own' : ''}">
       <div class="gh-b-info"><span class="gh-b-vs">${escapeHtml(nA)} vs ${escapeHtml(nB)}</span>
-      <span class="gh-b-game">${escapeHtml(game)}${own ? ' · <b>tu duelo</b>' : ''}</span></div>
+      <span class="gh-b-game">R${m[0]} · ${escapeHtml(game)}${own ? ' · <b>tu duelo</b>' : ''}</span></div>
       <div class="gh-b-opts">${btn(m[1], nA)}${btn(m[2], nB)}</div>
     </div>`;
   }).join('');
+
+  const banner = bw.open
+    ? `<div class="gh-b-window open">🔓 Apuestas abiertas · <b>Ronda ${bw.round}</b></div>`
+    : `<div class="gh-b-window">🔒 Apuestas cerradas — esperá a que el conductor las abra</div>`;
 
   const resume = t.blown
     ? `<div class="gh-b-summary blown">💥 Apostaste a tu propio duelo y lo perdiste: se te anularon ${t.hits} punto${t.hits === 1 ? '' : 's'}.</div>`
@@ -499,8 +520,9 @@ function renderBetCard(myName, myIdx) {
 
   return `<div class="gh-bet-card">
     <div class="gh-bet-title">🃏 Apuestas</div>
-    <div class="gh-bet-sub">Apostá en todos los duelos: <b>cada acierto suma 1 punto</b>.<br>
-      ⚠️ Podés apostar al tuyo, pero si lo perdés <b>se te borran todos los puntos de apuestas</b>.</div>
+    <div class="gh-bet-sub">Cada acierto suma <b>1 punto</b>.<br>
+      ⚠️ Podés apostar a tu propio duelo, pero si lo perdés <b>se te borran todos los puntos de apuestas</b>.</div>
+    ${banner}
     ${resume}
     <div class="gh-b-list">${rows || '<div class="gh-b-none" style="padding:0.6rem 0">Todavía no hay duelos cargados.</div>'}</div>
     <div class="gh-bet-status" id="gh-bet-status"></div>
@@ -514,6 +536,14 @@ function wireBetCard(myName, myIdx) {
       const pick = Number(b.getAttribute('data-bet'));
       const row  = b.closest('.gh-b-row');
       const status = document.getElementById('gh-bet-status');
+      // Revalidar por si el conductor cerró las apuestas mientras tanto
+      const bw = latestState.betWindow || { open: false, round: 0 };
+      const kr = Number(String(key).split('-')[0]);
+      if (!bw.open || kr !== bw.round) {
+        if (status) status.textContent = '🔒 Las apuestas de esa ronda están cerradas.';
+        render();
+        return;
+      }
       if (row) row.querySelectorAll('.gh-b-opt').forEach(x => x.classList.remove('picked'));
       b.classList.add('picked');
       if (status) status.textContent = 'Guardando…';
