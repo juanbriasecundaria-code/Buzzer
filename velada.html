@@ -5937,6 +5937,23 @@ const WALL_MAX = 40;
 function loadWall() {
   try { _wall = JSON.parse(localStorage.getItem('ndj_wall') || '[]') || []; } catch(e) { _wall = []; }
 }
+// Firestore rechaza documentos de más de ~1MB. El muro guarda fotos como
+// data-URL (pesadas), así que si se dejara crecer libre, en algún momento
+// de la noche _fbWrite('wall', ...) empieza a fallar en silencio y el TV
+// deja de recibir fotos nuevas — aunque local y la ventana TV (misma PC)
+// sigan viéndose bien. Por eso lo que viaja a Firebase/otras ventanas se
+// recorta a un presupuesto de bytes seguro, quedándose con las más
+// recientes (lo que tiene sentido para un muro que va rotando igual).
+const WALL_FB_BUDGET = 700000; // ~700KB, con margen bajo el límite de 1MB
+function wallPayloadWithinBudget(arr) {
+  let list = arr.slice();
+  let json = JSON.stringify(list);
+  while (json.length > WALL_FB_BUDGET && list.length > 1) {
+    list = list.slice(1); // descartar la más vieja
+    json = JSON.stringify(list);
+  }
+  return json;
+}
 function saveWall() {
   const json = JSON.stringify(_wall);
   try { localStorage.setItem('ndj_wall', json); } catch(e) {
@@ -5949,7 +5966,9 @@ function saveWall() {
     try { window._tvWin.postMessage({ type: 'ndj_wall', data: window._ndjWall }, '*'); } catch(e) {}
   }
   if (window._bc) window._bc.postMessage({ key: 'ndj_wall', data: window._ndjWall });
-  if (window._fbReady && window._fbWrite) window._fbWrite('wall', window._ndjWall);
+  if (window._fbReady && window._fbWrite) {
+    window._fbWrite('wall', wallPayloadWithinBudget(_wall));
+  }
 }
 function addWallPhoto(dataUrl, by) {
   _wall.push({ id: 'w' + Date.now() + Math.floor(Math.random()*999), src: dataUrl, by: by || '', ts: Date.now() });
@@ -11909,12 +11928,15 @@ function renderTV() {
   scanLogros(state, PLAYERS, TEAMS);
   if (!window._relatorStarted) {
     window._relatorStarted = true;
-    startRelator();
-    startWall();
-    startIdle();
-    if (!window._dragBooted) { window._dragBooted = true; try { initDraggables(); } catch(e) {} }
+    // Cada arranque va en su propio try/catch: si alguno falla, no se
+    // lleva puestos a los demás (antes un solo error acá abortaba todo
+    // el script, incluida la sincronización en vivo de más abajo).
+    try { startRelator(); } catch(e) { console.warn('startRelator:', e); }
+    try { startWall(); } catch(e) { console.warn('startWall:', e); }
+    try { startIdle(); } catch(e) { console.warn('startIdle:', e); }
+    if (!window._dragBooted) { window._dragBooted = true; try { initDraggables(); } catch(e) { console.warn('initDraggables:', e); } }
   }
-  renderEstado(state);
+  try { renderEstado(state); } catch(e) { console.warn('renderEstado:', e); }
 }
 
 // Apply estado layout once at init (hides irrelevant phase cards permanently)
@@ -11970,13 +11992,37 @@ function renderEstado(state) {
 // renderTV() -> renderTicker() usa estas variables; si quedan declaradas
 // más abajo, la llamada inicial cae en la Temporal Dead Zone y aborta todo
 // el script (incluido startSync), dejando la TV congelada.
+//
+// IMPORTANTE: renderTV() también dispara, en su primera ejecución,
+// startRelator() / startWall() / startIdle() / initDraggables() — así que
+// TODAS las variables que esas funciones tocan tienen que estar declaradas
+// (con let/const) ANTES de esta primera llamada, por la misma razón. Antes
+// vivían más abajo, en el bloque "natural" de cada feature, y como ninguna
+// de esas tres llamadas está en un try/catch, la primera de ellas que
+// pisaba una variable en TDZ (Temporal Dead Zone) tiraba un ReferenceError
+// que abortaba TODO el script — incluido startSync() más abajo, que es
+// justamente el que conecta Firebase/BroadcastChannel/polling. Por eso
+// fallaban a la vez el muro de fotos, el drag del QR/cronómetro y la
+// actualización en vivo: ninguno llegaba a inicializarse nunca.
 let _tickerAnim = null;
 let _tickerPos = 0;
 let _tickerWidth = 0;
 let _tickerSpeed = 50; // px/s
 let _tickerGen = 0; // generación: solo el loop más nuevo sobrevive
 
-renderTV();
+let _relatorQueue = [], _relatorSeen = {}, _relatorTimer = null, _relatorShowing = false;
+
+let _logrosShown = {}, _logroQueue = [], _logroBusy = false;
+try { _logrosShown = JSON.parse(localStorage.getItem('ndj_logros_tv') || '{}'); } catch(e) { _logrosShown = {}; }
+
+let _idleLastChange = Date.now(), _idleTimer = null, _idleOn = false, _idleIdx = 0;
+const IDLE_AFTER_MS = 150000; // 2 min y medio sin novedades
+
+let _tvWall = [], _tvWallIdx = 0, _tvWallTimer = null;
+
+// Blindado: un error acá no debe impedir que el resto del script (sync,
+// drag, QR, etc.) se termine de definir y ejecutar más abajo.
+try { renderTV(); } catch(e) { console.warn('renderTV inicial:', e); }
 
 function buildTickerItems(state, PLAYERS, TEAMS) {
   const items = [];
@@ -12033,13 +12079,12 @@ function buildTickerItems(state, PLAYERS, TEAMS) {
 }
 
 // ── RELATOR: frases automáticas según lo que va pasando ──────────────
-let _relatorQueue = [], _relatorSeen = {}, _relatorTimer = null, _relatorShowing = false;
+// (variables declaradas más arriba, antes de la primera llamada a renderTV())
 
 // ── LOGROS EN VIVO ───────────────────────────────────────────────────
 // Se detectan sobre el estado y se muestran en el TV apenas se desbloquean.
 // Cada uno tiene un id único: si ya se mostró, no vuelve a saltar.
-let _logrosShown = {}, _logroQueue = [], _logroBusy = false;
-try { _logrosShown = JSON.parse(localStorage.getItem('ndj_logros_tv') || '{}'); } catch(e) { _logrosShown = {}; }
+// (variables declaradas más arriba, antes de la primera llamada a renderTV())
 function markLogro(id) {
   _logrosShown[id] = 1;
   try { localStorage.setItem('ndj_logros_tv', JSON.stringify(_logrosShown)); } catch(e) {}
@@ -12199,8 +12244,7 @@ function scanLogros(state, PLAYERS, TEAMS) {
 // ── PANTALLA "MIENTRAS TANTO" ────────────────────────────────────────
 // Si pasan varios minutos sin cargar un resultado, el TV pasa a un modo de
 // datos curiosos para no quedarse mostrando siempre lo mismo.
-let _idleLastChange = Date.now(), _idleTimer = null, _idleOn = false, _idleIdx = 0;
-const IDLE_AFTER_MS = 150000; // 2 min y medio sin novedades
+// (variables declaradas más arriba, antes de la primera llamada a renderTV())
 
 function buildIdleFacts(state, PLAYERS, TEAMS) {
   const facts = [];
@@ -12412,7 +12456,7 @@ function initDraggables() {
 })();
 
 // ── MURO DE FOTOS en el TV: rota una foto cada tanto ─────────────────
-let _tvWall = [], _tvWallIdx = 0, _tvWallTimer = null;
+// (variables declaradas más arriba, antes de la primera llamada a renderTV())
 function loadTVWall() {
   try {
     let raw = null;
