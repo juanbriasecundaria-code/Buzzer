@@ -2741,7 +2741,7 @@ body.started .velada-bg-scrim { display: block; }
 
 const RULES_DEFAULT = {
   general: {
-    intro: 'La noche se divide en tres fases: una fase individual, una fase grupal y una final. Cada fase tiene sus propias estaciones, reglas de puntaje y forma de clasificación.',
+    intro: 'La noche se divide en tres fases: una fase individual, una fase grupal y una final. Las dos primeras cierran con una ronda especial — el Impostor en la Fase 1 y ¿Quién lo dijo? en la Fase 2. El orden es: Fase 1 → Impostor → Fase 2 → ¿Quién lo dijo? → Final. Cada fase tiene sus propias estaciones, reglas de puntaje y forma de clasificación.',
     pointsIntro: 'Cada juego define su propio puntaje (con eventual bonus). Al final de cada fase se suman los puntos de todas las estaciones y el/los mejor/es clasifican.',
     tiebreak: ['Resultado directo entre ellos.', 'Mayor cantidad de bonus obtenidos.', 'Mini-ronda relámpago definida por el organizador.'],
   },
@@ -3190,11 +3190,11 @@ function renderReglas() {
       <p class="rules-intro" style="margin-bottom:1rem">${gen.intro}</p>
       <div class="table-wrap">
         <table class="ranking">
-          <thead><tr><th>Fase</th><th>Modalidad</th><th>Estaciones</th><th>Especial</th><th>Clasifican</th></tr></thead>
+          <thead><tr><th style="width:28px">#</th><th>Fase</th><th>Modalidad</th><th>Estaciones</th><th>Ronda especial</th><th>Clasifican</th></tr></thead>
           <tbody>
-            <tr><td>Fase 1</td><td>Individual (1 vs 1)</td><td>6</td><td>✅ Impostor</td><td>1° jugador</td></tr>
-            <tr><td>Fase 2</td><td>Grupal (equipo vs equipo)</td><td>6</td><td>—</td><td>1° equipo</td></tr>
-            <tr><td>Final</td><td>Todos contra todos</td><td>1 juego</td><td>—</td><td>—</td></tr>
+            <tr><td style="color:var(--muted)">1</td><td>Fase 1</td><td>Individual (1 vs 1)</td><td>${rc.f1.length}</td><td><span style="color:var(--danger)">🕵️ Impostor</span></td><td>1° jugador</td></tr>
+            <tr><td style="color:var(--muted)">2</td><td>Fase 2</td><td>Grupal (equipo vs equipo)</td><td>${rc.f2.length}</td><td><span style="color:#c060e8">🗣️ ¿Quién lo dijo?</span></td><td>1° equipo</td></tr>
+            <tr><td style="color:var(--muted)">3</td><td>Final</td><td>Todos contra todos</td><td>1 juego</td><td>—</td><td>—</td></tr>
           </tbody>
         </table>
       </div>
@@ -4453,18 +4453,24 @@ function getPlayerPoints() {
     if (d) pts[idx].comodin = d;
   });
 
-  // Apuestas acertadas: +1 punto por cada duelo que el espectador clavó
+  // Apuestas: +1 por cada acierto. Se puede apostar en TODOS los duelos,
+  // incluido el propio — pero si errás el tuyo, perdés todo lo ganado apostando.
   const bets = state.bets || {};
   PLAYERS.forEach((name, idx) => {
-    let won = 0;
+    let won = 0, blown = false;
     Object.keys(bets).forEach(key => {
       const res = state.f1[key];
       if (!res || res.winner === 'empate') return;
       const b = bets[key] && bets[key][name];
       if (typeof b !== 'number') return;
+      const parts = key.split('-').map(Number);
+      const isOwn = (parts[1] === idx || parts[2] === idx);
       if (b === res.winner) won++;
+      else if (isOwn) blown = true; // apostó a su propio duelo y lo perdió
     });
-    if (won) pts[idx].bets = won;
+    const net = blown ? 0 : won;
+    if (net) pts[idx].bets = net;
+    if (blown) pts[idx].betsBlown = won; // cuánto se le anuló, para mostrarlo
   });
 
   // Ajustes manuales cargados a mano durante la noche
@@ -5398,13 +5404,19 @@ function saveResult() {
   if (comoMsgs && comoMsgs.length) {
     setTimeout(() => showToast('🎰', comoMsgs.join(' · '), false), 1400);
   }
-  // Quién le acertó a este duelo
+  // Apuestas de este duelo: quién acertó y quién se quemó apostando al propio
   if (modalCtx.phase === 'f1' && modalCtx.winner !== 'empate') {
     const bk = (state.bets || {})[modalCtx.key] || {};
-    const hits = Object.keys(bk).filter(n => bk[n] === modalCtx.winner);
-    if (hits.length) {
-      setTimeout(() => showToast('🃏', 'Acertaron: ' + hits.map(n => n.split(' ')[0]).join(', ') + ' (+1)', false), comoMsgs.length ? 2800 : 1400);
-    }
+    const kp = String(modalCtx.key).split('-').map(Number);
+    const hits = [], blown = [];
+    Object.keys(bk).forEach(n => {
+      const i = PLAYERS.indexOf(n);
+      if (bk[n] === modalCtx.winner) hits.push(n);
+      else if (i >= 0 && (kp[1] === i || kp[2] === i)) blown.push(n);
+    });
+    const dly = comoMsgs.length ? 2800 : 1400;
+    if (hits.length) setTimeout(() => showToast('🃏', 'Acertaron: ' + hits.map(n => n.split(' ')[0]).join(', ') + ' (+1)', false), dly);
+    if (blown.length) setTimeout(() => showToast('💥', blown.map(n => n.split(' ')[0]).join(', ') + ': apostó al suyo y perdió — apuestas anuladas', false), dly + 1400);
   }
   updateNavProgress();
 }
@@ -7529,11 +7541,11 @@ function entityFigureHtml(name, color, size, pose) {
   if (parts.length > 1) {
     const ph = entityPhotos(name);
     return '<div class="mii-duo">'
-      + '<div class="mii-duo-fig mii-duo-l">' + miiFigureSVG(getEntityColor(parts[0]) || color, Math.round(size * 0.86), 'hug-right', ph[0], miiAccFor(parts[0])) + '</div>'
-      + '<div class="mii-duo-fig mii-duo-r">' + miiFigureSVG(getEntityColor(parts[1]) || color, Math.round(size * 0.86), 'hug-left',  ph[1], miiAccFor(parts[1])) + '</div>'
+      + '<div class="mii-duo-fig mii-duo-l">' + miiFigureSVG(getEntityColor(parts[0]) || color, Math.round(size * 0.86), 'hug-right', ph[0]) + '</div>'
+      + '<div class="mii-duo-fig mii-duo-r">' + miiFigureSVG(getEntityColor(parts[1]) || color, Math.round(size * 0.86), 'hug-left',  ph[1]) + '</div>'
       + '</div>';
   }
-  return miiFigureSVG(color, size, miiPoseFor(name, pose), getPlayerPhoto(name), miiAccFor(name));
+  return miiFigureSVG(color, size, pose, getPlayerPhoto(name));
 }
 function setPlayerPhoto(name, dataUrl) {
   _playerPhotos[name] = dataUrl;
@@ -7577,14 +7589,6 @@ function saveMiis() {
   }
 }
 function getMii(name) { return _miis[name] || null; }
-function miiPoseFor(name, fallback) {
-  const m = getMii(name);
-  return (m && m.pose) ? m.pose : fallback;
-}
-function miiAccFor(name) {
-  const m = getMii(name);
-  return (m && m.acc) ? m.acc : null;
-}
 loadMiis();
 
 // Devuelve el color efectivo: custom si hay, sino la paleta por índice
@@ -7765,7 +7769,7 @@ function triggerPhotoUpload(entityName, phase) {
   inp.click();
 }
 
-function miiFigureSVG(color, size, pose, photoDataUrl, acc) {
+function miiFigureSVG(color, size, pose, photoDataUrl) {
   const s = size;
   const uid = 'mii' + Math.random().toString(36).slice(2,8);
   const cx = s / 2;
@@ -7950,15 +7954,6 @@ function miiFigureSVG(color, size, pose, photoDataUrl, acc) {
         stroke="#2a1f14" stroke-width="${s*0.025}" fill="none" stroke-linecap="round"/>`;
   }
 
-  // Accesorio elegido por el jugador desde su celular
-  let accEl = '';
-  if (acc) {
-    const ax = cx, ay = headCy - headR * 0.72, fs = headR * 1.25;
-    const em = { gorra:'\u{1F9E2}', corona:'\u{1F451}', lentes:'\u{1F576}\uFE0F', sombrero:'\u{1F3A9}',
-                 vincha:'\u{1F380}', casco:'\u{26D1}\uFE0F', fuego:'\u{1F525}', estrella:'\u{2B50}' }[acc];
-    if (em) accEl = `<text x="${ax}" y="${ay}" font-size="${fs}" text-anchor="middle" dominant-baseline="middle">${em}</text>`;
-  }
-
   return `<svg width="${s}" height="${s}" viewBox="0 0 ${s} ${s}" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
     ${armLeftEl}
     ${armRightEl}
@@ -7969,7 +7964,6 @@ function miiFigureSVG(color, size, pose, photoDataUrl, acc) {
     ${shoeREl}
     ${neckEl}
     ${headEl}
-    ${accEl}
   </svg>`;
 }
 
@@ -11315,8 +11309,6 @@ const RULES_INIT   = ${rulesStr};    // reglas sembradas desde el padre (clave e
 const ENTITY_COLORS_INIT = ${colorsStr}; // colores custom por jugador/equipo
 let   MIIS_INIT = ${miisStr}; // personalizacion (pose/accesorio) por jugador
 function tvMii(n){ try{ const raw=localStorage.getItem('ndj_miis'); if(raw){ const o=JSON.parse(raw); if(o&&o[n]) return o[n]; } }catch(e){} return MIIS_INIT[n]||null; }
-function tvPose(n,f){ const m=tvMii(n); return (m&&m.pose)?m.pose:f; }
-function tvAcc(n){ const m=tvMii(n); return (m&&m.acc)?m.acc:null; }
 const GUEST_URL    = ${guestUrlJson}; // link a participante.html (calculado en la ventana principal)
 
 // ── QR de invitados: siempre visible, se dibuja solo al abrir el TV ──
@@ -11376,11 +11368,11 @@ function tvFigureHtml(name, color, size, pose, photos) {
     const ph = tvPhotosFor(name, photos);
     const s2 = Math.round(size * 0.86);
     return '<div class="mii-duo">'
-      + '<div class="mii-duo-fig mii-duo-l">' + miiFigureSVG(tvEntityColor(parts[0], 0) || color, s2, 'hug-right', ph[0], tvAcc(parts[0])) + '</div>'
-      + '<div class="mii-duo-fig mii-duo-r">' + miiFigureSVG(tvEntityColor(parts[1], 1) || color, s2, 'hug-left',  ph[1], tvAcc(parts[1])) + '</div>'
+      + '<div class="mii-duo-fig mii-duo-l">' + miiFigureSVG(tvEntityColor(parts[0], 0) || color, s2, 'hug-right', ph[0]) + '</div>'
+      + '<div class="mii-duo-fig mii-duo-r">' + miiFigureSVG(tvEntityColor(parts[1], 1) || color, s2, 'hug-left',  ph[1]) + '</div>'
       + '</div>';
   }
-  return miiFigureSVG(color, size, tvPose(name, pose), photos[name] || null, tvAcc(name));
+  return miiFigureSVG(color, size, pose, photos[name] || null);
 }
 function tvAvatarHtml(name, idx, photos) {
   const parts = tvMembers(name);
@@ -11431,7 +11423,7 @@ function lighten(hex, amt) {
   return 'rgb('+r+','+g+','+b+')';
 }
 
-function miiFigureSVG(color, size, pose, photoDataUrl, acc) {
+function miiFigureSVG(color, size, pose, photoDataUrl) {
   const s=size, uid='tv'+Math.random().toString(36).slice(2,8), cx=s/2;
   const headR=s*0.215, headCy=headR+s*0.01, neckT=headCy+headR;
   const torsoT=neckT+s*0.04, torsoH=s*0.22, torsoW=s*0.38;
@@ -11479,13 +11471,7 @@ function miiFigureSVG(color, size, pose, photoDataUrl, acc) {
     const eRx=headR*0.115,eRy=headR*0.14,eY=headCy-headR*0.05,eOff=headR*0.3,smR=headR*0.28;
     headEl='<defs><radialGradient id="hg'+uid+'" cx="40%" cy="30%" r="65%"><stop offset="0%" stop-color="'+skinBase+'"/><stop offset="100%" stop-color="'+skinDark+'"/></radialGradient></defs><circle cx="'+cx+'" cy="'+headCy+'" r="'+headR+'" fill="url(#hg'+uid+')" stroke="'+light+'" stroke-width="'+(s*0.02)+'"/><ellipse cx="'+(cx-eOff)+'" cy="'+eY+'" rx="'+eRx+'" ry="'+eRy+'" fill="#2a1f14"/><ellipse cx="'+(cx+eOff)+'" cy="'+eY+'" rx="'+eRx+'" ry="'+eRy+'" fill="#2a1f14"/><circle cx="'+(cx-eOff+eRx*0.4)+'" cy="'+(eY-eRy*0.35)+'" r="'+(eRx*0.38)+'" fill="rgba(255,255,255,0.75)"/><circle cx="'+(cx+eOff+eRx*0.4)+'" cy="'+(eY-eRy*0.35)+'" r="'+(eRx*0.38)+'" fill="rgba(255,255,255,0.75)"/><path d="M'+(cx-smR)+','+(headCy+headR*0.22)+' Q'+cx+','+(headCy+headR*0.52)+' '+(cx+smR)+','+(headCy+headR*0.22)+'" stroke="#2a1f14" stroke-width="'+(s*0.025)+'" fill="none" stroke-linecap="round"/>';
   }
-  let accEl='';
-  if(acc){
-    const ax=cx, ay=headCy-headR*0.72, fs=headR*1.25;
-    const EM={gorra:'\u{1F9E2}',corona:'\u{1F451}',lentes:'\u{1F576}\uFE0F',sombrero:'\u{1F3A9}',vincha:'\u{1F380}',casco:'\u{26D1}\uFE0F',fuego:'\u{1F525}',estrella:'\u{2B50}'};
-    if(EM[acc]) accEl='<text x="'+cx+'" y="'+ay+'" font-size="'+fs+'" text-anchor="middle" dominant-baseline="middle">'+EM[acc]+'</text>';
-  }
-  return '<svg width="'+s+'" height="'+s+'" viewBox="0 0 '+s+' '+s+'" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">'+aL+aR+torsoEl+legLEl+legREl+sL+sR+neckEl+headEl+accEl+'</svg>';
+  return '<svg width="'+s+'" height="'+s+'" viewBox="0 0 '+s+' '+s+'" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">'+aL+aR+torsoEl+legLEl+legREl+sL+sR+neckEl+headEl+'</svg>';
 }
 
 function getPoints(type, state, PLAYERS, TEAMS) {
@@ -11520,8 +11506,13 @@ function getPoints(type, state, PLAYERS, TEAMS) {
       PLAYERS.forEach((n,i)=>{ if(bm[n]&&bm[n].pts) pts[i].total+=Number(bm[n].pts)||0; });
       (state.comodines||[]).forEach(c=>{ if(c.status==='done'){const i=PLAYERS.indexOf(c.player); if(i>=0) pts[i].total+=Number(c.delta)||0;} });
       const bets=state.bets||{};
+      const bw={}, bb={};
       Object.keys(bets).forEach(k=>{ const res=state.f1[k]; if(!res||res.winner==='empate')return;
-        Object.keys(bets[k]).forEach(who=>{ if(bets[k][who]===res.winner){const i=PLAYERS.indexOf(who); if(i>=0) pts[i].total+=1;} }); });
+        const pp=k.split('-').map(Number);
+        Object.keys(bets[k]).forEach(who=>{ const i=PLAYERS.indexOf(who); if(i<0)return;
+          const own=(pp[1]===i||pp[2]===i);
+          if(bets[k][who]===res.winner) bw[i]=(bw[i]||0)+1; else if(own) bb[i]=true; }); });
+      Object.keys(bw).forEach(i=>{ if(!bb[i]) pts[i].total+=bw[i]; });
       (((state.adjust||{}).f1)||[]).forEach(a=>{ const i=PLAYERS.indexOf(a.name); if(i>=0) pts[i].total+=Number(a.pts)||0; });
       const vs=state.vsJC||{};
       PLAYERS.forEach((n,i)=>{ if(typeof vs[n]==='number') pts[i].total+=vs[n]; });
