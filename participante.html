@@ -397,8 +397,8 @@ function renderDashboard(myName) {
     <button class="gh-switch" id="gh-switch-btn">Cambiar de jugador</button>
     ${renderPhaseCard('f1', myIdx, myName)}
     ${teamIdx >= 0 ? renderPhaseCard('f2', teamIdx, myName) : ''}
-    ${renderBetCard(myName, myIdx)}
-    ${renderMiiCard(myName)}
+    ${safeBlock(() => renderBetCard(myName, myIdx))}
+    ${safeBlock(() => renderMiiCard(myName))}
     <div class="gh-wall-card">
       <div class="gh-wall-title">📸 Muro de fotos</div>
       <div class="gh-wall-sub">Subí fotos de la noche: aparecen en la pantalla grande y en los créditos finales.</div>
@@ -413,9 +413,12 @@ function renderDashboard(myName) {
   });
   const wallBtn = document.getElementById('gh-wall-btn');
   if (wallBtn) wallBtn.addEventListener('click', () => pickAndUploadPhotos(myName));
-  wireBetCard(myName, myIdx);
-  wireMiiCard(myName);
+  try { wireBetCard(myName, myIdx); } catch (e) { console.warn('bet card:', e); }
+  try { wireMiiCard(myName); } catch (e) { console.warn('mii card:', e); }
 }
+
+// Si una tarjeta opcional falla, no debe tumbar todo el dashboard
+function safeBlock(fn) { try { return fn() || ''; } catch (e) { console.warn('bloque omitido:', e); return ''; } }
 
 // ── APUESTAS PRE-PARTIDO ─────────────────────────────────────
 // Solo se puede apostar si NO jugás ese duelo y todavía no se cargó el resultado.
@@ -463,7 +466,7 @@ function renderBetCard(myName, myIdx) {
   }
   const mine = ((latestState.bets || {})[nx.key] || {})[myName];
   const nameA = PLAYERS[nx.a] || '?', nameB = PLAYERS[nx.b] || '?';
-  const gname = (GAMES_F1 && GAMES_F1[nx.g]) || (GAMES_F1_DEFAULT[nx.g] || '');
+  const gname = GAMES_F1_DEFAULT[nx.g] || '';
   const btn = (idx, nm) => `<button class="gh-bet-opt${mine === idx ? ' picked' : ''}" data-bet="${idx}">${escapeHtml(String(nm).split(' ')[0])}</button>`;
   return `<div class="gh-bet-card">
     <div class="gh-bet-title">🃏 ¿Quién gana el próximo?</div>
