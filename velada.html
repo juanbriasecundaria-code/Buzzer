@@ -4329,6 +4329,10 @@ function saveState() {
         if(typeof renderFase2 === 'function' && document.getElementById('page-fase2') && document.getElementById('page-fase2').classList.contains('active')){
           try{ renderFase2(); }catch(e){}
         }
+        // Re-renderizar la Final si está activa (para reflejar la ronda ¿Quién lo dijo?)
+        if(typeof renderFinal === 'function' && document.getElementById('page-final') && document.getElementById('page-final').classList.contains('active')){
+          try{ renderFinal(); }catch(e){}
+        }
       });
       console.log('QLD Firebase listo ✓');
     }catch(e){ console.warn('QLD Firebase init error', e); }
@@ -8742,8 +8746,9 @@ function renderFinal() {
   const f1Done = F1_FIXTURE.filter(([r,a,b]) => state.f1[`${r}-${a}-${b}`]).length;
   const f2Done = F2_FIXTURE.filter(([r,a,b]) => state.f2[`${r}-${a}-${b}`]).length;
   const impDone = (state.impostor.rounds || []).length > 0;
-  const totalDone = f1Done + f2Done + (impDone ? 1 : 0);
-  const totalAll = f1Total + f2Total + 1; // +1 for impostor
+  const qldDone = !!(state.qldTeamPoints && Object.keys(state.qldTeamPoints).length > 0);
+  const totalDone = f1Done + f2Done + (impDone ? 1 : 0) + (qldDone ? 1 : 0);
+  const totalAll = f1Total + f2Total + 2; // +1 impostor, +1 ¿quién lo dijo?
   const pct = Math.round((totalDone / totalAll) * 100);
 
   const f1Pend = f1Total - f1Done;
@@ -8767,6 +8772,7 @@ function renderFinal() {
     if (f1Pend > 0) pendItems.push(`<div class="final-pending-item"><span class="dot-indicator fase1"></span>Fase 1: faltan <b style="color:var(--text);margin:0 3px">${f1Pend}</b> partido${f1Pend>1?'s':''}</div>`);
     if (!impDone) pendItems.push(`<div class="final-pending-item"><span class="dot-indicator impostor"></span>Ronda Impostor: pendiente</div>`);
     if (f2Pend > 0) pendItems.push(`<div class="final-pending-item"><span class="dot-indicator fase2"></span>Fase 2: faltan <b style="color:var(--text);margin:0 3px">${f2Pend}</b> partido${f2Pend>1?'s':''}</div>`);
+    if (!qldDone) pendItems.push(`<div class="final-pending-item"><span class="dot-indicator quien"></span>Ronda ¿Quién lo dijo?: pendiente</div>`);
     if (pendItems.length) pendingHtml = `<div class="final-pending-list">${pendItems.join('')}</div>`;
   }
 
@@ -8774,6 +8780,7 @@ function renderFinal() {
   const f1Pct = f1Total ? Math.round((f1Done/f1Total)*100) : 0;
   const f2Pct = f2Total ? Math.round((f2Done/f2Total)*100) : 0;
   const impPct = impDone ? 100 : 0;
+  const qldPct = qldDone ? 100 : 0;
 
   const phaseRows = `
     <div class="final-phase-row">
@@ -8793,6 +8800,12 @@ function renderFinal() {
       <span class="final-phase-name">Fase 2 — Grupal</span>
       <span class="final-phase-count">${f2Done}/${f2Total} partidos</span>
       <span class="final-phase-pct" style="color:${f2Locked?'var(--success)':'var(--muted)'}">${f2Pct}%</span>
+    </div>
+    <div class="final-phase-row">
+      <span class="final-phase-dot" style="background:#c060e8"></span>
+      <span class="final-phase-name">Ronda ¿Quién lo dijo?</span>
+      <span class="final-phase-count">${qldDone ? '1 ronda' : 'pendiente'}</span>
+      <span class="final-phase-pct" style="color:${qldDone?'var(--success)':'var(--muted)'}">${qldPct}%</span>
     </div>
   `;
 
@@ -8901,7 +8914,8 @@ function renderFinal() {
       <div class="stat-card"><div class="stat-num">${f1Done}/${f1Total}</div><div class="stat-label">Duelos Fase 1</div></div>
       <div class="stat-card"><div class="stat-num">${f2Done}/${f2Total}</div><div class="stat-label">Duelos Fase 2</div></div>
       <div class="stat-card"><div class="stat-num">${(state.impostor.rounds||[]).length ? '✓' : '—'}</div><div class="stat-label">Ronda Impostor</div></div>
-      <div class="stat-card"><div class="stat-num">${f1Done + f2Done}</div><div class="stat-label">Total jugados</div></div>
+      <div class="stat-card"><div class="stat-num">${qldDone ? '✓' : '—'}</div><div class="stat-label">Ronda ¿Quién lo dijo?</div></div>
+      <div class="stat-card" style="grid-column:span 2"><div class="stat-num">${f1Done + f2Done}</div><div class="stat-label">Total jugados</div></div>
     </div>`;
 
   // ---- 3ER PUESTO: los segundos de cada fase ----
