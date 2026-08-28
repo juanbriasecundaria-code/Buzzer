@@ -10629,19 +10629,19 @@ function openTVMode() {
   /* ── LOGRO DESBLOQUEADO ── */
   .tv-logro {
     position: fixed; z-index: 70;
-    left: clamp(10px,2vw,28px);
-    bottom: calc(clamp(30px,4.4vh,56px) + clamp(56px,7vh,90px));
+    left: 50%; transform: translateX(-50%) translateY(-30px) scale(0.94);
+    top: clamp(14px,3vh,42px);
     display: flex; align-items: center; gap: clamp(10px,1.2vw,18px);
     padding: clamp(10px,1.2vh,18px) clamp(16px,1.8vw,26px);
     max-width: min(46vw, 620px);
     background: linear-gradient(105deg, rgba(24,20,8,0.97), rgba(18,18,24,0.97));
     border: 2px solid var(--gold); border-radius: 16px;
     box-shadow: 0 12px 50px rgba(0,0,0,0.7), 0 0 34px rgba(245,200,66,0.3);
-    opacity: 0; transform: translateX(-40px) scale(0.94);
+    opacity: 0;
     transition: opacity 0.55s ease, transform 0.6s cubic-bezier(.18,1.15,.34,1);
     pointer-events: none;
   }
-  .tv-logro.show { opacity: 1; transform: none; }
+  .tv-logro.show { opacity: 1; transform: translateX(-50%) translateY(0) scale(1); }
   .tv-logro-emoji { font-size: clamp(30px,3.4vw,54px); line-height: 1; flex-shrink: 0;
     filter: drop-shadow(0 3px 10px rgba(0,0,0,0.6)); animation: logroPop 0.7s cubic-bezier(.2,1.4,.4,1); }
   @keyframes logroPop { 0% { transform: scale(0.2) rotate(-25deg); } 100% { transform: none; } }
@@ -10933,6 +10933,12 @@ function openTVMode() {
 </style>
 <style>.hub-link{position:fixed;top:max(0.75rem,env(safe-area-inset-top));left:max(0.75rem,env(safe-area-inset-left));z-index:99999;font-size:11px;font-weight:700;color:rgba(240,239,232,0.7);background:rgba(10,10,14,0.6);border:1px solid rgba(255,255,255,0.1);border-radius:99px;padding:0.38rem 0.85rem;text-decoration:none;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);letter-spacing:0.04em;transition:color 0.15s,border-color 0.15s;white-space:nowrap}.hub-link:hover{color:#f0efe8;border-color:rgba(255,255,255,0.25)}</style>
 <style>
+  /* Arrastrables: el conductor los acomoda donde quiera */
+  .tv-drag{cursor:grab;user-select:none;-webkit-user-select:none;touch-action:none}
+  .tv-drag:active{cursor:grabbing}
+  .tv-drag.dragging{opacity:0.85;box-shadow:0 0 0 2px var(--accent),0 10px 50px rgba(0,0,0,0.6)!important;z-index:200!important}
+  .tv-drag::after{content:'✥';position:absolute;top:4px;right:6px;font-size:11px;color:var(--muted);opacity:0;transition:opacity .2s;pointer-events:none}
+  .tv-drag:hover::after{opacity:0.65}
   .tv-guest-qr{position:fixed;bottom:clamp(10px,2vh,24px);left:clamp(10px,2vw,28px);z-index:50;background:var(--surface);border:1.5px solid var(--border2);border-radius:16px;padding:clamp(8px,1vh,12px);display:flex;flex-direction:column;align-items:center;gap:6px;box-shadow:0 4px 32px rgba(0,0,0,0.4)}
   .tv-guest-qr-canvas{background:#fff;border-radius:8px;width:clamp(64px,7vw,110px);height:clamp(64px,7vw,110px);display:flex;align-items:center;justify-content:center;overflow:hidden}
   .tv-guest-qr-canvas img,.tv-guest-qr-canvas canvas{width:100%!important;height:100%!important}
@@ -10942,13 +10948,13 @@ function openTVMode() {
 <body>
 
 <!-- ── QR PARA INVITADOS (siempre visible) ── -->
-<div class="tv-guest-qr" id="tv-guest-qr">
+<div class="tv-guest-qr tv-drag" id="tv-guest-qr" title="Arrastrame">
   <div class="tv-guest-qr-canvas" id="tv-guest-qr-canvas"></div>
   <div class="tv-guest-qr-label">📱 Escaneá para<br>ver tu ranking</div>
 </div>
 
 <!-- ── CRONÓMETRO ── -->
-<div class="tv-timer" id="tv-timer">
+<div class="tv-timer tv-drag" id="tv-timer" title="Arrastrame">
   <div class="tv-timer-label">⏱ Cronómetro</div>
 
   <!-- Arc SVG -->
@@ -11506,6 +11512,7 @@ function renderTV() {
     startRelator();
     startWall();
     startIdle();
+    initDraggables();
   }
   renderEstado(state);
 }
@@ -11904,6 +11911,89 @@ function startIdle() {
   _idleTimer = setInterval(idleTick, 9000);
 }
 
+// ── ELEMENTOS ARRASTRABLES DEL TV (QR y cronómetro) ──────────────────
+// El conductor los acomoda donde le quede cómodo según cómo esté puesta la TV.
+// La posición queda guardada, así que sobrevive a recargas.
+function initDraggables() {
+  let saved = {};
+  try { saved = JSON.parse(localStorage.getItem('ndj_tv_pos') || '{}'); } catch(e) { saved = {}; }
+  const persist = () => { try { localStorage.setItem('ndj_tv_pos', JSON.stringify(saved)); } catch(e) {} };
+
+  document.querySelectorAll('.tv-drag').forEach(el => {
+    const id = el.id;
+    if (!id) return;
+
+    // Restaurar posición guardada
+    const p = saved[id];
+    if (p && typeof p.x === 'number') {
+      el.style.left = p.x + 'px';
+      el.style.top = p.y + 'px';
+      el.style.right = 'auto';
+      el.style.bottom = 'auto';
+    }
+
+    let sx = 0, sy = 0, ox = 0, oy = 0, moved = false;
+
+    const onDown = ev => {
+      // Ignorar clicks en botones internos
+      if (ev.target.closest('button, a, input')) return;
+      const pt = ev.touches ? ev.touches[0] : ev;
+      const r = el.getBoundingClientRect();
+      // Pasar a coordenadas absolutas antes de mover
+      el.style.left = r.left + 'px';
+      el.style.top = r.top + 'px';
+      el.style.right = 'auto';
+      el.style.bottom = 'auto';
+      sx = pt.clientX; sy = pt.clientY;
+      ox = r.left; oy = r.top;
+      moved = false;
+      el.classList.add('dragging');
+      document.addEventListener('mousemove', onMove);
+      document.addEventListener('touchmove', onMove, { passive: false });
+      document.addEventListener('mouseup', onUp);
+      document.addEventListener('touchend', onUp);
+      ev.preventDefault();
+    };
+
+    const onMove = ev => {
+      const pt = ev.touches ? ev.touches[0] : ev;
+      const dx = pt.clientX - sx, dy = pt.clientY - sy;
+      if (Math.abs(dx) > 2 || Math.abs(dy) > 2) moved = true;
+      const r = el.getBoundingClientRect();
+      // No dejar que se escape de la pantalla
+      const nx = Math.max(0, Math.min(window.innerWidth  - r.width,  ox + dx));
+      const ny = Math.max(0, Math.min(window.innerHeight - r.height, oy + dy));
+      el.style.left = nx + 'px';
+      el.style.top = ny + 'px';
+      ev.preventDefault();
+    };
+
+    const onUp = () => {
+      el.classList.remove('dragging');
+      document.removeEventListener('mousemove', onMove);
+      document.removeEventListener('touchmove', onMove);
+      document.removeEventListener('mouseup', onUp);
+      document.removeEventListener('touchend', onUp);
+      if (moved) {
+        const r = el.getBoundingClientRect();
+        saved[id] = { x: Math.round(r.left), y: Math.round(r.top) };
+        persist();
+      }
+    };
+
+    el.addEventListener('mousedown', onDown);
+    el.addEventListener('touchstart', onDown, { passive: false });
+
+    // Doble click: volver al lugar original
+    el.addEventListener('dblclick', ev => {
+      if (ev.target.closest('button, a, input')) return;
+      el.style.left = ''; el.style.top = ''; el.style.right = ''; el.style.bottom = '';
+      delete saved[id];
+      persist();
+    });
+  });
+}
+
 // ── MURO DE FOTOS en el TV: rota una foto cada tanto ─────────────────
 let _tvWall = [], _tvWallIdx = 0, _tvWallTimer = null;
 function loadTVWall() {
@@ -12174,6 +12264,11 @@ function renderTicker(state, PLAYERS, TEAMS) {
           _tvCachedState = s;
           renderTV();
         }
+        const w = op._ndjWall;
+        if (w && w !== window._tvCachedWall) {
+          window._tvCachedWall = w;
+          try { localStorage.setItem('ndj_wall', w); } catch(e) {}
+        }
       } catch (e) { /* opener cerrado o sin acceso: ignorar */ }
     }, 400);
   }
@@ -12240,6 +12335,40 @@ function renderTicker(state, PLAYERS, TEAMS) {
           fbActive = false;
           startPolling();
         });
+
+        // Muro de fotos: lo escriben los invitados desde el celular
+        onSnapshot(doc(db, 'ndj', 'wall'), (snap) => {
+          if (!snap.exists()) return;
+          const raw = snap.data().data;
+          if (!raw) return;
+          try { localStorage.setItem('ndj_wall', raw); } catch(e) {}
+          window._tvCachedWall = raw;
+          try {
+            const arr = JSON.parse(raw);
+            if (Array.isArray(arr)) {
+              const was = _tvWall.length;
+              _tvWall = arr;
+              // Primera foto de la noche: mostrarla enseguida en vez de esperar el ciclo
+              if (!was && arr.length) tickWall();
+            }
+          } catch(e) {}
+        }, () => {});
+
+        // Personalización de figuras (color / pose / accesorio)
+        onSnapshot(doc(db, 'ndj', 'miis'), (snap) => {
+          if (!snap.exists()) return;
+          const raw = snap.data().data;
+          if (!raw) return;
+          try { localStorage.setItem('ndj_miis', raw); } catch(e) {}
+          try { MIIS_INIT = JSON.parse(raw) || MIIS_INIT; } catch(e) {}
+          renderTV();
+        }, () => {});
+
+        // Apuestas: para que el TV pueda mostrar quién acertó
+        onSnapshot(doc(db, 'ndj', 'bets'), (snap) => {
+          if (!snap.exists()) return;
+          try { window._tvBets = JSON.parse(snap.data().data) || {}; } catch(e) {}
+        }, () => {});
 
         fbActive = true;
         stopPolling();
