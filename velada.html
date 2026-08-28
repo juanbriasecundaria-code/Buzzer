@@ -2689,6 +2689,8 @@ body.started .velada-bg-scrim { display: block; }
 
   <div id="f2-roster-admin"></div>
 
+  <div id="comodines-f2"></div>
+
   <div id="adjust-f2"></div>
 
   <div id="podium-fase2"></div>
@@ -4165,7 +4167,8 @@ let state = {
   lastTab: null, // last tab viewed, restored on reload
   bonusManual: {}, // key: playerName => {pts: number, label: string}
   vsJC: {}, // key: playerName => 'win'|'lose'|null  (resultado del jugador vs Juan Cruz)
-  comodines: [], // [{id, player, key, status:'pending'|'done', delta, note, ts}]
+  comodines: [], // [{id, player, key, status:'pending'|'done', delta, note, ts}] — Fase 1 (jugadores)
+  comodinesF2: [], // idem, pero para Fase 2 (equipos)
   bets: {},      // key "r-a-b" => { nombreApostador: idxGanadorApostado }
   adjust: { f1: [], f2: [] }, // ajustes manuales: [{id, name, pts, label, ts}]
   betWindow: { open: false, round: 0 }, // ventana de apuestas: qué ronda está abierta
@@ -4592,6 +4595,14 @@ function getTeamPoints() {
   const qldTeamPoints = window._qldTeamPoints || {};
   pts.forEach((p, idx) => { p.qld = qldTeamPoints[idx] || 0; });
 
+  // Comodines de la ruleta (solo los ya resueltos suman/restan)
+  const comosF2 = state.comodinesF2 || [];
+  TEAMS.forEach((name, idx) => {
+    let d = 0;
+    comosF2.forEach(c => { if (c.status === 'done' && c.player === name) d += (c.delta || 0); });
+    if (d) pts[idx].comodin = d;
+  });
+
   // Overrides de celda: pisan el valor calculado de esa ronda
   const ovF2 = (state.cellPts && state.cellPts.f2) || {};
   TEAMS.forEach((name, idx) => {
@@ -4610,7 +4621,7 @@ function getTeamPoints() {
   });
 
   pts.forEach(p => {
-    p.total = p.rounds.reduce((s,v) => s + (typeof v === 'number' ? v : 0), 0) + (p.qld || 0) + (p.adjust || 0);
+    p.total = p.rounds.reduce((s,v) => s + (typeof v === 'number' ? v : 0), 0) + (p.qld || 0) + (p.comodin || 0) + (p.adjust || 0);
   });
   return pts;
 }
@@ -4725,7 +4736,7 @@ function renderFase1() {
   renderF1RosterAdmin();
   renderBonusManualF1();
   renderBetControl();
-  renderComodinesPanel();
+  renderComodinesPanel('f1');
   renderAdjustPanel('f1');
   renderNextMatch('f1');
   renderMyNext('f1');
@@ -5186,6 +5197,7 @@ function renderMyNext(phase) {
 
 function renderFase2() {
   renderF2RosterAdmin();
+  renderComodinesPanel('f2');
   renderAdjustPanel('f2');
   renderNextMatch('f2');
   renderMyNext('f2');
@@ -5429,9 +5441,7 @@ function saveResult() {
     next: { winner: modalCtx.winner, bonus: modalCtx.bonus },
   };
   store[modalCtx.key] = { winner: modalCtx.winner, bonus: modalCtx.bonus };
-  const comoMsgs = (modalCtx.phase === 'f1')
-    ? resolvePendingComodines(modalCtx.key, modalCtx.winner, modalCtx.bonus)
-    : [];
+  const comoMsgs = resolvePendingComodines(modalCtx.phase, modalCtx.key, modalCtx.winner, modalCtx.bonus);
   saveState();
   closeModal();
   playSaveSound();
@@ -5461,17 +5471,20 @@ function saveResult() {
   updateNavProgress();
 }
 
-// Cuando se carga un resultado de Fase 1, los comodines pendientes de los
-// jugadores involucrados se resuelven solos y quedan registrados con su delta.
-function resolvePendingComodines(key, winner, bonus) {
+// Cuando se carga un resultado de Fase 1 o Fase 2, los comodines pendientes
+// de los jugadores/equipos involucrados se resuelven solos y quedan
+// registrados con su delta.
+function resolvePendingComodines(phase, key, winner, bonus) {
+  const ROSTER = phase === 'f1' ? PLAYERS : TEAMS;
+  const comosArr = phase === 'f1' ? 'comodines' : 'comodinesF2';
   const parts = String(key).split('-').map(Number);
   const a = parts[1], b = parts[2];
   if (isNaN(a) || isNaN(b)) return [];
   const msgs = [];
   const involved = [a, b];
-  (state.comodines || []).forEach(c => {
+  (state[comosArr] || []).forEach(c => {
     if (c.status !== 'pending') return;
-    const pIdx = PLAYERS.indexOf(c.player);
+    const pIdx = ROSTER.indexOf(c.player);
     if (pIdx === -1 || involved.indexOf(pIdx) === -1) return;
     const won  = (winner !== 'empate' && winner === pIdx);
     const lost = (winner !== 'empate' && winner !== pIdx);
@@ -5766,11 +5779,14 @@ function deleteAdjust(phase, id) {
   if (phase === 'f1') renderFase1(); else renderFase2();
 }
 
-// ── COMODINES: panel en Fase 1 ───────────────────────────────────────
-function renderComodinesPanel() {
-  const el = document.getElementById('comodines-f1');
+// ── COMODINES: panel en Fase 1 y Fase 2 ──────────────────────────────
+function renderComodinesPanel(phase) {
+  phase = phase || 'f1';
+  const el = document.getElementById(phase === 'f1' ? 'comodines-f1' : 'comodines-f2');
   if (!el) return;
-  const list = state.comodines || [];
+  const comosArr = phase === 'f1' ? 'comodines' : 'comodinesF2';
+  const list = state[comosArr] || [];
+  const entityLabel = phase === 'f1' ? 'jugador' : 'equipo';
   const rows = list.slice().reverse().map(c => {
     const cm = comodinByKey(c.key) || { emoji:'🎲', name:c.key, kind:'bueno' };
     const col = cm.kind === 'bueno' ? 'var(--success)' : 'var(--danger)';
@@ -5784,7 +5800,7 @@ function renderComodinesPanel() {
         <div style="font-size:12px;font-weight:700;color:${col}">${cm.name} <span style="color:var(--text);font-weight:600">— ${short}</span></div>
         <div>${st}</div>
       </div>
-      <button onclick="deleteComodin('${c.id}')" title="Borrar" style="padding:0.3rem 0.45rem;border-radius:8px;border:1px solid rgba(255,95,95,0.25);background:transparent;color:var(--danger);cursor:pointer;font-size:11px">✕</button>
+      <button onclick="deleteComodin('${c.id}','${phase}')" title="Borrar" style="padding:0.3rem 0.45rem;border-radius:8px;border:1px solid rgba(255,95,95,0.25);background:transparent;color:var(--danger);cursor:pointer;font-size:11px">✕</button>
     </div>`;
   }).join('');
 
@@ -5794,22 +5810,28 @@ function renderComodinesPanel() {
     </div>
     <div class="card" style="margin-bottom:1.25rem">
       <p style="font-size:12px;color:var(--muted);line-height:1.5;margin-bottom:0.75rem">
-        Girala cuando quieras condimentar la noche: elige un jugador al azar y le toca un comodín (bueno o malo). Ninguno mueve más de 1 punto.
+        Girala cuando quieras condimentar la noche: elige un ${entityLabel} al azar y le toca un comodín (bueno o malo). Ninguno mueve más de 1 punto.
       </p>
-      <button onclick="openRuleta()" style="width:100%;padding:0.85rem;border-radius:var(--radius);border:1.5px solid var(--gold);background:var(--gold-dim);color:var(--gold);font-family:inherit;font-size:14px;font-weight:800;cursor:pointer;letter-spacing:0.02em">🎰 Girar la ruleta</button>
+      <button onclick="openRuleta('${phase}')" style="width:100%;padding:0.85rem;border-radius:var(--radius);border:1.5px solid var(--gold);background:var(--gold-dim);color:var(--gold);font-family:inherit;font-size:14px;font-weight:800;cursor:pointer;letter-spacing:0.02em">🎰 Girar la ruleta</button>
       ${list.length ? `<div style="margin-top:0.9rem">${rows}</div>` : ''}
     </div>`;
 }
-function deleteComodin(id) {
+function deleteComodin(id, phase) {
+  phase = phase || 'f1';
   if (!confirm('¿Borrar este comodín? Si ya sumó/restó puntos, se revierte.')) return;
-  state.comodines = (state.comodines || []).filter(c => c.id !== id);
-  saveState(); renderFase1();
+  const comosArr = phase === 'f1' ? 'comodines' : 'comodinesF2';
+  state[comosArr] = (state[comosArr] || []).filter(c => c.id !== id);
+  saveState();
+  if (phase === 'f1') renderFase1(); else renderFase2();
 }
 
 // ── RULETA ───────────────────────────────────────────────────────────
 let _ruletaBusy = false;
-function openRuleta() {
-  if (!PLAYERS.length) return;
+let _ruletaPhase = 'f1';
+function openRuleta(phase) {
+  _ruletaPhase = phase || 'f1';
+  const ROSTER = _ruletaPhase === 'f1' ? PLAYERS : TEAMS;
+  if (!ROSTER.length) return;
   _resumeAudio();
   let ov = document.getElementById('ruleta-overlay');
   if (!ov) {
@@ -5839,6 +5861,7 @@ function closeRuleta() {
 function spinRuleta() {
   if (_ruletaBusy) return;
   _ruletaBusy = true;
+  const ROSTER = _ruletaPhase === 'f1' ? PLAYERS : TEAMS;
   const goBtn = document.getElementById('ruleta-go');
   const nameEl = document.getElementById('ruleta-name');
   const slotEl = document.getElementById('ruleta-slot');
@@ -5848,13 +5871,13 @@ function spinRuleta() {
   cardEl.innerHTML = ''; cardEl.className = 'ruleta-card';
   slotEl.classList.add('spinning');
 
-  const chosen = PLAYERS[Math.floor(Math.random() * PLAYERS.length)];
+  const chosen = ROSTER[Math.floor(Math.random() * ROSTER.length)];
   const como   = COMODINES[Math.floor(Math.random() * COMODINES.length)];
 
   // Barajado visual de nombres, desacelerando
   let t = 0, delay = 55;
   const tick = () => {
-    nameEl.textContent = PLAYERS[Math.floor(Math.random() * PLAYERS.length)].split(' ')[0];
+    nameEl.textContent = ROSTER[Math.floor(Math.random() * ROSTER.length)].split(' ')[0];
     try { ruletaTick(); } catch(e) {}
     t += delay;
     delay *= 1.13;
@@ -5870,6 +5893,8 @@ function spinRuleta() {
   tick();
 }
 function revealComodin(player, cm) {
+  const phase = _ruletaPhase;
+  const ROSTER = phase === 'f1' ? PLAYERS : TEAMS;
   const cardEl = document.getElementById('ruleta-card');
   const goBtn  = document.getElementById('ruleta-go');
   if (!cardEl) return;
@@ -5884,17 +5909,18 @@ function revealComodin(player, cm) {
 
   const actions = document.getElementById('rc-actions');
   const finish = (extra) => { applyComodin(player, cm, extra); };
+  const pickLabel = phase === 'f1' ? '¿A quién le saca el punto?' : '¿A qué equipo le saca el punto?';
 
   if (cm.when === 'target') {
     // Robo: elegir a quién sacarle el punto
-    actions.innerHTML = `<div class="rc-pick-label">¿A quién le saca el punto?</div>
-      <div class="rc-pick">${PLAYERS.filter(p => p !== player).map(p =>
+    actions.innerHTML = `<div class="rc-pick-label">${pickLabel}</div>
+      <div class="rc-pick">${ROSTER.filter(p => p !== player).map(p =>
         `<button onclick="_ruletaTarget('${p.replace(/'/g,"\\'")}')">${p.split(' ')[0]}</button>`).join('')}</div>`;
     window._ruletaTarget = (victim) => finish({ victim });
   } else if (cm.when === 'donate') {
     // Donación: al último de la tabla (automático)
-    const pts = getPlayerPoints();
-    const sorted = PLAYERS.map((n, i) => ({ n, t: pts[i].total })).filter(x => x.n !== player).sort((a,b) => a.t - b.t);
+    const pts = phase === 'f1' ? getPlayerPoints() : getTeamPoints();
+    const sorted = ROSTER.map((n, i) => ({ n, t: pts[i].total })).filter(x => x.n !== player).sort((a,b) => a.t - b.t);
     const lucky = sorted.length ? sorted[0].n : null;
     actions.innerHTML = `<div class="rc-pick-label">El punto va para <b style="color:var(--success)">${lucky ? lucky.split(' ')[0] : '—'}</b> (último de la tabla)</div>
       <button class="ruleta-confirm" onclick="_ruletaConfirm()">Aplicar</button>`;
@@ -5906,26 +5932,28 @@ function revealComodin(player, cm) {
   goBtn.style.display = 'none';
 }
 function applyComodin(player, cm, extra) {
+  const phase = _ruletaPhase;
+  const comosArr = phase === 'f1' ? 'comodines' : 'comodinesF2';
   const id = 'c' + Date.now() + Math.floor(Math.random() * 999);
   const entry = { id, player, key: cm.key, status: 'pending', delta: 0, note: '', ts: Date.now() };
   if (cm.when === 'now') {
     entry.status = 'done'; entry.delta = cm.delta; entry.note = cm.name;
   } else if (cm.when === 'target' && extra.victim) {
     entry.status = 'done'; entry.delta = 0; entry.note = 'le robó a ' + extra.victim.split(' ')[0];
-    state.comodines = state.comodines || [];
-    state.comodines.push({ id: id + 'v', player: extra.victim, key: 'robo_victima', status: 'done', delta: -1, note: 'robado por ' + player.split(' ')[0], ts: Date.now() });
+    state[comosArr] = state[comosArr] || [];
+    state[comosArr].push({ id: id + 'v', player: extra.victim, key: 'robo_victima', status: 'done', delta: -1, note: 'robado por ' + player.split(' ')[0], ts: Date.now() });
     // el ladrón gana el punto
     entry.delta = 1;
   } else if (cm.when === 'donate' && extra.lucky) {
     entry.status = 'done'; entry.delta = -1; entry.note = 'donó a ' + extra.lucky.split(' ')[0];
-    state.comodines = state.comodines || [];
-    state.comodines.push({ id: id + 'd', player: extra.lucky, key: 'donacion_recibe', status: 'done', delta: 1, note: 'regalo de ' + player.split(' ')[0], ts: Date.now() });
+    state[comosArr] = state[comosArr] || [];
+    state[comosArr].push({ id: id + 'd', player: extra.lucky, key: 'donacion_recibe', status: 'done', delta: 1, note: 'regalo de ' + player.split(' ')[0], ts: Date.now() });
   }
-  state.comodines = state.comodines || [];
-  state.comodines.push(entry);
+  state[comosArr] = state[comosArr] || [];
+  state[comosArr].push(entry);
   saveState();
   closeRuleta();
-  renderFase1();
+  if (phase === 'f1') renderFase1(); else renderFase2();
   showToast(cm.emoji, player.split(' ')[0] + ' — ' + cm.name, false);
 }
 
@@ -10516,6 +10544,28 @@ function computeMotes() {
       player: rollers[0].name,
       reason: `${rollers[0].bonusWins2} victorias con bonus en Fase 2. No dejó pelear a nadie.`,
     });
+
+    // "El Bendecido / El Maldito" (equipos) — la ruleta de comodines lo trató bien o mal
+    const comosF2 = (state.comodinesF2 || []).filter(c => c.status === 'done');
+    if (comosF2.length >= 2) {
+      const tally2 = {};
+      comosF2.forEach(c => { tally2[c.player] = (tally2[c.player] || 0) + (c.delta || 0); });
+      const names2 = Object.keys(tally2);
+      if (names2.length) {
+        const bestT  = names2.sort((a, b) => tally2[b] - tally2[a])[0];
+        const worstT = names2.sort((a, b) => tally2[a] - tally2[b])[0];
+        if (tally2[bestT] >= 2) motes.push({
+          emoji: '🍀', type: 'honor', title: 'El Bendecido',
+          player: bestT,
+          reason: `La ruleta le regaló ${tally2[bestT]} puntos. Nació con estrella.`,
+        });
+        if (tally2[worstT] <= -2) motes.push({
+          emoji: '☠️', type: 'shame', title: 'El Maldito',
+          player: worstT,
+          reason: `La ruleta le sacó ${Math.abs(tally2[worstT])} puntos. Alguien le hizo un trabajo.`,
+        });
+      }
+    }
   }
 
   // Dedup: si un jugador ya tiene un mote de honor/shame, no acumular más de 2 motes del mismo tipo
@@ -11826,10 +11876,11 @@ function getPoints(type, state, PLAYERS, TEAMS) {
       if(res.winner==='empate'){pts[a].total+=drawPts;pts[b].total+=drawPts;}
       else{const w=res.winner,l=(w===a?b:a);pts[w].total+=winPts+(res.bonus?bonusPts:0);if(pts[w])pts[w].wins++;if(pts[l])pts[l].losses++;}
     });
-    // Ronda especial "¿Quién lo dijo?" y ajustes manuales
+    // Ronda especial "¿Quién lo dijo?", comodines y ajustes manuales
     try{
       const qld=(state.qldTeamPoints)||{};
       Object.keys(qld).forEach(k=>{ const i=parseInt(k,10); if(pts[i]) pts[i].total+=Number(qld[k])||0; });
+      (state.comodinesF2||[]).forEach(c=>{ if(c.status==='done'){const i=TEAMS.indexOf(c.player); if(i>=0) pts[i].total+=Number(c.delta)||0;} });
       (((state.adjust||{}).f2)||[]).forEach(a=>{ const i=TEAMS.indexOf(a.name); if(i>=0) pts[i].total+=Number(a.pts)||0; });
     }catch(e){}
     return pts;
@@ -11917,7 +11968,7 @@ function renderTV() {
   window._tvLastTeams   = TEAMS;
   // Cambió algo real → cortamos el modo "mientras tanto" y buscamos logros nuevos
   try {
-    const sig = JSON.stringify([state.f1, state.f2, (state.impostor || {}).rounds, state.comodines]);
+    const sig = JSON.stringify([state.f1, state.f2, (state.impostor || {}).rounds, state.comodines, state.comodinesF2]);
     if (sig !== window._tvLastSig) {
       window._tvLastSig = sig;
       _idleLastChange = Date.now();
@@ -12177,6 +12228,11 @@ function detectLogros(state, PLAYERS, TEAMS) {
       if (c.status !== 'done') return;
       if (c.key === 'robo')  add('ladron-' + c.id, '\u{1F977}', 'Ladrón', c.player, c.note || 'Le robó un punto a otro');
       if (c.key === 'peaje') add('peaje-' + c.id, '\u{1F4B8}', 'Mala Racha', c.player, 'La ruleta le sacó un punto');
+    });
+    (state.comodinesF2 || []).forEach(c => {
+      if (c.status !== 'done') return;
+      if (c.key === 'robo')  add('ladron-eq-' + c.id, '\u{1F977}', 'Ladrón', c.player, c.note || 'Le robó un punto a otro equipo');
+      if (c.key === 'peaje') add('peaje-eq-' + c.id, '\u{1F4B8}', 'Mala Racha', c.player, 'La ruleta le sacó un punto');
     });
   } catch(e) {}
 
@@ -12578,6 +12634,13 @@ function buildRelatorLines(state, PLAYERS, TEAMS) {
       const last = comos[comos.length - 1];
       const d = last.delta || 0;
       push('como-' + last.id, d >= 0 ? '\u{1F340}' : '\u{1F480}',
+        '<b>' + short(last.player) + '</b>: ' + (last.note || 'comod\u00EDn aplicado') + ' (' + (d > 0 ? '+' : '') + d + ')');
+    }
+    const comosF2 = (state.comodinesF2 || []).filter(c => c.status === 'done');
+    if (comosF2.length) {
+      const last = comosF2[comosF2.length - 1];
+      const d = last.delta || 0;
+      push('como-eq-' + last.id, d >= 0 ? '\u{1F340}' : '\u{1F480}',
         '<b>' + short(last.player) + '</b>: ' + (last.note || 'comod\u00EDn aplicado') + ' (' + (d > 0 ? '+' : '') + d + ')');
     }
   } catch(e) {}
