@@ -1586,6 +1586,13 @@
     background: rgba(245,200,66,0.15); color: var(--gold);
     font-weight: 700; white-space: nowrap;
   }
+  .final-provisorio-tag {
+    display: inline-flex; align-items: center; gap: 4px;
+    font-size: 10px; padding: 2px 8px; border-radius: 99px;
+    background: var(--surface2); color: var(--muted);
+    border: 1px solid var(--border2);
+    font-weight: 700; white-space: nowrap;
+  }
   .final-edit-bar {
     display: flex; align-items: center; justify-content: space-between;
     padding: 0.6rem 0.875rem;
@@ -3023,6 +3030,8 @@ window.VarSwitch = (function () {
 <div class="page" id="page-final">
   <div id="final-root"></div>
   <div id="wall-panel"></div>
+  <div id="final-root-2"></div>
+  <div id="final-close-root"></div>
 </div>
 
 <!-- ======================== REGLAS ======================== -->
@@ -9458,6 +9467,7 @@ const FINAL_CONFIG_DEFAULT = {
 };
 let FINAL_CONFIG = null;
 let _finalEditMode = false;
+let _finalConfigPanelOpen = false;
 
 function loadFinalConfig() {
   try {
@@ -9715,7 +9725,7 @@ function renderFinal() {
     const locked = phase === 'f1' ? f1Locked : f2Locked;
     const badge = locked
       ? `<span class="final-clasificado-tag">✓ Clasificado</span>`
-      : `<span style="font-size:11px;color:var(--muted);font-style:italic">provisorio</span>`;
+      : `<span class="final-provisorio-tag">provisorio</span>`;
     const posClass = pos === 0 ? 'gold' : 'accent';
     const label = phase === 'f1' ? 'Fase individual' : 'Fase grupal';
     const badgeClass = phase === 'f1' ? 'badge' : 'badge group';
@@ -9809,16 +9819,6 @@ function renderFinal() {
       </div>
     </div>`;
 
-  // ---- RESUMEN ----
-  const resumenHtml = `
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem">
-      <div class="stat-card"><div class="stat-num">${f1Done}/${f1Total}</div><div class="stat-label">Duelos Fase 1</div></div>
-      <div class="stat-card"><div class="stat-num">${f2Done}/${f2Total}</div><div class="stat-label">Duelos Fase 2</div></div>
-      <div class="stat-card"><div class="stat-num">${(state.impostor.rounds||[]).length ? '✓' : '—'}</div><div class="stat-label">Ronda Impostor</div></div>
-      <div class="stat-card"><div class="stat-num">${qldDone ? '✓' : '—'}</div><div class="stat-label">Ronda ¿Quién lo dijo?</div></div>
-      <div class="stat-card" style="grid-column:span 2"><div class="stat-num">${f1Done + f2Done}</div><div class="stat-label">Total jugados</div></div>
-    </div>`;
-
   // ---- 3ER PUESTO: los segundos de cada fase ----
   const tc = TERCER_CONFIG;
   const segundoP = sortedP.slice(1,2).map((p) => playerCard(p, 1, 'f1'));
@@ -9897,12 +9897,6 @@ function renderFinal() {
       <div style="font-size:12px;color:var(--muted);padding-top:0.75rem;border-top:0.5px solid var(--border)">${fc.nota}</div>
     </div>
 
-    <!-- FORMATO Y PUNTOS (editable) -->
-    <div class="card">
-      ${editBar}
-      ${formatoSection}
-    </div>
-
     <!-- CLASIFICADOS AL 3ER PUESTO -->
     <div class="card">
       <div style="font-size:15px;font-weight:600;margin-bottom:${tc.juego ? '0.5rem' : '1rem'}"><span class="dot-indicator" style="background:#cd7f32;box-shadow:0 0 8px rgba(205,127,50,0.6)"></span>Clasificados al 3er puesto</div>
@@ -9911,20 +9905,47 @@ function renderFinal() {
       <div style="font-size:12px;color:var(--muted);padding-top:0.75rem;border-top:0.5px solid var(--border)">${tc.nota}</div>
     </div>
 
-    <!-- JUEGO DEL 3ER PUESTO (editable) -->
-    <div class="card">
-      ${tercerEditBar}
-      ${tercerFormatoSection}
-    </div>
-
     <!-- MOTES -->
     ${motesHtml}
 
-    <!-- RESUMEN -->
-    <div class="card">
-      <div class="section-title" style="margin-bottom:0.75rem"><span class="dot-indicator final"></span>Resumen de la noche</div>
-      ${resumenHtml}
-    </div>
+    <!-- ⚙️ CONFIGURACIÓN DE LA FINAL (se define una vez, antes de la noche) -->
+    <details class="control-panel" id="final-config-panel" ${_finalConfigPanelOpen ? 'open' : ''}>
+      <summary>
+        <span class="control-panel-title">⚙️ Configuración de la final
+          <span class="control-panel-sub" style="display:block;font-weight:500">Formato de la final, del 3er puesto, y elenco de créditos</span>
+        </span>
+        <span class="rule-chevron">▾</span>
+      </summary>
+      <div class="control-panel-body">
+        <!-- FORMATO Y PUNTOS (editable) -->
+        <div class="card">
+          ${editBar}
+          ${formatoSection}
+        </div>
+
+        <!-- JUEGO DEL 3ER PUESTO (editable) -->
+        <div class="card">
+          ${tercerEditBar}
+          ${tercerFormatoSection}
+        </div>
+
+        <!-- ELENCO (editable, base = fase 1) -->
+        <div class="card">
+          <div style="font-size:15px;font-weight:600;margin-bottom:0.3rem"><span class="dot-indicator final"></span>Elenco</div>
+          <div style="font-size:12px;color:var(--muted);margin-bottom:1rem;line-height:1.5">Estos nombres aparecen en los créditos. Vienen de la fase 1 — editalos si querés que se muestren distinto.</div>
+          <div style="display:flex;flex-direction:column;gap:0.5rem">
+            ${PLAYERS.map((nick,i)=>`
+              <div class="final-edit-field" style="margin:0">
+                <input class="final-edit-input" id="elenco-edit-${i}" placeholder="${nick.replace(/"/g,'&quot;')}" value="${elencoName(nick).replace(/"/g,'&quot;')}">
+              </div>`).join('')}
+          </div>
+          <div style="display:flex;gap:0.6rem;margin-top:1rem">
+            <button class="final-edit-save" style="flex:1" onclick="saveElencoEdits()">Guardar elenco</button>
+            <button class="final-edit-save" style="flex:0 0 auto;background:var(--surface2);color:var(--muted);border:1.5px solid var(--border2)" onclick="resetElencoEdits()">↺ Fase 1</button>
+          </div>
+        </div>
+      </div>
+    </details>
 
     <!-- FOTO DE LA NOCHE -->
     <div class="fn-section">
@@ -9954,23 +9975,14 @@ function renderFinal() {
       </div>
       <input type="file" id="fn-file" accept="image/*" style="display:none" onchange="fnLoad(this)">
     </div>
+  `;
 
-    <!-- ELENCO (editable, base = fase 1) -->
-    <div class="card">
-      <div style="font-size:15px;font-weight:600;margin-bottom:0.3rem"><span class="dot-indicator final"></span>Elenco</div>
-      <div style="font-size:12px;color:var(--muted);margin-bottom:1rem;line-height:1.5">Estos nombres aparecen en los créditos. Vienen de la fase 1 — editalos si querés que se muestren distinto.</div>
-      <div style="display:flex;flex-direction:column;gap:0.5rem">
-        ${PLAYERS.map((nick,i)=>`
-          <div class="final-edit-field" style="margin:0">
-            <input class="final-edit-input" id="elenco-edit-${i}" placeholder="${nick.replace(/"/g,'&quot;')}" value="${elencoName(nick).replace(/"/g,'&quot;')}">
-          </div>`).join('')}
-      </div>
-      <div style="display:flex;gap:0.6rem;margin-top:1rem">
-        <button class="final-edit-save" style="flex:1" onclick="saveElencoEdits()">Guardar elenco</button>
-        <button class="final-edit-save" style="flex:0 0 auto;background:var(--surface2);color:var(--muted);border:1.5px solid var(--border2)" onclick="resetElencoEdits()">↺ Fase 1</button>
-      </div>
-    </div>
-
+  // Campeones y Foto del organizador van en un segundo bloque, ubicado en el
+  // HTML *después* del Muro de fotos, para que Foto de la noche y Muro de
+  // fotos queden pegados uno debajo del otro.
+  const root2 = document.getElementById('final-root-2');
+  if (root2) {
+    root2.innerHTML = `
     <!-- CAMPEONES (carga directa para los créditos) -->
     <div class="card">
       <div style="font-size:15px;font-weight:600;margin-bottom:0.3rem"><span class="dot-indicator" style="background:var(--gold);box-shadow:0 0 8px rgba(245,200,66,0.6)"></span>Campeones de la noche</div>
@@ -10004,12 +10016,26 @@ function renderFinal() {
       </div>
     </div>
 
-    <!-- CIERRE / CRÉDITOS -->
-    <div class="card" style="text-align:center">
-      <div style="font-size:13px;color:var(--muted);margin-bottom:0.9rem">Cuando la velada llegue a su fin, bajá las luces.</div>
-      <button class="final-end-btn" onclick="grandFinale()">🎬 Dar fin a la noche de juegos</button>
-    </div>
   `;
+  }
+
+  // El botón de cierre vive en su propio contenedor, ubicado en el HTML
+  // *después* del Muro de fotos, para que nada aparezca debajo de él.
+  const closeRoot = document.getElementById('final-close-root');
+  if (closeRoot) {
+    closeRoot.innerHTML = `
+      <div class="card" style="text-align:center">
+        <div style="font-size:13px;color:var(--muted);margin-bottom:0.9rem">Cuando la velada llegue a su fin, bajá las luces.</div>
+        <button class="final-end-btn" onclick="grandFinale()">🎬 Dar fin a la noche de juegos</button>
+      </div>
+    `;
+  }
+
+  // Recordar si el panel de configuración de la final quedó abierto (no cerrarlo en cada re-render)
+  const finalConfigPanel = document.getElementById('final-config-panel');
+  if (finalConfigPanel) {
+    finalConfigPanel.addEventListener('toggle', () => { _finalConfigPanelOpen = finalConfigPanel.open; });
+  }
 
   // Store motes for reveal
   window._motesData = motes;
@@ -10833,6 +10859,16 @@ function openPlayerCeremony() {
 // Todo corre solo desde que se aprieta "Dar fin a la noche". Un botón "saltar"
 // discreto permite avanzar a mano por las dudas.
 function grandFinale() {
+  showConfirmModal(
+    '¿Dar fin a la noche de juegos?',
+    'Arranca la música, el podio individual, el podio grupal y los créditos — una secuencia de varios minutos que corre sola una vez iniciada. Asegurate de que todo esté cargado (campeones, foto, elenco) antes de seguir.',
+    () => { _runGrandFinale(); },
+    null,
+    '🎬 Dar fin'
+  );
+}
+
+function _runGrandFinale() {
   // 1) Arrancar la música de Michael Jackson desde el inicio (suena durante toda la ceremonia)
   startCeremonyMusic();
   // 2) Podio individual → (5s) → podio grupal → (5s) → créditos
