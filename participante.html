@@ -156,9 +156,10 @@
   .gh-empty { font-size: 12px; color: var(--muted); font-style: italic; padding: 0.5rem 0; }
 
   /* ranking table */
-  .gh-toggle { display: flex; align-items: center; justify-content: space-between; cursor: pointer; user-select: none; padding: 0.35rem 0; margin-top: 0.4rem; border-top: 1px dashed var(--border); padding-top: 0.75rem; }
+  .gh-toggle { display: flex; align-items: center; justify-content: space-between; cursor: pointer; user-select: none; padding: 0.35rem 0; margin-top: 0.4rem; border-top: 1px dashed var(--border); padding-top: 0.75rem; list-style: none; }
+  .gh-toggle::-webkit-details-marker { display: none; }
   .gh-toggle-arrow { transition: transform 0.18s var(--ease); color: var(--muted); font-size: 11px; }
-  .gh-toggle.open .gh-toggle-arrow { transform: rotate(90deg); color: var(--accent); }
+  .gh-toggle.open .gh-toggle-arrow, details[open] > .gh-toggle .gh-toggle-arrow { transform: rotate(90deg); color: var(--accent); }
   .ranking { width: 100%; border-collapse: collapse; margin-top: 0.75rem; }
   .ranking th { font-family: var(--font-head); font-size: 10.5px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); text-align: left; padding: 0.5rem 0.5rem; border-bottom: 1px solid var(--border); }
   .ranking td { padding: 0.6rem 0.5rem; border-bottom: 1px solid var(--border); font-size: 13px; }
@@ -194,6 +195,28 @@
   .gh-bet-card::before, .gh-mii-card::before { content:''; position:absolute; top:0; left:0; right:0; height:2px; background: linear-gradient(90deg, transparent, var(--gold), transparent); opacity:.8; }
   .gh-bet-title, .gh-mii-title { font-family: var(--font-head); font-size: 15px; font-weight: 700; color: var(--text); margin-bottom: 0.35rem; }
   .gh-bet-sub, .gh-mii-sub { font-size: 11.5px; color: var(--muted); line-height: 1.55; margin-bottom: 0.9rem; }
+
+  /* ── acordeones (secciones plegables, se acuerdan si las abriste) ── */
+  .gh-acc { background: linear-gradient(180deg, var(--surface), var(--bg-2)); border: 1px solid var(--border2); border-radius: var(--radius-lg); margin-bottom: 1rem; position: relative; overflow: hidden; }
+  .gh-acc::before { content:''; position:absolute; top:0; left:0; right:0; height:2px; background: linear-gradient(90deg, transparent, var(--gold), transparent); opacity:.8; }
+  .gh-acc.info::before { background: linear-gradient(90deg, transparent, var(--info), transparent); }
+  .gh-acc-summary { list-style: none; cursor: pointer; user-select: none; display: flex; align-items: center; justify-content: space-between; gap: 0.6rem; padding: 1.05rem 1.15rem; transition: background .15s var(--ease); }
+  .gh-acc-summary::-webkit-details-marker { display: none; }
+  .gh-acc-summary:hover { background: rgba(255,255,255,0.02); }
+  .gh-acc[open] .gh-acc-summary { padding-bottom: 0.6rem; }
+  .gh-acc-summary-left { display: flex; align-items: center; gap: 0.55rem; min-width: 0; }
+  .gh-acc-icon { font-size: 16px; flex-shrink: 0; line-height: 1; }
+  .gh-acc-title-wrap { min-width: 0; }
+  .gh-acc-title { font-family: var(--font-head); font-size: 14.5px; font-weight: 700; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; }
+  .gh-acc-hint { font-size: 10.5px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; margin-top: 0.1rem; }
+  .gh-acc-summary-right { display: flex; align-items: center; gap: 0.5rem; flex-shrink: 0; }
+  .gh-acc-badge { font-family: var(--font-head); font-size: 10.5px; font-weight: 700; letter-spacing: 0.02em; color: var(--muted); background: var(--surface2); border: 1px solid var(--border2); border-radius: 99px; padding: 0.28rem 0.65rem; white-space: nowrap; }
+  .gh-acc-badge.on { color: var(--success); border-color: rgba(78,203,126,.35); background: rgba(78,203,126,.1); }
+  .gh-acc-badge.attn { color: var(--gold); border-color: rgba(245,200,66,.35); background: rgba(245,200,66,.1); }
+  .gh-acc-chevron { font-size: 11px; color: var(--muted); transition: transform 0.18s var(--ease); flex-shrink: 0; }
+  .gh-acc[open] .gh-acc-chevron { transform: rotate(90deg); color: var(--accent); }
+  .gh-acc-body { padding: 0 1.15rem 1.15rem; animation: gh-acc-in .18s var(--ease); }
+  @keyframes gh-acc-in { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
   .gh-b-summary { font-size: 12px; color: var(--muted); background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; padding: 0.6rem 0.75rem; margin-bottom: 0.75rem; line-height: 1.5; }
   .gh-b-summary b { color: var(--gold); }
   .gh-b-summary.blown { background: rgba(255,95,95,0.08); border: 1px solid rgba(255,95,95,0.35); color: #ff9d9d; }
@@ -315,6 +338,18 @@ let latestState = { f1: {}, f2: {}, impostor: { rounds: [] } };
 let latestRules = null;
 let lastUpdate = null;
 let ready = false;
+
+// ── ESTADO DE LOS ACORDEONES (se acuerda si abriste algo, aunque la
+// pantalla se vuelva a dibujar por una actualización en vivo de Firestore) ──
+let _uiOpen = {};
+function accOpen(key, defaultOpen) {
+  return Object.prototype.hasOwnProperty.call(_uiOpen, key) ? _uiOpen[key] : !!defaultOpen;
+}
+function wireAccordions() {
+  document.querySelectorAll('details[data-acc-key]').forEach(d => {
+    d.addEventListener('toggle', () => { _uiOpen[d.dataset.accKey] = d.open; });
+  });
+}
 
 function gameNameF1(idx) { return (latestRules && latestRules.f1 && latestRules.f1[idx]) ? latestRules.f1[idx].name : (GAMES_F1_DEFAULT[idx] || '?'); }
 function gameNameF2(idx) { return (latestRules && latestRules.f2 && latestRules.f2[idx]) ? latestRules.f2[idx].name : (GAMES_F2_DEFAULT[idx] || '?'); }
@@ -499,13 +534,13 @@ function renderPhaseCard(type, myIdx, myName) {
       </div>
       <div class="gh-record"><span class="win">${mine.wins}V</span> · <span class="lose">${mine.losses}D</span></div>
       ${matchesHtml}
-      <div class="gh-toggle" onclick="this.classList.toggle('open');this.nextElementSibling.style.display=this.classList.contains('open')?'block':'none'">
-        <span class="card-label">Ver ranking completo</span><span class="gh-toggle-arrow">▶</span>
-      </div>
-      <div style="display:none">
+      <details class="gh-toggle-wrap" data-acc-key="rank-${type}"${accOpen('rank-' + type, false) ? ' open' : ''}>
+        <summary class="gh-toggle">
+          <span class="card-label">Ver ranking completo</span><span class="gh-toggle-arrow">▶</span>
+        </summary>
         <table class="ranking"><thead><tr><th></th><th>${isF1 ? 'Jugador' : 'Equipo'}</th><th style="text-align:right">Pts</th></tr></thead>
         <tbody>${rankingRows}</tbody></table>
-      </div>
+      </details>
     </div>`;
 }
 
@@ -528,12 +563,20 @@ function renderDashboard(myName) {
     ${safeBlock(() => renderBetCard(myName, myIdx))}
     ${teamIdx >= 0 ? safeBlock(() => renderBetCardF2(myName, teamIdx)) : ''}
     ${safeBlock(() => renderMiiCard(myName, teamIdx >= 0 ? TEAMS[teamIdx] : null))}
-    <div class="gh-wall-card">
-      <div class="gh-wall-title">📸 Muro de fotos</div>
-      <div class="gh-wall-sub">Subí fotos de la noche: aparecen en la pantalla grande y en los créditos finales.</div>
-      <button class="gh-wall-btn" id="gh-wall-btn">Elegir fotos</button>
-      <div class="gh-wall-status" id="gh-wall-status"></div>
-    </div>
+    <details class="gh-acc" data-acc-key="wall"${accOpen('wall', false) ? ' open' : ''}>
+      <summary class="gh-acc-summary">
+        <span class="gh-acc-summary-left">
+          <span class="gh-acc-icon">📸</span>
+          <span class="gh-acc-title-wrap"><span class="gh-acc-title">Muro de fotos</span><span class="gh-acc-hint">Subí fotos de la noche</span></span>
+        </span>
+        <span class="gh-acc-summary-right"><span class="gh-acc-chevron">▶</span></span>
+      </summary>
+      <div class="gh-acc-body" style="text-align:center">
+        <div class="gh-wall-sub">Subí fotos de la noche: aparecen en la pantalla grande y en los créditos finales.</div>
+        <button class="gh-wall-btn" id="gh-wall-btn">Elegir fotos</button>
+        <div class="gh-wall-status" id="gh-wall-status"></div>
+      </div>
+    </details>
     <div class="gh-footer"><span class="gh-dot"></span>En vivo · actualizado ${updatedTxt}<br>
       <button class="gh-switch" id="gh-switch-btn">Cambiar de jugador</button>
     </div>
@@ -547,6 +590,7 @@ function renderDashboard(myName) {
   try { wireBetCard(myName, myIdx); } catch (e) { console.warn('bet card:', e); }
   try { if (teamIdx >= 0) wireBetCardF2(myName); } catch (e) { console.warn('bet card f2:', e); }
   try { wireMiiCard(myName, teamIdx >= 0 ? TEAMS[teamIdx] : null); } catch (e) { console.warn('mii card:', e); }
+  wireAccordions();
 }
 
 // Si una tarjeta opcional falla, no debe tumbar todo el dashboard
@@ -644,22 +688,39 @@ function renderBetCard(myName, myIdx) {
     : `<div class="gh-b-summary">Aciertos: <b>${t.hits}</b> · Puntos ganados: <b>+${t.net}</b>${t.pending ? ' · ' + t.pending + ' pendiente' + (t.pending === 1 ? '' : 's') : ''}</div>`;
 
   const restSection = restMatches.length
-    ? `<div class="gh-toggle" onclick="this.classList.toggle('open');this.nextElementSibling.style.display=this.classList.contains('open')?'block':'none'">
-        <span class="card-label">Ver duelos anteriores</span><span class="gh-toggle-arrow">▶</span>
-      </div>
-      <div class="gh-b-list" style="display:none">${restRows}</div>`
+    ? `<details class="gh-toggle-wrap" data-acc-key="bets-rest-f1"${accOpen('bets-rest-f1', false) ? ' open' : ''}>
+        <summary class="gh-toggle">
+          <span class="card-label">Ver duelos anteriores</span><span class="gh-toggle-arrow">▶</span>
+        </summary>
+        <div class="gh-b-list">${restRows}</div>
+      </details>`
     : '';
 
-  return `<div class="gh-bet-card">
-    <div class="gh-bet-title">🃏 Apuestas</div>
-    <div class="gh-bet-sub">Cada acierto suma <b>1 punto</b>.<br>
-      ⚠️ Podés apostar a tu propio duelo, pero si lo perdés <b>se te borran todos los puntos de apuestas</b>.</div>
-    ${banner}
-    ${resume}
-    <div class="gh-b-list">${openRows || '<div class="gh-b-none" style="padding:0.6rem 0">Todavía no hay duelos para apostar en esta ronda.</div>'}</div>
-    ${restSection}
-    <div class="gh-bet-status" id="gh-bet-status"></div>
-  </div>`;
+  const badge = bw.open
+    ? `<span class="gh-acc-badge on">🔓 Ronda ${bw.round}</span>`
+    : `<span class="gh-acc-badge">🔒 Cerradas</span>`;
+  const hint = t.blown
+    ? `${t.hits} anulado${t.hits === 1 ? '' : 's'}`
+    : `${t.hits} acierto${t.hits === 1 ? '' : 's'} · +${t.net} pts`;
+
+  return `<details class="gh-acc" data-acc-key="bets-f1"${accOpen('bets-f1', bw.open) ? ' open' : ''}>
+    <summary class="gh-acc-summary">
+      <span class="gh-acc-summary-left">
+        <span class="gh-acc-icon">🃏</span>
+        <span class="gh-acc-title-wrap"><span class="gh-acc-title">Apuestas</span><span class="gh-acc-hint">${escapeHtml(hint)}</span></span>
+      </span>
+      <span class="gh-acc-summary-right">${badge}<span class="gh-acc-chevron">▶</span></span>
+    </summary>
+    <div class="gh-acc-body">
+      <div class="gh-bet-sub">Cada acierto suma <b>1 punto</b>.<br>
+        ⚠️ Podés apostar a tu propio duelo, pero si lo perdés <b>se te borran todos los puntos de apuestas</b>.</div>
+      ${banner}
+      ${resume}
+      <div class="gh-b-list">${openRows || '<div class="gh-b-none" style="padding:0.6rem 0">Todavía no hay duelos para apostar en esta ronda.</div>'}</div>
+      ${restSection}
+      <div class="gh-bet-status" id="gh-bet-status"></div>
+    </div>
+  </details>`;
 }
 
 function wireBetCard(myName, myIdx) {
@@ -787,22 +848,39 @@ function renderBetCardF2(myName, myTeamIdx) {
     : `<div class="gh-b-summary">Aciertos: <b>${t.hits}</b> · Puntos ganados para tu equipo: <b>+${t.net}</b>${t.pending ? ' · ' + t.pending + ' pendiente' + (t.pending === 1 ? '' : 's') : ''}</div>`;
 
   const restSection = restMatches.length
-    ? `<div class="gh-toggle" onclick="this.classList.toggle('open');this.nextElementSibling.style.display=this.classList.contains('open')?'block':'none'">
-        <span class="card-label">Ver duelos anteriores</span><span class="gh-toggle-arrow">▶</span>
-      </div>
-      <div class="gh-b-list" style="display:none">${restRows}</div>`
+    ? `<details class="gh-toggle-wrap" data-acc-key="bets-rest-f2"${accOpen('bets-rest-f2', false) ? ' open' : ''}>
+        <summary class="gh-toggle">
+          <span class="card-label">Ver duelos anteriores</span><span class="gh-toggle-arrow">▶</span>
+        </summary>
+        <div class="gh-b-list">${restRows}</div>
+      </details>`
     : '';
 
-  return `<div class="gh-bet-card">
-    <div class="gh-bet-title">🃏 Apuestas · Fase 2</div>
-    <div class="gh-bet-sub">Cada acierto suma <b>1 punto a tu equipo</b>.<br>
-      ⚠️ Podés apostar al duelo de tu propio equipo, pero si lo perdés <b>se le borran todos los puntos de apuestas a tu equipo</b>.</div>
-    ${banner}
-    ${resume}
-    <div class="gh-b-list">${openRows || '<div class="gh-b-none" style="padding:0.6rem 0">Todavía no hay duelos para apostar en esta ronda.</div>'}</div>
-    ${restSection}
-    <div class="gh-bet-status" id="gh-bet-status-f2"></div>
-  </div>`;
+  const badge = bw.open
+    ? `<span class="gh-acc-badge on">🔓 Ronda ${bw.round}</span>`
+    : `<span class="gh-acc-badge">🔒 Cerradas</span>`;
+  const hint = t.blown
+    ? `${t.hits} anulado${t.hits === 1 ? '' : 's'}`
+    : `${t.hits} acierto${t.hits === 1 ? '' : 's'} · +${t.net} pts`;
+
+  return `<details class="gh-acc info" data-acc-key="bets-f2"${accOpen('bets-f2', bw.open) ? ' open' : ''}>
+    <summary class="gh-acc-summary">
+      <span class="gh-acc-summary-left">
+        <span class="gh-acc-icon">🃏</span>
+        <span class="gh-acc-title-wrap"><span class="gh-acc-title">Apuestas · Fase 2</span><span class="gh-acc-hint">${escapeHtml(hint)}</span></span>
+      </span>
+      <span class="gh-acc-summary-right">${badge}<span class="gh-acc-chevron">▶</span></span>
+    </summary>
+    <div class="gh-acc-body">
+      <div class="gh-bet-sub">Cada acierto suma <b>1 punto a tu equipo</b>.<br>
+        ⚠️ Podés apostar al duelo de tu propio equipo, pero si lo perdés <b>se le borran todos los puntos de apuestas a tu equipo</b>.</div>
+      ${banner}
+      ${resume}
+      <div class="gh-b-list">${openRows || '<div class="gh-b-none" style="padding:0.6rem 0">Todavía no hay duelos para apostar en esta ronda.</div>'}</div>
+      ${restSection}
+      <div class="gh-bet-status" id="gh-bet-status-f2"></div>
+    </div>
+  </details>`;
 }
 
 function wireBetCardF2(myName) {
@@ -870,17 +948,25 @@ function renderMiiCard(myName, teamName) {
       <div class="gh-mii-opts">${teamSwatches}</div>
     </div>`;
   }
-  return `<div class="gh-mii-card">
-    <div class="gh-mii-title">🎨 Tu color</div>
-    <div class="gh-mii-sub">Con qué color se ven vos${teamName ? ' y tu equipo' : ''} en la pantalla grande.</div>
-    <div class="gh-mii-row">
-      <span>Vos</span>
-      <div class="gh-mii-opts">${soloSwatches}</div>
+  return `<details class="gh-acc" data-acc-key="mii"${accOpen('mii', false) ? ' open' : ''}>
+    <summary class="gh-acc-summary">
+      <span class="gh-acc-summary-left">
+        <span class="gh-acc-icon">🎨</span>
+        <span class="gh-acc-title-wrap"><span class="gh-acc-title">Tu color</span><span class="gh-acc-hint">Para la pantalla grande</span></span>
+      </span>
+      <span class="gh-acc-summary-right"><span class="gh-acc-chevron">▶</span></span>
+    </summary>
+    <div class="gh-acc-body">
+      <div class="gh-mii-sub">Con qué color se ven vos${teamName ? ' y tu equipo' : ''} en la pantalla grande.</div>
+      <div class="gh-mii-row">
+        <span>Vos</span>
+        <div class="gh-mii-opts">${soloSwatches}</div>
+      </div>
+      ${teamRowHtml}
+      <button class="gh-mii-save" id="gh-mii-save">Guardar</button>
+      <div class="gh-mii-status" id="gh-mii-status"></div>
     </div>
-    ${teamRowHtml}
-    <button class="gh-mii-save" id="gh-mii-save">Guardar</button>
-    <div class="gh-mii-status" id="gh-mii-status"></div>
-  </div>`;
+  </details>`;
 }
 
 function wireMiiCard(myName, teamName) {
