@@ -527,6 +527,11 @@ function selectGame(gameId){
   document.getElementById('ts-section-label').textContent = isIndividual ? '¿Quién sos?' : '¿Cuál es tu equipo?';
   document.getElementById('team-list-standard').style.display   = isIndividual ? 'none' : '';
   document.getElementById('team-list-individual').classList.toggle('show', isIndividual);
+  // El div tiene un display:none puesto directo en el HTML (para que no
+  // parpadee en modo equipo). Un style inline le gana en prioridad a
+  // cualquier regla CSS por clase, así que la clase "show" sola nunca
+  // alcanzaba para mostrarlo — había que pisar el inline a mano.
+  document.getElementById('team-list-individual').style.display = isIndividual ? 'grid' : 'none';
   document.getElementById('edit-names-btn').style.display       = isIndividual ? 'none' : '';
 
   // Mostrar "conectando" mientras Firebase inicia
