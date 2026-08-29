@@ -303,6 +303,14 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
 .part-poster-wrap{display:flex;align-items:center;justify-content:center;width:100%;flex:1 1 auto;min-height:0;position:relative}
 .part-poster{height:72vh;max-height:72vh;max-width:90vw;width:auto;object-fit:contain;border-radius:14px;box-shadow:0 16px 100px rgba(0,0,0,.9),0 0 0 1px rgba(255,255,255,.08);display:block}
 .part-poster-inner{position:relative;display:inline-flex;border-radius:14px}
+.cond-emojis{padding:1.5rem 1rem .75rem;text-align:center;font-size:34px;line-height:1.45;letter-spacing:.12em;word-break:break-word;background:rgba(0,0,0,.2)}
+.cond-emojis .em-hidden{opacity:.18}
+.cond-emojis-ph{padding:2rem 1rem;text-align:center;font-size:13px;color:var(--muted)}
+.part-emojis-wrap{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1.6rem;width:100%;flex:1 1 auto;min-height:0;padding:1rem}
+.part-emojis{font-size:clamp(44px,11vw,108px);line-height:1.35;letter-spacing:.08em;text-align:center;max-width:92vw;word-break:break-word;filter:drop-shadow(0 10px 40px rgba(0,0,0,.6))}
+.part-emojis .em-hidden{opacity:.13;filter:grayscale(1)}
+.part-emojis-tag{font-size:12px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+.part-emojis-reveal{font-size:clamp(22px,4.5vw,44px);font-weight:900;color:var(--accent);text-align:center;padding:.5rem 1rem;animation:revealIn .45s ease}
 .part-poster-ph{width:min(40vw,340px);height:min(58vh,480px);border-radius:14px;background:var(--surface2);border:2px dashed var(--border2);display:flex;align-items:center;justify-content:center;font-size:80px}
 /* Frame (landscape) sizing — más grande que el póster */
 .part-poster.is-frame{height:auto;width:min(92vw,1000px);max-width:92vw;aspect-ratio:16/9;object-fit:cover;max-height:62vh}
@@ -626,6 +634,12 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
         <span class="act-label" id="lyric-hint-label">Próxima línea (0/0)</span>
       </button>
     </div>
+    <div class="action-row" id="emoji-hint-row" style="display:none;margin-bottom:.25rem">
+      <button class="act-btn" onclick="nextEmoji()" style="background:var(--purple-dim);border:1.5px solid var(--purple);color:var(--purple);flex:1">
+        <span class="act-icon">😀</span>
+        <span class="act-label" id="emoji-hint-label">Mostrar otro emoji (1/1)</span>
+      </button>
+    </div>
     <div class="action-row" id="frame-hint-row" style="display:none;margin-bottom:.25rem">
       <button class="act-btn" onclick="nextFrame()" style="background:var(--purple-dim);border:1.5px solid var(--purple);color:var(--purple);flex:1">
         <span class="act-icon">🎞</span>
@@ -708,7 +722,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
       <div class="add-form-title">🎬 Película</div>
       <div class="fc"><div class="form-label">Título (solo el conductor)</div><input class="form-input" id="nm-title" placeholder="Ej: Titanic" maxlength="80"></div>
       <div class="fc"><div class="form-label">Tipo de imagen</div>
-        <div class="ist-row"><button class="ist-btn on" id="ik-poster" onclick="setImgKind('poster')">🖼 Póster</button><button class="ist-btn" id="ik-frame" onclick="setImgKind('frame')">🎞 Frame(s)</button></div>
+        <div class="ist-row"><button class="ist-btn on" id="ik-poster" onclick="setImgKind('poster')">🖼 Póster</button><button class="ist-btn" id="ik-frame" onclick="setImgKind('frame')">🎞 Frame(s)</button><button class="ist-btn" id="ik-emoji" onclick="setImgKind('emoji')">😀 Emojis</button></div>
       </div>
       <div id="poster-fields">
         <div class="fc"><div class="form-label">Fuente</div>
@@ -732,7 +746,18 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
           <textarea class="form-input" id="nm-frame-urls" rows="2" placeholder="https://image.tmdb.org/t/p/w780/…jpg"></textarea>
         </div>
       </div>
-      <div class="fc"><div class="form-label">Cómo se revela</div>
+      <div id="emoji-fields" style="display:none">
+        <div class="fc"><div class="form-label">Emojis de la película</div>
+          <input class="form-input" id="nm-emojis" placeholder="🚢🧊💔💍" maxlength="60" style="font-size:26px;letter-spacing:.1em;text-align:center" oninput="updateEmojiPreview()">
+          <div style="font-size:10.5px;color:var(--muted);margin-top:.3rem;line-height:1.5">Usá el teclado de emojis del celular, o <b>Win + .</b> en Windows / <b>Ctrl + Cmd + Espacio</b> en Mac. Entre 3 y 6 suele ser lo ideal.</div>
+          <div id="emoji-preview" style="font-size:38px;text-align:center;margin-top:.5rem;letter-spacing:.1em;min-height:44px"></div>
+        </div>
+        <div class="fc"><div class="form-label">Ritmo</div>
+          <div class="ist-row"><button class="ist-btn on" id="ep-all" onclick="setEmojiProg(false)">👁 Todos juntos</button><button class="ist-btn" id="ep-one" onclick="setEmojiProg(true)">1️⃣ De a uno</button></div>
+          <div style="font-size:10.5px;color:var(--muted);margin-top:.25rem;line-height:1.5">Con <b>De a uno</b> arrancan viendo solo el primer emoji y vos vas destapando el resto con el botón 😀 del panel (o la tecla <b>F</b>).</div>
+        </div>
+      </div>
+      <div class="fc" id="reveal-mode-fc"><div class="form-label">Cómo se revela</div>
         <div class="ist-row" style="flex-wrap:wrap"><button class="ist-btn on" id="rv-full" style="flex:1 1 40%" onclick="setRevealMode('full')">🖼 Completo</button><button class="ist-btn" id="rv-grid" style="flex:1 1 40%" onclick="setRevealMode('grid')">▦ Grid</button><button class="ist-btn" id="rv-crop" style="flex:1 1 40%" onclick="setRevealMode('crop')">🔍 Recorte</button><button class="ist-btn" id="rv-blur" style="flex:1 1 40%" onclick="setRevealMode('blur')">🌫 Desenfoque</button></div>
       </div>
       <div class="fc"><div class="form-label">🎯 Pregunta bonus (opcional — solo la ve el conductor)</div>
@@ -1261,6 +1286,17 @@ let gridRevealed=[],_lastGridCardId=null,_cropSeeds={};
 let _songMode='audio',lyricLine=0,_lastLyricCardId=null;
 let _karaokeTimer=null;
 let frameIdx=0,revealProgress=0,_movieAutoTimer=null,_autoStep=0,_lastFrameCardId=null;
+let emojiStep=1,_lastEmojiCardId=null,_emojiProg=false;
+// Separa una cadena en emojis reales (respeta banderas, tonos de piel y combinaciones ZWJ)
+function splitEmojis(str){
+  const t=(str||'').trim();
+  if(!t)return[];
+  if(typeof Intl!=='undefined'&&Intl.Segmenter){
+    try{return[...new Intl.Segmenter('es',{granularity:'grapheme'}).segment(t)].map(x=>x.segment).filter(x=>x.trim());}catch(e){}
+  }
+  return Array.from(t).filter(x=>x.trim());
+}
+function cardIsEmoji(c){return !!(c&&c.type==='movie'&&c.imgKind==='emoji'&&(c.emojis||'').trim());}
 let gridAutoReveal=(()=>{try{return localStorage.getItem('gms_gridAuto')==='1';}catch(e){return false;}})();
 
 // ─── SYNC ────────────────────────────────────────────────────────
@@ -1287,6 +1323,9 @@ function sendState(){
     // audioData intencionalmente omitido: el audio local queda solo en la compu del conductor
     hasLocalAudio:cur?.type==='song'?!!(cur.audioData):false,
     imgUrl:imgInfo.src,isFrame:imgInfo.isFrame,
+    emojis:cardIsEmoji(cur)?cur.emojis:'',
+    emojiProgressive:cardIsEmoji(cur)?!!cur.emojiProgressive:false,
+    emojiStep:emojiStep,
     frameIdx:frameIdx,frameCount:imgInfo.frameCount,
     revealMode:cur?.type==='movie'?(cur.revealMode||'full'):'full',
     revealProgress:revealProgress,
@@ -1610,7 +1649,7 @@ function jumpTo(){const v=parseInt(document.getElementById('jump-in').value);if(
 function updateCount(){document.getElementById('card-count').textContent=order.length?`${cardIdx+1} / ${order.length}`:'— / —';document.getElementById('nav-prev').disabled=cardIdx<=0;document.getElementById('nav-next').disabled=cardIdx>=order.length-1;}
 
 // ─── CONDUCTOR: CARD RENDER ──────────────────────────────────────
-let _lastCondId=null;
+let _lastCondId=null,_emojiBadge='';
 function renderCondCard(){
   const c=currentCard();const wrap=document.getElementById('cond-card');
   if(!c){wrap.innerHTML='<div class="cond-empty">Tocá 🔀 Barajar para empezar</div>';wrap.className='cond-card';if(ytCond){try{ytCond.destroy();}catch(e){}ytCond=null;}bonusShown=false;bonusRevealed=false;bonusAwardTeam=null;if(_bonusAdvanceTimer){clearTimeout(_bonusAdvanceTimer);_bonusAdvanceTimer=null;}_bonusCardId=null;return;}
@@ -1624,7 +1663,21 @@ function renderCondCard(){
     const modeLbl={grid:'▦ Grid',crop:'🔍 Recorte',blur:'🌫 Desenfoque'}[c.revealMode]||'';
     const frameLbl=info.isFrame?` · 🎞 ${info.frameCount} frame(s)`:'';
     const modeTag=(modeLbl||frameLbl)?`<span class="num-badge" style="position:absolute;bottom:.4rem;left:.4rem">${modeLbl}${frameLbl}</span>`:'';
+    if(c.imgKind==='emoji'){
+      const list=splitEmojis(c.emojis);
+      if(!list.length){
+        inner='<div class="cond-emojis-ph">⚠️ Esta carta no tiene emojis cargados</div>';
+      } else {
+        const prog=!!c.emojiProgressive;
+        const shown=prog?Math.min(emojiStep,list.length):list.length;
+        // Los todavía no destapados se ven en gris tenue: solo el conductor los ve así
+        const html=list.map((e,i)=>`<span class="${(prog&&i>=shown)?'em-hidden':''}">${esc(e)}</span>`).join(' ');
+        inner=`<div class="cond-emojis">${html}</div>`;
+        _emojiBadge=prog?`<span class="num-badge" style="margin-left:.4rem">1️⃣ De a uno · ${shown}/${list.length}</span>`:'<span class="num-badge" style="margin-left:.4rem">😀 Emojis</span>';
+      }
+    } else {
     inner=src?`<div class="cond-poster-wrap" style="position:relative"><img class="cond-poster" src="${esc(src)}" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'" alt="">${modeTag}<div class="cond-poster-ph" style="display:none">🎬</div></div>`:'<div class="cond-poster-wrap"><div class="cond-poster-ph">🎬</div></div>';
+    }
   } else {
     const hy=!!c.youtubeId;
     const ha=!!c.audioData;
@@ -1636,7 +1689,7 @@ function renderCondCard(){
       inner=`<div class="cond-song-inner"><div style="font-size:36px;margin-bottom:.25rem">🎵</div><div class="song-no-yt">⚠️ Sin audio cargado</div></div>`;
     }
   }
-  let smBadge='';
+  let smBadge=_emojiBadge||'';_emojiBadge='';
   if(c.type==='song'){const m=c.songMode||'audio';const lbl={audio:'🎵 Solo audio',lyrics:'📄 Solo letra',progresiva:'📝 Progresiva',huecos:'▁ Huecos',karaoke:'🎤 Karaoke'}[m]||m;smBadge=`<span class="num-badge" style="margin-left:.4rem">${lbl}</span>`;}
   let bonusHtml='';
   if(c.type==='movie'&&c.bonusQ&&c.bonusQ.trim()&&c.bonusOptions&&c.bonusOptions.length){
@@ -1656,7 +1709,9 @@ function renderCondCard(){
   if(c.id!==_lastGridCardId){gridRevealed=(c.type==='movie'&&c.revealMode==='grid')?Array(9).fill(false):[];_lastGridCardId=c.id;}
   if(c.id!==_lastLyricCardId){lyricLine=0;_lastLyricCardId=c.id;stopKaraokeSync();}
   if(c.id!==_lastFrameCardId){frameIdx=0;revealProgress=0;_lastFrameCardId=c.id;stopMovieAuto();}
+  if(c.id!==_lastEmojiCardId){emojiStep=1;_lastEmojiCardId=c.id;}
   syncGridHintUI();
+  syncEmojiHintUI();
   syncLyricHintUI();
   syncFrameHintUI();
   if(c.type==='song'&&c.youtubeId&&c.id!==_lastCondId) createCondPlayer(c);
@@ -1758,7 +1813,7 @@ document.addEventListener('keydown',function(e){
     case'v':case'V':toggleReveal();break;
     case'l':case'L':if(revealed)revealNextLine();break;
     case'g':case'G':if(revealed)revealRandomTile();break;
-    case'f':case'F':if(revealed)nextFrame();break;
+    case'f':case'F':if(revealed){if(cardIsEmoji(currentCard()))nextEmoji();else nextFrame();}break;
     case't':case'T':if(timerActive)stopTimer();else startTimer();break;
     case'0':resetTimer();break;
   }
@@ -1797,6 +1852,7 @@ function syncPhaseUI(){
   else if(phase==='playing_b'){card.classList.add('phase-b');banner.className='phase-banner show pb-b';banner.textContent='⏱ Respondiendo: '+nameB;playing.style.display='';}
   else if(phase==='reveal'){card.classList.add('phase-reveal');banner.className='phase-banner show pb-reveal';banner.textContent='✅ ¡Correcto!';reveal.style.display='';}
   syncGridHintUI();
+  syncEmojiHintUI();
 }
 
 // ─── CONDUCTOR: TIMER ────────────────────────────────────────────
@@ -1996,6 +2052,28 @@ function nextFrame(){
   sendState();
   showToast('🎞 Frame '+(frameIdx+1)+'/'+c.frames.length);
 }
+// Destapa el próximo emoji (botón 😀 o tecla F en cartas de emojis)
+function nextEmoji(){
+  const c=currentCard();
+  if(!cardIsEmoji(c)||!c.emojiProgressive)return;
+  const total=splitEmojis(c.emojis).length;
+  if(emojiStep>=total){showToast('😀 Ya están todos');return;}
+  emojiStep++;
+  renderCondCard();          // vuelve a dibujar la tira del conductor (y hace sendState)
+  showToast('😀 Emoji '+emojiStep+'/'+total);
+}
+function syncEmojiHintUI(){
+  const c=currentCard();
+  const row=document.getElementById('emoji-hint-row');
+  if(!row)return;
+  const show=cardIsEmoji(c)&&!!c.emojiProgressive&&revealed&&phase!=='reveal';
+  row.style.display=show?'':'none';
+  if(show){
+    const total=splitEmojis(c.emojis).length;
+    const lbl=document.getElementById('emoji-hint-label');
+    if(lbl)lbl.textContent=emojiStep>=total?`Todos los emojis a la vista (${total}/${total})`:`Mostrar otro emoji (${emojiStep}/${total})`;
+  }
+}
 function syncFrameHintUI(){
   const c=currentCard();
   const row=document.getElementById('frame-hint-row');
@@ -2018,9 +2096,10 @@ function revealRandomTile(){
 }
 function toggleReveal(){
   revealed=!revealed;
-  if(revealed){const c0=currentCard();if(c0){if(c0.type==='song')lyricLine=0;if(c0.type==='movie'){revealProgress=0;frameIdx=0;if(c0.revealMode==='grid')gridRevealed=Array(9).fill(false);}}}
+  if(revealed){const c0=currentCard();if(c0){if(c0.type==='song')lyricLine=0;if(c0.type==='movie'){revealProgress=0;frameIdx=0;emojiStep=1;if(c0.revealMode==='grid')gridRevealed=Array(9).fill(false);}}}
   syncRevealUI();
   syncGridHintUI();
+  syncEmojiHintUI();
   syncLyricHintUI();
   syncFrameHintUI();
   sendState();
@@ -2117,7 +2196,7 @@ function importDeckJson(input){
 }
 
 // ─── PARTICIPANT: RENDER ─────────────────────────────────────────
-let _pLastType=null,_pLastId=null,_pLastPhase=null,_pLastGrid=null,_pLastKey=null,_pLastLyricLine=null,_pLastProg=null,_pLastImg=null;
+let _pLastType=null,_pLastId=null,_pLastPhase=null,_pLastGrid=null,_pLastKey=null,_pLastLyricLine=null,_pLastProg=null,_pLastImg=null,_pLastEmojiStep=null;
 function updateMovieProgress(d){
   const img=document.querySelector('.part-poster');if(!img)return;
   const p=d.revealProgress||0;
@@ -2177,16 +2256,17 @@ function renderParticipant(d){
   const pb=document.getElementById('p-bonus');
   if(diff>=5&&w){pb.textContent='🏆 Bonus: '+(w==='a'?(d.nameA||'Eq 1'):(d.nameB||'Eq 2'));pb.classList.add('show');}else pb.classList.remove('show');
   renderPartBonusOverlay(d);
-  if(!d.cardType){document.getElementById('part-main').innerHTML='<div class="part-idle"><div class="part-idle-icon">🎬</div><div class="part-idle-text">Esperando al conductor…</div></div>';_pLastType=null;_pLastId=null;_pLastPhase=null;_pLastKey=null;_pLastLyricLine=null;_pLastProg=null;_pLastImg=null;return;}
+  if(!d.cardType){document.getElementById('part-main').innerHTML='<div class="part-idle"><div class="part-idle-icon">🎬</div><div class="part-idle-text">Esperando al conductor…</div></div>';_pLastType=null;_pLastId=null;_pLastPhase=null;_pLastKey=null;_pLastLyricLine=null;_pLastProg=null;_pLastImg=null;_pLastEmojiStep=null;return;}
   // Si el conductor aún no reveló la carta, mostrar pantalla de espera
   if(!d.revealed){
     document.getElementById('part-main').innerHTML='<div class="part-idle"><div class="part-idle-icon" style="animation:auPulse 2s ease-in-out infinite">🎬</div><div class="part-idle-text" style="font-size:18px;font-weight:900;color:var(--text)">¡Listos!</div><div class="part-idle-text" style="margin-top:.35rem">Esperando que el conductor muestre la carta…</div></div>';
-    _pLastType=null;_pLastId=null;_pLastPhase=null;_pLastKey=null;_pLastLyricLine=null;_pLastProg=null;_pLastImg=null;return;
+    _pLastType=null;_pLastId=null;_pLastPhase=null;_pLastKey=null;_pLastLyricLine=null;_pLastProg=null;_pLastImg=null;_pLastEmojiStep=null;return;
   }
   const cc=d.cardType!==_pLastType||(d.cardKey??null)!==_pLastKey;
   const pc=d.phase!==_pLastPhase;
-  if(cc||pc){buildPartCard(d);_pLastType=d.cardType;_pLastId=d.cardType==='song'?d.youtubeId:d.imgUrl;_pLastKey=d.cardKey??null;_pLastPhase=d.phase;_pLastGrid=d.gridRevealed?[...d.gridRevealed]:null;_pLastLyricLine=d.lyricLine;_pLastProg=d.revealProgress;_pLastImg=d.imgUrl;}
+  if(cc||pc){buildPartCard(d);_pLastEmojiStep=d.emojiStep;_pLastType=d.cardType;_pLastId=d.cardType==='song'?d.youtubeId:d.imgUrl;_pLastKey=d.cardKey??null;_pLastPhase=d.phase;_pLastGrid=d.gridRevealed?[...d.gridRevealed]:null;_pLastLyricLine=d.lyricLine;_pLastProg=d.revealProgress;_pLastImg=d.imgUrl;}
   else if(d.cardType==='movie'&&d.phase!=='reveal'){
+    if((d.emojis||'').trim()&&d.emojiStep!==_pLastEmojiStep){buildPartCard(d);_pLastEmojiStep=d.emojiStep;}
     if(d.imgUrl!==_pLastImg){updateFrameImg(d);_pLastImg=d.imgUrl;}
     if((d.revealMode==='blur'||d.revealMode==='crop')&&d.revealProgress!==_pLastProg){updateMovieProgress(d);_pLastProg=d.revealProgress;}
     if(d.revealMode==='grid'&&JSON.stringify(d.gridRevealed)!==JSON.stringify(_pLastGrid)){updateGridTiles(d);_pLastGrid=d.gridRevealed?[...d.gridRevealed]:null;}
@@ -2289,7 +2369,15 @@ function buildPartCard(d){
   const num=d.totalCards>0?`<span class="part-num">${d.cardNum} / ${d.totalCards}</span>`:'';
   const isRev=d.phase==='reveal';
   let cHtml='';
-  if(d.cardType==='movie'){
+  if(d.cardType==='movie'&&(d.emojis||'').trim()){
+    const list=splitEmojis(d.emojis);
+    const prog=!!d.emojiProgressive;
+    const shown=(isRev||!prog)?list.length:Math.min(d.emojiStep||1,list.length);
+    const html=list.map((e,i)=>`<span class="${i>=shown?'em-hidden':''}">${esc(e)}</span>`).join(' ');
+    const tag=isRev?'':`<div class="part-emojis-tag">${prog?`¿Qué película es? · ${shown} de ${list.length}`:'¿Qué película es?'}</div>`;
+    const rv=isRev?`<div class="part-emojis-reveal">✅ ${esc(d.cardTitle||'')}</div>`:'';
+    cHtml=`<div class="part-emojis-wrap"><div class="part-emojis" id="part-emojis">${html}</div>${tag}${rv}</div>`;
+  } else if(d.cardType==='movie'){
     const src=d.imgUrl||'';
     const mode=d.revealMode||'full';
     const frameCls=d.isFrame?' is-frame':'';
@@ -2343,12 +2431,15 @@ function renderDeckList(){
   const m=deck.filter(c=>c.type==='movie').length,s=deck.filter(c=>c.type==='song').length;
   document.getElementById('deck-count-label').textContent=`${m} películas · ${s} canciones`;
   document.getElementById('deck-list').innerHTML=deck.map((c,i)=>{
-    const thumbSrc=c.type==='movie'?(c.imgKind==='frame'?(c.frames&&c.frames[0]):(c.imgData||c.img)):null;
-    const th=c.type==='movie'?`<div class="deck-thumb">${thumbSrc?`<img src="${esc(thumbSrc)}" onerror="this.parentElement.textContent='🎬'" loading="lazy">`:'🎬'}</div>`:`<div class="deck-thumb">🎵</div>`;
+    const isEmo=c.type==='movie'&&c.imgKind==='emoji';
+    const thumbSrc=(c.type==='movie'&&!isEmo)?(c.imgKind==='frame'?(c.frames&&c.frames[0]):(c.imgData||c.img)):null;
+    const th=isEmo
+      ?`<div class="deck-thumb" style="font-size:15px;letter-spacing:.02em;text-align:center;line-height:1.1;padding:2px">${esc(splitEmojis(c.emojis).slice(0,4).join(''))||'😀'}</div>`
+      :(c.type==='movie'?`<div class="deck-thumb">${thumbSrc?`<img src="${esc(thumbSrc)}" onerror="this.parentElement.textContent='🎬'" loading="lazy">`:'🎬'}</div>`:`<div class="deck-thumb">🎵</div>`);
     const modeTag=c.type==='movie'?({grid:' · ▦ Grid',crop:' · 🔍 Recorte',blur:' · 🌫 Desenfoque'}[c.revealMode]||''):'';
     const songModeTag=c.type==='song'?({audio:'',lyrics:' · 📄 Letra',progresiva:' · 📝 Progresiva',huecos:' · ▁ Huecos',karaoke:' · 🎤 Karaoke'}[c.songMode||'audio']||''):'';
     const songLyrTag=c.type==='song'&&c.lyrics&&c.lyrics.trim()?' · 🎼':'';
-    const meta=c.type==='movie'?((c.imgKind==='frame'?`🎞 ${(c.frames||[]).length} frame(s)`:(c.imgData?'📁 Local':c.img?'🔗 URL':'sin póster'))+modeTag):((c.audioData?`📁 Audio local · ${c.startAt||0}s`:c.youtubeId?`▶ ${c.youtubeId} · ${c.startAt||0}s`:'⚠️ sin audio')+songModeTag+songLyrTag);
+    const meta=c.type==='movie'?(isEmo?(`😀 ${splitEmojis(c.emojis).length} emoji(s)`+(c.emojiProgressive?' · 1️⃣ De a uno':'')):((c.imgKind==='frame'?`🎞 ${(c.frames||[]).length} frame(s)`:(c.imgData?'📁 Local':c.img?'🔗 URL':'sin póster'))+modeTag)):((c.audioData?`📁 Audio local · ${c.startAt||0}s`:c.youtubeId?`▶ ${c.youtubeId} · ${c.startAt||0}s`:'⚠️ sin audio')+songModeTag+songLyrTag);
     return `<div class="deck-item">${th}<div class="deck-info"><div class="deck-title">${esc(c.title)}</div><div class="deck-meta">${esc(meta)}</div></div><div class="deck-btns"><button class="deck-btn" onclick="editCard(${i})">✏️</button><button class="deck-btn del" onclick="deleteCard(${i})">✕</button></div></div>`;
   }).join('');
 }
@@ -2359,7 +2450,9 @@ function editCard(i){
     showAddForm('movie');
     document.getElementById('nm-title').value=c.title;
     document.getElementById('nm-url').value=c.img||'';
-    setImgKind(c.imgKind==='frame'?'frame':'poster');
+    document.getElementById('nm-emojis').value=c.emojis||'';
+    setEmojiProg(!!c.emojiProgressive);
+    setImgKind(c.imgKind==='emoji'?'emoji':(c.imgKind==='frame'?'frame':'poster'));
     setRevealMode(c.revealMode||'full');
     if(c.imgKind==='frame'&&c.frames&&c.frames.length){_frameFiles=c.frames.filter(f=>f.startsWith('data:'));document.getElementById('nm-frame-urls').value=c.frames.filter(f=>!f.startsWith('data:')).join('\n');document.getElementById('frame-preview').textContent='✓ '+c.frames.length+' imagen(es) guardada(s) — subí nuevas para reemplazar';}
     document.getElementById('nm-bonusq').value=c.bonusQ||'';
@@ -2385,7 +2478,7 @@ function randomSongMode(c){
 function setSongMode(m){_songMode=m;['audio','lyrics','progresiva','huecos','karaoke'].forEach(x=>{const b=document.getElementById('sm-'+x);if(b)b.classList.toggle('on',x===m);});}
 // Re-sortea el modo de visualización de cada carta, a pedido (botones del editor).
 function randomizeMovieModes(){
-  let n=0;deck.forEach(c=>{if(c.type==='movie'){c.revealMode=randomRevealMode();n++;}});
+  let n=0;deck.forEach(c=>{if(c.type==='movie'&&c.imgKind!=='emoji'){c.revealMode=randomRevealMode();n++;}});
   if(!n){showToast('No hay películas en el mazo');return;}
   saveDeck();
   _lastGridCardId=null;_lastFrameCardId=null;stopMovieAuto();
@@ -2403,8 +2496,28 @@ function randomizeSongModes(){
   sendState();
   showToast('🎲 '+n+' canción(es): modo al azar');
 }
-function hideAddForms(){['add-movie-form','add-song-form'].forEach(id=>{const f=document.getElementById(id);f.style.display='none';f.dataset.ei='';});document.getElementById('nm-title').value='';document.getElementById('nm-url').value='';document.getElementById('nm-bonusq').value='';[0,1,2,3].forEach(slot=>{document.getElementById('nm-bonus-opt'+slot).value='';document.getElementById('nm-bonus-r'+slot).checked=false;});document.getElementById('ns-title').value='';document.getElementById('ns-url').value='';document.getElementById('ns-start').value='';document.getElementById('ns-start-local').value='';_fileData=null;document.getElementById('file-preview').textContent='';_audioData=null;document.getElementById('audio-file-preview').textContent='';setAudioSrc('yt');_frameFiles=[];document.getElementById('nm-frame-urls').value='';document.getElementById('frame-preview').textContent='';setImgKind('poster');setRevealMode('full');const nl=document.getElementById('ns-lyrics');if(nl)nl.value='';setSongMode('audio');}
-function setImgKind(k){_imgKind=k;document.getElementById('ik-poster').classList.toggle('on',k==='poster');document.getElementById('ik-frame').classList.toggle('on',k==='frame');document.getElementById('poster-fields').style.display=k==='poster'?'':'none';document.getElementById('frame-fields').style.display=k==='frame'?'':'none';}
+function hideAddForms(){['add-movie-form','add-song-form'].forEach(id=>{const f=document.getElementById(id);f.style.display='none';f.dataset.ei='';});document.getElementById('nm-title').value='';document.getElementById('nm-url').value='';document.getElementById('nm-bonusq').value='';[0,1,2,3].forEach(slot=>{document.getElementById('nm-bonus-opt'+slot).value='';document.getElementById('nm-bonus-r'+slot).checked=false;});document.getElementById('ns-title').value='';document.getElementById('ns-url').value='';document.getElementById('ns-start').value='';document.getElementById('ns-start-local').value='';_fileData=null;document.getElementById('file-preview').textContent='';_audioData=null;document.getElementById('audio-file-preview').textContent='';setAudioSrc('yt');_frameFiles=[];document.getElementById('nm-frame-urls').value='';document.getElementById('frame-preview').textContent='';document.getElementById('nm-emojis').value='';setEmojiProg(false);updateEmojiPreview();setImgKind('poster');setRevealMode('full');const nl=document.getElementById('ns-lyrics');if(nl)nl.value='';setSongMode('audio');}
+function setImgKind(k){
+  _imgKind=k;
+  ['poster','frame','emoji'].forEach(x=>{const b=document.getElementById('ik-'+x);if(b)b.classList.toggle('on',x===k);});
+  document.getElementById('poster-fields').style.display=k==='poster'?'':'none';
+  document.getElementById('frame-fields').style.display=k==='frame'?'':'none';
+  document.getElementById('emoji-fields').style.display=k==='emoji'?'':'none';
+  // Grid/recorte/desenfoque no aplican a una carta de emojis
+  const rm=document.getElementById('reveal-mode-fc');
+  if(rm)rm.style.display=k==='emoji'?'none':'';
+  if(k==='emoji')updateEmojiPreview();
+}
+function setEmojiProg(v){
+  _emojiProg=!!v;
+  document.getElementById('ep-all').classList.toggle('on',!_emojiProg);
+  document.getElementById('ep-one').classList.toggle('on',_emojiProg);
+}
+function updateEmojiPreview(){
+  const el=document.getElementById('emoji-preview');if(!el)return;
+  const list=splitEmojis(document.getElementById('nm-emojis').value);
+  el.innerHTML=list.length?esc(list.join(' ')):'<span style="font-size:12px;color:var(--muted)">Escribí los emojis arriba…</span>';
+}
 function setRevealMode(m){_revealMode=m;['full','grid','crop','blur'].forEach(x=>{const b=document.getElementById('rv-'+x);if(b)b.classList.toggle('on',x===m);});}
 function handleFrameFiles(input){const files=[...input.files];if(!files.length)return;let done=0;files.forEach(f=>{const r=new FileReader();r.onload=e=>{_frameFiles.push(e.target.result);done++;if(done===files.length)document.getElementById('frame-preview').textContent='✓ '+_frameFiles.length+' imagen(es) cargada(s)';};r.readAsDataURL(f);});input.value='';}
 function setImgSrc(s){_imgSrc=s;document.getElementById('ist-url').classList.toggle('on',s==='url');document.getElementById('ist-file').classList.toggle('on',s==='file');document.getElementById('img-url-wrap').style.display=s==='url'?'':'none';document.getElementById('img-file-wrap').style.display=s==='file'?'':'none';}
@@ -2412,8 +2525,11 @@ function handleFile(input){const f=input.files[0];if(!f)return;const r=new FileR
 function submitMovie(){
   const t=document.getElementById('nm-title').value.trim();if(!t){showToast('Falta el título');return;}
   const ei=parseInt(document.getElementById('add-movie-form').dataset.ei);
-  let img='',imgData='',frames=[];
-  if(_imgKind==='frame'){
+  let img='',imgData='',frames=[],emojis='';
+  if(_imgKind==='emoji'){
+    emojis=document.getElementById('nm-emojis').value.trim();
+    if(!emojis){showToast('Poné al menos un emoji');return;}
+  } else if(_imgKind==='frame'){
     frames=[..._frameFiles];
     const urls=(document.getElementById('nm-frame-urls').value||'').split('\n').map(s=>s.trim()).filter(Boolean);
     frames=frames.concat(urls);
@@ -2429,7 +2545,11 @@ function submitMovie(){
     const v=document.getElementById('nm-bonus-opt'+slot).value.trim();
     if(v){if(slot===correctSlot)bonusCorrect=bonusOptions.length;bonusOptions.push(v);}
   });
-  const card={id:isNaN(ei)?nextId++:deck[ei].id,type:'movie',title:t,img,imgData,imgKind:_imgKind,frames,revealMode:_revealMode,bonusQ,bonusOptions,bonusCorrect};
+  const card={id:isNaN(ei)?nextId++:deck[ei].id,type:'movie',title:t,img,imgData,imgKind:_imgKind,frames,
+    emojis,emojiProgressive:_imgKind==='emoji'?_emojiProg:false,
+    // Una carta de emojis no se recorta ni se desenfoca: siempre 'full'
+    revealMode:_imgKind==='emoji'?'full':_revealMode,
+    bonusQ,bonusOptions,bonusCorrect};
   if(!isNaN(ei))deck[ei]=card;else deck.push(card);
   saveDeck();
   if(order.length!==deck.length){order=deck.map((_,i)=>i);cardIdx=0;saveOrder();renderCondCard();updateCount();}
