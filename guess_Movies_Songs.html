@@ -733,13 +733,17 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
           <div class="form-label">Imagen</div>
           <button class="file-btn" onclick="document.getElementById('poster-file').click()">📂 Elegir archivo…</button>
           <input type="file" id="poster-file" accept="image/*" onchange="handleFile(this)" style="display:none">
-          <div id="file-preview" style="font-size:11px;color:var(--muted);margin-top:.2rem"></div>
+          <div style="display:flex;align-items:center;gap:.5rem;margin-top:.35rem">
+            <div class="deck-thumb" id="file-preview-thumb" style="display:none"><img id="file-preview-img" src="" alt="Vista previa"></div>
+            <div id="file-preview" style="font-size:11px;color:var(--muted)"></div>
+          </div>
         </div>
       </div>
       <div id="frame-fields" style="display:none">
         <div class="fc"><div class="form-label">Frame(s) de la película — podés elegir varios</div>
           <button class="file-btn" onclick="document.getElementById('frame-file').click()">📂 Elegir imágenes…</button>
           <input type="file" id="frame-file" accept="image/*" multiple onchange="handleFrameFiles(this)" style="display:none">
+          <div id="frame-preview-thumbs" style="display:flex;gap:.35rem;flex-wrap:wrap;margin-top:.35rem"></div>
           <div id="frame-preview" style="font-size:11px;color:var(--muted);margin-top:.2rem"></div>
         </div>
         <div class="fc"><div class="form-label">o URLs (una por línea — ej. stills de TMDB)</div>
@@ -2454,7 +2458,8 @@ function editCard(i){
     setEmojiProg(!!c.emojiProgressive);
     setImgKind(c.imgKind==='emoji'?'emoji':(c.imgKind==='frame'?'frame':'poster'));
     setRevealMode(c.revealMode||'full');
-    if(c.imgKind==='frame'&&c.frames&&c.frames.length){_frameFiles=c.frames.filter(f=>f.startsWith('data:'));document.getElementById('nm-frame-urls').value=c.frames.filter(f=>!f.startsWith('data:')).join('\n');document.getElementById('frame-preview').textContent='✓ '+c.frames.length+' imagen(es) guardada(s) — subí nuevas para reemplazar';}
+    if(c.imgKind==='frame'&&c.frames&&c.frames.length){_frameFiles=c.frames.filter(f=>f.startsWith('data:'));document.getElementById('nm-frame-urls').value=c.frames.filter(f=>!f.startsWith('data:')).join('\n');document.getElementById('frame-preview').textContent='✓ '+c.frames.length+' imagen(es) guardada(s) — subí nuevas para reemplazar';renderFramePreviewThumbs();}
+    if((c.imgKind==='poster'||!c.imgKind)&&c.imgData){setImgSrc('file');_fileData=c.imgData;document.getElementById('file-preview').textContent='✓ imagen guardada — subí una nueva para reemplazar';document.getElementById('file-preview-img').src=c.imgData;document.getElementById('file-preview-thumb').style.display='flex';}
     document.getElementById('nm-bonusq').value=c.bonusQ||'';
     (c.bonusOptions||[]).forEach((v,slot)=>{if(slot<4){document.getElementById('nm-bonus-opt'+slot).value=v;if(slot===c.bonusCorrect)document.getElementById('nm-bonus-r'+slot).checked=true;}});
     document.getElementById('add-movie-form').dataset.ei=i;
@@ -2496,7 +2501,7 @@ function randomizeSongModes(){
   sendState();
   showToast('🎲 '+n+' canción(es): modo al azar');
 }
-function hideAddForms(){['add-movie-form','add-song-form'].forEach(id=>{const f=document.getElementById(id);f.style.display='none';f.dataset.ei='';});document.getElementById('nm-title').value='';document.getElementById('nm-url').value='';document.getElementById('nm-bonusq').value='';[0,1,2,3].forEach(slot=>{document.getElementById('nm-bonus-opt'+slot).value='';document.getElementById('nm-bonus-r'+slot).checked=false;});document.getElementById('ns-title').value='';document.getElementById('ns-url').value='';document.getElementById('ns-start').value='';document.getElementById('ns-start-local').value='';_fileData=null;document.getElementById('file-preview').textContent='';_audioData=null;document.getElementById('audio-file-preview').textContent='';setAudioSrc('yt');_frameFiles=[];document.getElementById('nm-frame-urls').value='';document.getElementById('frame-preview').textContent='';document.getElementById('nm-emojis').value='';setEmojiProg(false);updateEmojiPreview();setImgKind('poster');setRevealMode('full');const nl=document.getElementById('ns-lyrics');if(nl)nl.value='';setSongMode('audio');}
+function hideAddForms(){['add-movie-form','add-song-form'].forEach(id=>{const f=document.getElementById(id);f.style.display='none';f.dataset.ei='';});document.getElementById('nm-title').value='';document.getElementById('nm-url').value='';document.getElementById('nm-bonusq').value='';[0,1,2,3].forEach(slot=>{document.getElementById('nm-bonus-opt'+slot).value='';document.getElementById('nm-bonus-r'+slot).checked=false;});document.getElementById('ns-title').value='';document.getElementById('ns-url').value='';document.getElementById('ns-start').value='';document.getElementById('ns-start-local').value='';_fileData=null;document.getElementById('file-preview').textContent='';document.getElementById('file-preview-thumb').style.display='none';document.getElementById('file-preview-img').src='';_audioData=null;document.getElementById('audio-file-preview').textContent='';setAudioSrc('yt');_frameFiles=[];document.getElementById('nm-frame-urls').value='';document.getElementById('frame-preview').textContent='';document.getElementById('frame-preview-thumbs').innerHTML='';document.getElementById('nm-emojis').value='';setEmojiProg(false);updateEmojiPreview();setImgKind('poster');setRevealMode('full');const nl=document.getElementById('ns-lyrics');if(nl)nl.value='';setSongMode('audio');}
 function setImgKind(k){
   _imgKind=k;
   ['poster','frame','emoji'].forEach(x=>{const b=document.getElementById('ik-'+x);if(b)b.classList.toggle('on',x===k);});
@@ -2519,9 +2524,10 @@ function updateEmojiPreview(){
   el.innerHTML=list.length?esc(list.join(' ')):'<span style="font-size:12px;color:var(--muted)">Escribí los emojis arriba…</span>';
 }
 function setRevealMode(m){_revealMode=m;['full','grid','crop','blur'].forEach(x=>{const b=document.getElementById('rv-'+x);if(b)b.classList.toggle('on',x===m);});}
-function handleFrameFiles(input){const files=[...input.files];if(!files.length)return;let done=0;files.forEach(f=>{const r=new FileReader();r.onload=e=>{_frameFiles.push(e.target.result);done++;if(done===files.length)document.getElementById('frame-preview').textContent='✓ '+_frameFiles.length+' imagen(es) cargada(s)';};r.readAsDataURL(f);});input.value='';}
+function renderFramePreviewThumbs(){const wrap=document.getElementById('frame-preview-thumbs');if(!wrap)return;wrap.innerHTML=_frameFiles.map(src=>`<div class="deck-thumb"><img src="${esc(src)}"></div>`).join('');}
+function handleFrameFiles(input){const files=[...input.files];if(!files.length)return;let done=0;files.forEach(f=>{const r=new FileReader();r.onload=e=>{_frameFiles.push(e.target.result);done++;renderFramePreviewThumbs();if(done===files.length)document.getElementById('frame-preview').textContent='✓ '+_frameFiles.length+' imagen(es) cargada(s)';};r.readAsDataURL(f);});input.value='';}
 function setImgSrc(s){_imgSrc=s;document.getElementById('ist-url').classList.toggle('on',s==='url');document.getElementById('ist-file').classList.toggle('on',s==='file');document.getElementById('img-url-wrap').style.display=s==='url'?'':'none';document.getElementById('img-file-wrap').style.display=s==='file'?'':'none';}
-function handleFile(input){const f=input.files[0];if(!f)return;const r=new FileReader();r.onload=e=>{_fileData=e.target.result;document.getElementById('file-preview').textContent='✓ '+f.name;};r.readAsDataURL(f);input.value='';}
+function handleFile(input){const f=input.files[0];if(!f)return;const r=new FileReader();r.onload=e=>{_fileData=e.target.result;document.getElementById('file-preview').textContent='✓ '+f.name;document.getElementById('file-preview-img').src=_fileData;document.getElementById('file-preview-thumb').style.display='flex';};r.readAsDataURL(f);input.value='';}
 function submitMovie(){
   const t=document.getElementById('nm-title').value.trim();if(!t){showToast('Falta el título');return;}
   const ei=parseInt(document.getElementById('add-movie-form').dataset.ei);
