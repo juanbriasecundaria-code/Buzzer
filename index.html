@@ -466,6 +466,7 @@ let currentGame = null;   // 'movies' | 'argentinos'
 let bzTeam = null;        // 'a' | 'b'
 let bzListener = null;
 let namesListener = null;
+let selectGameWatchdog = null; // red de seguridad TOTAL: cubre incluso si el SDK de Firebase nunca termina de cargar
 // Aplica los nombres recibidos de Firebase a la UI de selección
 function applyTeamNames(d){
   d = d || {};
@@ -534,6 +535,23 @@ function selectGame(gameId){
   document.getElementById('connecting-text').textContent = 'Conectando a Firebase…';
 
   show('team-select-screen');
+
+  // Red de seguridad TOTAL: si por lo que sea el SDK de Firebase nunca
+  // termina de cargar (bloqueado por la red del lugar, un adblocker, etc.)
+  // el callback de initFirebase jamás se ejecuta, y con eso ni siquiera se
+  // llega a armar el timeout interno de startIndividualPlayerListener. Este
+  // watchdog no depende de que Firebase responda nada — solo mira si la
+  // pantalla se quedó en "Conectando…" y, si es así, fuerza el modo offline.
+  if(selectGameWatchdog) clearTimeout(selectGameWatchdog);
+  selectGameWatchdog = setTimeout(() => {
+    const txt = document.getElementById('connecting-text');
+    if(txt && txt.style.display !== 'none'){
+      console.warn('[HUB] Timeout global — Firebase no respondió, uso modo offline.');
+      if(isIndividual) renderIndividualPlayers(DEFAULT_QLD_PLAYERS);
+      document.getElementById('connecting-dot').style.display = 'none';
+      txt.style.display = 'none';
+    }
+  }, 5000);
 
   initFirebase(()=>{
     // Conectar al nodo del juego y escuchar los nombres en vivo
