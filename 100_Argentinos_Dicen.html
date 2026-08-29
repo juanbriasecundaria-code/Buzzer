@@ -809,7 +809,7 @@ body.is-participant .cad-bg-scrim { display: block; }
   </div>
 
   <div class="round-actions" id="round-actions">
-    <button class="ra-btn ra-var" onclick="openVAR()">📺 VAR</button>
+    <!-- El VAR quedó reservado para Palabras a Tiempo y Time's Up -->
     <button class="ra-btn ra-undo" id="undo-btn" onclick="undoReveal()" disabled title="Deshacer ultimo acierto">↩ Deshacer</button>
     <button class="ra-btn ra-undo-strike" id="undo-strike-btn" onclick="undoStrike()" disabled title="Deshacer último strike">↩ Strike</button>
     <button class="ra-btn ra-surrender hidden-btn" id="surrender-btn" onclick="surrender()">🏳 Rinde</button>
@@ -848,7 +848,6 @@ body.is-participant .cad-bg-scrim { display: block; }
     <div class="kb-row"><div class="kb-label">↩ Deshacer strike</div><div class="kb-keys"><span class="kbd">⇧</span><span class="kb-or">+</span><span class="kbd">U</span></div></div>
 
     <div class="kb-group-title">Otros</div>
-    <div class="kb-row"><div class="kb-label">📺 Abrir VAR</div><div class="kb-keys"><span class="kbd">V</span></div></div>
     <div class="kb-row"><div class="kb-label">Siguiente ronda</div><div class="kb-keys"><span class="kbd">Enter</span></div></div>
     <div class="kb-row"><div class="kb-label">Mostrar/ocultar panel</div><div class="kb-keys"><span class="kbd">H</span></div></div>
   </div>
@@ -1906,6 +1905,8 @@ function closeRound() {
 // ── VAR ──
 let _varTimer = null;
 function openVAR() {
+  return;  // VAR deshabilitado en este juego (solo Palabras a Tiempo y Time's Up)
+  /* eslint-disable no-unreachable */
   if (!round || round.phase === 'over' || round.phase === 'choice') return;
   const ov = document.getElementById('var-overlay'); if (!ov) return;
   ov.classList.remove('open', 'closing', 'reviewing'); void ov.offsetWidth; ov.classList.add('open');
@@ -1974,7 +1975,6 @@ document.addEventListener('keydown', function (e) {
     case 'R': if (round.phase === 'play') surrender(); break;
     case 'u': if (e.shiftKey) undoStrike(); else undoReveal(); break;
     case 'U': if (e.shiftKey) undoStrike(); else undoReveal(); break;
-    case 'v': case 'V': openVAR(); break;
     case 'b': case 'B': if (round.phase === 'faceoff') fbToggle(); break;
     case 'Enter': if (round.phase === 'over') closeRound(); break;
   }
