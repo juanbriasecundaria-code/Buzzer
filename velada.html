@@ -519,6 +519,11 @@
     aspect-ratio: 3 / 4.2;
     perspective: 1400px;
   }
+  @media (min-width: 640px) {
+    .imp-card-stage { max-width: 340px; }
+    .imp-card-role-icon { font-size: 42px; }
+    .imp-card-back-ring { width: 92px; height: 92px; font-size: 36px; }
+  }
   .imp-card-flipper {
     position: relative;
     width: 100%;
@@ -8388,9 +8393,13 @@ function renderImpCards() {
   ).join('');
 
   impRoot(`
-    <div style="max-width:400px;margin:0 auto;padding:0.5rem 0;text-align:center">
+    <div style="max-width:460px;margin:0 auto;padding:0.5rem 0;text-align:center">
       <div style="font-size:11px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);margin-bottom:0.5rem">Carta ${step+1} de ${total}</div>
       <div class="progress-dots" style="justify-content:center;flex-wrap:wrap">${dots}</div>
+      ${(() => {
+        const hint = getImpCategoryHint();
+        return hint ? `<div style="margin-top:0.85rem"><span class="score-pill draw">Categoría: ${hint}</span></div>` : '';
+      })()}
 
       <div style="display:flex;align-items:center;justify-content:center;gap:0.6rem;margin:1.5rem 0 0.4rem">
         ${impAvatar(currentName, 34)}
@@ -8451,6 +8460,22 @@ function nextCard() {
   renderImpCards();
 }
 
+// Categoría de la palabra actual, para mostrar como pista/contexto en distintas
+// pantallas del Impostor (cartas, ruleta de quién arranca, etc.)
+function getImpCategoryHint() {
+  const w = impGame.selectedWord;
+  const TODAS = 'Todas juntas 🎲';
+  let hint = (impGame.activeCategory && impGame.activeCategory !== TODAS) ? impGame.activeCategory : null;
+  if (!hint && w) {
+    for (const [cat, words] of Object.entries(IMP_WORDS)) {
+      if (cat === TODAS) continue;
+      if (words.includes(w)) { hint = cat; break; }
+    }
+    if (!hint) hint = detectWordCategory(w);
+  }
+  return hint;
+}
+
 function goToVoting() {
   impGame.phase = 'result';
   saveImpGame();
@@ -8465,18 +8490,7 @@ function goToVoting() {
     <div class="cover-title">¡Todos tienen su carta!</div>
     <div class="cover-sub" style="margin-bottom:0.4rem">¿Quién arranca con la primera pista?</div>
     ${(() => {
-      const w = impGame.selectedWord;
-      const TODAS = 'Todas juntas 🎲';
-      let hint = (impGame.activeCategory && impGame.activeCategory !== TODAS) ? impGame.activeCategory : null;
-      if (!hint && w) {
-        // Buscar en IMP_WORDS primero
-        for (const [cat, words] of Object.entries(IMP_WORDS)) {
-          if (cat === TODAS) continue;
-          if (words.includes(w)) { hint = cat; break; }
-        }
-        // Fallback al diccionario amplio
-        if (!hint) hint = detectWordCategory(w);
-      }
+      const hint = getImpCategoryHint();
       return hint
         ? `<div style="margin-bottom:0.9rem"><span class="score-pill draw">Categoría: ${hint}</span></div>`
         : '<div style="margin-bottom:0.9rem"></div>';
