@@ -573,7 +573,7 @@ function _onFbScriptError(){ window._fbScriptsDone = true; console.warn('[Fireba
   <!-- Tarjeta de ronda -->
   <div class="round-card">
     <div class="round-label" id="round-label">Tu respuesta</div>
-    <div class="round-hint" id="round-hint">Leé la pregunta del papel y anotá tu número.</div>
+    <div class="round-hint" id="round-hint">Leé la pregunta del papel y anotá tu número (la pregunta la leen del juego de mesa).</div>
 
     <input class="answer-input" id="answer-input" type="text" inputmode="decimal" autocomplete="off" placeholder="Tu número">
 
@@ -906,7 +906,7 @@ function refreshPhaseUI(){
 
   if(phase === 'answering'){
     _setText('round-label', 'Tu respuesta');
-    _setText('round-hint', 'Leé la pregunta del papel y anotá tu número.');
+    _setText('round-hint', 'Leé la pregunta del papel y anotá tu número (la pregunta la leen del juego de mesa).');
     if(me.ready){
       input.disabled = true;
       readyBtn.disabled = true;
