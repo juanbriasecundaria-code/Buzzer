@@ -6,437 +6,747 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no,viewport-fit=cover">
-<title>HUB — La Velada del Año</title>
-<!-- ── PWA / Agregar a pantalla de inicio ── -->
-<meta name="theme-color" content="#c8f060">
+<title>¿Quién lo dijo? — La Velada del Año</title>
+<meta name="theme-color" content="#c060e8">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="HUB">
-<meta name="application-name" content="HUB">
-<link rel="apple-touch-icon" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAALQAAAC0CAYAAAA9zQYyAAAFR0lEQVR4nO3dy3UTQRBG4ZIOKy8IgHAIgUAJgXAIwAttYQHjI43n0T39rL/ut8dqTV+X2rLw3GwSb29f/4xeA8o8Hu+30WsYtgAC1jci8K4PSMRx9Yq7+YMQMdZaxt3sCxMyzrQIu/oXJGTkqhn2vdYXMiNmXFOzmyrfGYSMWkqndfGEJmbUVNpTUdDEjBZKuro03gkZveQeQbInNDGjp9zesoImZoyQ011y0MSMkVL7q/o+NDBaUtBMZ8wgpcPToIkZMznr8TBoYsaMjrrkDA0pu0EznTGzvT43gyZmeLDVKUcOSPkUNNMZnqx7ZUJDykvQTGd49NwtExpSCBpSPoLmuAHPln6Z0JBC0JByM+O4AR1MaEghaEghaEi5c36GEiY0pBA0pBA0pBA0pBA0pBA0pBA0pBA0pBA0pBA0pHwZvQA1v37/yP4337/9bLCSmG58luO6K/GmIvJrCDpTy4j3EHc6gk4wIuI9xH2MoA/MFPIaYW8j6A0zh7xG2K8I+omnkNcI+x/eh/7Pc8xm/tdfS/gJrRhC5GkdekIrxmym+7xShA1afdPVn9+ecEeOiBsd6QgSakJHjNks1vMOE3SkTd0S5fmHCDrKZp6JcB3kg46wiTnUr4d80IhFOmj1aXSV8nWRDVp502pQvT6SQatuVm2K10kyaMQlF7Ti1GlJ7XpJBa22Ob0oXTf+jEEjKZ+fUAppFjIfTpohjpIPAXlf/yyY0IVqRfD8dWaI2yuJM/SoAFpNtFGTUuEbiQl9QY/glsdQiKwn9xO694b3np69H8/7N5D7oHsadRRQ+GGtF4JONDqq0Y/vheuge708zhJTr3V4Pna4DrqHWWJezLae2RA0pLgNusfL4qzTsMe6vB473Abd2qwxL2Zf3ygEDSkEDSkEvcHLy7mXdfbkMmivP7B44/E6uwwa2EPQK95exr2ttzWChhSChhSChhSChhSChhSChhSChhSChhSCXvH2615v622NoCHFZdD8urcPj9fZZdCteXkZ97LOnggaUggaUgh6x+wv57OvbxS3QUf+r/yR/4TDGbdBA1sI+sRsU3q29czGddDR/nhhtD9OeYXroHsaHfXox/eCoDOMioqY07kPWv2WDeq33KiNmwZdsETWcvOZyte4n9BmerdBU7tNXU9M6ELP8Xm/k6wCmVsjm80Vhbd7fStMZzMmdDMzxRqJxBl6oTJlelO6blJBm2ltTg9q10suaMQmGbTa1GlF8TpJBm2muVk1qV4f2aDNdDetlPJ1kQ4a8cgHrTyNrlC/HvJBm+lvYqoI1yFE0GYxNvNIlOcfJmizOJu6Ful5S304KUeEz1pECnkRakI/U99s9ee3J2zQZrqbrvq8UoQ9cqwpHEEih7wIPaGfeY/B+/prYUJv8DStCfkVQR+YOWxC3kbQCWYKm5CPEXSmEXETcTqCLtAybiK+hqAruxI58dZD0JDC+9CQQtCQQtCQQtCQQtCQQtCQQtCQQtCQQtCQQtCQcn883m+jFwHUwoSGFIKGFIKGlLuZGedoKHg83m9MaEghaEj5CJpjBzxb+mVCQwpBQ8pL0Bw74NFzt0xoSPkUNFManqx7ZUJDymbQTGl4sNXp7oQmasxsr0+OHJByGDRTGjM66vJ0QhM1ZnLWY9KRg6gxg5QOOUNDSnLQTGmMlNpf1oQmaoyQ0132kYOo0VNub0VxcjsLtHJ1cBb9UMi0RgslXRW/y0HUqKm0p6oxcgTBVbUGY9X3oZnWuKJmN80CZFrjTIsB2HyiEjbWWr6Sdz0iEHdcvY6jw868xK1vxM9UfwH1NcGsbt/HlgAAAABJRU5ErkJggg==">
-<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20width%3D%22180%22%20height%3D%22180%22%20viewBox%3D%220%200%20180%20180%22%3E%3Crect%20width%3D%22180%22%20height%3D%22180%22%20rx%3D%2240%22%20fill%3D%22%230a0a0e%22/%3E%3Ctext%20x%3D%2250%25%22%20y%3D%2250%25%22%20font-size%3D%22110%22%20text-anchor%3D%22middle%22%20dominant-baseline%3D%22central%22%3E%F0%9F%94%94%3C/text%3E%3C/svg%3E">
-<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🔔</text></svg>">
+<meta name="apple-mobile-web-app-title" content="¿Quién lo dijo?">
+<meta name="application-name" content="QLD">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎤</text></svg>">
+
 <script>
 window._fbScriptsLoaded=0;window._fbScriptsDone=false;
 function _onFbLoad(){window._fbScriptsLoaded++;if(window._fbScriptsLoaded>=2){window._fbScriptsDone=true;if(window._fbReadyCb)window._fbReadyCb();}}
-function _onFbError(){window._fbScriptsDone=true;window._fbError='No se pudo cargar Firebase. Verificá tu conexión a internet.';if(typeof showError==='function')showError(window._fbError);if(window._fbReadyCb)window._fbReadyCb();}
+function _onFbError(){window._fbScriptsDone=true;console.warn('[FB] script load failed — offline mode');if(window._fbReadyCb)window._fbReadyCb();}
 </script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js" onload="_onFbLoad()" onerror="_onFbError()"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js" onload="_onFbLoad()" onerror="_onFbError()"></script>
+<script>
+// ── YouTube IFrame API (para sincronizar play/pause entre conductor y participantes) ──
+window._ytApiReady = false;
+window._ytApiCbs = [];
+window.onYouTubeIframeAPIReady = function(){
+  window._ytApiReady = true;
+  const cbs = window._ytApiCbs; window._ytApiCbs = [];
+  cbs.forEach(fn => { try{ fn(); }catch(e){} });
+};
+function onYtApiReady(fn){ if(window._ytApiReady) fn(); else window._ytApiCbs.push(fn); }
+(function(){ const s=document.createElement('script'); s.src='https://www.youtube.com/iframe_api'; document.head.appendChild(s); })();
+</script>
+
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 :root{
   --bg:#0a0a0e;--surface:#14141c;--surface2:#1e1e2a;
   --border:rgba(255,255,255,.07);--border2:rgba(255,255,255,.13);
-  --text:#f0efe8;--muted:#666;
+  --text:#f0efe8;--muted:#666;--muted2:#888;
   --accent:#c8f060;--accent-dim:rgba(200,240,96,.12);
   --gold:#f5c842;--gold-dim:rgba(245,200,66,.14);
   --red:#ff5f5f;--red-dim:rgba(255,95,95,.13);
   --blue:#60b4f0;--blue-dim:rgba(96,180,240,.13);
-  --green:#4cdb7a;--green-dim:rgba(76,219,122,.14);
   --purple:#c060e8;--purple-dim:rgba(192,96,232,.15);
+  --green:#4cdb7a;--green-dim:rgba(76,219,122,.14);
   --radius:14px;
 }
 html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;overscroll-behavior:none}
 
-/* ── SCREENS ── */
-.screen{display:none;min-height:100dvh;flex-direction:column;align-items:center;justify-content:center;padding:2rem 1.5rem;gap:1.5rem;text-align:center;position:relative;z-index:1}
-.screen.active{display:flex}
-
-/* scrim oscuro que atenúa el fondo en game-select (no en splash) */
-#game-select-screen::before{
-  content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
-  background:
-    radial-gradient(ellipse 60% 75% at 50% 50%,rgba(10,10,14,.78) 0%,rgba(10,10,14,.25) 65%,transparent 100%),
-    linear-gradient(to right,rgba(10,10,14,.65) 0%,transparent 20%,transparent 80%,rgba(10,10,14,.65) 100%),
-    linear-gradient(to bottom,rgba(10,10,14,.7) 0%,transparent 22%,transparent 78%,rgba(10,10,14,.7) 100%);
-}
-#game-select-screen>*{position:relative;z-index:1}
-/* Deja lugar arriba para que el chip fijo "Participantes" no tape el
-   título del HUB en mobile: el padding-top del .screen genérico (2rem)
-   no alcanza a despejar la altura del chip fijo. */
-#game-select-screen{padding-top:calc(4.75rem + env(safe-area-inset-top))}
-
-/* ── BACK BUTTON ── */
-.back-btn{position:absolute;top:max(1rem,env(safe-area-inset-top));left:1rem;z-index:10;display:flex;align-items:center;gap:.4rem;padding:.5rem .85rem;border-radius:99px;border:1.5px solid var(--border2);background:var(--surface2);color:var(--muted);font-family:inherit;font-size:13px;font-weight:700;cursor:pointer;transition:opacity .15s}
-.back-btn:active{opacity:.7}
-
-/* ── PARTICIPANTES corner link (esquina, dentro del HUB) ── */
-.participants-corner-link{position:fixed;top:max(1rem,env(safe-area-inset-top));right:max(1rem,env(safe-area-inset-right));z-index:10;display:flex;align-items:center;gap:.35rem;padding:.5rem .8rem;border-radius:99px;border:1.5px solid var(--border2);background:var(--surface2);color:var(--muted);font-family:inherit;font-size:12px;font-weight:700;text-decoration:none;transition:opacity .15s,color .15s,border-color .15s}
-.participants-corner-link:active{opacity:.7}
-.participants-corner-link:hover{color:var(--text);border-color:var(--border2)}
-
-/* ── GAME SELECT ── */
-.velada-label{font-size:11px;font-weight:700;letter-spacing:.32em;text-transform:uppercase;color:var(--gold);opacity:.8}
-.velada-title{font-size:2.4rem;font-weight:900;letter-spacing:-.03em;line-height:1}
-.velada-sub{font-size:13px;color:var(--muted);font-weight:600}
-.game-list{display:flex;flex-direction:column;gap:.75rem;width:100%;max-width:320px}
-.game-btn{padding:1.1rem 1.25rem;border-radius:var(--radius);border:2px solid;font-family:inherit;font-size:16px;font-weight:800;cursor:pointer;transition:opacity .15s,transform .12s;display:flex;align-items:center;gap:.75rem;text-align:left;text-decoration:none}
-.game-btn:active{opacity:.85;transform:scale(.97)}
-.game-btn-icon{font-size:26px;line-height:1;flex-shrink:0}
-.game-btn-info{display:flex;flex-direction:column;gap:.1rem}
-.game-btn-name{font-size:15px;font-weight:800}
-.game-btn-sub{font-size:11px;opacity:.65;font-weight:600}
-.game-movies{background:var(--gold-dim);border-color:var(--gold);color:var(--gold)}
-.game-arg{background:var(--blue-dim);border-color:var(--blue);color:var(--blue)}
-.game-quien{background:var(--purple-dim);border-color:var(--purple);color:var(--purple)}
-.game-tiempo{background:var(--accent-dim);border-color:var(--accent);color:var(--accent)}
-.game-tiempo .game-arrow{margin-left:auto;font-size:18px;opacity:.55;line-height:1}
-.game-erudito{background:var(--red-dim);border-color:var(--red);color:var(--red)}
-.game-erudito .game-arrow{margin-left:auto;font-size:18px;opacity:.55;line-height:1}
-.edit-names-btn{margin-top:.9rem;background:none;border:none;color:var(--muted);font-family:inherit;font-size:12px;font-weight:600;cursor:pointer;letter-spacing:.03em;text-decoration:underline;text-underline-offset:3px;opacity:.8;padding:.4rem .8rem}
-.edit-names-btn:active{opacity:1}
-.bzn-overlay{position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:600;display:none;align-items:center;justify-content:center;padding:1.25rem}
-.bzn-overlay.open{display:flex}
-.bzn-box{background:var(--surface);border:1px solid var(--border2);border-radius:20px;padding:1.5rem 1.4rem 1.3rem;width:min(340px,100%);display:flex;flex-direction:column;gap:.85rem}
-.bzn-title{font-size:15px;font-weight:800;letter-spacing:-.01em;text-align:center}
-.bzn-sub{font-size:12px;color:var(--muted);text-align:center;margin-top:-.5rem;line-height:1.4}
-.bzn-field{display:flex;flex-direction:column;gap:.35rem}
-.bzn-field label{font-size:11px;font-weight:700;letter-spacing:.04em;color:var(--muted);text-align:left}
-.bzn-input{width:100%;padding:.8rem .9rem;border-radius:12px;border:1.5px solid var(--border2);background:var(--surface2);color:var(--text);font-family:inherit;font-size:15px;font-weight:700;-webkit-appearance:none;appearance:none}
-.bzn-input:focus{outline:none;border-color:var(--accent)}
-.bzn-row{display:flex;gap:.6rem;margin-top:.2rem}
-.bzn-btn{flex:1;padding:.85rem;border-radius:12px;border:none;font-family:inherit;font-size:14px;font-weight:800;cursor:pointer;transition:opacity .15s,transform .1s}
-.bzn-btn:active{opacity:.85;transform:scale(.97)}
-.bzn-btn.ghost{background:var(--surface2);color:var(--text);border:1.5px solid var(--border2)}
-.bzn-btn.primary{background:var(--accent);color:#0f0f13}
-.submenu{width:100%;max-width:340px;display:flex;flex-direction:column;gap:.6rem}
-.submenu+.submenu{margin-top:1rem}
-.submenu-head{display:flex;align-items:center;gap:.6rem;padding:0 .15rem .1rem}
-.submenu-head .sm-ic{font-size:14px;line-height:1}
-.submenu-head .sm-tx{font-size:11px;font-weight:800;letter-spacing:.18em;text-transform:uppercase}
-.submenu-head .sm-line{flex:1;height:1px;background:linear-gradient(to right,currentColor,transparent);opacity:.25}
-.submenu.sm-buzzer .submenu-head{color:var(--gold)}
-.submenu.sm-mini .submenu-head{color:var(--accent)}
-.submenu .game-arrow{margin-left:auto;font-size:18px;opacity:.55;line-height:1}
-
-/* ── TEAM SELECT ── */
-.game-header{display:flex;flex-direction:column;align-items:center;gap:.3rem}
-.game-icon{font-size:3rem;line-height:1}
-.game-name{font-size:1.4rem;font-weight:900;letter-spacing:-.02em}
-.section-label{font-size:11px;font-weight:700;letter-spacing:.2em;text-transform:uppercase;color:var(--muted)}
-.team-list{display:flex;flex-direction:column;gap:.6rem;width:100%;max-width:300px}
-.team-btn{padding:1.1rem;border-radius:var(--radius);border:2px solid;font-family:inherit;font-size:17px;font-weight:800;cursor:pointer;transition:opacity .15s,transform .12s;letter-spacing:-.01em}
-.team-btn:active{transform:scale(.97);opacity:.85}
-.team-a{background:var(--blue-dim);border-color:var(--blue);color:var(--blue)}
-.team-b{background:var(--gold-dim);border-color:var(--gold);color:var(--gold)}
-.team-indiv{background:var(--purple-dim);border-color:var(--purple);color:var(--purple);padding:.85rem;font-size:15px}
-#team-list-individual{display:none;grid-template-columns:1fr 1fr;gap:.6rem}
-#team-list-individual.show{display:grid}
-@media (max-width:360px){#team-list-individual{grid-template-columns:1fr}}
-
-/* ── BUZZ SCREEN ── */
-#buzz-screen{position:relative}
-.bz-game-tag{font-size:10px;font-weight:700;letter-spacing:.2em;text-transform:uppercase;color:var(--muted);position:absolute;top:max(1rem,env(safe-area-inset-top));right:1rem}
-.bz-team-name{font-size:1.1rem;font-weight:800;margin-bottom:.25rem}
-.bz-status{font-size:14px;color:var(--muted);font-weight:600;min-height:1.4em;transition:color .2s}
-.bz-status.open{color:var(--accent)}
-.bz-status.won{color:var(--green);font-size:17px;font-weight:900}
-.bz-status.lost{color:var(--muted)}
-
-.bz-buzz-btn{width:min(280px,74vw);height:min(280px,74vw);border-radius:50%;border:3px solid;font-family:inherit;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.5rem;transition:transform .1s,box-shadow .2s;-webkit-tap-highlight-color:transparent;margin:.5rem 0}
-.bz-buzz-btn:active{transform:scale(.91)}
-.bz-buzz-btn.locked{opacity:.25;cursor:default;pointer-events:none}
-.bz-buzz-btn.team-a{border-color:var(--blue);background:var(--blue-dim);color:var(--blue);box-shadow:0 0 0 1px rgba(96,180,240,.3),0 12px 40px rgba(96,180,240,.15)}
-.bz-buzz-btn.team-b{border-color:var(--gold);background:var(--gold-dim);color:var(--gold);box-shadow:0 0 0 1px rgba(245,200,66,.3),0 12px 40px rgba(245,200,66,.15)}
-.bz-buzz-btn.team-indiv{border-color:var(--purple);background:var(--purple-dim);color:var(--purple);box-shadow:0 0 0 1px rgba(192,96,232,.3),0 12px 40px rgba(192,96,232,.15)}
-.bz-buzz-btn.open.team-a{box-shadow:0 0 0 1px rgba(96,180,240,.8),0 12px 60px rgba(96,180,240,.4)}
-.bz-buzz-btn.open.team-b{box-shadow:0 0 0 1px rgba(245,200,66,.8),0 12px 60px rgba(245,200,66,.4)}
-.bz-buzz-btn.open.team-indiv{box-shadow:0 0 0 1px rgba(192,96,232,.8),0 12px 60px rgba(192,96,232,.4)}
-.bz-buzz-btn.won-me{animation:bzPulseWin .6s ease}
-@keyframes bzPulseWin{0%{transform:scale(1)}40%{transform:scale(1.08)}100%{transform:scale(1)}}
-.bz-buzz-icon{font-size:56px;line-height:1;pointer-events:none}
-.bz-buzz-text{font-size:24px;font-weight:900;letter-spacing:-.02em;pointer-events:none}
-
-/* ── RESULT OVERLAY ── */
-.bz-result{position:absolute;inset:0;z-index:5;display:none;flex-direction:column;align-items:center;justify-content:center;gap:.7rem;padding:2rem 1.5rem;text-align:center;
-  background:radial-gradient(120% 80% at 50% 35%,rgba(0,0,0,.3),transparent 70%),rgba(10,10,14,.74);
-  -webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px)}
-.bz-result.show{display:flex;animation:resultIn .4s cubic-bezier(.22,1,.36,1)}
-@keyframes resultIn{from{opacity:0;transform:scale(.85)}to{opacity:1;transform:scale(1)}}
-.bz-result-icon{font-size:5.5rem;line-height:1}
-.bz-result-title{font-size:1.9rem;font-weight:900;letter-spacing:-.02em}
-.bz-result-sub{font-size:14px;color:var(--muted);font-weight:600;max-width:260px;line-height:1.4}
-.bz-result.won{background:radial-gradient(120% 80% at 50% 35%,rgba(76,219,122,.18),transparent 65%),rgba(10,10,14,.8)}
-.bz-result.won .bz-result-title{color:var(--green)}
-.bz-result.won .bz-result-icon{filter:drop-shadow(0 0 26px rgba(76,219,122,.55));animation:bzTrophy .6s ease}
-@keyframes bzTrophy{0%{transform:scale(.4) rotate(-12deg)}55%{transform:scale(1.16) rotate(7deg)}100%{transform:scale(1) rotate(0)}}
-.bz-result.lost .bz-result-title{color:var(--text)}
-.bz-result.lost .bz-result-icon{opacity:.7}
-
-/* ── CONNECTING ── */
-.connecting-dot{width:10px;height:10px;border-radius:50%;background:var(--gold);animation:connPulse 1s ease-in-out infinite}
-@keyframes connPulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.3;transform:scale(.8)}}
-.connecting-text{font-size:14px;color:var(--muted);font-weight:600}
-
-/* ── ERROR ── */
-.error-box{background:var(--red-dim);border:1.5px solid var(--red);border-radius:var(--radius);padding:1rem 1.25rem;max-width:300px;font-size:13px;color:var(--red);font-weight:700;display:none}
-.error-box.show{display:block}
+/* ── HUB LINK ── */
+.hub-link{position:fixed;top:max(0.75rem,env(safe-area-inset-top));left:max(0.75rem,env(safe-area-inset-left));z-index:99999;font-size:11px;font-weight:700;color:rgba(240,239,232,.7);background:rgba(10,10,14,.6);border:1px solid rgba(255,255,255,.1);border-radius:99px;padding:.38rem .85rem;text-decoration:none;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);letter-spacing:.04em;transition:color .15s,border-color .15s;white-space:nowrap}
+.hub-link:hover{color:#f0efe8;border-color:rgba(255,255,255,.25)}
 
 /* ── SPLASH ── */
-.splash{position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;
-  background:var(--bg);
-  overflow:hidden;cursor:pointer;
-  transition:opacity .7s ease,transform .7s ease,filter .7s ease;
-  -webkit-tap-highlight-color:transparent}
-.splash.out{opacity:0;transform:scale(1.08);filter:blur(6px);pointer-events:none}
-
-/* carrusel de fondo */
-.splash-carousel-bg{position:absolute;inset:0;z-index:0;overflow:hidden;pointer-events:none}
-.splash-carousel-bg::after{
-  content:'';position:absolute;inset:0;z-index:2;
+#splash{position:fixed;inset:0;z-index:900;display:flex;align-items:center;justify-content:center;
   background:
-    radial-gradient(ellipse 55% 70% at 50% 50%,rgba(10,10,14,.82) 0%,rgba(10,10,14,.3) 60%,transparent 100%),
-    linear-gradient(to right,rgba(10,10,14,.7) 0%,transparent 18%,transparent 82%,rgba(10,10,14,.7) 100%),
-    linear-gradient(to bottom,rgba(10,10,14,.75) 0%,transparent 20%,transparent 80%,rgba(10,10,14,.75) 100%);}
-.bz-col{position:absolute;top:0;display:flex;flex-direction:column;gap:8px;will-change:transform}
-.bz-card{width:100%;border-radius:10px;flex-shrink:0;display:flex;flex-direction:column;
-  align-items:center;justify-content:center;gap:5px;
-  opacity:0;transition:opacity .5s;border:1.5px solid}
-.bz-card.loaded{opacity:.55}
+    radial-gradient(ellipse 70% 60% at 20% 40%,rgba(192,96,232,.18),transparent 60%),
+    radial-gradient(ellipse 65% 55% at 80% 65%,rgba(245,200,66,.15),transparent 60%),
+    var(--bg);
+  overflow:hidden;cursor:pointer;
+  transition:opacity .65s ease,transform .65s ease,filter .65s ease;
+  -webkit-tap-highlight-color:transparent}
+#splash.fade{opacity:0;transform:scale(1.07);filter:blur(6px);pointer-events:none}
+.sp-bloom{position:absolute;border-radius:50%;filter:blur(70px);opacity:0;animation:spBloomIn 1.2s ease forwards,spBreathe 6s ease-in-out 1.2s infinite;z-index:1}
+.sp-bloom-a{width:65vw;height:65vw;left:-12vw;top:-18vw;background:radial-gradient(circle,rgba(192,96,232,.35),transparent 65%)}
+.sp-bloom-b{width:55vw;height:55vw;right:-10vw;bottom:-15vw;background:radial-gradient(circle,rgba(245,200,66,.35),transparent 65%);animation-delay:.15s,1.35s}
+.sp-inner{position:relative;z-index:2;text-align:center;padding:2rem;display:flex;flex-direction:column;align-items:center;gap:.4rem}
+.sp-eye{font-size:10px;font-weight:700;letter-spacing:.32em;text-transform:uppercase;color:rgba(192,96,232,.7);margin-bottom:14px;opacity:0;animation:spRise .7s ease .25s forwards}
+.sp-mic{font-size:clamp(3rem,10vw,4.5rem);opacity:0;animation:spRise .8s ease .35s forwards;line-height:1;margin-bottom:.2rem}
+.sp-title{font-size:clamp(2.2rem,10vw,4.2rem);font-weight:900;letter-spacing:-.03em;line-height:1;
+  background:linear-gradient(120deg,var(--purple) 0%,#e8a0ff 50%,var(--gold) 100%);
+  -webkit-background-clip:text;background-clip:text;color:transparent;-webkit-text-fill-color:transparent;
+  opacity:0;transform:translateY(18px);animation:spRise .8s cubic-bezier(.2,.7,.2,1) .5s forwards}
+.sp-sub{font-size:clamp(11px,2.4vw,13px);color:rgba(240,239,232,.55);font-weight:600;margin-top:.5rem;letter-spacing:.02em;opacity:0;animation:spRise .8s ease .8s forwards}
+.sp-tap{margin-top:2rem;font-size:11px;font-weight:700;letter-spacing:.28em;text-transform:uppercase;color:rgba(240,239,232,.4);opacity:0;animation:spRise .8s ease 1.2s forwards,spPulse 2s ease-in-out 2s infinite}
+@keyframes spBloomIn{to{opacity:1}}
+@keyframes spBreathe{0%,100%{transform:scale(1)}50%{transform:scale(1.06)}}
+@keyframes spRise{to{opacity:1;transform:none}}
+@keyframes spPulse{0%,100%{opacity:.4}50%{opacity:.8}}
 
-/* overlay de bloom encima del carrusel */
-.splash-bloom{position:absolute;border-radius:50%;filter:blur(70px);opacity:0;z-index:1;
-  animation:bz-bloomIn 1.2s ease forwards,bz-bloomBreathe 6s ease-in-out 1.2s infinite}
-.bloom-a{width:60vw;height:60vw;left:-10vw;top:-15vw;
-  background:radial-gradient(circle,rgba(200,240,96,.30),transparent 65%)}
-.bloom-b{width:55vw;height:55vw;right:-12vw;bottom:-18vw;
-  background:radial-gradient(circle,rgba(200,240,96,.20),transparent 65%);
-  animation-delay:.15s,1.35s}
+/* ── MODE GATE ── */
+#gate{position:fixed;inset:0;z-index:800;display:none;flex-direction:column;align-items:center;justify-content:center;padding:2rem 1.5rem;gap:2rem;background:var(--bg)}
+#gate.active{display:flex}
+.gate-head{text-align:center}
+.gate-eye{font-size:10px;font-weight:700;letter-spacing:.32em;text-transform:uppercase;color:var(--purple);opacity:.8;margin-bottom:.4rem}
+.gate-title{font-size:1.8rem;font-weight:900;letter-spacing:-.02em}
+.gate-sub{font-size:12px;color:var(--muted2);margin-top:.4rem}
+.gate-choices{display:flex;flex-direction:column;gap:.75rem;width:100%;max-width:340px}
+.gate-btn{padding:1.2rem 1.25rem;border-radius:var(--radius);border:2px solid;font-family:inherit;font-size:15px;font-weight:800;cursor:pointer;transition:opacity .15s,transform .12s;display:flex;flex-direction:column;align-items:flex-start;gap:.2rem;text-align:left;background:transparent}
+.gate-btn:active{opacity:.85;transform:scale(.97)}
+.gate-btn-sub{font-size:11px;opacity:.7;font-weight:600}
+.gate-cond{border-color:var(--purple);color:var(--purple);background:var(--purple-dim)}
+.gate-part{border-color:var(--gold);color:var(--gold);background:var(--gold-dim)}
+.gate-pass{display:flex;gap:.5rem;margin-top:.5rem}
+.gate-pass input{flex:1;background:var(--surface2);border:1.5px solid var(--border2);border-radius:var(--radius);padding:.75rem .9rem;color:var(--text);font-family:inherit;font-size:14px;font-weight:600;-webkit-appearance:none;appearance:none}
+.gate-pass input:focus{outline:none;border-color:var(--purple)}
+.gate-pass-btn{padding:.75rem 1rem;border-radius:var(--radius);border:none;background:var(--purple);color:#0f0f13;font-family:inherit;font-size:14px;font-weight:800;cursor:pointer}
 
-.splash-inner{position:relative;z-index:3;text-align:center;padding:2rem;
-  display:flex;flex-direction:column;align-items:center;gap:.4rem}
-.splash-eyebrow{font-size:clamp(11px,2.6vw,14px);letter-spacing:.42em;
-  text-transform:uppercase;color:var(--muted);font-weight:700;
-  padding-left:.42em;opacity:0;animation:bz-riseIn .7s ease .25s forwards}
-.splash-icon-big{font-size:clamp(3.5rem,14vw,6rem);line-height:1;
-  opacity:0;transform:scale(.6) translateY(12px);
-  animation:bz-popIn .8s cubic-bezier(.2,.9,.3,1.3) .3s forwards,bz-bob 3.4s ease-in-out 1.2s infinite;
-  filter:drop-shadow(0 0 40px rgba(200,240,96,.35))}
-.splash-title-bz{font-size:clamp(2rem,10vw,5rem);font-weight:900;letter-spacing:-.03em;
-  line-height:1;margin:.3rem 0 0;
-  background:linear-gradient(105deg,var(--accent) 0%,#eaffa0 40%,var(--accent) 80%);
-  background-size:220% 100%;
-  -webkit-background-clip:text;background-clip:text;
-  color:transparent;-webkit-text-fill-color:transparent;
-  opacity:0;transform:translateY(16px);
-  animation:bz-riseIn .8s cubic-bezier(.2,.7,.2,1) .45s forwards,bz-shimmer 5s ease-in-out 1.4s infinite}
-.splash-sub-bz{font-size:clamp(12px,3vw,15px);color:var(--muted);font-weight:600;
-  letter-spacing:.04em;opacity:0;animation:bz-riseIn .6s ease .65s forwards}
-.splash-games-row{display:flex;gap:clamp(.5rem,3vw,1rem);margin-top:1.3rem;
-  font-size:clamp(1.5rem,6vw,2.2rem)}
-.splash-games-row span{display:inline-block;opacity:0;transform:translateY(14px) scale(.6);
-  animation:bz-castIn .5s cubic-bezier(.2,.9,.3,1.3) forwards,bz-bob 3.2s ease-in-out infinite}
-.splash-games-row span:nth-child(1){animation-delay:.9s,1.5s}
-.splash-games-row span:nth-child(2){animation-delay:.98s,1.7s}
-.splash-games-row span:nth-child(3){animation-delay:1.06s,1.9s}
-.splash-games-row span:nth-child(4){animation-delay:1.14s,2.1s}
-.splash-start-bz{margin-top:1.8rem;display:inline-flex;align-items:center;gap:.6rem;
-  font-size:clamp(15px,4vw,18px);font-weight:800;letter-spacing:.12em;
-  text-transform:uppercase;color:#0f0f13;
-  background:linear-gradient(180deg,#d6ff6e,var(--accent));
-  border:none;border-radius:99px;padding:.85rem 2.2rem;cursor:pointer;
-  box-shadow:0 0 0 1px rgba(200,240,96,.5),0 8px 30px rgba(200,240,96,.25);
-  opacity:0;transform:translateY(14px);font-family:inherit;
-  animation:bz-riseIn .6s cubic-bezier(.2,.9,.3,1.2) 1.1s forwards,bz-startGlow 2.2s ease-in-out 1.7s infinite;
-  transition:transform .15s ease,box-shadow .2s ease;-webkit-tap-highlight-color:transparent}
-.splash-start-bz:hover{transform:translateY(0) scale(1.05);box-shadow:0 0 0 1px rgba(200,240,96,.75),0 10px 42px rgba(200,240,96,.45)}
-.splash-start-bz:active{transform:scale(.97)}
-@keyframes bz-bloomIn{to{opacity:1}}
-@keyframes bz-bloomBreathe{0%,100%{transform:scale(1);opacity:.9}50%{transform:scale(1.12);opacity:1}}
-@keyframes bz-riseIn{to{opacity:1;transform:translateY(0)}}
-@keyframes bz-popIn{to{opacity:1;transform:scale(1) translateY(0)}}
-@keyframes bz-castIn{to{opacity:1;transform:translateY(0) scale(1)}}
-@keyframes bz-bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
-@keyframes bz-shimmer{0%,100%{background-position:0% 0}50%{background-position:100% 0}}
-@keyframes bz-startGlow{
-  0%,100%{box-shadow:0 0 0 1px rgba(200,240,96,.5),0 8px 30px rgba(200,240,96,.25)}
-  50%{box-shadow:0 0 0 1px rgba(200,240,96,.85),0 8px 46px rgba(200,240,96,.55)}}
-@media(prefers-reduced-motion:reduce){
-  .splash,.splash *{animation:none!important}
-  .splash-eyebrow,.splash-icon-big,.splash-title-bz,.splash-sub-bz,
-  .splash-games-row span,.splash-start-bz{opacity:1!important;transform:none!important}}
+/* ── LAYOUT SCREENS ── */
+#conductor,#participant{display:none;min-height:100dvh;flex-direction:column}
+#conductor.active,#participant.active{display:flex}
 
-/* ── PASSWORD MODAL ── */
-.pw-overlay{position:fixed;inset:0;z-index:100;display:none;align-items:center;justify-content:center;padding:1.5rem;background:rgba(10,10,14,.85);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px)}
-.pw-overlay.show{display:flex;animation:resultIn .3s cubic-bezier(.22,1,.36,1)}
-.pw-modal{background:var(--surface);border:1.5px solid var(--border2);border-radius:18px;padding:2rem 1.75rem;width:100%;max-width:300px;display:flex;flex-direction:column;align-items:center;gap:1.1rem;text-align:center}
-.pw-modal-icon{font-size:2.4rem;line-height:1}
-.pw-modal-title{font-size:1.1rem;font-weight:900;letter-spacing:-.02em;color:var(--accent)}
-.pw-modal-sub{font-size:12px;color:var(--muted);font-weight:600}
-.pw-input{width:100%;padding:.85rem 1rem;border-radius:var(--radius);border:2px solid var(--border2);background:var(--surface2);color:var(--text);font-family:inherit;font-size:1.3rem;font-weight:800;text-align:center;letter-spacing:.15em;outline:none;transition:border-color .2s}
-.pw-input:focus{border-color:var(--accent)}
-.pw-input.error{border-color:var(--red);animation:pwShake .35s ease}
-@keyframes pwShake{0%,100%{transform:translateX(0)}20%{transform:translateX(-7px)}40%{transform:translateX(7px)}60%{transform:translateX(-5px)}80%{transform:translateX(5px)}}
-.pw-btn{width:100%;padding:.9rem;border-radius:var(--radius);border:none;background:var(--accent);color:#0a0a0e;font-family:inherit;font-size:15px;font-weight:900;cursor:pointer;transition:opacity .15s,transform .12s}
-.pw-btn:active{opacity:.85;transform:scale(.97)}
-.pw-error{font-size:12px;color:var(--red);font-weight:700;min-height:1em}
-.pw-cancel{background:none;border:none;color:var(--muted);font-family:inherit;font-size:12px;font-weight:700;cursor:pointer;padding:.3rem .6rem;border-radius:99px;transition:color .15s}
-.pw-cancel:hover{color:var(--text)}
+/* ── SCORE BAR (todos-contra-todos) ── */
+.score-strip{position:sticky;top:0;z-index:20;background:rgba(14,14,20,.9);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border-bottom:1px solid var(--border);padding:.5rem .5rem;overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch}
+.score-strip::-webkit-scrollbar{display:none}
+.score-strip-inner{display:flex;gap:.4rem;padding:0 .25rem 0 4.5rem;min-width:min-content}
+.score-chip{flex-shrink:0;display:flex;flex-direction:column;align-items:center;padding:.4rem .7rem;background:var(--surface);border:1.5px solid var(--border2);border-radius:12px;cursor:pointer;transition:transform .1s,border-color .15s;min-width:70px}
+.score-chip:active{transform:scale(.95)}
+.score-chip.leader{border-color:var(--gold);background:var(--gold-dim)}
+.score-chip-name{font-size:10px;font-weight:800;color:var(--muted2);letter-spacing:.02em;text-transform:uppercase;max-width:80px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.score-chip.leader .score-chip-name{color:var(--gold)}
+.score-chip-pts{font-size:20px;font-weight:900;line-height:1;margin-top:.15rem;color:var(--text)}
+.score-chip.leader .score-chip-pts{color:var(--gold)}
+.score-chip-recent{position:absolute;top:-6px;right:-6px;background:var(--green);color:#0a0a0e;font-size:9px;font-weight:900;padding:1px 5px;border-radius:99px;pointer-events:none}
+.score-chip{position:relative}
+
+/* ── COND TOP BAR ── */
+.cond-topbar{display:flex;gap:.4rem;padding:.6rem .75rem;align-items:center;flex-wrap:wrap}
+.cta-btn{padding:.5rem .85rem;border-radius:99px;border:1.5px solid var(--border2);background:var(--surface2);color:var(--text);font-family:inherit;font-size:12px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:.35rem;transition:border-color .15s,background .15s}
+.cta-btn:active{opacity:.85}
+.cta-btn.primary{background:var(--purple-dim);border-color:var(--purple);color:var(--purple)}
+.cta-btn.danger{background:var(--red-dim);border-color:var(--red);color:var(--red)}
+.cta-spacer{flex:1}
+
+/* ── BODY / CARD ── */
+.cond-body{flex:1;display:flex;flex-direction:column;padding:.5rem 1rem 1.25rem;gap:.6rem;max-width:820px;width:100%;margin:0 auto}
+.cond-card{background:var(--surface);border:1.5px solid var(--border2);border-radius:20px;padding:1.25rem 1.1rem;display:flex;flex-direction:column;gap:.8rem;min-height:280px;position:relative}
+.cc-empty{margin:auto;text-align:center;color:var(--muted2);font-size:14px;padding:2rem 1rem}
+.cc-cat-row{display:flex;align-items:center;justify-content:space-between;gap:.5rem}
+.cc-cat{display:inline-flex;align-items:center;gap:.4rem;padding:.3rem .7rem;border-radius:99px;background:var(--surface2);border:1px solid var(--border2);font-size:11px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--muted2)}
+.cc-idx{font-size:11px;font-weight:700;color:var(--muted);letter-spacing:.04em}
+.cc-media{display:flex;justify-content:center;align-items:center;background:var(--surface2);border-radius:12px;overflow:hidden;min-height:120px;max-height:340px}
+.cc-media img,.cc-media video{max-width:100%;max-height:340px;display:block;border-radius:10px}
+.cc-media iframe{width:100%;aspect-ratio:16/9;border:none;border-radius:10px;background:#000}
+.cc-media.empty{color:var(--muted);font-size:12px;padding:1.25rem;min-height:0}
+.cc-media.audio{flex-direction:column;gap:.6rem;padding:1rem;min-height:0}
+.cc-media.audio audio{width:100%}
+.media-audio-tag{font-size:11px;font-weight:800;color:var(--gold);letter-spacing:.08em;text-transform:uppercase}
+/* tarjeta de audio en la pantalla de participantes */
+.part-audio{width:100%;border-radius:16px;background:var(--surface2);border:1.5px solid var(--border2);padding:1.4rem 1rem;display:flex;flex-direction:column;align-items:center;gap:.8rem}
+.part-audio-icon{font-size:2.6rem}
+.part-audio-txt{font-size:13px;font-weight:800;color:var(--muted2);text-align:center}
+.part-audio-eq{display:flex;align-items:flex-end;gap:4px;height:34px}
+.part-audio-eq span{width:6px;border-radius:3px;background:var(--gold);height:8px}
+.part-audio.playing .part-audio-eq span{animation:eqBar .9s ease-in-out infinite}
+.part-audio-eq span:nth-child(2){animation-delay:.12s}
+.part-audio-eq span:nth-child(3){animation-delay:.24s}
+.part-audio-eq span:nth-child(4){animation-delay:.36s}
+.part-audio-eq span:nth-child(5){animation-delay:.48s}
+@keyframes eqBar{0%,100%{height:8px}50%{height:32px}}
+.cc-prompt{font-size:clamp(15px,3.5vw,20px);font-weight:700;line-height:1.4;color:var(--text);padding:.5rem .25rem}
+.cc-prompt .gap{display:inline-block;min-width:80px;border-bottom:2.5px solid var(--purple);margin:0 .15rem;color:transparent;padding:0 .3rem}
+.cc-prompt.revealed .gap{color:var(--purple);border-bottom-color:var(--purple);background:var(--purple-dim);border-radius:4px}
+
+/* ── DIÁLOGO POR PERSONAJES ── */
+.dlg-wrap{display:flex;flex-direction:column;gap:.55rem;padding:.5rem .25rem;width:100%}
+.dlg-row{display:flex;flex-direction:column;max-width:82%}
+.dlg-row.side-a{align-self:flex-start;align-items:flex-start}
+.dlg-row.side-b{align-self:flex-end;align-items:flex-end}
+.dlg-name{font-size:11px;font-weight:900;letter-spacing:.03em;margin-bottom:3px;padding:0 .35rem;text-transform:uppercase}
+.dlg-bubble{padding:.6rem .85rem;border-radius:14px;font-weight:700;line-height:1.4;font-size:clamp(14px,3.3vw,18px)}
+.dlg-row.side-a .dlg-bubble{border-bottom-left-radius:3px}
+.dlg-row.side-b .dlg-bubble{border-bottom-right-radius:3px}
+.part-dlg .dlg-bubble{font-size:clamp(16px,4vw,22px)}
+.part-dlg .dlg-name{font-size:12px}
+.dlg-bubble .gap{display:inline-block;min-width:70px;border-bottom:2.5px solid currentColor;margin:0 .15rem;color:transparent;padding:0 .3rem}
+
+/* editor: tabs de modo + filas de diálogo */
+.prompt-mode-tabs{display:flex;gap:1rem;margin-bottom:.5rem;font-size:13px;font-weight:600;color:var(--muted2)}
+.prompt-mode-tab{display:flex;align-items:center;gap:.35rem;cursor:pointer}
+.dlg-edit-row{display:flex;gap:.5rem;align-items:flex-start;background:rgba(255,255,255,.03);border:1px solid var(--border);border-radius:10px;padding:.6rem;margin-bottom:.5rem}
+.dlg-edit-row .form-in{flex:0 0 130px}
+.dlg-edit-row textarea{flex:1;min-height:44px;resize:vertical}
+.dlg-edit-del{flex:0 0 auto;padding:.4rem .6rem}
+.cc-answer{background:var(--purple-dim);border:1px solid var(--purple);border-radius:12px;padding:.85rem 1rem;display:flex;flex-direction:column;gap:.4rem}
+.cc-answer .aq{font-size:10px;font-weight:800;color:var(--purple);letter-spacing:.1em;text-transform:uppercase}
+.cc-answer .av{font-size:15px;font-weight:700;color:var(--text)}
+.cc-answer-status{display:flex;justify-content:flex-end;margin-bottom:.15rem}
+.cca-badge{display:inline-flex;align-items:center;gap:.3rem;padding:.2rem .55rem;border-radius:99px;font-size:9px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;border:1px solid}
+.cca-badge.on{color:var(--green);border-color:var(--green);background:var(--green-dim)}
+.cca-badge.off{color:var(--muted2);border-color:var(--border2);background:var(--surface2)}
+.cc-hints{display:flex;flex-direction:column;gap:.4rem}
+.cc-hint{display:flex;gap:.5rem;align-items:flex-start;padding:.55rem .75rem;border-radius:10px;background:var(--surface2);border:1px dashed var(--border2);font-size:13px;color:var(--muted2)}
+.cc-hint.revealed{color:var(--text);border-style:solid;border-color:var(--gold);background:var(--gold-dim)}
+.cc-hint-tag{font-size:9px;font-weight:800;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;flex-shrink:0;padding-top:.15rem}
+.cc-hint.revealed .cc-hint-tag{color:var(--gold)}
+.cc-options{display:flex;flex-wrap:wrap;justify-content:center;gap:.5rem;margin-top:.25rem}
+.cc-opt{flex:0 1 calc(50% - .25rem);min-width:130px;padding:.65rem .8rem;border-radius:10px;background:var(--surface2);border:1.5px solid var(--border2);font-family:inherit;font-size:13px;font-weight:700;color:var(--text);cursor:default;text-align:center}
+.cc-opt.correct{border-color:var(--green);background:var(--green-dim);color:var(--green)}
+/* opciones con imagen / gif */
+.cc-opt.has-img{padding:0;overflow:hidden;position:relative;display:flex;flex-direction:column}
+.cc-opt.has-img .oi-img{width:100%;max-height:260px;object-fit:contain;display:block;background:#000}
+.cc-opt.has-img .oi-lbl{padding:.45rem .5rem;font-size:12px;font-weight:800;line-height:1.2}
+.cc-opt .oi-tick{position:absolute;top:.3rem;right:.3rem;width:22px;height:22px;border-radius:50%;background:var(--green);color:#06110c;font-size:13px;font-weight:900;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(0,0,0,.5)}
+
+/* ── NAV ── */
+.nav-row{display:flex;gap:.4rem;align-items:center;justify-content:center;padding:.25rem 0}
+.nav-btn{background:var(--surface2);border:1.5px solid var(--border2);color:var(--text);padding:.5rem 1rem;border-radius:12px;font-family:inherit;font-size:14px;font-weight:800;cursor:pointer;min-width:44px}
+.nav-btn:disabled{opacity:.35;cursor:not-allowed}
+.jump-in{width:60px;padding:.5rem;border-radius:12px;border:1.5px solid var(--border2);background:var(--surface2);color:var(--text);font-family:inherit;font-size:14px;font-weight:700;text-align:center;-webkit-appearance:none;appearance:none}
+.jump-in:focus{outline:none;border-color:var(--purple)}
+.card-count{text-align:center;font-size:11px;color:var(--muted);font-weight:700;letter-spacing:.06em}
+.rand-btn{background:var(--purple-dim);border:1.5px solid var(--purple);color:var(--purple);padding:.5rem .75rem;border-radius:12px;font-family:inherit;font-size:16px;cursor:pointer}
+
+/* ── ACTIONS ── */
+.action-grid{display:grid;grid-template-columns:1fr 1fr;gap:.5rem}
+.action-grid-3{display:grid;grid-template-columns:repeat(3,1fr);gap:.5rem}
+.act-btn{padding:.7rem .8rem;border-radius:12px;border:1.5px solid;background:transparent;font-family:inherit;font-size:12px;font-weight:800;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:.35rem;transition:opacity .15s,transform .1s}
+.act-btn:active{transform:scale(.97);opacity:.85}
+.act-btn.gold{border-color:var(--gold);color:var(--gold);background:var(--gold-dim)}
+.act-btn.purple{border-color:var(--purple);color:var(--purple);background:var(--purple-dim)}
+.act-btn.green{border-color:var(--green);color:var(--green);background:var(--green-dim)}
+.act-btn.red{border-color:var(--red);color:var(--red);background:var(--red-dim)}
+.act-btn.blue{border-color:var(--blue);color:var(--blue);background:var(--blue-dim)}
+.act-btn.ghost{border-color:var(--border2);color:var(--muted2);background:var(--surface2)}
+
+/* ── ASSIGN POINT PANEL ── */
+.assign-panel{background:var(--surface);border:1.5px solid var(--purple);border-radius:16px;padding:.9rem;display:flex;flex-direction:column;gap:.6rem}
+.assign-head{display:flex;align-items:center;justify-content:space-between;gap:.5rem}
+.assign-title{font-size:12px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--purple)}
+.assign-close{background:none;border:none;color:var(--muted);font-size:20px;cursor:pointer;padding:0 .3rem;line-height:1}
+.assign-sub{font-size:11px;color:var(--muted2);margin-top:-.2rem}
+.assign-tabs{display:flex;gap:.4rem}
+.assign-tab{flex:1;padding:.5rem;border-radius:10px;border:1.5px solid var(--border2);background:var(--surface2);font-family:inherit;font-size:12px;font-weight:800;color:var(--muted2);cursor:pointer}
+.assign-tab.on{border-color:var(--purple);background:var(--purple-dim);color:var(--purple)}
+.assign-players{display:flex;flex-direction:column;gap:.4rem;max-height:260px;overflow-y:auto}
+.assign-amount-choices{display:none;flex-direction:column;gap:.5rem}
+.assign-player{padding:.75rem .9rem;border-radius:10px;border:1.5px solid var(--border2);background:var(--surface2);font-family:inherit;font-size:14px;font-weight:800;color:var(--text);cursor:pointer;transition:transform .1s,border-color .15s;text-align:left;width:100%}
+.assign-player:active{transform:scale(.95)}
+.assign-player:hover{border-color:var(--purple);color:var(--purple)}
+.assign-player.winner{border-color:var(--gold);background:var(--gold-dim);color:var(--gold);box-shadow:0 0 12px rgba(245,200,66,.35);animation:winnerPulse 1.4s ease-in-out infinite}
+@keyframes winnerPulse{0%,100%{box-shadow:0 0 8px rgba(245,200,66,.3)}50%{box-shadow:0 0 18px rgba(245,200,66,.6)}}
+
+/* ── BUZZER BANNER ── */
+.buzzer-banner{display:flex;align-items:center;gap:.75rem;padding:.85rem 1rem;border-radius:14px;border:1.5px solid;font-weight:800;margin-bottom:.5rem;animation:bbSlide .3s ease}
+.buzzer-banner.open{background:var(--purple-dim);border-color:var(--purple);color:var(--purple)}
+.buzzer-banner.won{background:var(--gold-dim);border-color:var(--gold);color:var(--gold);animation:bbSlide .3s ease, bbPulse 1.4s ease-in-out infinite}
+.bb-icon{font-size:24px;flex-shrink:0;line-height:1}
+.bb-body{flex:1;display:flex;flex-direction:column;gap:.15rem;min-width:0}
+.bb-lbl{font-size:10px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;opacity:.8}
+.bb-name{font-size:16px;font-weight:900;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.buzzer-banner.won .bb-name{color:var(--gold)}
+.bb-reset{padding:.4rem .8rem;border-radius:99px;border:1px solid currentColor;background:transparent;color:inherit;font-family:inherit;font-size:11px;font-weight:800;cursor:pointer;flex-shrink:0}
+.bb-reset:hover{background:rgba(255,255,255,.05)}
+@keyframes bbSlide{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:none}}
+@keyframes bbPulse{0%,100%{box-shadow:0 0 12px rgba(245,200,66,.25)}50%{box-shadow:0 0 24px rgba(245,200,66,.5)}}
+
+/* ── EDITOR ── */
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:700;display:none;align-items:center;justify-content:center;padding:1rem;backdrop-filter:blur(3px)}
+.overlay.open{display:flex}
+.ed-panel{background:var(--surface);border:1px solid var(--border2);border-radius:18px;width:100%;max-width:640px;max-height:92vh;display:flex;flex-direction:column;overflow:hidden}
+.ed-head{padding:1rem 1.25rem;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:.75rem;flex-shrink:0}
+.ed-title{font-size:15px;font-weight:800;letter-spacing:-.01em}
+.ed-close{background:none;border:none;color:var(--muted);font-size:22px;cursor:pointer;padding:0 .25rem;line-height:1}
+.ed-tabs{display:flex;gap:.35rem;padding:.75rem 1.25rem 0;flex-shrink:0;overflow-x:auto}
+.ed-tab{padding:.5rem .85rem;border-radius:99px;border:1.5px solid var(--border2);background:transparent;font-family:inherit;font-size:12px;font-weight:800;color:var(--muted2);cursor:pointer;white-space:nowrap}
+.ed-tab.on{border-color:var(--purple);background:var(--purple-dim);color:var(--purple)}
+.ed-body{flex:1;overflow-y:auto;padding:1rem 1.25rem 1.25rem;display:flex;flex-direction:column;gap:1rem}
+.ed-list{display:flex;flex-direction:column;gap:.5rem}
+.ed-item{display:flex;align-items:center;gap:.6rem;padding:.75rem .9rem;border:1px solid var(--border2);border-radius:12px;background:var(--surface2)}
+.ed-item.played{opacity:.5}
+.ed-item-icon{font-size:20px;flex-shrink:0;width:32px;text-align:center}
+.ed-item-body{flex:1;min-width:0}
+.ed-item-title{font-size:13px;font-weight:800;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ed-item-sub{font-size:11px;color:var(--muted2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ed-item-actions{display:flex;gap:.3rem;flex-shrink:0}
+.ed-mini-btn{padding:.35rem .55rem;border-radius:8px;border:1px solid var(--border2);background:transparent;color:var(--muted2);font-family:inherit;font-size:11px;font-weight:700;cursor:pointer}
+.ed-mini-btn.danger{color:var(--red);border-color:rgba(255,95,95,.3)}
+.ed-mini-btn.purple{color:var(--purple);border-color:rgba(192,96,232,.3)}
+.ed-empty{text-align:center;color:var(--muted);font-size:12px;padding:2rem 1rem;font-style:italic}
+.ed-filter-row{display:flex;gap:.4rem;flex-wrap:wrap;margin-bottom:.5rem}
+.ed-filter{padding:.35rem .7rem;border-radius:99px;border:1px solid var(--border2);background:transparent;font-family:inherit;font-size:11px;font-weight:800;color:var(--muted2);cursor:pointer}
+.ed-filter.on{border-color:var(--purple);background:var(--purple-dim);color:var(--purple)}
+
+/* ── FORM ── */
+.form-row{display:flex;flex-direction:column;gap:.35rem}
+.form-lbl{font-size:11px;font-weight:800;color:var(--muted2);letter-spacing:.05em;text-transform:uppercase}
+.form-in,.form-ta,.form-sel{width:100%;padding:.7rem .85rem;border-radius:10px;border:1.5px solid var(--border2);background:var(--surface2);color:var(--text);font-family:inherit;font-size:14px;font-weight:600;-webkit-appearance:none;appearance:none}
+.form-in:focus,.form-ta:focus,.form-sel:focus{outline:none;border-color:var(--purple)}
+.form-ta{resize:vertical;min-height:70px;line-height:1.4}
+.form-help{font-size:11px;color:var(--muted);margin-top:.15rem;line-height:1.4}
+.form-2col{display:grid;grid-template-columns:1fr 1fr;gap:.6rem}
+.form-actions{display:flex;gap:.5rem;padding-top:.5rem;border-top:1px solid var(--border);margin-top:.5rem}
+.form-actions .cta-btn{flex:1;justify-content:center;padding:.75rem}
+.media-preview{margin-top:.35rem;background:var(--surface2);border:1px dashed var(--border2);border-radius:10px;padding:.5rem;display:flex;align-items:center;justify-content:center;min-height:60px;color:var(--muted);font-size:11px}
+.media-preview img,.media-preview video{max-width:100%;max-height:180px;border-radius:6px}
+.media-preview iframe{width:100%;aspect-ratio:16/9;border:none;border-radius:6px}
+.opt-row{display:flex;gap:.4rem;align-items:center;margin-top:.4rem}
+.opt-row .form-in{flex:1}
+.opt-check{display:flex;align-items:center;gap:.35rem;font-size:11px;color:var(--muted2);cursor:pointer;padding:.3rem .5rem;border-radius:8px;background:var(--surface);border:1px solid var(--border2)}
+.opt-check input{accent-color:var(--purple)}
+.opt-check.on{color:var(--green);border-color:var(--green)}
+
+/* ── PARTICIPANT ── */
+.part-wrap{flex:1;display:flex;flex-direction:column;padding:0}
+.part-score-strip{position:sticky;top:0;z-index:10;background:rgba(14,14,20,.92);backdrop-filter:blur(10px);border-bottom:1px solid var(--border);padding:.5rem .5rem;overflow-x:auto}
+.part-score-strip::-webkit-scrollbar{display:none}
+.part-score-inner{display:flex;gap:.35rem;padding:0 .25rem 0 4.5rem;min-width:min-content}
+.part-chip{flex-shrink:0;padding:.35rem .65rem;background:var(--surface);border:1px solid var(--border2);border-radius:10px;text-align:center;min-width:60px}
+.part-chip.leader{border-color:var(--gold);background:var(--gold-dim)}
+.part-chip-name{font-size:9px;font-weight:800;color:var(--muted2);text-transform:uppercase;letter-spacing:.03em}
+.part-chip.leader .part-chip-name{color:var(--gold)}
+.part-chip-pts{font-size:16px;font-weight:900;color:var(--text)}
+.part-chip.leader .part-chip-pts{color:var(--gold)}
+.part-main{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:1.5rem 1rem;text-align:center;gap:1rem}
+.part-idle{display:flex;flex-direction:column;align-items:center;gap:.6rem;color:var(--muted2)}
+.part-idle-icon{font-size:4rem;line-height:1;animation:auPulse 2s ease-in-out infinite}
+.part-idle-text{font-size:15px;font-weight:700}
+@keyframes auPulse{0%,100%{opacity:.6;transform:scale(1)}50%{opacity:1;transform:scale(1.08)}}
+.part-card{width:100%;max-width:560px;display:flex;flex-direction:column;gap:1rem;align-items:center}
+.part-cat{display:inline-flex;align-items:center;gap:.4rem;padding:.35rem .8rem;border-radius:99px;background:var(--purple-dim);border:1px solid var(--purple);font-size:11px;font-weight:800;color:var(--purple);letter-spacing:.08em;text-transform:uppercase}
+.part-media{width:100%;background:var(--surface2);border-radius:16px;overflow:hidden;display:flex;justify-content:center;align-items:center;min-height:180px}
+.part-media img,.part-media video{max-width:100%;max-height:60vh;display:block}
+.part-media iframe{width:100%;aspect-ratio:16/9;border:none;background:#000}
+.part-prompt{font-size:clamp(18px,4.5vw,26px);font-weight:800;line-height:1.4;color:var(--text)}
+.part-prompt .gap{display:inline-block;min-width:100px;border-bottom:3px solid var(--purple);margin:0 .2rem;color:transparent;padding:0 .3rem}
+.part-prompt.revealed .gap{color:var(--purple);background:var(--purple-dim);border-radius:6px}
+.part-hint{width:100%;padding:.85rem 1rem;border-radius:12px;background:var(--gold-dim);border:1px solid var(--gold);color:var(--text);font-size:14px;font-weight:600;line-height:1.4}
+.part-hint-tag{font-size:10px;font-weight:800;color:var(--gold);letter-spacing:.08em;text-transform:uppercase;margin-bottom:.3rem}
+.part-answer{width:100%;padding:1rem 1.1rem;border-radius:14px;background:var(--purple-dim);border:1.5px solid var(--purple);display:flex;flex-direction:column;gap:.5rem}
+.part-answer .aq{font-size:10px;font-weight:800;color:var(--purple);letter-spacing:.1em;text-transform:uppercase}
+.part-answer .av{font-size:17px;font-weight:800;color:var(--text)}
+.part-opts{display:flex;flex-wrap:wrap;justify-content:center;gap:.5rem;width:100%}
+.part-opt{flex:0 1 calc(50% - .25rem);min-width:140px;padding:.85rem 1rem;border-radius:12px;background:var(--surface2);border:2px solid var(--border2);font-size:14px;font-weight:800;color:var(--text);text-align:center}
+.part-opt.correct{border-color:var(--green);background:var(--green-dim);color:var(--green)}
+/* opciones con imagen / gif */
+.part-opt.has-img{padding:0;overflow:hidden;position:relative;display:flex;flex-direction:column}
+.part-opt.has-img .oi-img{width:100%;max-height:320px;object-fit:contain;display:block;background:#000}
+.part-opt.has-img .oi-lbl{padding:.55rem .5rem;font-size:14px;font-weight:800;line-height:1.2}
+.part-opt .oi-badge{position:absolute;top:.35rem;left:.35rem;width:24px;height:24px;border-radius:50%;background:rgba(10,10,14,.72);color:#fff;font-size:12px;font-weight:900;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(3px)}
+.part-opt .oi-tick{position:absolute;top:.35rem;right:.35rem;width:26px;height:26px;border-radius:50%;background:var(--green);color:#06110c;font-size:15px;font-weight:900;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 10px rgba(0,0,0,.5)}
+.part-opt.dimmed{opacity:.35;filter:grayscale(.6)}
+/* editor: filas de opción con imagen */
+.opt-edit-row{display:flex;gap:.5rem;align-items:flex-start;margin-bottom:.5rem}
+.opt-edit-main{flex:1;display:flex;flex-direction:column;gap:.3rem;min-width:0}
+.opt-edit-imgrow{display:flex;gap:.3rem;align-items:center}
+.opt-edit-imgrow .form-in{flex:1;font-size:11px;padding:.4rem .5rem;min-width:0}
+.opt-mini-btn{padding:.4rem .5rem;border-radius:8px;background:var(--surface2);border:1px solid var(--border2);color:var(--muted2);font-family:inherit;font-size:12px;font-weight:800;cursor:pointer;white-space:nowrap}
+.opt-mini-btn:hover{color:var(--text);border-color:var(--purple)}
+.opt-thumb{width:62px;height:62px;flex-shrink:0;border-radius:10px;background:var(--surface2);border:1px dashed var(--border2);display:flex;align-items:center;justify-content:center;overflow:hidden;font-size:18px;color:var(--muted)}
+.opt-thumb img{width:100%;height:100%;object-fit:cover;display:block}
+.opt-correct-box{padding:.55rem .6rem;border-radius:10px;background:var(--green-dim);border:1px solid var(--green);margin-bottom:.6rem}
+.opt-correct-tag{font-size:10px;font-weight:800;color:var(--green);letter-spacing:.08em;text-transform:uppercase;margin-bottom:.35rem}
+
+/* ── AUDIO UNLOCK OVERLAY (participante) ── */
+.audio-unlock{position:fixed;inset:0;z-index:9500;display:none;flex-direction:column;align-items:center;justify-content:center;gap:.75rem;background:rgba(10,10,14,.92);backdrop-filter:blur(6px);cursor:pointer;text-align:center;padding:2rem}
+.au-icon{font-size:3.5rem;animation:auPulse2 1.4s ease-in-out infinite}
+.au-text{font-size:16px;font-weight:800;color:var(--text)}
+.au-sub{font-size:12px;color:var(--muted2);font-weight:600}
+@keyframes auPulse2{0%,100%{transform:scale(1)}50%{transform:scale(1.12)}}
+
+/* ── REVEAL CUE OVERLAY (participante) — clip de audio/video al revelar ── */
+.reveal-cue-overlay{position:fixed;inset:0;z-index:9400;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.92);cursor:pointer}
+.reveal-cue-overlay.show{display:flex}
+#reveal-cue-video{max-width:92vw;max-height:80vh;border-radius:12px;box-shadow:0 8px 60px rgba(0,0,0,.6);display:none}
+.reveal-cue-audio-vis{display:none;flex-direction:column;align-items:center;gap:1rem;color:var(--gold)}
+.reveal-cue-audio-vis.show{display:flex}
+.rcv-icon{font-size:4rem;animation:auPulse2 1s ease-in-out infinite}
+.rcv-text{font-size:14px;font-weight:800;letter-spacing:.05em;text-transform:uppercase}
+
+/* ── FB STATUS ── */
+.fb-status{position:fixed;top:max(.6rem,env(safe-area-inset-top));right:.6rem;z-index:50;display:flex;align-items:center;gap:.35rem;padding:.3rem .6rem;background:rgba(20,20,28,.7);border:1px solid var(--border2);border-radius:99px;backdrop-filter:blur(6px);font-size:10px;font-weight:700;color:var(--muted2);letter-spacing:.03em}
+.fb-dot{width:7px;height:7px;border-radius:50%;background:var(--muted)}
+.fb-dot.ok{background:var(--green);box-shadow:0 0 6px var(--green)}
+.fb-dot.err{background:var(--red)}
+
+/* ── TOAST ── */
+.toast{position:fixed;bottom:calc(1.5rem + env(safe-area-inset-bottom));left:50%;transform:translateX(-50%) translateY(20px);background:var(--surface);border:1.5px solid var(--purple);color:var(--text);padding:.75rem 1.2rem;border-radius:99px;font-size:13px;font-weight:700;z-index:9999;opacity:0;transition:opacity .25s,transform .25s;pointer-events:none;box-shadow:0 4px 24px rgba(0,0,0,.5);white-space:nowrap}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+/* ── SETTINGS MENU ── */
+.set-wrap{position:relative}
+.set-menu{position:absolute;right:0;top:calc(100% + .4rem);background:var(--surface);border:1px solid var(--border2);border-radius:12px;padding:.4rem;display:none;flex-direction:column;gap:.15rem;min-width:200px;z-index:100;box-shadow:0 4px 24px rgba(0,0,0,.5)}
+.set-menu.open{display:flex}
+.set-btn{padding:.55rem .75rem;background:transparent;border:none;color:var(--text);font-family:inherit;font-size:13px;font-weight:700;text-align:left;cursor:pointer;border-radius:8px;white-space:nowrap}
+.set-btn:hover{background:var(--surface2)}
+.set-btn.danger{color:var(--red)}
+.set-divider{height:1px;background:var(--border);margin:.15rem 0}
+
+/* ── RESPONSIVE ── */
+@media (max-width:520px){
+  .cc-opt,.part-opt{flex-basis:100%}
+  .form-2col{grid-template-columns:1fr}
+  .action-grid-3{grid-template-columns:1fr 1fr}
+}
 </style>
 </head>
 <body>
 
-<!-- ── SPLASH ── -->
-<div id="splash" class="splash" onclick="dismissSplash()" role="button" tabindex="0" aria-label="Entrar al HUB">
-  <div class="splash-carousel-bg" id="splash-carousel-bg"></div>
-  <div class="splash-bloom bloom-a"></div>
-  <div class="splash-bloom bloom-b"></div>
-  <div class="splash-inner">
-    <div class="splash-eyebrow">🎮 La Velada del Año</div>
-    <div class="splash-icon-big">🕹️</div>
-    <div class="splash-title-bz">HUB</div>
-    <div class="splash-sub-bz">Todos los juegos de la noche, en un solo lugar</div>
-    <div class="splash-games-row" aria-hidden="true">
-      <span>🔔</span><span>🎤</span><span>⏱️</span><span>🧠</span>
-    </div>
-    <button class="splash-start-bz" onclick="dismissSplash()"><span style="font-size:.8em">▶</span> Entrar</button>
+<a class="hub-link" href="index.html">← Hub</a>
+
+<!-- SPLASH -->
+<div id="splash" onclick="dismissSplash()">
+  <div class="sp-bloom sp-bloom-a"></div>
+  <div class="sp-bloom sp-bloom-b"></div>
+  <div class="sp-inner">
+    <div class="sp-eye">🎮 La Velada del Año</div>
+    <div class="sp-mic">🎤</div>
+    <div class="sp-title">¿Quién lo dijo?</div>
+    <div class="sp-sub">Frases, memes, escenas y videos — adiviná el remate</div>
+    <div class="sp-tap">▸ Tocá para empezar</div>
   </div>
 </div>
 
-<!-- fondo animado persistente -->
-<div class="splash-carousel-bg" id="main-carousel-bg" style="position:fixed;inset:0;z-index:0;overflow:hidden;pointer-events:none"></div>
-
-<!-- ① SELECCIÓN DE JUEGO -->
-<div class="screen active" id="game-select-screen" style="position:relative;z-index:1">
-  <a class="participants-corner-link" href="participante.html" style="position:fixed" title="Ver mis stats y ranking">👥 <span>Participantes</span></a>
-  <div class="velada-label">🎮 La Velada del Año</div>
-  <div class="velada-title">🕹️ HUB</div>
-  <div class="velada-sub">Elegí el juego en el que estás participando</div>
-
-  <!-- Submenú BUZZER -->
-  <div class="submenu sm-buzzer">
-    <div class="submenu-head"><span class="sm-ic">🔔</span><span class="sm-tx">Buzzer</span><span class="sm-line"></span></div>
-    <button class="game-btn game-movies" onclick="selectGame('movies')">
-      <span class="game-btn-icon">🎬</span>
-      <div class="game-btn-info">
-        <span class="game-btn-name">Guess Movies &amp; Songs</span>
-        <span class="game-btn-sub">Adiviná la película o la canción</span>
-      </div>
+<!-- MODE GATE -->
+<div id="gate">
+  <div class="gate-head">
+    <div class="gate-eye">¿Quién lo dijo?</div>
+    <div class="gate-title">Elegí tu rol</div>
+    <div class="gate-sub">El conductor maneja las cartas · Los participantes ven la pantalla</div>
+  </div>
+  <div class="gate-choices">
+    <button class="gate-btn gate-cond" onclick="gateConductor()">
+      🎤 Conductor
+      <span class="gate-btn-sub">Controlás el juego y asignás puntos</span>
     </button>
-    <button class="game-btn game-arg" onclick="selectGame('argentinos')">
-      <span class="game-btn-icon">🎤</span>
-      <div class="game-btn-info">
-        <span class="game-btn-name">100 Argentinos Dicen</span>
-        <span class="game-btn-sub">Las respuestas más populares</span>
-      </div>
-    </button>
-    <button class="game-btn game-quien" onclick="selectGame('quien')">
-      <span class="game-btn-icon">🗣️</span>
-      <div class="game-btn-info">
-        <span class="game-btn-name">¿Quién lo dijo?</span>
-        <span class="game-btn-sub">Frases, memes y escenas — todos contra todos</span>
-      </div>
+    <div class="gate-pass" id="gate-pass" style="display:none">
+      <input id="gate-pass-in" type="password" placeholder="Contraseña" autocomplete="off" onkeydown="if(event.key==='Enter')gateCheckPass()">
+      <button class="gate-pass-btn" onclick="gateCheckPass()">Entrar</button>
+    </div>
+    <button class="gate-btn gate-part" onclick="applyMode('participant')">
+      📺 Participantes
+      <span class="gate-btn-sub">Pantalla para el TV o tu celu</span>
     </button>
   </div>
-
-  <!-- Submenú MINIJUEGOS -->
-  <div class="submenu sm-mini">
-    <div class="submenu-head"><span class="sm-ic">🎲</span><span class="sm-tx">Complementos</span><span class="sm-line"></span></div>
-    <a class="game-btn game-tiempo" href="palabras_a_tiempo.html">
-      <span class="game-btn-icon">⏱️</span>
-      <div class="game-btn-info">
-        <span class="game-btn-name">Palabras a Tiempo</span>
-        <span class="game-btn-sub">Palabras por categoría contra reloj</span>
-      </div>
-      <span class="game-arrow">›</span>
-    </a>
-    <a class="game-btn game-erudito" href="el_erudito.html">
-      <span class="game-btn-icon">🧠</span>
-      <div class="game-btn-info">
-        <span class="game-btn-name">El Erudito</span>
-        <span class="game-btn-sub">Preguntas de aproximación numérica</span>
-      </div>
-      <span class="game-arrow">›</span>
-    </a>
-  </div>
-
-  <div class="error-box" id="error-box"></div>
-  <div style="width:100%;max-width:340px;margin-top:1rem">
-    <div style="font-size:10px;font-weight:700;letter-spacing:.2em;text-transform:uppercase;color:var(--muted);text-align:center;margin-bottom:.6rem">también</div>
-    <a href="#" onclick="openPwModal(event)" style="display:flex;align-items:center;gap:.75rem;padding:1rem 1.25rem;border-radius:var(--radius);border:2px solid rgba(200,240,96,.35);background:rgba(200,240,96,.07);color:var(--accent);text-decoration:none;transition:opacity .15s,transform .12s;-webkit-tap-highlight-color:transparent" ontouchstart="" onmousedown="this.style.opacity='.8';this.style.transform='scale(.97)'" onmouseup="this.style.opacity='';this.style.transform=''" ontouchend="this.style.opacity='';this.style.transform=''">
-      <span style="font-size:26px;line-height:1;flex-shrink:0">🎮</span>
-      <div style="display:flex;flex-direction:column;gap:.1rem">
-        <span style="font-size:15px;font-weight:800">La Velada del Año</span>
-        <span style="font-size:11px;opacity:.6;font-weight:600">Panel principal del evento</span>
-      </div>
-      <span style="margin-left:auto;font-size:18px;opacity:.5">›</span>
-    </a>
-  </div>
-  <button onclick="location.reload(true)" style="background:none;border:none;color:var(--muted);font-family:inherit;font-size:11px;font-weight:600;cursor:pointer;padding:.4rem .8rem;border-radius:99px;transition:color .15s" onmouseover="this.style.color='var(--text)'" onmouseout="this.style.color='var(--muted)'">↺ Actualizar versión</button>
 </div>
 
-<!-- ② SELECCIÓN DE EQUIPO -->
-<div class="screen" id="team-select-screen" style="position:relative">
-  <button class="back-btn" onclick="goBack('game')">← Volver</button>
-  <div class="game-header">
-    <div class="game-icon" id="ts-icon">🎬</div>
-    <div class="game-name" id="ts-name">Guess Movies &amp; Songs</div>
+<!-- CONDUCTOR -->
+<div id="conductor">
+  <div class="fb-status"><div class="fb-dot" id="fb-dot"></div><span id="fb-txt">Iniciando…</span></div>
+  <div class="score-strip"><div class="score-strip-inner" id="score-strip"></div></div>
+  <div class="cond-topbar">
+    <button class="cta-btn primary" onclick="openEditor()">✏️ Editar mazo</button>
+    <button class="cta-btn" onclick="shuffleDeck()">🔀 Barajar</button>
+    <button class="cta-btn" onclick="openPlayers()">👥 Jugadores</button>
+    <div class="cta-spacer"></div>
+    <div class="set-wrap">
+      <button class="cta-btn" onclick="toggleSetMenu(event)">⚙️</button>
+      <div class="set-menu" id="set-menu">
+        <button class="set-btn" onclick="closeSetMenu();exportDeck()">📤 Exportar mazo (JSON)</button>
+        <button class="set-btn" onclick="closeSetMenu();importDeck()">📥 Importar mazo (JSON)</button>
+        <div class="set-divider"></div>
+        <button class="set-btn" onclick="closeSetMenu();resetScores()">↺ Reiniciar puntajes</button>
+        <button class="set-btn" onclick="closeSetMenu();resetPlayedFlags()">🔲 Reiniciar cartas jugadas</button>
+        <div class="set-divider"></div>
+        <button class="set-btn" onclick="closeSetMenu();finalizeRound()">🏁 Finalizar ronda (3/2/1 pts)</button>
+        <button class="set-btn" onclick="closeSetMenu();reopenRound()">↺ Reabrir ronda</button>
+        <div class="set-divider"></div>
+        <button class="set-btn danger" onclick="closeSetMenu();resetAll()">🗑 Borrar todo (mazo + puntajes)</button>
+      </div>
+    </div>
   </div>
-  <div class="section-label" id="ts-section-label">¿Cuál es tu equipo?</div>
-  <div class="team-list" id="team-list-standard">
-    <button class="team-btn team-a" id="team-btn-a" onclick="selectTeam('a')">🔵 <span id="ts-na">Equipo 1</span></button>
-    <button class="team-btn team-b" id="team-btn-b" onclick="selectTeam('b')">🟡 <span id="ts-nb">Equipo 2</span></button>
-  </div>
-  <div class="team-list" id="team-list-individual" style="display:none"></div>
-  <button class="edit-names-btn" id="edit-names-btn" onclick="openBzNames()">✏️ Editar nombres de los equipos</button>
-  <div class="connecting-dot" id="connecting-dot" style="display:none"></div>
-  <div class="connecting-text" id="connecting-text" style="display:none">Conectando…</div>
-</div>
+  <div class="cond-body">
+    <div class="cond-card" id="cond-card">
+      <div class="cc-empty">Aún no hay cartas.<br>Tocá <b>✏️ Editar mazo</b> para empezar.</div>
+    </div>
+    <div class="nav-row">
+      <button class="nav-btn" id="nav-prev" onclick="navigate(-1)" disabled>◀</button>
+      <input class="jump-in" id="jump-in" type="number" min="1" inputmode="numeric" placeholder="#" onkeydown="if(event.key==='Enter')jumpTo()">
+      <button class="nav-btn" onclick="jumpTo()">Ir</button>
+      <button class="rand-btn" onclick="randomCard()" title="Carta al azar">🎲</button>
+      <button class="nav-btn" id="nav-next" onclick="navigate(1)" disabled>▶</button>
+    </div>
+    <div class="card-count" id="card-count">— / —</div>
+    <div style="display:flex;justify-content:center">
+      <button class="cta-btn" id="mark-played-btn" onclick="toggleCurrentPlayed()">✓ Marcar como jugada</button>
+    </div>
 
-<!-- EDITOR DE NOMBRES (buzzer) -->
-<div class="bzn-overlay" id="bzn-overlay">
-  <div class="bzn-box">
-    <div class="bzn-title">✏️ Nombres de los equipos</div>
-    <div class="bzn-sub" id="bzn-sub">Se guardan para este juego y los ven todos.</div>
-    <div class="bzn-field">
-      <label>🔵 Equipo 1</label>
-      <input class="bzn-input" id="bzn-input-a" type="text" maxlength="22" autocomplete="off" placeholder="Equipo 1">
+    <div class="action-grid-3" id="reveal-row">
+      <button class="act-btn gold"   id="hint1-btn" onclick="toggleHint(1)">💡 Pista 1</button>
+      <button class="act-btn gold"   id="hint2-btn" onclick="toggleHint(2)">💡 Pista 2</button>
+      <button class="act-btn purple" id="reveal-btn" onclick="toggleReveal()">👁 Revelar respuestas</button>
     </div>
-    <div class="bzn-field">
-      <label>🟡 Equipo 2</label>
-      <input class="bzn-input" id="bzn-input-b" type="text" maxlength="22" autocomplete="off" placeholder="Equipo 2">
+    <div class="action-grid">
+      <button class="act-btn purple" id="buzzer-btn" onclick="toggleBuzzer()">🔔 Abrir buzzer</button>
+      <button class="act-btn ghost" onclick="openPlayers()">👥 Ver equipos</button>
     </div>
-    <div class="bzn-row">
-      <button class="bzn-btn ghost" onclick="closeBzNames()">Cancelar</button>
-      <button class="bzn-btn primary" onclick="saveBzNames()">Guardar</button>
+    <div style="display:flex">
+      <button class="act-btn green" style="flex:1" onclick="openAssign(false)">✓ Acertó</button>
+    </div>
+
+    <div class="assign-panel" id="assign-panel" style="display:none">
+      <div class="assign-head">
+        <span class="assign-title" id="assign-title">Asignar punto</span>
+        <button class="assign-close" onclick="closeAssign()">×</button>
+      </div>
+      <div class="assign-sub" id="assign-sub">Tocá el nombre del jugador que acertó</div>
+      <div class="assign-amount-choices" id="assign-amount-choices" style="display:none"></div>
+      <div class="assign-players" id="assign-players"></div>
     </div>
   </div>
 </div>
 
-<!-- ③ PANTALLA DE BUZZER -->
-<div class="screen" id="buzz-screen" style="position:relative">
-  <button class="back-btn" onclick="goBack('team')">← Cambiar equipo</button>
-  <div class="bz-game-tag" id="bz-game-tag">Guess Movies &amp; Songs</div>
-  <div class="bz-team-name" id="bz-team-name">🔵 Equipo 1</div>
-  <div class="bz-status" id="bz-status">Esperando al conductor…</div>
-  <button class="bz-buzz-btn locked team-a" id="bz-buzz-btn" onclick="doBuzz()">
-    <span class="bz-buzz-icon">🔔</span>
-    <span class="bz-buzz-text">¡BUZZ!</span>
-  </button>
-  <div class="bz-result" id="bz-result">
-    <div class="bz-result-icon" id="bz-result-icon">🏆</div>
-    <div class="bz-result-title" id="bz-result-title">¡Buzzaste primero!</div>
-    <div class="bz-result-sub" id="bz-result-sub"></div>
+<!-- PARTICIPANT -->
+<div id="participant">
+  <div class="fb-status"><div class="fb-dot" id="fb-dot-p"></div><span id="fb-txt-p">Conectando…</span></div>
+  <div class="audio-unlock" id="audio-unlock" onclick="unlockPartAudio()">
+    <div class="au-icon">🔊</div>
+    <div class="au-text">Tocá para activar el audio</div>
+    <div class="au-sub">Necesario para ver videos con sonido</div>
+  </div>
+  <div class="reveal-cue-overlay" id="reveal-cue-overlay" onclick="closeRevealCue()">
+    <video id="reveal-cue-video" playsinline></video>
+    <div class="reveal-cue-audio-vis" id="reveal-cue-audio-vis">
+      <div class="rcv-icon">🔊</div>
+      <div class="rcv-text">Reproduciendo…</div>
+    </div>
+  </div>
+  <div class="part-wrap">
+    <div class="part-score-strip"><div class="part-score-inner" id="part-score-inner"></div></div>
+    <div class="part-main" id="part-main">
+      <div class="part-idle">
+        <div class="part-idle-icon">🎤</div>
+        <div class="part-idle-text">Esperando al conductor…</div>
+      </div>
+    </div>
   </div>
 </div>
 
-<!-- ── MODAL DE CONTRASEÑA ── -->
-<div class="pw-overlay" id="pw-overlay" onclick="if(event.target===this)closePwModal()">
-  <div class="pw-modal">
-    <div class="pw-modal-icon">🔒</div>
-    <div class="pw-modal-title">La Velada del Año</div>
-    <div class="pw-modal-sub">Panel principal del evento — ingresá la contraseña</div>
-    <input class="pw-input" id="pw-input" type="password" inputmode="numeric" maxlength="10" placeholder="••••" autocomplete="off" onkeydown="if(event.key==='Enter')checkPw()">
-    <div class="pw-error" id="pw-error"></div>
-    <button class="pw-btn" onclick="checkPw()">Ingresar</button>
-    <button class="pw-cancel" onclick="closePwModal()">Cancelar</button>
+<!-- EDITOR OVERLAY -->
+<div class="overlay" id="ed-overlay">
+  <div class="ed-panel">
+    <div class="ed-head">
+      <div class="ed-title" id="ed-title">Mazo de cartas</div>
+      <button class="ed-close" onclick="closeEditor()">×</button>
+    </div>
+    <div class="ed-tabs">
+      <button class="ed-tab on" id="tab-list" onclick="edSwitch('list')">📋 Cartas</button>
+      <button class="ed-tab"    id="tab-new"  onclick="edSwitch('new')">➕ Nueva</button>
+    </div>
+    <div class="ed-body" id="ed-body-list">
+      <input class="form-in" id="ed-search" placeholder="🔍 Buscar por título, frase o quién…" oninput="edSetSearch(this.value)" style="margin-bottom:.6rem">
+      <div class="ed-filter-row" id="ed-filters"></div>
+      <div class="ed-list" id="ed-list"></div>
+    </div>
+    <div class="ed-body" id="ed-body-form" style="display:none">
+      <div class="form-row">
+        <span class="form-lbl">Categoría</span>
+        <select class="form-sel" id="f-cat"></select>
+      </div>
+      <div class="form-row">
+        <span class="form-lbl">Título (solo para el conductor)</span>
+        <input class="form-in" id="f-title" placeholder="Ej: Ricardo Fort — Como te va">
+      </div>
+      <div class="form-row">
+        <span class="form-lbl">Tipo de contenido</span>
+        <select class="form-sel" id="f-media" onchange="edMediaTypeSwitched()">
+          <option value="none">Solo frase (sin media)</option>
+          <option value="image">Imagen (URL)</option>
+          <option value="image-upload">Imagen (subir archivo)</option>
+          <option value="video-url">Video (URL directa .mp4/.webm)</option>
+          <option value="youtube">YouTube (link o ID)</option>
+          <option value="gif">GIF (URL)</option>
+          <option value="audio-url">🔊 Solo audio (URL)</option>
+          <option value="audio-upload">🔊 Solo audio (subir archivo)</option>
+        </select>
+      </div>
+      <div class="form-row" id="f-media-row">
+        <span class="form-lbl" id="f-media-lbl">URL</span>
+        <input class="form-in" id="f-media-url" placeholder="https://…">
+        <input type="file" id="f-media-file" style="display:none" accept="image/*" onchange="edFileChosen(event)">
+        <div class="form-help" id="f-media-help"></div>
+        <div class="media-preview" id="f-media-preview" style="display:none"></div>
+      </div>
+      <div class="form-row">
+        <span class="form-lbl">Frase / Prompt para los participantes</span>
+        <div class="prompt-mode-tabs">
+          <label class="prompt-mode-tab"><input type="radio" name="f-prompt-mode" value="simple" checked onchange="edPromptModeChanged()"> Texto simple</label>
+          <label class="prompt-mode-tab"><input type="radio" name="f-prompt-mode" value="dialogue" onchange="edPromptModeChanged()"> 🎭 Diálogo por personajes</label>
+        </div>
+        <div id="f-prompt-simple-row">
+          <textarea class="form-ta" id="f-prompt" placeholder="Ej: ¿Te das cuenta? ___ no faltan, lo que faltan son ___"></textarea>
+          <div class="form-help">Usá <code>___</code> (tres guiones bajos) donde va cada hueco. Si ponés varios, cada uno se completa con una parte distinta de "Cómo termina la frase" (separadas por <code>/</code>), en el mismo orden.</div>
+        </div>
+        <div id="f-dialogue-row" style="display:none">
+          <div id="f-dialogue-list"></div>
+          <button type="button" class="cta-btn" onclick="edAddDialogueLine()">+ Agregar línea</button>
+          <div class="form-help">Una línea por personaje. Se muestran separadas, cada una con el nombre bien visible (una a cada lado, como un chat). Dejá <code>___</code> donde tengan que completar.</div>
+        </div>
+      </div>
+      <div class="form-2col">
+        <div class="form-row">
+          <span class="form-lbl">✓ Quién lo dijo / de dónde es</span>
+          <input class="form-in" id="f-who" placeholder="Ej: Willy Wonka" oninput="edSyncCorrectPreview()">
+        </div>
+        <div class="form-row">
+          <span class="form-lbl">✓ Cómo termina la frase</span>
+          <input class="form-in" id="f-ending" placeholder="Ej: hola  —  o con varios huecos: giles / financistas" oninput="edSyncCorrectPreview()">
+          <div class="form-help">Si la frase tiene un solo hueco, poné una sola respuesta. Si tiene varios, separá cada una con <code>/</code> en el mismo orden en que aparecen los huecos.</div>
+        </div>
+      </div>
+      <div class="form-row">
+        <span class="form-lbl">Pistas (opcional, se revelan de a una)</span>
+        <input class="form-in" id="f-hint1" placeholder="Pista 1" style="margin-bottom:.4rem">
+        <input class="form-in" id="f-hint2" placeholder="Pista 2">
+      </div>
+      <div class="form-row">
+        <span class="form-lbl">🎬 Clip de revelación (opcional — se ve/escucha en la pantalla de participantes al Revelar)</span>
+        <select class="form-sel" id="f-reveal-type" onchange="edRevealChanged()">
+          <option value="none">Sin clip</option>
+          <option value="audio-url">🔊 Audio — URL pública</option>
+          <option value="audio-upload">🔊 Audio — subir archivo</option>
+          <option value="video-url">🎬 Video — URL pública (mp4/webm)</option>
+          <option value="video-upload">🎬 Video — subir archivo</option>
+        </select>
+        <div id="f-reveal-row" style="display:none;margin-top:.5rem">
+          <input class="form-in" id="f-reveal-url" placeholder="https://…" style="margin-bottom:.4rem">
+          <input type="file" id="f-reveal-file" style="display:none" onchange="edRevealFileChosen(event)">
+          <div class="form-help" id="f-reveal-help"></div>
+          <div class="media-preview" id="f-reveal-preview" style="display:none"></div>
+        </div>
+      </div>
+      <div class="form-row">
+        <span class="form-lbl">Opciones múltiples (opcional)</span>
+        <div style="display:flex;gap:.5rem;flex-wrap:wrap;margin-bottom:.4rem">
+          <label class="opt-check"><input type="radio" name="f-opt-for" value="none" checked onchange="edOptsChanged()"> Sin opciones</label>
+          <label class="opt-check"><input type="radio" name="f-opt-for" value="who" onchange="edOptsChanged()"> Para QUIÉN</label>
+          <label class="opt-check"><input type="radio" name="f-opt-for" value="ending" onchange="edOptsChanged()"> Para FINAL</label>
+        </div>
+        <div id="f-opts-wrap" style="display:none">
+          <div class="opt-correct-box">
+            <div class="opt-correct-tag">✓ Opción correcta (se agrega y baraja sola)</div>
+            <div class="opt-edit-row" style="margin-bottom:0">
+              <div class="opt-edit-main">
+                <input class="form-in" id="f-opt0" placeholder="—" readonly style="opacity:.85">
+                <div class="opt-edit-imgrow">
+                  <button type="button" class="opt-mini-btn" onclick="edOptPickFile(0)">🖼 Subir</button>
+                  <input class="form-in" id="f-opt0-url" placeholder="…o URL de imagen / GIF" oninput="edOptUrlInput(0)">
+                  <button type="button" class="opt-mini-btn" onclick="edOptClearImg(0)">✕</button>
+                </div>
+              </div>
+              <div class="opt-thumb" id="f-opt0-thumb">🖼</div>
+            </div>
+          </div>
+          <div class="opt-edit-row">
+            <div class="opt-edit-main">
+              <input class="form-in" id="f-opt1" placeholder="Opción 1">
+              <div class="opt-edit-imgrow">
+                <button type="button" class="opt-mini-btn" onclick="edOptPickFile(1)">🖼 Subir</button>
+                <input class="form-in" id="f-opt1-url" placeholder="…o URL de imagen / GIF" oninput="edOptUrlInput(1)">
+                <button type="button" class="opt-mini-btn" onclick="edOptClearImg(1)">✕</button>
+              </div>
+            </div>
+            <div class="opt-thumb" id="f-opt1-thumb">🖼</div>
+          </div>
+          <div class="opt-edit-row">
+            <div class="opt-edit-main">
+              <input class="form-in" id="f-opt2" placeholder="Opción 2">
+              <div class="opt-edit-imgrow">
+                <button type="button" class="opt-mini-btn" onclick="edOptPickFile(2)">🖼 Subir</button>
+                <input class="form-in" id="f-opt2-url" placeholder="…o URL de imagen / GIF" oninput="edOptUrlInput(2)">
+                <button type="button" class="opt-mini-btn" onclick="edOptClearImg(2)">✕</button>
+              </div>
+            </div>
+            <div class="opt-thumb" id="f-opt2-thumb">🖼</div>
+          </div>
+          <div class="opt-edit-row">
+            <div class="opt-edit-main">
+              <input class="form-in" id="f-opt3" placeholder="Opción 3">
+              <div class="opt-edit-imgrow">
+                <button type="button" class="opt-mini-btn" onclick="edOptPickFile(3)">🖼 Subir</button>
+                <input class="form-in" id="f-opt3-url" placeholder="…o URL de imagen / GIF" oninput="edOptUrlInput(3)">
+                <button type="button" class="opt-mini-btn" onclick="edOptClearImg(3)">✕</button>
+              </div>
+            </div>
+            <div class="opt-thumb" id="f-opt3-thumb">🖼</div>
+          </div>
+          <div class="opt-edit-row">
+            <div class="opt-edit-main">
+              <input class="form-in" id="f-opt4" placeholder="Opción 4">
+              <div class="opt-edit-imgrow">
+                <button type="button" class="opt-mini-btn" onclick="edOptPickFile(4)">🖼 Subir</button>
+                <input class="form-in" id="f-opt4-url" placeholder="…o URL de imagen / GIF" oninput="edOptUrlInput(4)">
+                <button type="button" class="opt-mini-btn" onclick="edOptClearImg(4)">✕</button>
+              </div>
+            </div>
+            <div class="opt-thumb" id="f-opt4-thumb">🖼</div>
+          </div>
+          <input type="file" id="f-opt-file" style="display:none" accept="image/*" onchange="edOptFileChosen(event)">
+          <label class="opt-check" style="margin-bottom:.4rem"><input type="checkbox" id="f-opt-imgonly"> Mostrar solo las imágenes (sin el texto) — se numeran 1·2·3·4</label>
+          <div class="form-help">La opción correcta se toma del campo de respuesta (QUIÉN o FINAL). Poné 3 opciones falsas — la correcta se agrega y baraja sola.<br><b>Imágenes:</b> pegá una URL pública (jpg, png, webp, gif de Tenor/Giphy) o subí un archivo. Las subidas se comprimen a 480px; los GIF se guardan tal cual (máx 2MB) para no perder la animación.</div>
+        </div>
+      </div>
+      <div class="form-actions">
+        <button class="cta-btn" onclick="edCancel()">Cancelar</button>
+        <button class="cta-btn primary" onclick="edSave()">💾 Guardar carta</button>
+      </div>
+    </div>
   </div>
 </div>
+
+<!-- PLAYERS OVERLAY -->
+<div class="overlay" id="pl-overlay">
+  <div class="ed-panel" style="max-width:420px">
+    <div class="ed-head">
+      <div class="ed-title">Equipos (Fase 2)</div>
+      <button class="ed-close" onclick="closePlayers()">×</button>
+    </div>
+    <div class="ed-body">
+      <div class="form-help" style="margin-bottom:.5rem">Se sincronizan en vivo desde <b>velada.html</b> — para cambiarlos, editá los equipos ahí y volvé a abrir esa página.</div>
+      <div class="ed-list" id="pl-list-view"></div>
+      <div class="form-actions">
+        <button class="cta-btn primary" style="flex:1" onclick="closePlayers()">Cerrar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
 
 <script>
-// ── FIREBASE CONFIG ──────────────────────────────────────────────
+// ============================================================
+//   ¿QUIÉN LO DIJO? — Buzzer individual todos-contra-todos
+// ============================================================
+
+const PW = '100';
+const SK = {
+  DECK: 'qld_deck',
+  IDX: 'qld_idx',
+  TEAM_SCORES: 'qld_team_scores',
+  MODE: 'qld_mode'
+};
+const WIN_TARGET = 10; // puntos para ganar la ronda especial
+// Roster por defecto (offline / antes de que velada.html publique los equipos reales vía Firebase)
+const DEFAULT_TEAMS = [
+  { index: 0, label: 'Martín H. / Valentín A.', members: ['Martin','Valentín'] },
+  { index: 1, label: 'Lázaro G. / Tomás P.',    members: ['Laza','Tomás'] },
+  { index: 2, label: 'Thiago C. / Lara M.',     members: ['Thiago','Lara'] },
+  { index: 3, label: 'Totti / Risu',            members: ['Totti','Risu'] },
+  { index: 4, label: 'Coral O. / Florencia L.', members: ['Cori','Flor'] }
+];
+
+const CATEGORIES = [
+  { id:'famosos',   name:'Famosos AR', icon:'🎭', color:'gold' },
+  { id:'futbol',    name:'Fútbol',     icon:'⚽', color:'green' },
+  { id:'peliculas', name:'Películas',  icon:'🎬', color:'purple' },
+  { id:'series',    name:'Series AR',  icon:'📺', color:'blue' },
+  { id:'dibujos',   name:'Dibujitos',  icon:'🍩', color:'gold' },
+  { id:'canciones', name:'Canciones',  icon:'🎵', color:'purple' },
+  { id:'memes',     name:'Memes',      icon:'🐸', color:'green' }
+];
+const CAT_BY_ID = Object.fromEntries(CATEGORIES.map(c => [c.id, c]));
+
+// ── FIREBASE ──
 const FB_CFG = {
   apiKey:"AIzaSyB37WkRQqBWVYkZ84AE2u17pAOs_9ZCgCg",
   authDomain:"guessmovie-905e2.firebaseapp.com",
@@ -446,503 +756,1797 @@ const FB_CFG = {
   messagingSenderId:"313601369235",
   appId:"1:313601369235:web:f8b28a2ec187a934fa1966"
 };
+let fbDb=null, fbStateRef=null, fbDeckRef=null, fbBuzzerRef=null, fbTeamsRef=null, fbResultRef=null, fbInited=false, _lastFbJson=null;
 
-// Ruta en Firebase según el juego
-const GAME_PATHS = {
-  movies:     'velada/buzzer',
-  argentinos: 'argentinos/buzzer',
-  quien:      'velada/qld/buzzer'
-};
-
-const GAME_META = {
-  movies:     { icon:'🎬', name:'Guess Movies & Songs' },
-  argentinos: { icon:'🎤', name:'100 Argentinos Dicen' },
-  quien:      { icon:'🗣️', name:'¿Quién lo dijo?', individual:true }
-};
-
-// ── STATE ────────────────────────────────────────────────────────
-let fbDb = null, fbRef = null, fbInited = false;
-let currentGame = null;   // 'movies' | 'argentinos'
-let bzTeam = null;        // 'a' | 'b'
-let bzListener = null;
-let namesListener = null;
-let selectGameWatchdog = null; // red de seguridad TOTAL: cubre incluso si el SDK de Firebase nunca termina de cargar
-// Aplica los nombres recibidos de Firebase a la UI de selección
-function applyTeamNames(d){
-  d = d || {};
-  if(d.names){
-    if(d.names.a){ nameA=d.names.a; const e=document.getElementById('ts-na'); if(e) e.textContent=nameA; }
-    if(d.names.b){ nameB=d.names.b; const e=document.getElementById('ts-nb'); if(e) e.textContent=nameB; }
-  }
-}
-// Activa el listener en vivo de nombres (se actualiza al instante en todos)
-function startNamesListener(){
-  if(!fbRef) return;
-  if(namesListener){ fbRef.off('value', namesListener); namesListener=null; }
-  namesListener = fbRef.on('value', snap=>{
-    applyTeamNames(snap.val());
-    const dot=document.getElementById('connecting-dot'); if(dot) dot.style.display='none';
-    const txt=document.getElementById('connecting-text'); if(txt) txt.style.display='none';
-  }, ()=>{
-    const dot=document.getElementById('connecting-dot'); if(dot) dot.style.display='none';
-    const txt=document.getElementById('connecting-text'); if(txt){ txt.style.display=''; txt.textContent='⚠️ Sin conexión — podés seguir igual'; }
-  });
-}
-// Apaga el listener de nombres (al salir de la pantalla de selección)
-function stopNamesListener(){
-  if(namesListener && fbRef){ fbRef.off('value', namesListener); namesListener=null; }
-}
-let nameA = 'Equipo 1', nameB = 'Equipo 2';
-
-// ── HELPERS ─────────────────────────────────────────────────────
-function show(id){ document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active')); document.getElementById(id).classList.add('active'); }
-function showError(msg){ const b=document.getElementById('error-box'); b.textContent=msg; b.classList.add('show'); }
-function hideError(){ document.getElementById('error-box').classList.remove('show'); }
-// Si Firebase falló antes de que showError existiera, mostrarlo ahora
-if(window._fbError) showError(window._fbError);
-
-// ── FIREBASE ─────────────────────────────────────────────────────
-function initFirebase(cb){
-  if(fbInited){ cb(); return; }
-  if(!window._fbScriptsDone){ window._fbReadyCb=()=>initFirebase(cb); return; }
-  if(typeof firebase==='undefined'){ showError('Firebase no disponible. Verificá tu conexión.'); return; }
+function initFirebase(){
+  if(fbInited) return;
+  if(!window._fbScriptsDone){ window._fbReadyCb = initFirebase; return; }
+  if(typeof firebase === 'undefined'){ setFbStatus('err','Sin conexión'); return; }
   try{
     if(!firebase.apps.length) firebase.initializeApp(FB_CFG);
     fbDb = firebase.database();
+    fbStateRef  = fbDb.ref('velada/qld/live');
+    fbDeckRef   = fbDb.ref('velada/qld/deck');
+    fbBuzzerRef = fbDb.ref('velada/qld/buzzer');
+    fbTeamsRef  = fbDb.ref('velada/qld/teams');
+    fbResultRef = fbDb.ref('velada/qld/result');
     fbInited = true;
-    cb();
-  } catch(e){ showError('Error al conectar: '+e.message); }
-}
-
-// ── NAVIGATION ───────────────────────────────────────────────────
-function selectGame(gameId){
-  hideError();
-  currentGame = gameId;
-  const meta = GAME_META[gameId];
-
-  // Actualizar UI de selección de equipo
-  document.getElementById('ts-icon').textContent = meta.icon;
-  document.getElementById('ts-name').textContent = meta.name;
-  const isIndividual = !!meta.individual;
-  document.getElementById('ts-section-label').textContent = isIndividual ? '¿Quién sos?' : '¿Cuál es tu equipo?';
-  document.getElementById('team-list-standard').style.display   = isIndividual ? 'none' : '';
-  document.getElementById('team-list-individual').classList.toggle('show', isIndividual);
-  document.getElementById('edit-names-btn').style.display       = isIndividual ? 'none' : '';
-
-  // Mostrar "conectando" mientras Firebase inicia
-  document.getElementById('connecting-dot').style.display = '';
-  document.getElementById('connecting-text').style.display = '';
-  document.getElementById('connecting-text').textContent = 'Conectando a Firebase…';
-
-  show('team-select-screen');
-
-  // Red de seguridad TOTAL: si por lo que sea el SDK de Firebase nunca
-  // termina de cargar (bloqueado por la red del lugar, un adblocker, etc.)
-  // el callback de initFirebase jamás se ejecuta, y con eso ni siquiera se
-  // llega a armar el timeout interno de startIndividualPlayerListener. Este
-  // watchdog no depende de que Firebase responda nada — solo mira si la
-  // pantalla se quedó en "Conectando…" y, si es así, fuerza el modo offline.
-  if(selectGameWatchdog) clearTimeout(selectGameWatchdog);
-  selectGameWatchdog = setTimeout(() => {
-    const txt = document.getElementById('connecting-text');
-    if(txt && txt.style.display !== 'none'){
-      console.warn('[HUB] Timeout global — Firebase no respondió, uso modo offline.');
-      if(isIndividual) renderIndividualPlayers(DEFAULT_QLD_PLAYERS);
-      document.getElementById('connecting-dot').style.display = 'none';
-      txt.style.display = 'none';
-    }
-  }, 5000);
-
-  initFirebase(()=>{
-    // Conectar al nodo del juego y escuchar los nombres en vivo
-    if(bzListener){ fbRef && fbRef.off('value', bzListener); bzListener=null; }
-    stopNamesListener();
-    fbRef = fbDb.ref(GAME_PATHS[gameId]);
-    if(isIndividual){
-      startIndividualPlayerListener();
-    } else {
-      startNamesListener();
-    }
-  });
-}
-
-// Lista de jugadores para el modo individual — se lee del roster de equipos publicado por velada.html.
-let indivListener = null;
-let indivFallbackTimer = null;
-function stopIndivListener(){
-  if(indivFallbackTimer){ clearTimeout(indivFallbackTimer); indivFallbackTimer=null; }
-  if(indivListener && fbDb){ try{ fbDb.ref('velada/qld/teams').off('value', indivListener); }catch(e){} indivListener=null; }
-}
-function startIndividualPlayerListener(){
-  stopIndivListener();
-  const ref = fbDb.ref('velada/qld/teams');
-  let resolved = false;
-  const finish = list => {
-    resolved = true;
-    if(indivFallbackTimer){ clearTimeout(indivFallbackTimer); indivFallbackTimer=null; }
-    renderIndividualPlayers(list);
-    document.getElementById('connecting-dot').style.display = 'none';
-    document.getElementById('connecting-text').style.display = 'none';
-  };
-  // Red de seguridad: si Firebase no contesta (ni éxito ni error) en unos
-  // segundos — por ejemplo, conexión lenta o colgada — no dejamos al
-  // participante mirando "Conectando…" para siempre.
-  indivFallbackTimer = setTimeout(() => {
-    if(resolved) return;
-    console.warn('[QLD] Timeout esperando el roster de equipos — uso lista por defecto.');
-    finish(DEFAULT_QLD_PLAYERS);
-  }, 4000);
-  indivListener = ref.on('value', snap => {
-    const d = snap.val() || {};
-    const teams = Array.isArray(d.teams) ? d.teams : [];
-    let list = [];
-    teams.forEach(t => { if(Array.isArray(t.members)) list = list.concat(t.members); });
-    // Si todavía no se publicó el roster (velada.html no se abrió en esta sesión), usamos un default
-    if(!list.length) list = DEFAULT_QLD_PLAYERS;
-    finish(list);
-  }, err => {
-    // Permiso denegado, reglas de Firebase, etc.: antes esto se perdía en
-    // silencio y la pantalla se quedaba en "Conectando…" para siempre.
-    console.warn('[QLD] No se pudo leer el roster de equipos:', err);
-    finish(DEFAULT_QLD_PLAYERS);
-  });
-}
-const DEFAULT_QLD_PLAYERS = ['Martin','Valentín','Laza','Tomás','Thiago','Lara','Totti','Risu','Cori','Flor'];
-function renderIndividualPlayers(list){
-  const wrap = document.getElementById('team-list-individual');
-  if(!wrap) return;
-  wrap.innerHTML = list.map(p => `<button class="team-btn team-indiv" onclick="selectTeam('${p.replace(/'/g,"\\'")}')">🎤 ${p}</button>`).join('');
-}
-
-// ── EDITOR DE NOMBRES (buzzer) ──────────────────────────────────
-function openBzNames(){
-  if(!currentGame){ return; }
-  document.getElementById('bzn-input-a').value = (nameA && nameA!=='Equipo 1') ? nameA : '';
-  document.getElementById('bzn-input-b').value = (nameB && nameB!=='Equipo 2') ? nameB : '';
-  document.getElementById('bzn-sub').textContent =
-    'Para «' + (GAME_META[currentGame] ? GAME_META[currentGame].name : 'este juego') + '». Los ven todos los celulares.';
-  document.getElementById('bzn-overlay').classList.add('open');
-  setTimeout(()=>{ try{ document.getElementById('bzn-input-a').focus(); }catch(e){} }, 60);
-}
-function closeBzNames(){ document.getElementById('bzn-overlay').classList.remove('open'); }
-function saveBzNames(){
-  const va = (document.getElementById('bzn-input-a').value||'').trim();
-  const vb = (document.getElementById('bzn-input-b').value||'').trim();
-  nameA = va || 'Equipo 1';
-  nameB = vb || 'Equipo 2';
-  // Actualizar UI local
-  document.getElementById('ts-na').textContent = nameA;
-  document.getElementById('ts-nb').textContent = nameB;
-  // Guardar en Firebase para que lo vean todos
-  if(fbRef){
-    try { fbRef.child('names').update({ a: nameA, b: nameB }); } catch(e){ console.warn('No se pudo guardar nombres', e); }
-  }
-  closeBzNames();
-  if(navigator.vibrate) navigator.vibrate(30);
-}
-
-function selectTeam(team){
-  bzTeam = team;
-  const meta = GAME_META[currentGame] || {};
-  const isIndividual = !!meta.individual;
-  let tName, teamColor;
-  if(isIndividual){
-    tName = team; // el team ES el nombre del jugador
-    teamColor = '🎤';
-  } else {
-    tName = team==='a' ? nameA : nameB;
-    teamColor = team==='a' ? '🔵' : '🟡';
-  }
-
-  // Actualizar pantalla de buzzer
-  document.getElementById('bz-game-tag').textContent = meta.name;
-  document.getElementById('bz-team-name').textContent = teamColor + ' ' + tName;
-
-  const btn = document.getElementById('bz-buzz-btn');
-  btn.className = 'bz-buzz-btn locked ' + (isIndividual ? 'team-indiv' : 'team-' + team);
-  document.getElementById('bz-status').textContent = 'Esperando al conductor…';
-  document.getElementById('bz-status').className = 'bz-status';
-  hideResult(); _resultShownFor = null;
-
-  stopNamesListener();
-  stopIndivListener();
-  show('buzz-screen');
-  startBuzzListener();
-}
-
-function goBack(to){
-  // Detener listener activo
-  if(bzListener && fbRef){ fbRef.off('value', bzListener); bzListener=null; }
-
-  if(to==='game'){
-    bzTeam=null; currentGame=null;
-    stopNamesListener();
-    stopIndivListener();
-    show('game-select-screen');
-  } else if(to==='team'){
-    bzTeam=null;
-    // Restaurar nombres en selección de equipo
-    document.getElementById('ts-na').textContent = nameA;
-    document.getElementById('ts-nb').textContent = nameB;
-    show('team-select-screen');
-    // Re-arrancar listener según el tipo de juego
-    const meta = GAME_META[currentGame] || {};
-    if(meta.individual) startIndividualPlayerListener();
-    else startNamesListener();
-  }
-}
-
-// ── RESULT OVERLAY ───────────────────────────────────────────────
-let _resultShownFor = null; // recuerda para qué winner ya animamos
-function showResult(won, winnerName){
-  const ov = document.getElementById('bz-result');
-  document.getElementById('bz-result-icon').textContent  = won ? '🏆' : '⏱️';
-  document.getElementById('bz-result-title').textContent = won ? '¡Buzzaste primero!' : 'Te ganaron de mano';
-  document.getElementById('bz-result-sub').textContent   = won
-    ? 'El conductor te va a dar la palabra'
-    : (winnerName || 'El otro equipo') + ' fue más rápido';
-  ov.classList.remove('won','lost','show');
-  void ov.offsetWidth;                 // reinicia la animación cada vez
-  ov.classList.add(won ? 'won' : 'lost', 'show');
-}
-function hideResult(){
-  document.getElementById('bz-result').classList.remove('show');
-}
-
-// ── BUZZER LISTENER ──────────────────────────────────────────────
-function startBuzzListener(){
-  if(!fbRef) return;
-  bzListener = fbRef.on('value', snap=>{
-    const d = snap.val()||{};
-    const state = d.state||'locked';
-
-    // Sync nombres en caso de que el conductor los haya cambiado
-    if(d.names){
-      if(d.names.a) nameA=d.names.a;
-      if(d.names.b) nameB=d.names.b;
-    }
-
-    const btn = document.getElementById('bz-buzz-btn');
-    const statusEl = document.getElementById('bz-status');
-
-    if(d.winner){
-      const wonByMe = d.winner.team === bzTeam;
-      const winnerName = d.winner.name || (d.winner.team==='a'?nameA:nameB);
-      btn.classList.add('locked');
-      btn.classList.remove('open');
-      if(wonByMe){
-        btn.classList.add('won-me');
-        statusEl.textContent = '🏆 ¡Buzzaste primero!';
-        statusEl.className = 'bz-status won';
-        if(navigator.vibrate) navigator.vibrate([80,40,80,40,80]);
-      } else {
-        statusEl.textContent = winnerName + ' fue más rápido';
-        statusEl.className = 'bz-status lost';
-        if(navigator.vibrate) navigator.vibrate(120); // pulso seco para el que perdió
-      }
-      // Overlay a pantalla completa — solo animamos una vez por ganador
-      if(_resultShownFor !== d.winner.team){
-        showResult(wonByMe, winnerName);
-        _resultShownFor = d.winner.team;
-      }
-    } else if(state==='open'){
-      hideResult(); _resultShownFor = null;
-      if(d.blocked && d.blocked===bzTeam){
-        // Este equipo ya erró esta carta — le toca al otro
-        btn.classList.add('locked');
-        btn.classList.remove('open','won-me');
-        const otro = bzTeam==='a' ? nameB : nameA;
-        statusEl.textContent = '✗ Erraron — ahora responde ' + otro;
-        statusEl.className = 'bz-status lost';
-      } else {
-        btn.classList.remove('locked','won-me');
-        btn.classList.add('open');
-        statusEl.textContent = '¡Tocá cuando sepas la respuesta!';
-        statusEl.className = 'bz-status open';
-        if(navigator.vibrate) navigator.vibrate(30);
-      }
-    } else {
-      hideResult(); _resultShownFor = null;
-      btn.classList.add('locked');
-      btn.classList.remove('open','won-me');
-      statusEl.textContent = 'Esperando al conductor…';
-      statusEl.className = 'bz-status';
-    }
-  });
-}
-
-// ── BUZZ ACTION ──────────────────────────────────────────────────
-// ── SFX: "tin" corto al ganar el buzz ──
-let _buzzAudio=null;
-function _bac(){ try{ if(!_buzzAudio) _buzzAudio=new (window.AudioContext||window.webkitAudioContext)(); if(_buzzAudio.state==='suspended') _buzzAudio.resume(); return _buzzAudio; }catch(e){ return null; } }
-document.addEventListener('pointerdown',()=>{ _bac(); },{once:true});
-function sfxTin(){ const ctx=_bac(); if(!ctx) return; try{ const now=ctx.currentTime; [[988,0],[1319,0.07]].forEach(([f,t])=>{ const o=ctx.createOscillator(),g=ctx.createGain(); o.type='triangle'; o.frequency.value=f; o.connect(g); g.connect(ctx.destination); const s=now+t; g.gain.setValueAtTime(0.0001,s); g.gain.exponentialRampToValueAtTime(0.6,s+0.01); g.gain.exponentialRampToValueAtTime(0.0001,s+0.45); o.start(s); o.stop(s+0.5); }); }catch(e){} }
-
-function doBuzz(){
-  if(!fbRef || !bzTeam) return;
-  const meta = GAME_META[currentGame] || {};
-  const isIndividual = !!meta.individual;
-  const tName = isIndividual ? bzTeam : (bzTeam==='a' ? nameA : nameB);
-  if(navigator.vibrate) navigator.vibrate(60);
-
-  // Transacción atómica — solo gana el primero en llegar
-  fbRef.transaction(current=>{
-    if(!current) return;
-    // Movies & Songs usa { state:'open', winner:null }
-    // 100 Argentinos usa { state:'open', winner:null } también
-    // `blocked` (opcional): equipo que ya erró esta carta y no puede volver a buzzear.
-    // Si el juego no lo manda, el comportamiento es el de siempre.
-    if(current.blocked && current.blocked===bzTeam) return; // abort — te toca esperar
-    if(current.state==='open' && !current.winner){
-      return Object.assign({}, current, {
-        winner: { team:bzTeam, name:tName },
-        state: 'won'
+    fbDb.ref('.info/connected').on('value', s => setFbStatus(s.val()?'ok':'','Conectado'));
+    // Roster de equipos — lo publica velada.html; lo escuchan conductor y participantes por igual
+    fbTeamsRef.on('value', snap => {
+      const d = snap.val();
+      if(d && Array.isArray(d.teams)) applyTeams(d.teams);
+    });
+    if(MODE==='participant'){
+      fbStateRef.on('value', snap => { const d = snap.val(); if(d) applyLive(d); });
+      fbDeckRef.on('value', snap => {
+        const d = snap.val();
+        if(d && Array.isArray(d.deck)){
+          deck = d.deck;
+          try{ localStorage.setItem(SK.DECK, JSON.stringify(deck)); }catch(e){}
+          // Las imágenes/audios subidos viajan con el mazo: re-renderizamos la carta actual
+          if(_partMediaPending) _lastPartCardId = null; // forzamos remontar la media
+          if(_lastLiveState) renderPartCard(_lastLiveState);
+        }
       });
     }
-    return; // abort — ya hay ganador o está bloqueado
-  }, (err, committed)=>{
-    if(!err && committed) sfxTin(); // sonó solo si este celular ganó
-  });
-}
-
-// ── SPLASH ───────────────────────────────────────────────────────
-function dismissSplash(){
-  const s = document.getElementById('splash');
-  if(!s || s.classList.contains('out')) return;
-  s.classList.add('out');
-  setTimeout(()=>{ if(s) s.style.display='none'; }, 750);
-}
-(function initSplash(){
-  const s = document.getElementById('splash');
-  if(!s) return;
-  s.addEventListener('keydown', e=>{
-    if(e.key==='Enter'||e.key===' '||e.key==='Escape'){ e.preventDefault(); dismissSplash(); }
-  });
-  try{ s.focus({preventScroll:true}); }catch(e){}
-
-  // ── CARRUSEL DE FONDO ──
-  // Cada "card" representa un juego del hub: icono + nombre + color
-  const CARDS = [
-    { icon:'🎬', name:'MOVIES',   bg:'rgba(245,200,66,.12)',  border:'rgba(245,200,66,.35)', color:'#f5c842' },
-    { icon:'🎵', name:'SONGS',    bg:'rgba(192,96,232,.12)',  border:'rgba(192,96,232,.35)', color:'#c060e8' },
-    { icon:'🎯', name:'VAR',      bg:'rgba(255,95,95,.12)',   border:'rgba(255,95,95,.35)',  color:'#ff5f5f' },
-    { icon:'🎤', name:'100 ARG',  bg:'rgba(96,180,240,.12)',  border:'rgba(96,180,240,.35)', color:'#60b4f0' },
-    { icon:'⏰', name:'TIEMPO',   bg:'rgba(200,240,96,.12)',  border:'rgba(200,240,96,.35)', color:'#c8f060' },
-    { icon:'🏆', name:'VELADA',   bg:'rgba(245,200,66,.10)',  border:'rgba(245,200,66,.30)', color:'#f5c842' },
-    { icon:'🔔', name:'BUZZER',   bg:'rgba(200,240,96,.10)',  border:'rgba(200,240,96,.30)', color:'#c8f060' },
-    { icon:'🎲', name:'JUEGOS',   bg:'rgba(76,219,122,.10)',  border:'rgba(76,219,122,.30)', color:'#4cdb7a' },
-    { icon:'🎮', name:'NOCHE',    bg:'rgba(192,96,232,.10)',  border:'rgba(192,96,232,.30)', color:'#c060e8' },
-    { icon:'⚡', name:'QUIZ',     bg:'rgba(255,95,95,.10)',   border:'rgba(255,95,95,.30)',  color:'#ff5f5f' },
-    { icon:'🌟', name:'PUNTOS',   bg:'rgba(96,180,240,.10)',  border:'rgba(96,180,240,.30)', color:'#60b4f0' },
-    { icon:'🎯', name:'RONDA',    bg:'rgba(200,240,96,.10)',  border:'rgba(200,240,96,.30)', color:'#c8f060' },
-  ];
-
-  function shuffle(arr){ for(let i=arr.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1));[arr[i],arr[j]]=[arr[j],arr[i]]; } return arr; }
-
-  setTimeout(()=>{
-    const bg = document.getElementById('splash-carousel-bg');
-    const bgMain = document.getElementById('main-carousel-bg');
-    if(bg) initBzCarousel(bg, CARDS);
-    if(bgMain) initBzCarousel(bgMain, CARDS);
-  }, 80);
-})();
-
-function initBzCarousel(bg, CARDS){
-  if(!bg) return;
-  const CARD_W = 110, CARD_H = 90, GAP = 10, STEP = CARD_H + GAP;
-  function shuffle(arr){ const a=[...arr]; for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]; } return a; }
-
-  const screenW = window.innerWidth, screenH = window.innerHeight;
-  const cols = Math.ceil(screenW / (CARD_W + GAP)) + 1;
-  const visibleRows = Math.ceil(screenH / STEP) + 2;
-  const halfRows = visibleRows + 2;
-  const pool = shuffle([...CARDS, ...CARDS, ...CARDS]);
-  let poolIdx = 0;
-  const colEls = [], colData = [];
-
-  for(let c = 0; c < cols; c++){
-    const x = c * (CARD_W + GAP);
-    const dir = c % 2 === 0 ? 1 : -1;
-    const speed = 0.28 + (c % 4) * 0.055;
-    const col = document.createElement('div');
-    col.className = 'bz-col';
-    col.style.cssText = `left:${x}px;width:${CARD_W}px`;
-    const colCards = [];
-    for(let r = 0; r < halfRows; r++){ colCards.push(pool[poolIdx % pool.length]); poolIdx++; }
-    for(let half = 0; half < 2; half++){
-      for(let r = 0; r < halfRows; r++){
-        const cd = colCards[r];
-        const card = document.createElement('div');
-        card.className = 'bz-card';
-        card.style.cssText = `height:${CARD_H}px;background:${cd.bg};border-color:${cd.border}`;
-        card.innerHTML = `<span style="font-size:22px;line-height:1">${cd.icon}</span><span style="font-size:9px;font-weight:800;letter-spacing:.12em;color:${cd.color};opacity:.9">${cd.name}</span>`;
-        setTimeout(()=>card.classList.add('loaded'), 80 + Math.random()*300);
-        col.appendChild(card);
-      }
+    if(MODE==='conductor'){
+      // Al iniciar como conductor: si hay mazo en la nube, mergeamos (nube tiene prioridad si es más nuevo)
+      fbDeckRef.once('value').then(snap => {
+        const d = snap.val();
+        if(d && Array.isArray(d.deck) && d.updated && d.updated > (deckMeta.updated||0)){
+          deck = d.deck;
+          deckMeta = { updated: d.updated };
+          saveDeckLocal();
+          renderCard(); renderEditorList();
+        }
+      });
+      // Listener del buzzer para mostrar quién ganó
+      fbBuzzerRef.on('value', snap => {
+        const d = snap.val() || {};
+        applyBuzzerState(d);
+      });
+      // Resultado ya finalizado de la ronda (por si se recarga la página con la ronda ya cerrada)
+      fbResultRef.on('value', snap => {
+        roundResult = snap.val() || null;
+        renderRoundStatus();
+      });
+      // Al arrancar: buzzer cerrado
+      fbLockBuzzer();
     }
-    const loopH = halfRows * STEP;
-    const stagger = -(Math.random() * loopH);
-    const startY = dir === 1 ? stagger : stagger - loopH;
-    col.style.transform = `translateY(${startY}px)`;
-    bg.appendChild(col);
-    colEls.push(col);
-    colData.push({ y: startY, dir, speed, loopH });
-  }
-
-  let last = null;
-  function tick(ts){
-    if(!last) last = ts;
-    const dt = Math.min(ts - last, 32); last = ts;
-    for(let c = 0; c < cols; c++){
-      const d = colData[c];
-      d.y += d.dir * d.speed * dt * 0.05;
-      if(d.dir === 1 && d.y >= 0) d.y -= d.loopH;
-      else if(d.dir === -1 && d.y <= -d.loopH) d.y += d.loopH;
-      colEls[c].style.transform = `translateY(${d.y}px)`;
-    }
-    requestAnimationFrame(tick);
-  }
-  requestAnimationFrame(tick);
+  }catch(e){ console.error('[FB] init error', e); setFbStatus('err','Error FB'); }
+}
+function setFbStatus(cls, msg){
+  const dots = [document.getElementById('fb-dot'), document.getElementById('fb-dot-p')];
+  const txts = [document.getElementById('fb-txt'), document.getElementById('fb-txt-p')];
+  dots.forEach(d => { if(d){ d.classList.remove('ok','err'); if(cls) d.classList.add(cls); }});
+  txts.forEach(t => { if(t) t.textContent = msg; });
 }
 
-// ── PASSWORD MODAL ───────────────────────────────────────────────
-function openPwModal(e){
-  if(e) e.preventDefault();
-  const ov = document.getElementById('pw-overlay');
-  const inp = document.getElementById('pw-input');
-  document.getElementById('pw-error').textContent = '';
-  inp.value = '';
-  inp.classList.remove('error');
-  ov.classList.add('show');
-  setTimeout(()=>inp.focus(), 120);
+function fbPushLive(){
+  if(!fbStateRef) return;
+  const st = liveStateSnapshot();
+  const j = JSON.stringify(st);
+  if(j===_lastFbJson) return;
+  _lastFbJson = j;
+  try{ fbStateRef.set(st); }catch(e){}
 }
-function closePwModal(){
-  document.getElementById('pw-overlay').classList.remove('show');
+function fbPushDeck(){
+  if(!fbDeckRef) return;
+  const payload = { deck, updated: Date.now() };
+  try{ fbDeckRef.set(payload); }catch(e){}
 }
-function checkPw(){
-  const inp = document.getElementById('pw-input');
-  const errEl = document.getElementById('pw-error');
-  if(inp.value.trim() === '100'){
-    closePwModal();
-    window.location.href = 'velada.html';
+
+// ── BUZZER ──
+let buzzerState = 'locked'; // 'locked' | 'open' | 'won'
+let buzzerWinner = null;    // { name }
+function fbOpenBuzzer(){
+  if(!fbBuzzerRef) return;
+  fbBuzzerRef.set({ state:'open', winner:null });
+  buzzerWinner = null;
+}
+function fbLockBuzzer(){
+  if(!fbBuzzerRef) return;
+  fbBuzzerRef.set({ state:'locked', winner:null });
+  buzzerWinner = null;
+}
+function toggleBuzzer(){
+  if(buzzerState === 'open' || buzzerState === 'won') fbLockBuzzer();
+  else fbOpenBuzzer();
+}
+function applyBuzzerState(d){
+  const state = d.state || 'locked';
+  const winner = d.winner || null;
+  buzzerState = state;
+  buzzerWinner = winner;
+  renderBuzzerBanner();
+  // Si hay ganador nuevo: abrir panel de asignación con el jugador y su equipo destacados
+  if(winner && winner.name){
+    sfxBuzz();
+    openAssignWithWinner(winner.name);
+  }
+}
+function renderBuzzerBanner(){
+  let el = document.getElementById('buzzer-banner');
+  if(!el){
+    el = document.createElement('div');
+    el.id = 'buzzer-banner';
+    el.className = 'buzzer-banner';
+    const body = document.querySelector('.cond-body');
+    if(body) body.insertBefore(el, body.firstChild);
+  }
+  const btn = document.getElementById('buzzer-btn');
+  if(buzzerWinner && buzzerWinner.name){
+    const tIdx = nickToTeamIndex[buzzerWinner.name];
+    const team = (typeof tIdx === 'number') ? teams.find(t => t.index === tIdx) : null;
+    const nameLine = team ? `${escapeHtml(buzzerWinner.name)} <span style="opacity:.7;font-weight:600">(${escapeHtml(team.label)})</span>` : escapeHtml(buzzerWinner.name);
+    el.innerHTML = `<div class="bb-icon">🏆</div><div class="bb-body"><div class="bb-lbl">Buzzeó primero</div><div class="bb-name">${nameLine}</div></div><button class="bb-reset" onclick="fbOpenBuzzer()">Reabrir</button>`;
+    el.className = 'buzzer-banner won';
+    el.style.display = 'flex';
+    if(btn){ btn.textContent = '🔓 Reabrir buzzer'; btn.classList.remove('primary'); btn.classList.add('danger'); }
+  } else if(buzzerState === 'open'){
+    el.innerHTML = `<div class="bb-icon">🔔</div><div class="bb-body"><div class="bb-lbl">Buzzer abierto</div><div class="bb-name">Esperando que alguien buzzee…</div></div><button class="bb-reset" onclick="fbLockBuzzer()">Cerrar</button>`;
+    el.className = 'buzzer-banner open';
+    el.style.display = 'flex';
+    if(btn){ btn.textContent = '🔒 Cerrar buzzer'; btn.classList.remove('primary'); btn.classList.add('danger'); }
   } else {
-    errEl.textContent = 'Contraseña incorrecta, intentá de nuevo.';
-    inp.classList.remove('error');
-    void inp.offsetWidth;
-    inp.classList.add('error');
-    inp.select();
+    el.style.display = 'none';
+    if(btn){ btn.textContent = '🔔 Abrir buzzer'; btn.classList.add('primary'); btn.classList.remove('danger'); }
   }
 }
 
-// Permite enlace directo: buzzer.html?game=movies&team=a
-(function(){
-  const p = new URLSearchParams(window.location.search);
-  const g = p.get('game'), t = p.get('team');
-  if(g && GAME_PATHS[g]){
-    selectGame(g);
-    if(t==='a'||t==='b') setTimeout(()=>selectTeam(t), 800);
+// Cuando llega un buzz: abrir el panel de asignación con el jugador y su equipo destacados
+let _winnerName = null;
+function openAssignWithWinner(name){
+  _winnerName = name;
+  _winnerTeamIdx = (typeof nickToTeamIndex[name] === 'number') ? nickToTeamIndex[name] : null;
+  openAssign(/*keepWinner=*/true);
+}
+
+// SFX buzz — pequeño "tin" para que suene en la compu del conductor
+let _bac = null;
+function _bactx(){ try{ if(!_bac) _bac = new (window.AudioContext||window.webkitAudioContext)(); if(_bac.state==='suspended') _bac.resume(); return _bac; }catch(e){ return null; } }
+document.addEventListener('pointerdown',()=>{ _bactx(); }, { once:true });
+function sfxBuzz(){ const ctx=_bactx(); if(!ctx) return; try{ const now=ctx.currentTime; [[880,0],[1319,0.08]].forEach(([f,t])=>{ const o=ctx.createOscillator(),g=ctx.createGain(); o.type='triangle'; o.frequency.value=f; o.connect(g); g.connect(ctx.destination); const s=now+t; g.gain.setValueAtTime(0.0001,s); g.gain.exponentialRampToValueAtTime(0.5,s+0.01); g.gain.exponentialRampToValueAtTime(0.0001,s+0.4); o.start(s); o.stop(s+0.45); }); }catch(e){} }
+
+// ── STATE ──
+let MODE = null;
+let deck = [];
+let deckMeta = { updated: 0 };
+let cardIdx = 0;
+let teams = DEFAULT_TEAMS.map(t => ({ ...t })); // se sobreescribe en vivo desde velada.html (Firebase)
+let teamScores = {};       // { teamIndex: totalPoints }
+let teamScoresRecent = {}; // { teamIndex: msTimestamp } — para efecto "+1"
+let nickToTeamIndex = {};  // { apodo: teamIndex } — se reconstruye cada vez que llegan equipos nuevos
+let roundResult = null;    // { standings:[{teamIndex,label,score,fase2Points}], finishedAt } una vez finalizada la ronda
+let _winnerTeamIdx = null; // equipo del jugador que buzzeó primero (resuelto por apodo)
+let revealed = false;
+let hintsShown = { 1: false, 2: false };
+let assignAmount = null;   // 0.5 | 1 | null — cuánto vale el punto a asignar
+let assignKeepWinner = false;
+let _editCardId = null;
+let _edFilter = 'all';
+let _edSearch = '';
+let _edMediaFileData = null;
+let _edRevealFileData = null;
+
+// ── STORAGE ──
+function loadState(){
+  try{ const s = localStorage.getItem(SK.DECK); if(s){ deck = JSON.parse(s) || []; }}catch(e){}
+  try{ const s = localStorage.getItem(SK.TEAM_SCORES); if(s){ teamScores = JSON.parse(s) || {}; }}catch(e){}
+  try{ const s = localStorage.getItem(SK.IDX); if(s){ cardIdx = parseInt(s)||0; }}catch(e){}
+  if(!deck.length){ deck = DEFAULT_DECK(); saveDeckLocal(); }
+  rebuildNickMap();
+}
+function saveDeckLocal(){
+  deckMeta.updated = Date.now();
+  try{ localStorage.setItem(SK.DECK, JSON.stringify(deck)); }catch(e){}
+}
+function saveTeamScores(){ try{ localStorage.setItem(SK.TEAM_SCORES, JSON.stringify(teamScores)); }catch(e){} }
+function saveIdx(){ try{ localStorage.setItem(SK.IDX, String(cardIdx)); }catch(e){} }
+function rebuildNickMap(){
+  nickToTeamIndex = {};
+  teams.forEach(t => { (t.members||[]).forEach(m => { nickToTeamIndex[m] = t.index; }); });
+}
+function applyTeams(newTeams){
+  if(!Array.isArray(newTeams) || !newTeams.length) return;
+  teams = newTeams.map(t => ({ index: t.index, label: t.label, members: t.members || [] }));
+  rebuildNickMap();
+  renderScores();
+  if(MODE === 'participant') renderPartScores();
+}
+
+// ── HELPERS ──
+function currentCard(){ return deck[cardIdx] || null; }
+function toast(msg){
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  clearTimeout(toast._t); toast._t = setTimeout(()=>t.classList.remove('show'), 1800);
+}
+function escapeHtml(s){ return String(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function shuffleArr(a){
+  const r = a.slice();
+  for(let i=r.length-1;i>0;i--){ const j = Math.floor(Math.random()*(i+1)); [r[i],r[j]] = [r[j],r[i]]; }
+  return r;
+}
+function youtubeId(input){
+  if(!input) return null;
+  const s = String(input).trim();
+  if(/^[a-zA-Z0-9_-]{11}$/.test(s)) return s;
+  const m = s.match(/(?:youtu\.be\/|v=|\/embed\/|\/shorts\/)([a-zA-Z0-9_-]{11})/);
+  return m ? m[1] : null;
+}
+function nextId(){ return Date.now() + Math.floor(Math.random()*1000); }
+
+// ── SPLASH / GATE ──
+function dismissSplash(){
+  const sp = document.getElementById('splash');
+  sp.classList.add('fade');
+  setTimeout(()=>{
+    sp.style.display = 'none';
+    const savedMode = localStorage.getItem(SK.MODE);
+    if(savedMode === 'participant' || savedMode === 'conductor'){
+      applyMode(savedMode);
+    } else {
+      document.getElementById('gate').classList.add('active');
+    }
+  }, 650);
+}
+function gateConductor(){
+  document.getElementById('gate-pass').style.display = 'flex';
+  setTimeout(()=>document.getElementById('gate-pass-in').focus(), 50);
+}
+function gateCheckPass(){
+  const v = document.getElementById('gate-pass-in').value.trim().toLowerCase();
+  if(v === PW) applyMode('conductor');
+  else toast('Contraseña incorrecta');
+}
+function applyMode(m){
+  MODE = m;
+  try{ localStorage.setItem(SK.MODE, m); }catch(e){}
+  document.getElementById('gate').classList.remove('active');
+  document.getElementById('gate').style.display = 'none';
+  loadState();
+  initFirebase();
+  if(m === 'conductor'){
+    document.getElementById('conductor').classList.add('active');
+    renderScores(); renderCard(); populateCategoryOptions(); renderRoundStatus();
+    setInterval(fbPushLive, 500);
+  } else {
+    document.getElementById('participant').classList.add('active');
+    renderPartScores(); renderPartCard(null);
   }
-})();
+}
+function exitMode(){
+  try{ localStorage.removeItem(SK.MODE); }catch(e){}
+  location.reload();
+}
+
+// ── RENDER: SCORES ──
+function renderScores(){
+  const wrap = document.getElementById('score-strip');
+  if(!wrap) return;
+  const vals = teams.map(t => teamScores[t.index]||0);
+  const max = Math.max(0, ...vals);
+  wrap.innerHTML = teams.map(t => {
+    const pts = teamScores[t.index]||0;
+    const leader = max > 0 && pts === max;
+    const recent = teamScoresRecent[t.index] && (Date.now() - teamScoresRecent[t.index] < 2500);
+    const shortLabel = (t.members && t.members.length) ? t.members.join(' & ') : t.label;
+    return `<button class="score-chip ${leader?'leader':''}" onclick="quickAssignPrompt(${t.index})" title="${escapeHtml(t.label)}">
+      ${recent ? '<span class="score-chip-recent">+</span>' : ''}
+      <div class="score-chip-name">${escapeHtml(shortLabel)}</div>
+      <div class="score-chip-pts">${pts}</div>
+    </button>`;
+  }).join('');
+}
+function renderPartScores(){
+  const wrap = document.getElementById('part-score-inner');
+  if(!wrap) return;
+  const vals = teams.map(t => teamScores[t.index]||0);
+  const max = Math.max(0, ...vals);
+  wrap.innerHTML = teams.map(t => {
+    const pts = teamScores[t.index]||0;
+    const leader = max > 0 && pts === max;
+    const shortLabel = (t.members && t.members.length) ? t.members.join(' & ') : t.label;
+    return `<div class="part-chip ${leader?'leader':''}" title="${escapeHtml(t.label)}">
+      <div class="part-chip-name">${escapeHtml(shortLabel)}</div>
+      <div class="part-chip-pts">${pts}</div>
+    </div>`;
+  }).join('');
+}
+function quickAssignPrompt(teamIdx){
+  const t = teams.find(x => x.index === teamIdx);
+  if(!t) return;
+  const delta = prompt(`Ajustar puntaje de ${t.label}\n(actual: ${teamScores[teamIdx]||0})\n\nEscribí +N o -N (ej: +1, -0.5):`, '+1');
+  if(!delta) return;
+  const n = parseFloat(delta);
+  if(isNaN(n)) return;
+  teamScores[teamIdx] = Math.max(0, (teamScores[teamIdx]||0) + n);
+  saveTeamScores(); renderScores(); fbPushLive();
+  checkWinCondition();
+}
+
+// ── RENDER: CARD (conductor) ──
+let _lastRenderedCardId = null;
+let condYtPlayer = null;
+let condVideoEl = null;
+let videoSyncState = null; // { videoId|url, playing, t, ts } — se empuja a Firebase para sincronizar a los participantes
+let revealCueState = null; // { src, kind:'audio'|'video', ts } — dispara el clip de revelación en la pantalla de participantes
+
+function destroyCondPlayers(){
+  if(condYtPlayer){ try{ condYtPlayer.destroy(); }catch(e){} condYtPlayer = null; }
+  condVideoEl = null;
+}
+function pushVideoSync(obj){
+  videoSyncState = Object.assign({}, obj, { ts: Date.now() });
+  fbPushLive(); // empuje inmediato (no esperar el intervalo de 500ms)
+}
+function mountCondMedia(cur){
+  const mount = document.getElementById('cc-media-mount');
+  if(!mount) return;
+  if(!cur.mediaType || cur.mediaType === 'none'){ mount.innerHTML = ''; return; }
+  const src = cur.mediaData || cur.mediaUrl;
+  if(!src){ mount.innerHTML = '<div class="cc-media empty">📁 Sin media cargada</div>'; return; }
+  if(cur.mediaType === 'youtube'){
+    const id = youtubeId(src);
+    if(!id){ mount.innerHTML = '<div class="cc-media empty">⚠️ ID de YouTube inválido</div>'; return; }
+    mount.innerHTML = '<div class="cc-media"><div id="cc-yt-el" style="width:100%;aspect-ratio:16/9"></div></div>';
+    onYtApiReady(() => {
+      // Puede que el usuario ya haya navegado a otra carta mientras cargaba la API
+      if(!document.getElementById('cc-yt-el')) return;
+      condYtPlayer = new YT.Player('cc-yt-el', {
+        videoId: id, width:'100%', height:'100%',
+        playerVars: { autoplay:0, controls:1, modestbranding:1, rel:0 },
+        events: {
+          onStateChange: e => {
+            if(!condYtPlayer) return;
+            const st = e.data;
+            if(st === YT.PlayerState.PLAYING) pushVideoSync({ videoId:id, playing:true,  t: condYtPlayer.getCurrentTime() });
+            else if(st === YT.PlayerState.PAUSED) pushVideoSync({ videoId:id, playing:false, t: condYtPlayer.getCurrentTime() });
+            else if(st === YT.PlayerState.ENDED) pushVideoSync({ videoId:id, playing:false, t: 0 });
+          }
+        }
+      });
+    });
+  } else if(cur.mediaType === 'video-url'){
+    mount.innerHTML = `<div class="cc-media"><video id="cc-video-el" src="${escapeHtml(src)}" controls playsinline preload="metadata"></video></div>`;
+    condVideoEl = document.getElementById('cc-video-el');
+    condVideoEl.addEventListener('play',   () => pushVideoSync({ url:src, playing:true,  t: condVideoEl.currentTime }));
+    condVideoEl.addEventListener('pause',  () => pushVideoSync({ url:src, playing:false, t: condVideoEl.currentTime }));
+    condVideoEl.addEventListener('seeked', () => pushVideoSync({ url:src, playing:!condVideoEl.paused, t: condVideoEl.currentTime }));
+  } else if(cur.mediaType === 'audio-url' || cur.mediaType === 'audio-upload'){
+    // Solo audio: la carta no muestra nada, se escucha. Se sincroniza igual que un video.
+    mount.innerHTML = `<div class="cc-media audio">
+      <div class="media-audio-tag">🔊 Solo audio</div>
+      <audio id="cc-video-el" src="${escapeHtml(src)}" controls preload="metadata"></audio>
+    </div>`;
+    condVideoEl = document.getElementById('cc-video-el');
+    const syncSrc = String(src).startsWith('data:') ? null : src;
+    condVideoEl.addEventListener('play',   () => pushVideoSync({ url:syncSrc, audio:true, playing:true,  t: condVideoEl.currentTime }));
+    condVideoEl.addEventListener('pause',  () => pushVideoSync({ url:syncSrc, audio:true, playing:false, t: condVideoEl.currentTime }));
+    condVideoEl.addEventListener('seeked', () => pushVideoSync({ url:syncSrc, audio:true, playing:!condVideoEl.paused, t: condVideoEl.currentTime }));
+  } else {
+    // image / gif / image-upload
+    mount.innerHTML = `<div class="cc-media"><img src="${escapeHtml(src)}" alt=""></div>`;
+  }
+}
+function renderCard(){
+  const cont = document.getElementById('cond-card');
+  const cur = currentCard();
+  document.getElementById('nav-prev').disabled = cardIdx <= 0;
+  document.getElementById('nav-next').disabled = cardIdx >= deck.length - 1;
+  document.getElementById('card-count').textContent = deck.length ? `${cardIdx + 1} / ${deck.length}` : '— / —';
+  if(!cur){
+    cont.innerHTML = `<div class="cc-empty">Aún no hay cartas.<br>Tocá <b>✏️ Editar mazo</b> para empezar.</div>`;
+    _lastRenderedCardId = null;
+    destroyCondPlayers();
+    fbPushLive();
+    return;
+  }
+  const cat = CAT_BY_ID[cur.category] || CATEGORIES[0];
+  const isNewCard = _lastRenderedCardId !== cur.id;
+  if(isNewCard){
+    cont.innerHTML = `
+      <div class="cc-cat-row">
+        <span class="cc-cat">${cat.icon} ${cat.name}</span>
+        <span class="cc-idx">${cur.title ? escapeHtml(cur.title) : ''}</span>
+      </div>
+      <div id="cc-media-mount"></div>
+      <div id="cc-text-mount"></div>
+    `;
+    destroyCondPlayers();
+    videoSyncState = null;
+    revealCueState = null;
+    mountCondMedia(cur);
+    _lastRenderedCardId = cur.id;
+  } else {
+    // Solo actualizamos el título/categoría por si cambiaron desde el editor
+    const catRow = cont.querySelector('.cc-cat-row');
+    if(catRow) catRow.innerHTML = `<span class="cc-cat">${cat.icon} ${cat.name}</span><span class="cc-idx">${cur.title ? escapeHtml(cur.title) : ''}</span>`;
+  }
+  renderCondText(cur);
+  fbPushLive();
+}
+function renderCondText(cur){
+  const mount = document.getElementById('cc-text-mount');
+  if(!mount) return;
+  const hasDialogue = cur.dialogue && cur.dialogue.length;
+  const promptBlockHtml = hasDialogue
+    ? `<div class="cc-prompt ${revealed?'revealed':''}">${renderDialogueHtml(cur.dialogue, revealed, cur.ending)}</div>`
+    : (cur.prompt ? `<div class="cc-prompt ${revealed?'revealed':''}">${renderPromptWithGap(cur.prompt, revealed, cur.ending)}</div>` : '');
+  const hintsHtml = renderHints(cur);
+  const optionsHtml = renderOptions(cur, revealed);
+  mount.innerHTML = `
+    ${promptBlockHtml}
+    ${hintsHtml}
+    ${optionsHtml}
+    <div class="cc-answer">
+      <div class="cc-answer-status">
+        ${revealed ? '<span class="cca-badge on">👁 Visible para participantes</span>' : '<span class="cca-badge off">🙈 Oculto para participantes</span>'}
+      </div>
+      <div><span class="aq">✓ Quién lo dijo</span><div class="av">${escapeHtml(cur.who || '—')}</div></div>
+      ${cur.ending ? `<div style="margin-top:.4rem"><span class="aq">✓ Cómo termina</span><div class="av">${escapeHtml(cur.ending)}</div></div>` : ''}
+      ${(cur.revealUrl || cur.revealData) ? `<button class="cta-btn primary" style="margin-top:.6rem;justify-content:center" onclick="replayRevealCue()">${cur.revealType && cur.revealType.startsWith('video') ? '🎬' : '🔊'} Reproducir el clip otra vez</button>` : ''}
+    </div>
+  `;
+  document.getElementById('hint1-btn').textContent = hintsShown[1] ? '🔒 Ocultar pista 1' : '💡 Pista 1';
+  document.getElementById('hint1-btn').style.opacity = cur.hint1 ? '1' : '.4';
+  document.getElementById('hint2-btn').textContent = hintsShown[2] ? '🔒 Ocultar pista 2' : '💡 Pista 2';
+  document.getElementById('hint2-btn').style.opacity = cur.hint2 ? '1' : '.4';
+  document.getElementById('reveal-btn').textContent = revealed ? '🙈 Ocultar respuestas' : '👁 Revelar respuestas';
+  const markBtn = document.getElementById('mark-played-btn');
+  if(markBtn) markBtn.textContent = cur.played ? '↺ Marcar sin jugar' : '✓ Marcar como jugada';
+}
+function renderPromptWithGap(prompt, isRevealed, ending){
+  const p = prompt || '';
+  if(isRevealed && ending){
+    // Soporta varios huecos "___": separá cada respuesta con "/" en "Cómo termina la frase"
+    // y se van completando en orden. Si hay más huecos que partes, el resto repite la última.
+    const parts = ending.split('/').map(s => s.trim()).filter(Boolean);
+    let i = 0;
+    return escapeHtml(p).replace(/___+/g, () => {
+      const val = parts.length ? (i < parts.length ? parts[i] : parts[parts.length - 1]) : ending;
+      i++;
+      return `<span class="gap">${escapeHtml(val)}</span>`;
+    });
+  }
+  return escapeHtml(p).replace(/___+/g, `<span class="gap">_____</span>`);
+}
+// ── DIÁLOGO POR PERSONAJES ──
+const DLG_PALETTE = [
+  { bg:'rgba(124,92,255,.22)', border:'rgba(124,92,255,.55)', name:'#b3a3ff' },
+  { bg:'rgba(245,200,66,.18)', border:'rgba(245,200,66,.5)',  name:'#f5c842' },
+  { bg:'rgba(74,201,150,.18)', border:'rgba(74,201,150,.5)',  name:'#4ac996' },
+  { bg:'rgba(255,120,120,.18)', border:'rgba(255,120,120,.5)', name:'#ff9a9a' },
+  { bg:'rgba(90,180,255,.18)', border:'rgba(90,180,255,.5)',  name:'#7fc2ff' }
+];
+function dialogueSpeakerMeta(dialogue){
+  const order = [];
+  dialogue.forEach(d => { const w = (d.who||'').trim(); if(w && !order.includes(w)) order.push(w); });
+  const map = {};
+  order.forEach((name, i) => { map[name] = { side: i % 2 === 0 ? 'side-a' : 'side-b', color: DLG_PALETTE[i % DLG_PALETTE.length] }; });
+  return map;
+}
+function renderDialogueHtml(dialogue, isRevealed, ending){
+  if(!dialogue || !dialogue.length) return '';
+  const meta = dialogueSpeakerMeta(dialogue);
+  // Unimos todas las líneas con un separador invisible para que los huecos "___" se completen
+  // en orden a lo largo de TODO el diálogo (respeta el mismo sistema de "Cómo termina" con "/").
+  const SEP = '\u0000DLGLINE\u0000';
+  const combined = dialogue.map(d => d.text || '').join(SEP);
+  const combinedHtml = renderPromptWithGap(combined, isRevealed, ending);
+  const partsHtml = combinedHtml.split(SEP);
+  const rows = dialogue.map((d, i) => {
+    const who = (d.who||'').trim();
+    const m = meta[who] || { side:'side-a', color: DLG_PALETTE[0] };
+    return `<div class="dlg-row ${m.side}">
+      ${who ? `<div class="dlg-name" style="color:${m.color.name}">${escapeHtml(who)}</div>` : ''}
+      <div class="dlg-bubble" style="background:${m.color.bg};border:1.5px solid ${m.color.border};color:#fff">${partsHtml[i] || ''}</div>
+    </div>`;
+  }).join('');
+  return `<div class="dlg-wrap">${rows}</div>`;
+}
+function renderHints(cur){
+  const items = [];
+  if(cur.hint1){
+    items.push(`<div class="cc-hint ${hintsShown[1]?'revealed':''}"><span class="cc-hint-tag">Pista 1</span><span>${hintsShown[1]?escapeHtml(cur.hint1):'— toca "💡 Pista 1" para revelar —'}</span></div>`);
+  }
+  if(cur.hint2){
+    items.push(`<div class="cc-hint ${hintsShown[2]?'revealed':''}"><span class="cc-hint-tag">Pista 2</span><span>${hintsShown[2]?escapeHtml(cur.hint2):'— toca "💡 Pista 2" para revelar —'}</span></div>`);
+  }
+  return items.length ? `<div class="cc-hints">${items.join('')}</div>` : '';
+}
+// ── OPCIONES MÚLTIPLES (texto y/o imagen) ──
+// Formato viejo: options = ["Willy Wonka", "Shrek", …]  (array de strings)
+// Formato nuevo: options = [{text:"Willy Wonka", img:"https://…"}, …]
+// normOptions() unifica ambos para que los mazos viejos sigan funcionando.
+function normOptions(c){
+  if(!c || !c.options || !c.options.length) return [];
+  return c.options.map(o => (typeof o === 'string')
+    ? { text: o, img: '' }
+    : { text: (o && o.text) || '', img: (o && o.img) || '' });
+}
+function optIsCorrect(optText, correctText){
+  return String(optText||'').trim().toLowerCase() === String(correctText||'').trim().toLowerCase();
+}
+function renderOptions(cur, isRevealed){
+  const opts = normOptions(cur);
+  if(!opts.length || !cur.optionsFor) return '';
+  const correctText = (cur.optionsFor === 'who' ? cur.who : cur.ending) || '';
+  const imgOnly = !!cur.optionsImgOnly;
+  return `<div class="cc-options">${opts.map((o, i) => {
+    const isCorrect = isRevealed && optIsCorrect(o.text, correctText);
+    if(o.img){
+      const lbl = imgOnly ? `${i+1}` : escapeHtml(o.text);
+      return `<div class="cc-opt has-img ${isCorrect?'correct':''}">
+        <img class="oi-img" src="${escapeHtml(o.img)}" alt="" loading="lazy">
+        <div class="oi-lbl">${lbl}</div>
+        ${isCorrect ? '<div class="oi-tick">✓</div>' : ''}
+      </div>`;
+    }
+    return `<div class="cc-opt ${isCorrect?'correct':''}">${escapeHtml(o.text)}</div>`;
+  }).join('')}</div>`;
+}
+
+// ── NAV / DECK ──
+function navigate(delta){
+  const n = cardIdx + delta;
+  if(n < 0 || n >= deck.length) return;
+  cardIdx = n; revealed = false; hintsShown = {1:false,2:false}; closeAssign(); _winnerName = null;
+  fbLockBuzzer();
+  saveIdx(); renderCard();
+}
+function jumpTo(){
+  const v = parseInt(document.getElementById('jump-in').value);
+  if(!v || v < 1 || v > deck.length) return;
+  cardIdx = v - 1; revealed = false; hintsShown = {1:false,2:false}; closeAssign(); _winnerName = null;
+  fbLockBuzzer();
+  saveIdx(); renderCard();
+  document.getElementById('jump-in').value = '';
+}
+function randomCard(){
+  if(!deck.length) return;
+  const unplayedIdx = deck.map((c,i)=>i).filter(i => !deck[i].played);
+  let pool = unplayedIdx.length ? unplayedIdx : deck.map((_,i)=>i);
+  if(!unplayedIdx.length) toast('🎉 Ya se jugaron todas — barajando de nuevo el mazo completo');
+  cardIdx = pool[Math.floor(Math.random() * pool.length)];
+  revealed = false; hintsShown = {1:false,2:false}; closeAssign(); _winnerName = null;
+  fbLockBuzzer();
+  saveIdx(); renderCard();
+}
+function toggleCurrentPlayed(){
+  const cur = currentCard();
+  if(!cur) return;
+  cur.played = !cur.played;
+  saveDeckLocal(); fbPushDeck();
+  renderCondText(cur);
+  renderEditorList();
+  toast(cur.played ? '✅ Marcada como jugada' : '🔲 Marcada como sin jugar');
+}
+function shuffleDeck(){
+  if(!deck.length) return;
+  if(!confirm('¿Barajar todo el mazo?\n(Se pierde el orden actual pero no las cartas ni los puntajes.)')) return;
+  deck = shuffleArr(deck);
+  cardIdx = 0; revealed = false; hintsShown = {1:false,2:false};
+  saveDeckLocal(); saveIdx(); fbPushDeck(); renderCard();
+  toast('🔀 Mazo barajado');
+}
+
+// ── HINTS / REVEAL ──
+function toggleHint(n){
+  const cur = currentCard();
+  if(!cur) return;
+  const key = 'hint' + n;
+  if(!cur[key]){ toast('No hay pista ' + n + ' cargada'); return; }
+  hintsShown[n] = !hintsShown[n];
+  renderCard();
+}
+function toggleReveal(){
+  const wasRevealed = revealed;
+  revealed = !revealed;
+  // Al revelar (no al ocultar) disparamos el clip de revelación, si la carta tiene uno cargado
+  if(revealed && !wasRevealed){
+    const cur = currentCard();
+    if(cur && cur.revealType && cur.revealType !== 'none'){
+      const src = cur.revealUrl || cur.revealData;
+      if(src) revealCueState = { src, kind: cur.revealType.startsWith('video') ? 'video' : 'audio', ts: Date.now() };
+    }
+  }
+  renderCard();
+}
+function replayRevealCue(){
+  const cur = currentCard();
+  if(!cur){ return; }
+  const src = cur.revealUrl || cur.revealData;
+  if(!src){ toast('Esta carta no tiene clip de revelación cargado'); return; }
+  revealCueState = { src, kind: cur.revealType && cur.revealType.startsWith('video') ? 'video' : 'audio', ts: Date.now() };
+  fbPushLive();
+  toast('▶️ Reproduciendo en pantalla de participantes');
+}
+
+// ── ASSIGN POINTS ──
+function openAssign(keepWinner){
+  const cur = currentCard();
+  if(!cur){ toast('No hay carta cargada'); return; }
+  assignKeepWinner = !!keepWinner;
+  document.getElementById('assign-panel').style.display = 'flex';
+  showAssignAmountStep();
+  document.getElementById('assign-panel').scrollIntoView({behavior:'smooth', block:'end'});
+}
+function showAssignAmountStep(){
+  assignAmount = null;
+  document.getElementById('assign-title').textContent = '¿Cuánto acertó?';
+  document.getElementById('assign-sub').textContent = 'Elegí si acertó todo o solo una parte de la frase';
+  document.getElementById('assign-players').innerHTML = '';
+  const wrap = document.getElementById('assign-amount-choices');
+  wrap.style.display = 'flex';
+  wrap.innerHTML = `
+    <button class="act-btn green" onclick="chooseAssignAmount(1)">✅ Acertó todo — 1 pt</button>
+    <button class="act-btn gold" onclick="chooseAssignAmount(0.5)">➗ Acertó una parte — 0.5 pt</button>
+  `;
+}
+function chooseAssignAmount(amount){
+  assignAmount = amount;
+  document.getElementById('assign-amount-choices').style.display = 'none';
+  document.getElementById('assign-title').textContent = `Asignar ${amount === 1 ? '1 pt' : '0.5 pt'}`;
+  const winnerTeam = (assignKeepWinner && typeof _winnerTeamIdx === 'number') ? teams.find(t => t.index === _winnerTeamIdx) : null;
+  const winnerHint = (assignKeepWinner && _winnerName) ? ` · <b style="color:var(--gold)">🏆 ${escapeHtml(_winnerName)} buzzeó primero${winnerTeam ? ' (' + escapeHtml(winnerTeam.label) + ')' : ''}</b>` : '';
+  document.getElementById('assign-sub').innerHTML = 'Tocá el equipo que acertó' + winnerHint;
+  const wrap = document.getElementById('assign-players');
+  wrap.innerHTML = teams.map(t => {
+    const isWinner = assignKeepWinner && typeof _winnerTeamIdx === 'number' && t.index === _winnerTeamIdx;
+    return `<button class="assign-player ${isWinner?'winner':''}" onclick="doAssign(${t.index})">${isWinner?'🏆 ':''}${escapeHtml(t.label)}</button>`;
+  }).join('');
+}
+function closeAssign(){
+  document.getElementById('assign-panel').style.display = 'none';
+  document.getElementById('assign-amount-choices').style.display = 'none';
+  assignAmount = null;
+  assignKeepWinner = false;
+}
+function doAssign(teamIdx){
+  if(!assignAmount) return;
+  const t = teams.find(x => x.index === teamIdx);
+  if(!t) return;
+  teamScores[teamIdx] = (teamScores[teamIdx]||0) + assignAmount;
+  teamScoresRecent[teamIdx] = Date.now();
+  saveTeamScores();
+  renderScores();
+  // Si alguien acertó, damos por hecho que la carta se jugó
+  const cur = currentCard();
+  if(cur && !cur.played){ cur.played = true; saveDeckLocal(); fbPushDeck(); renderEditorList();
+    const markBtn = document.getElementById('mark-played-btn'); if(markBtn) markBtn.textContent = '↺ Marcar sin jugar'; }
+  fbPushLive();
+  toast(`+${assignAmount} para ${t.label}`);
+  closeAssign();
+  setTimeout(renderScores, 2600); // limpia el "+1" pin
+  // Después de asignar, bloqueamos el buzzer para la próxima ronda
+  _winnerName = null;
+  _winnerTeamIdx = null;
+  fbLockBuzzer();
+  checkWinCondition();
+}
+
+// ── FIN DE RONDA (10 pts, mazo agotado, o manual) ──
+function checkWinCondition(){
+  if(roundResult) return; // ya está cerrada
+  const reached = teams.find(t => (teamScores[t.index]||0) >= WIN_TARGET);
+  if(reached){
+    toast(`🏆 ${reached.label} llegó a ${WIN_TARGET} puntos — ¿Finalizar la ronda?`);
+  } else if(deck.length && deck.every(c => c.played)){
+    toast('🏁 Se jugaron todas las cartas — ¿Finalizar la ronda?');
+  }
+}
+function finalizeRound(){
+  if(!teams.length){ toast('No hay equipos cargados todavía'); return; }
+  const standings = teams.map(t => ({ teamIndex: t.index, label: t.label, score: teamScores[t.index]||0 }))
+    .sort((a,b) => b.score - a.score);
+  const fase2Pts = [3,2,1];
+  // FIX (empates): antes el puesto salía del orden del array, así que dos equipos
+  // con el mismo puntaje podían llevarse +1 y +0. Ahora los empatados comparten
+  // puesto y se reparten en partes iguales los puntos de los lugares que ocupan.
+  let i = 0;
+  while(i < standings.length){
+    let j = i;
+    while(j + 1 < standings.length && standings[j+1].score === standings[i].score) j++;
+    const tied = j - i + 1;                       // cuántos empatan en este puesto
+    let pool = 0;
+    for(let k = i; k <= j; k++) pool += (k < 3 ? fase2Pts[k] : 0);
+    const share = pool / tied;
+    for(let k = i; k <= j; k++){
+      standings[k].fase2Points = Math.round(share * 2) / 2;  // medios puntos
+      standings[k].rank = i + 1;                             // puesto compartido
+    }
+    i = j + 1;
+  }
+  const preview = standings.map(s => `${s.rank}°. ${s.label} — ${s.score}pt${s.score===1?'':'s'} → +${s.fase2Points} en el ranking`).join('\n');
+  if(!confirm(`¿Cerrar la ronda con este resultado?\n\n${preview}`)) return;
+  roundResult = { standings, finishedAt: Date.now() };
+  if(fbResultRef) fbResultRef.set(roundResult);
+  toast('🏁 Ronda finalizada — puntos aplicados al ranking de Fase 2');
+  renderRoundStatus();
+}
+function reopenRound(){
+  if(!roundResult){ toast('La ronda no está finalizada'); return; }
+  if(!confirm('¿Reabrir la ronda?\nEsto borra el resultado ya aplicado al ranking de Fase 2 (los puntos del mazo/buzzer no se tocan, podés seguir jugando).')) return;
+  roundResult = null;
+  if(fbResultRef) fbResultRef.remove();
+  toast('↺ Ronda reabierta');
+  renderRoundStatus();
+}
+function renderRoundStatus(){
+  let el = document.getElementById('round-result-banner');
+  if(!el){
+    el = document.createElement('div');
+    el.id = 'round-result-banner';
+    el.className = 'buzzer-banner';
+    const body = document.querySelector('.cond-body');
+    if(body) body.insertBefore(el, body.firstChild);
+  }
+  if(roundResult && Array.isArray(roundResult.standings) && roundResult.standings.length){
+    const top = roundResult.standings[0];
+    el.innerHTML = `<div class="bb-icon">🏁</div><div class="bb-body"><div class="bb-lbl">Ronda finalizada</div><div class="bb-name">1° ${escapeHtml(top.label)} (+${top.fase2Points} en el ranking)</div></div><button class="bb-reset" onclick="reopenRound()">Reabrir</button>`;
+    el.className = 'buzzer-banner won';
+    el.style.display = 'flex';
+  } else {
+    el.style.display = 'none';
+  }
+}
+
+// ── PARTICIPANT VIEW ──
+let _lastLiveKey = null;
+function liveStateSnapshot(){
+  const cur = currentCard();
+  return {
+    cardIdx, revealed, hintsShown,
+    teamScores,
+    videoSync: videoSyncState,
+    revealCue: revealCueState,
+    card: cur ? {
+      id: cur.id, category: cur.category, prompt: cur.prompt || '',
+      dialogue: cur.dialogue || null,
+      mediaType: cur.mediaType || 'none',
+      // No enviamos mediaData (base64) por Firebase — solo URLs
+      mediaUrl: (cur.mediaData && String(cur.mediaData).startsWith('data:')) ? null : (cur.mediaUrl || cur.mediaData || ''),
+      mediaIsLocal: !!(cur.mediaData && String(cur.mediaData).startsWith('data:')),
+      who: cur.who || '', ending: cur.ending || '',
+      hint1: cur.hint1 || '', hint2: cur.hint2 || '',
+      // Mandamos texto + imagen, pero sin base64 (esas viajan con el mazo, no cada 500ms)
+      options: normOptions(cur).map(o => ({
+        text: o.text,
+        img: (o.img && String(o.img).startsWith('data:')) ? '' : (o.img || '')
+      })),
+      optionsFor: cur.optionsFor || null,
+      optionsImgOnly: !!cur.optionsImgOnly,
+      title: cur.title || ''
+    } : null,
+    t: Date.now()
+  };
+}
+let _lastLiveState = null;
+function applyLive(st){
+  if(!st) return;
+  _lastLiveState = st;
+  if(st.teamScores) teamScores = st.teamScores;
+  renderPartScores();
+  renderPartCard(st);
+  if(st.revealCue && st.revealCue.ts && st.revealCue.ts !== _lastRevealCueTs){
+    _lastRevealCueTs = st.revealCue.ts;
+    playRevealCue(st.revealCue);
+  }
+}
+let _lastPartCardId = null;
+let partYtPlayer = null;
+let partVideoEl = null;
+let _lastVideoSyncTs = 0;
+let _pendingVideoSync = null;
+let _partAudioUnlocked = false;
+let _partMediaPending = false; // true si la carta usa un archivo subido que todavía no llegó con el mazo
+let _lastRevealCueTs = 0;
+let _revealAudioEl = null;
+
+function playRevealCue(cue){
+  if(!cue || !cue.src) return;
+  const overlay = document.getElementById('reveal-cue-overlay');
+  const videoEl = document.getElementById('reveal-cue-video');
+  const audioVis = document.getElementById('reveal-cue-audio-vis');
+  if(!overlay || !videoEl || !audioVis) return;
+  overlay.classList.add('show');
+  if(cue.kind === 'video'){
+    audioVis.classList.remove('show');
+    videoEl.style.display = 'block';
+    videoEl.src = cue.src;
+    videoEl.currentTime = 0;
+    videoEl.onended = () => overlay.classList.remove('show');
+    const pr = videoEl.play();
+    if(pr && pr.catch) pr.catch(() => maybeShowAudioUnlock());
+  } else {
+    videoEl.style.display = 'none';
+    audioVis.classList.add('show');
+    if(!_revealAudioEl) _revealAudioEl = new Audio();
+    _revealAudioEl.src = cue.src;
+    _revealAudioEl.currentTime = 0;
+    _revealAudioEl.onended = () => overlay.classList.remove('show');
+    const pr = _revealAudioEl.play();
+    if(pr && pr.catch) pr.catch(() => maybeShowAudioUnlock());
+  }
+}
+function closeRevealCue(){
+  const overlay = document.getElementById('reveal-cue-overlay');
+  if(overlay) overlay.classList.remove('show');
+  try{ document.getElementById('reveal-cue-video').pause(); }catch(e){}
+  try{ if(_revealAudioEl) _revealAudioEl.pause(); }catch(e){}
+}
+
+function destroyPartPlayers(){
+  if(partYtPlayer){ try{ partYtPlayer.destroy(); }catch(e){} partYtPlayer = null; }
+  partVideoEl = null;
+}
+// Los archivos subidos (base64) no viajan en el estado en vivo por peso — llegan con el mazo.
+// Acá buscamos la carta completa en el mazo local del participante para recuperarlos.
+function partMediaSrc(c){
+  if(c.mediaUrl) return c.mediaUrl;
+  if(!c.mediaIsLocal) return '';
+  const full = Array.isArray(deck) ? deck.find(x => x && x.id === c.id) : null;
+  return (full && full.mediaData) || '';
+}
+function mountPartMedia(c){
+  const mount = document.getElementById('part-media-mount');
+  if(!mount) return;
+  if(!c.mediaType || c.mediaType === 'none'){ mount.innerHTML = ''; return; }
+  const src = partMediaSrc(c);
+  const isAudio = c.mediaType === 'audio-url' || c.mediaType === 'audio-upload';
+  if(!src){
+    _partMediaPending = !!c.mediaIsLocal;
+    mount.innerHTML = `<div class="part-media" style="min-height:80px;color:var(--muted);font-size:12px;padding:1rem">${c.mediaIsLocal ? '📁 Sincronizando el archivo…' : ''}</div>`;
+    return;
+  }
+  _partMediaPending = false;
+  if(isAudio){
+    // Solo audio: no hay nada que mirar, mostramos un ecualizador y el audio va oculto
+    mount.innerHTML = `<div class="part-audio" id="part-audio-box">
+      <div class="part-audio-icon">🔊</div>
+      <div class="part-audio-eq"><span></span><span></span><span></span><span></span><span></span></div>
+      <div class="part-audio-txt">Escuchá con atención</div>
+      <audio id="part-video-el" src="${escapeHtml(src)}" playsinline preload="auto"></audio>
+    </div>`;
+    partVideoEl = document.getElementById('part-video-el');
+    const box = document.getElementById('part-audio-box');
+    partVideoEl.addEventListener('play',  () => box && box.classList.add('playing'));
+    partVideoEl.addEventListener('pause', () => box && box.classList.remove('playing'));
+    partVideoEl.addEventListener('ended', () => box && box.classList.remove('playing'));
+    if(_pendingVideoSync){ applyVideoSync(_pendingVideoSync, c); _pendingVideoSync = null; }
+    return;
+  }
+  if(c.mediaType === 'youtube'){
+    const id = youtubeId(src);
+    if(!id) return;
+    mount.innerHTML = '<div class="part-media"><div id="part-yt-el" style="width:100%;aspect-ratio:16/9"></div></div>';
+    onYtApiReady(() => {
+      if(!document.getElementById('part-yt-el')) return;
+      partYtPlayer = new YT.Player('part-yt-el', {
+        videoId: id, width:'100%', height:'100%',
+        playerVars: { autoplay:0, controls:0, modestbranding:1, rel:0, fs:0, disablekb:1 },
+        events: { onReady: () => { if(_pendingVideoSync){ applyVideoSync(_pendingVideoSync, c); _pendingVideoSync = null; } } }
+      });
+    });
+  } else if(c.mediaType === 'video-url'){
+    mount.innerHTML = `<div class="part-media"><video id="part-video-el" src="${escapeHtml(src)}" playsinline preload="metadata"></video></div>`;
+    partVideoEl = document.getElementById('part-video-el');
+    if(_pendingVideoSync){ applyVideoSync(_pendingVideoSync, c); _pendingVideoSync = null; }
+  } else {
+    mount.innerHTML = `<div class="part-media"><img src="${escapeHtml(src)}" alt=""></div>`;
+  }
+}
+function applyVideoSync(sync, c){
+  if(c.mediaType === 'youtube'){
+    if(!partYtPlayer){ _pendingVideoSync = sync; return; }
+    const targetT = sync.playing ? sync.t + (Date.now() - sync.ts) / 1000 : sync.t;
+    try{
+      partYtPlayer.seekTo(targetT, true);
+      if(sync.playing){ partYtPlayer.playVideo(); maybeShowAudioUnlock(); }
+      else partYtPlayer.pauseVideo();
+    }catch(e){ _pendingVideoSync = sync; }
+  } else if(c.mediaType === 'video-url' || c.mediaType === 'audio-url' || c.mediaType === 'audio-upload'){
+    if(!partVideoEl){ _pendingVideoSync = sync; return; }
+    const targetT = sync.playing ? sync.t + (Date.now() - sync.ts) / 1000 : sync.t;
+    const setNow = () => { try{ partVideoEl.currentTime = targetT; }catch(e){} };
+    if(partVideoEl.readyState >= 1) setNow();
+    else partVideoEl.addEventListener('loadedmetadata', setNow, { once:true });
+    if(sync.playing){
+      const pr = partVideoEl.play();
+      if(pr && pr.catch) pr.catch(() => maybeShowAudioUnlock());
+    } else {
+      partVideoEl.pause();
+    }
+  }
+}
+function maybeShowAudioUnlock(){
+  if(_partAudioUnlocked) return;
+  const el = document.getElementById('audio-unlock');
+  if(el) el.style.display = 'flex';
+}
+function unlockPartAudio(){
+  _partAudioUnlocked = true;
+  const el = document.getElementById('audio-unlock');
+  if(el) el.style.display = 'none';
+  try{ if(partYtPlayer) partYtPlayer.playVideo(); }catch(e){}
+  try{ if(partVideoEl) partVideoEl.play().catch(()=>{}); }catch(e){}
+  try{ const v = document.getElementById('reveal-cue-video'); if(v && v.src) v.play().catch(()=>{}); }catch(e){}
+  try{ if(_revealAudioEl) _revealAudioEl.play().catch(()=>{}); }catch(e){}
+}
+function renderPartCard(st){
+  const cont = document.getElementById('part-main');
+  if(!cont) return;
+  if(!st || !st.card){
+    cont.innerHTML = `<div class="part-idle"><div class="part-idle-icon">🎤</div><div class="part-idle-text">Esperando al conductor…</div></div>`;
+    _lastPartCardId = null;
+    destroyPartPlayers();
+    return;
+  }
+  const c = st.card;
+  const cat = CAT_BY_ID[c.category] || CATEGORIES[0];
+  const isNewCard = _lastPartCardId !== c.id;
+  if(isNewCard){
+    cont.innerHTML = `
+      <div class="part-card">
+        <div class="part-cat">${cat.icon} ${cat.name}</div>
+        <div id="part-media-mount"></div>
+        <div id="part-text-mount"></div>
+      </div>
+    `;
+    destroyPartPlayers();
+    _lastVideoSyncTs = 0;
+    _lastRevealCueTs = 0;
+    closeRevealCue();
+    mountPartMedia(c);
+    _lastPartCardId = c.id;
+  }
+  renderPartText(c, st);
+  if(st.videoSync && st.videoSync.ts && st.videoSync.ts !== _lastVideoSyncTs){
+    _lastVideoSyncTs = st.videoSync.ts;
+    applyVideoSync(st.videoSync, c);
+  }
+}
+function renderPartText(c, st){
+  const mount = document.getElementById('part-text-mount');
+  if(!mount) return;
+  const hasDialogue = c.dialogue && c.dialogue.length;
+  const promptBlockHtml = hasDialogue
+    ? `<div class="part-prompt part-dlg ${st.revealed?'revealed':''}">${renderDialogueHtml(c.dialogue, !!st.revealed, c.ending)}</div>`
+    : (c.prompt ? `<div class="part-prompt ${st.revealed?'revealed':''}">${renderPromptWithGap(c.prompt, !!st.revealed, c.ending)}</div>` : '');
+  const optionsHtml = renderPartOptions(c, !!st.revealed);
+  const hints = [];
+  if(st.hintsShown && st.hintsShown[1] && c.hint1) hints.push(`<div class="part-hint"><div class="part-hint-tag">💡 Pista 1</div>${escapeHtml(c.hint1)}</div>`);
+  if(st.hintsShown && st.hintsShown[2] && c.hint2) hints.push(`<div class="part-hint"><div class="part-hint-tag">💡 Pista 2</div>${escapeHtml(c.hint2)}</div>`);
+  const answerHtml = st.revealed ? `
+    <div class="part-answer">
+      <div><span class="aq">✓ Quién lo dijo</span><div class="av">${escapeHtml(c.who || '—')}</div></div>
+      ${c.ending ? `<div style="margin-top:.4rem"><span class="aq">✓ Cómo termina</span><div class="av">${escapeHtml(c.ending)}</div></div>` : ''}
+    </div>` : '';
+  mount.innerHTML = `
+    ${promptBlockHtml}
+    ${optionsHtml}
+    ${hints.join('')}
+    ${answerHtml}
+  `;
+}
+// Las imágenes subidas (base64) no viajan en el estado en vivo por peso — llegan con el mazo.
+// Acá completamos las que falten buscando la carta completa en el mazo local del participante.
+function partResolveOptions(c){
+  const opts = normOptions(c);
+  if(!opts.length) return opts;
+  if(opts.some(o => o.img)) return opts;
+  const full = Array.isArray(deck) ? deck.find(x => x && x.id === c.id) : null;
+  if(!full) return opts;
+  const fo = normOptions(full);
+  if(!fo.some(o => o.img)) return opts;
+  return opts.map(o => {
+    const m = fo.find(f => optIsCorrect(f.text, o.text));
+    return { text: o.text, img: m ? m.img : '' };
+  });
+}
+function renderPartOptions(c, isRevealed){
+  const opts = partResolveOptions(c);
+  if(!opts.length || !c.optionsFor) return '';
+  const correctText = (c.optionsFor === 'who' ? c.who : c.ending) || '';
+  const imgOnly = !!c.optionsImgOnly;
+  return `<div class="part-opts">${opts.map((o, i) => {
+    const isCorrect = optIsCorrect(o.text, correctText);
+    const cls = isRevealed ? (isCorrect ? 'correct' : 'dimmed') : '';
+    if(o.img){
+      const lbl = imgOnly ? `Opción ${i+1}` : escapeHtml(o.text);
+      return `<div class="part-opt has-img ${cls}">
+        <img class="oi-img" src="${escapeHtml(o.img)}" alt="" loading="lazy">
+        <div class="oi-lbl">${lbl}</div>
+        <div class="oi-badge">${i+1}</div>
+        ${isRevealed && isCorrect ? '<div class="oi-tick">✓</div>' : ''}
+      </div>`;
+    }
+    return `<div class="part-opt ${isRevealed && isCorrect ? 'correct' : ''}">${escapeHtml(o.text)}</div>`;
+  }).join('')}</div>`;
+}
+
+// ── EDITOR ──
+function openEditor(){
+  document.getElementById('ed-overlay').classList.add('open');
+  edSwitch('list');
+}
+function closeEditor(){ document.getElementById('ed-overlay').classList.remove('open'); }
+function edSwitch(which){
+  document.getElementById('tab-list').classList.toggle('on', which==='list');
+  document.getElementById('tab-new').classList.toggle('on', which==='new');
+  document.getElementById('ed-body-list').style.display = which==='list' ? '' : 'none';
+  document.getElementById('ed-body-form').style.display = which==='new' ? 'flex' : 'none';
+  if(which === 'list'){ _editCardId = null; renderEditorList(); }
+  if(which === 'new' && !_editCardId){ clearEditorForm(); }
+}
+function renderEditorList(){
+  // filter bar
+  const filterWrap = document.getElementById('ed-filters');
+  const counts = { all: deck.length, unplayed: deck.filter(c=>!c.played).length, played: deck.filter(c=>c.played).length };
+  deck.forEach(c => { counts[c.category] = (counts[c.category]||0)+1; });
+  filterWrap.innerHTML =
+    `<button class="ed-filter ${_edFilter==='all'?'on':''}" onclick="edSetFilter('all')">Todas (${counts.all})</button>` +
+    `<button class="ed-filter ${_edFilter==='unplayed'?'on':''}" onclick="edSetFilter('unplayed')">🔲 Sin jugar (${counts.unplayed})</button>` +
+    `<button class="ed-filter ${_edFilter==='played'?'on':''}" onclick="edSetFilter('played')">✅ Jugadas (${counts.played})</button>` +
+    CATEGORIES.map(c => `<button class="ed-filter ${_edFilter===c.id?'on':''}" onclick="edSetFilter('${c.id}')">${c.icon} ${c.name} (${counts[c.id]||0})</button>`).join('');
+
+  const list = document.getElementById('ed-list');
+  let filtered = _edFilter==='all' ? deck
+    : _edFilter==='unplayed' ? deck.filter(c=>!c.played)
+    : _edFilter==='played' ? deck.filter(c=>c.played)
+    : deck.filter(c => c.category === _edFilter);
+
+  if(_edSearch){
+    filtered = filtered.filter(c => {
+      const hay = [c.title, c.prompt, c.who, c.ending].filter(Boolean).join(' ').toLowerCase();
+      return hay.includes(_edSearch);
+    });
+  }
+
+  if(!filtered.length){
+    list.innerHTML = `<div class="ed-empty">${_edSearch ? 'Sin resultados para tu búsqueda.' : 'Sin cartas acá. Tocá <b>➕ Nueva</b> para agregar.'}</div>`;
+    return;
+  }
+  list.innerHTML = filtered.map(c => {
+    const cat = CAT_BY_ID[c.category] || CATEGORIES[0];
+    const label = c.title || (c.prompt ? c.prompt.slice(0, 60) : (c.who || '(sin título)'));
+    const sub = `${c.who || '—'} · ${c.mediaType && c.mediaType !== 'none' ? '📎 ' + c.mediaType : 'solo frase'}${c.revealType && c.revealType !== 'none' ? (c.revealType.startsWith('video') ? ' · 🎬 clip' : ' · 🔊 clip') : ''}`;
+    return `<div class="ed-item ${c.played?'played':''}">
+      <div class="ed-item-icon">${c.played ? '✅' : cat.icon}</div>
+      <div class="ed-item-body">
+        <div class="ed-item-title">${escapeHtml(label)}</div>
+        <div class="ed-item-sub">${escapeHtml(sub)}</div>
+      </div>
+      <div class="ed-item-actions">
+        <button class="ed-mini-btn ${c.played?'':'purple'}" onclick="edTogglePlayed(${c.id})" title="${c.played?'Marcar sin jugar':'Marcar como jugada'}">${c.played?'↺':'✓'}</button>
+        <button class="ed-mini-btn purple" onclick="edEdit(${c.id})">✏️</button>
+        <button class="ed-mini-btn danger" onclick="edDelete(${c.id})">🗑</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+function edSetFilter(f){ _edFilter = f; renderEditorList(); }
+function edSetSearch(v){ _edSearch = (v||'').trim().toLowerCase(); renderEditorList(); }
+function edTogglePlayed(id){
+  const c = deck.find(x => x.id === id);
+  if(!c) return;
+  c.played = !c.played;
+  saveDeckLocal(); fbPushDeck(); renderEditorList();
+  const cur = currentCard();
+  if(cur && cur.id === id) renderCondText(cur);
+}
+
+function populateCategoryOptions(){
+  const sel = document.getElementById('f-cat');
+  sel.innerHTML = CATEGORIES.map(c => `<option value="${c.id}">${c.icon} ${c.name}</option>`).join('');
+}
+function clearEditorForm(){
+  document.getElementById('ed-title').textContent = 'Nueva carta';
+  document.getElementById('f-cat').value = CATEGORIES[0].id;
+  document.getElementById('f-title').value = '';
+  document.getElementById('f-media').value = 'none';
+  document.getElementById('f-media-url').value = '';
+  document.getElementById('f-prompt').value = '';
+  document.querySelectorAll('input[name="f-prompt-mode"]').forEach(r => r.checked = r.value === 'simple');
+  edRenderDialogueList([]);
+  edPromptModeChanged();
+  document.getElementById('f-who').value = '';
+  document.getElementById('f-ending').value = '';
+  document.getElementById('f-hint1').value = '';
+  document.getElementById('f-hint2').value = '';
+  document.getElementById('f-reveal-type').value = 'none';
+  document.getElementById('f-reveal-url').value = '';
+  _edRevealFileData = null;
+  ['f-opt1','f-opt2','f-opt3','f-opt4'].forEach(id => document.getElementById(id).value = '');
+  _edOptImg = ['','','','',''];
+  [0,1,2,3,4].forEach(i => { const u = document.getElementById(`f-opt${i}-url`); if(u) u.value = ''; edRenderOptThumb(i); });
+  document.getElementById('f-opt-imgonly').checked = false;
+  document.querySelectorAll('input[name="f-opt-for"]').forEach(r => r.checked = r.value === 'none');
+  _edMediaFileData = null;
+  edMediaChanged(); edOptsChanged(); edRevealChanged();
+}
+// ── EDITOR: modo diálogo por personajes ──
+function edPromptModeChanged(){
+  const mode = document.querySelector('input[name="f-prompt-mode"]:checked').value;
+  document.getElementById('f-prompt-simple-row').style.display = mode === 'simple' ? '' : 'none';
+  document.getElementById('f-dialogue-row').style.display = mode === 'dialogue' ? '' : 'none';
+  if(mode === 'dialogue' && !document.querySelectorAll('#f-dialogue-list .dlg-edit-row').length){
+    edRenderDialogueList([{who:'',text:''},{who:'',text:''}]);
+  }
+}
+function edReadDialogueFromDom(){
+  return Array.from(document.querySelectorAll('#f-dialogue-list .dlg-edit-row')).map(row => ({
+    who: row.querySelector('.dlg-edit-who').value.trim(),
+    text: row.querySelector('.dlg-edit-text').value.trim()
+  }));
+}
+function edRenderDialogueList(lines){
+  const wrap = document.getElementById('f-dialogue-list');
+  wrap.innerHTML = lines.map((l, i) => `
+    <div class="dlg-edit-row">
+      <input class="form-in dlg-edit-who" placeholder="Personaje" value="${escapeHtml(l.who||'')}">
+      <textarea class="form-ta dlg-edit-text" placeholder="Lo que dice…">${escapeHtml(l.text||'')}</textarea>
+      <button type="button" class="cta-btn danger dlg-edit-del" data-i="${i}">🗑</button>
+    </div>
+  `).join('');
+  wrap.querySelectorAll('.dlg-edit-del').forEach(btn => {
+    btn.onclick = () => {
+      const cur = edReadDialogueFromDom();
+      cur.splice(parseInt(btn.dataset.i), 1);
+      edRenderDialogueList(cur);
+    };
+  });
+}
+function edAddDialogueLine(){
+  const cur = edReadDialogueFromDom();
+  cur.push({who:'', text:''});
+  edRenderDialogueList(cur);
+}
+// Si el usuario cambia el tipo a mano y el archivo cargado ya no sirve (audio↔imagen), lo descartamos
+function edMediaTypeSwitched(){
+  const v = document.getElementById('f-media').value;
+  if(v !== 'image-upload' && v !== 'audio-upload') _edMediaFileData = null;
+  else if(_edMediaFileData){
+    const isAudioData = String(_edMediaFileData).startsWith('data:audio');
+    if((v === 'audio-upload') !== isAudioData) _edMediaFileData = null;
+  }
+  edMediaChanged();
+}
+function edMediaChanged(){
+  const v = document.getElementById('f-media').value;
+  const row = document.getElementById('f-media-row');
+  const lbl = document.getElementById('f-media-lbl');
+  const url = document.getElementById('f-media-url');
+  const file = document.getElementById('f-media-file');
+  const help = document.getElementById('f-media-help');
+  const prev = document.getElementById('f-media-preview');
+  prev.style.display = 'none'; prev.innerHTML = '';
+  if(v === 'none'){ row.style.display = 'none'; return; }
+  row.style.display = 'flex';
+  url.style.display = ''; file.style.display = 'none';
+  if(v === 'image'){ lbl.textContent = '🖼 URL de imagen'; url.placeholder = 'https://…/imagen.jpg'; help.textContent = 'Cualquier URL pública de imagen (jpg, png, webp).'; }
+  else if(v === 'image-upload'){
+    lbl.textContent = '🖼 Subir imagen del dispositivo';
+    url.style.display = 'none'; file.style.display = ''; file.accept = 'image/*';
+    help.innerHTML = 'La imagen se comprime automáticamente (ancho máx. 900px, JPEG) antes de guardarse en el mazo. No se muestra a los participantes en otros dispositivos (por peso) — para eso usá la opción de URL pública.';
+    if(_edMediaFileData){ prev.style.display = 'flex'; prev.innerHTML = `<img src="${_edMediaFileData}" alt="">`; }
+  }
+  else if(v === 'video-url'){ lbl.textContent = '🎥 URL directa de video (.mp4 / .webm)'; url.placeholder = 'https://…/video.mp4'; help.textContent = 'Debe ser una URL directa al archivo de video (mp4, webm). No sirve un link de YouTube — para eso usá la opción de YouTube.'; }
+  else if(v === 'youtube'){ lbl.textContent = '📹 YouTube (link o ID)'; url.placeholder = 'https://youtube.com/watch?v=… o solo el ID'; help.textContent = 'Pegá el link completo o el ID de 11 caracteres.'; }
+  else if(v === 'gif'){ lbl.textContent = '🎞 URL de GIF'; url.placeholder = 'https://…/imagen.gif'; help.textContent = 'URL pública del gif (por ejemplo de tenor.com o giphy).'; }
+  else if(v === 'audio-url'){
+    lbl.textContent = '🔊 URL de audio';
+    url.placeholder = 'https://…/audio.mp3';
+    help.textContent = 'Link directo a un archivo de audio (mp3, ogg, m4a, wav). La carta no muestra imagen: solo se escucha.';
+  }
+  else if(v === 'audio-upload'){
+    lbl.textContent = '🔊 Subir audio del dispositivo';
+    url.style.display = 'none'; file.style.display = ''; file.accept = 'audio/*';
+    help.innerHTML = 'Se guarda en el mazo y se sincroniza a los participantes. Usá clips cortos (2–15 segundos) para que no pese — máx 4MB.';
+    if(_edMediaFileData){ prev.style.display = 'flex'; prev.innerHTML = `<audio src="${_edMediaFileData}" controls style="width:100%"></audio>`; }
+  }
+  // preview live
+  if(!v.endsWith('-upload') && url.value.trim()){ edPreviewUrl(v, url.value.trim()); }
+  url.oninput = () => edPreviewUrl(v, url.value.trim());
+}
+function edPreviewUrl(mediaType, src){
+  const prev = document.getElementById('f-media-preview');
+  if(!src){ prev.style.display = 'none'; return; }
+  prev.style.display = 'flex';
+  if(mediaType === 'youtube'){
+    const id = youtubeId(src);
+    prev.innerHTML = id ? `<iframe src="https://www.youtube.com/embed/${id}" allowfullscreen></iframe>` : '<span>⚠️ ID inválido</span>';
+  } else if(mediaType === 'video-url'){
+    prev.innerHTML = `<video src="${escapeHtml(src)}" controls playsinline preload="metadata"></video>`;
+  } else if(mediaType === 'audio-url' || mediaType === 'audio-upload'){
+    prev.innerHTML = `<audio src="${escapeHtml(src)}" controls style="width:100%"></audio>`;
+  } else {
+    prev.innerHTML = `<img src="${escapeHtml(src)}" alt="">`;
+  }
+}
+function edFileChosen(e){
+  const f = e.target.files[0]; if(!f) return;
+  const mediaType = document.getElementById('f-media').value;
+  // ── Audio: no se comprime, se guarda tal cual (por eso pedimos clips cortos) ──
+  if(mediaType === 'audio-upload'){
+    if(!/^audio\//.test(f.type)){ toast('Elegí un archivo de audio'); return; }
+    if(f.size > 4*1024*1024){ toast('Audio muy pesado — máx 4MB para que sincronice bien'); return; }
+    const ra = new FileReader();
+    ra.onload = () => {
+      _edMediaFileData = ra.result;
+      const prevA = document.getElementById('f-media-preview');
+      prevA.style.display = 'flex';
+      prevA.innerHTML = `<audio src="${_edMediaFileData}" controls style="width:100%"></audio>`;
+      toast(`🔊 Audio cargado (~${Math.round(ra.result.length*0.75/1024)} KB)`);
+    };
+    ra.onerror = () => toast('Error al leer el archivo');
+    ra.readAsDataURL(f);
+    return;
+  }
+  if(!/^image\//.test(f.type)){ toast('Elegí un archivo de imagen'); return; }
+  if(f.size > 15*1024*1024){ toast('Imagen demasiado pesada (máx 15MB de archivo original)'); return; }
+  const prev = document.getElementById('f-media-preview');
+  prev.style.display = 'flex'; prev.innerHTML = '<span style="font-size:11px;color:var(--muted)">Comprimiendo imagen…</span>';
+  const r = new FileReader();
+  r.onload = () => {
+    const img = new Image();
+    img.onload = () => {
+      const MAX_W = 900;
+      const scale = Math.min(1, MAX_W / img.width);
+      const w = Math.max(1, Math.round(img.width * scale));
+      const h = Math.max(1, Math.round(img.height * scale));
+      const canvas = document.createElement('canvas');
+      canvas.width = w; canvas.height = h;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0, w, h);
+      const dataUrl = canvas.toDataURL('image/jpeg', 0.82);
+      _edMediaFileData = dataUrl;
+      const approxKb = Math.round(dataUrl.length * 0.75 / 1024);
+      prev.innerHTML = `<img src="${_edMediaFileData}" alt="">`;
+      toast(`🖼 Imagen comprimida (~${approxKb} KB)`);
+    };
+    img.onerror = () => { toast('No se pudo leer la imagen'); prev.style.display = 'none'; };
+    img.src = r.result;
+  };
+  r.onerror = () => { toast('Error al leer el archivo'); prev.style.display = 'none'; };
+  r.readAsDataURL(f);
+}
+
+// ── VOZ ORIGINAL (audio que suena en la pantalla de participantes al revelar) ──
+function showRevealPreview(type, src){
+  const prev = document.getElementById('f-reveal-preview');
+  prev.style.display = 'flex';
+  if(type.startsWith('video')) prev.innerHTML = `<video src="${escapeHtml(src)}" controls playsinline style="max-width:100%;max-height:180px"></video>`;
+  else prev.innerHTML = `<audio src="${escapeHtml(src)}" controls style="width:100%"></audio>`;
+}
+function edRevealChanged(){
+  const v = document.getElementById('f-reveal-type').value;
+  const row = document.getElementById('f-reveal-row');
+  const url = document.getElementById('f-reveal-url');
+  const file = document.getElementById('f-reveal-file');
+  const help = document.getElementById('f-reveal-help');
+  const prev = document.getElementById('f-reveal-preview');
+  prev.style.display = 'none'; prev.innerHTML = '';
+  if(v === 'none'){ row.style.display = 'none'; return; }
+  row.style.display = 'block';
+  const isUpload = v.endsWith('upload');
+  const isVideo = v.startsWith('video');
+  url.style.display = isUpload ? 'none' : '';
+  file.style.display = isUpload ? '' : 'none';
+  file.accept = isVideo ? 'video/*' : 'audio/*';
+  if(v === 'audio-url'){ help.textContent = 'Link directo a un archivo de audio (mp3, ogg, wav).'; url.placeholder = 'https://…/audio.mp3'; }
+  else if(v === 'video-url'){ help.textContent = 'Link directo a un archivo de video (mp4, webm) — no sirve un link de YouTube.'; url.placeholder = 'https://…/clip.mp4'; }
+  else if(v === 'audio-upload'){ help.innerHTML = 'Se guarda en el mazo y se sincroniza a los participantes. Usá clips cortos (2–10 segundos) para que no pese.'; if(_edRevealFileData) showRevealPreview(v, _edRevealFileData); }
+  else if(v === 'video-upload'){ help.innerHTML = 'Se guarda en el mazo y se sincroniza a los participantes. Un video pesa bastante más que un audio — usá clips de 2–8 segundos.'; if(_edRevealFileData) showRevealPreview(v, _edRevealFileData); }
+  if(!isUpload && url.value.trim()) showRevealPreview(v, url.value.trim());
+  url.oninput = () => { if(url.value.trim()) showRevealPreview(v, url.value.trim()); };
+}
+function edRevealFileChosen(e){
+  const f = e.target.files[0]; if(!f) return;
+  const type = document.getElementById('f-reveal-type').value;
+  const isVideo = type.startsWith('video');
+  if(isVideo && !/^video\//.test(f.type)){ toast('Elegí un archivo de video'); return; }
+  if(!isVideo && !/^audio\//.test(f.type)){ toast('Elegí un archivo de audio'); return; }
+  const maxSize = isVideo ? 8*1024*1024 : 4*1024*1024;
+  if(f.size > maxSize){ toast(`Archivo muy pesado — máx ${isVideo?'8':'4'}MB para que sincronice bien`); return; }
+  const r = new FileReader();
+  r.onload = () => {
+    _edRevealFileData = r.result;
+    showRevealPreview(type, _edRevealFileData);
+    toast(isVideo ? '🎬 Video cargado' : '🔊 Audio cargado');
+  };
+  r.onerror = () => toast('Error al leer el archivo');
+  r.readAsDataURL(f);
+}
+function edOptsChanged(){
+  const val = document.querySelector('input[name="f-opt-for"]:checked').value;
+  document.getElementById('f-opts-wrap').style.display = val === 'none' ? 'none' : '';
+  document.querySelectorAll('.opt-check').forEach(l => {
+    const inp = l.querySelector('input');
+    if(inp && inp.type === 'radio') l.classList.toggle('on', inp.checked);
+  });
+  edSyncCorrectPreview();
+}
+// ── EDITOR: imágenes de las opciones ──
+// _edOptImg[0] = imagen de la respuesta correcta; [1..4] = las opciones falsas.
+// Cada valor puede ser una URL pública o un dataURL (archivo subido y comprimido).
+let _edOptImg = ['','','','',''];
+let _edOptPickIdx = null;
+function edSyncCorrectPreview(){
+  const el = document.getElementById('f-opt0');
+  if(!el) return;
+  const forVal = document.querySelector('input[name="f-opt-for"]:checked').value;
+  const correct = forVal === 'ending'
+    ? document.getElementById('f-ending').value.trim()
+    : document.getElementById('f-who').value.trim();
+  el.value = correct || '';
+  el.placeholder = forVal === 'ending'
+    ? '— completá "Cómo termina la frase" —'
+    : '— completá "Quién lo dijo" —';
+}
+function edRenderOptThumb(i){
+  const t = document.getElementById(`f-opt${i}-thumb`);
+  if(!t) return;
+  const src = _edOptImg[i];
+  t.innerHTML = src ? `<img src="${escapeHtml(src)}" alt="">` : '🖼';
+}
+function edOptUrlInput(i){
+  const v = document.getElementById(`f-opt${i}-url`).value.trim();
+  _edOptImg[i] = v;
+  edRenderOptThumb(i);
+}
+function edOptPickFile(i){
+  _edOptPickIdx = i;
+  const f = document.getElementById('f-opt-file');
+  f.value = '';
+  f.click();
+}
+function edOptClearImg(i){
+  _edOptImg[i] = '';
+  const u = document.getElementById(`f-opt${i}-url`);
+  if(u) u.value = '';
+  edRenderOptThumb(i);
+}
+function edOptFileChosen(e){
+  const f = e.target.files[0];
+  const i = _edOptPickIdx;
+  if(!f || i === null) return;
+  if(!/^image\//.test(f.type)){ toast('Elegí un archivo de imagen'); return; }
+  const isGif = /gif$/i.test(f.type);
+  if(isGif && f.size > 2*1024*1024){ toast('GIF muy pesado — máx 2MB para que sincronice bien'); return; }
+  if(!isGif && f.size > 15*1024*1024){ toast('Imagen demasiado pesada (máx 15MB)'); return; }
+  const r = new FileReader();
+  r.onload = () => {
+    // Un GIF no se puede comprimir con canvas sin perder la animación: lo guardamos tal cual.
+    if(isGif){
+      _edOptImg[i] = r.result;
+      document.getElementById(`f-opt${i}-url`).value = '';
+      edRenderOptThumb(i);
+      toast(`🎞 GIF cargado (~${Math.round(r.result.length*0.75/1024)} KB)`);
+      return;
+    }
+    const img = new Image();
+    img.onload = () => {
+      const MAX = 480;
+      const scale = Math.min(1, MAX / Math.max(img.width, img.height));
+      const w = Math.max(1, Math.round(img.width * scale));
+      const h = Math.max(1, Math.round(img.height * scale));
+      const canvas = document.createElement('canvas');
+      canvas.width = w; canvas.height = h;
+      canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+      const dataUrl = canvas.toDataURL('image/jpeg', 0.78);
+      _edOptImg[i] = dataUrl;
+      document.getElementById(`f-opt${i}-url`).value = '';
+      edRenderOptThumb(i);
+      toast(`🖼 Imagen comprimida (~${Math.round(dataUrl.length*0.75/1024)} KB)`);
+    };
+    img.onerror = () => toast('No se pudo leer la imagen');
+    img.src = r.result;
+  };
+  r.onerror = () => toast('Error al leer el archivo');
+  r.readAsDataURL(f);
+}
+function edEdit(id){
+  const c = deck.find(x => x.id === id);
+  if(!c) return;
+  _editCardId = id;
+  edSwitch('new');
+  document.getElementById('ed-title').textContent = 'Editar carta';
+  document.getElementById('f-cat').value = c.category;
+  document.getElementById('f-title').value = c.title || '';
+  document.getElementById('f-media').value = c.mediaType || 'none';
+  _edMediaFileData = (c.mediaData && String(c.mediaData).startsWith('data:')) ? c.mediaData : null;
+  document.getElementById('f-media-url').value = _edMediaFileData ? '' : (c.mediaUrl || '');
+  document.getElementById('f-prompt').value = c.prompt || '';
+  const hasDlg = c.dialogue && c.dialogue.length;
+  document.querySelectorAll('input[name="f-prompt-mode"]').forEach(r => r.checked = r.value === (hasDlg ? 'dialogue' : 'simple'));
+  edRenderDialogueList(hasDlg ? c.dialogue : []);
+  edPromptModeChanged();
+  document.getElementById('f-who').value = c.who || '';
+  document.getElementById('f-ending').value = c.ending || '';
+  document.getElementById('f-hint1').value = c.hint1 || '';
+  document.getElementById('f-hint2').value = c.hint2 || '';
+  // Migración: la versión anterior solo tenía audio bajo voiceType/voiceUrl/voiceData
+  let revealType = c.revealType || 'none';
+  let revealUrl = c.revealUrl || '';
+  let revealData = c.revealData || null;
+  if(revealType === 'none' && c.voiceType && c.voiceType !== 'none'){
+    revealType = c.voiceType === 'upload' ? 'audio-upload' : 'audio-url';
+    revealUrl = c.voiceUrl || ''; revealData = c.voiceData || null;
+  }
+  document.getElementById('f-reveal-type').value = revealType;
+  _edRevealFileData = revealType.endsWith('upload') ? revealData : null;
+  document.getElementById('f-reveal-url').value = revealType.endsWith('url') ? revealUrl : '';
+  // Opciones: separamos la correcta (va en su propia fila) de las falsas
+  const allOpts = normOptions(c);
+  const correctText = (c.optionsFor === 'ending' ? c.ending : c.who) || '';
+  const correctOpt = allOpts.find(o => optIsCorrect(o.text, correctText));
+  const wrongOpts = allOpts.filter(o => o !== correctOpt);
+  _edOptImg = ['','','','',''];
+  _edOptImg[0] = correctOpt ? (correctOpt.img || '') : '';
+  ['f-opt1','f-opt2','f-opt3','f-opt4'].forEach((id, i) => {
+    document.getElementById(id).value = wrongOpts[i] ? wrongOpts[i].text : '';
+    _edOptImg[i+1] = wrongOpts[i] ? (wrongOpts[i].img || '') : '';
+  });
+  [0,1,2,3,4].forEach(i => {
+    const u = document.getElementById(`f-opt${i}-url`);
+    if(u) u.value = (_edOptImg[i] && !String(_edOptImg[i]).startsWith('data:')) ? _edOptImg[i] : '';
+    edRenderOptThumb(i);
+  });
+  document.getElementById('f-opt-imgonly').checked = !!c.optionsImgOnly;
+  document.querySelectorAll('input[name="f-opt-for"]').forEach(r => r.checked = r.value === (c.optionsFor || 'none'));
+  edMediaChanged(); edOptsChanged(); edRevealChanged();
+}
+function edDelete(id){
+  const c = deck.find(x => x.id === id); if(!c) return;
+  if(!confirm(`¿Borrar la carta "${c.title || c.prompt || '(sin título)'}"?`)) return;
+  deck = deck.filter(x => x.id !== id);
+  // ajustar cardIdx si es necesario
+  if(cardIdx >= deck.length) cardIdx = Math.max(0, deck.length - 1);
+  saveDeckLocal(); saveIdx(); fbPushDeck(); renderCard(); renderEditorList();
+  toast('🗑 Carta borrada');
+}
+function edCancel(){ _editCardId = null; edSwitch('list'); }
+function edSave(){
+  const cat = document.getElementById('f-cat').value;
+  const title = document.getElementById('f-title').value.trim();
+  const mediaType = document.getElementById('f-media').value;
+  const mediaUrl = document.getElementById('f-media-url').value.trim();
+  const promptMode = document.querySelector('input[name="f-prompt-mode"]:checked').value;
+  let prompt = document.getElementById('f-prompt').value.trim();
+  let dialogue = null;
+  if(promptMode === 'dialogue'){
+    const lines = edReadDialogueFromDom().filter(l => l.who || l.text);
+    if(lines.length){
+      dialogue = lines;
+      prompt = lines.map(l => l.who ? `${l.who}: ${l.text}` : l.text).join(' '); // texto plano de respaldo (listado/búsqueda)
+    }
+  }
+  const who = document.getElementById('f-who').value.trim();
+  const ending = document.getElementById('f-ending').value.trim();
+  const hint1 = document.getElementById('f-hint1').value.trim();
+  const hint2 = document.getElementById('f-hint2').value.trim();
+  const revealTypeVal = document.getElementById('f-reveal-type').value;
+  const revealUrlVal = document.getElementById('f-reveal-url').value.trim();
+  const optsForRaw = document.querySelector('input[name="f-opt-for"]:checked').value;
+  const optionsImgOnly = document.getElementById('f-opt-imgonly').checked;
+  let options = null, optionsFor = null;
+  if(optsForRaw !== 'none'){
+    optionsFor = optsForRaw;
+    const correct = (optionsFor === 'who' ? who : ending);
+    if(!correct){ toast('Completá primero el campo de respuesta (QUIÉN o FINAL) para las opciones'); return; }
+    const rows = ['f-opt1','f-opt2','f-opt3','f-opt4']
+      .map((id, i) => ({ text: document.getElementById(id).value.trim(), img: _edOptImg[i+1] || '' }))
+      .filter(r => r.text || r.img);
+    // La correcta puede estar tipeada en alguna fila: si es así le pegamos su imagen ahí
+    const idx = rows.findIndex(r => optIsCorrect(r.text, correct));
+    if(idx >= 0){
+      if(!rows[idx].img && _edOptImg[0]) rows[idx].img = _edOptImg[0];
+    } else {
+      rows.push({ text: correct, img: _edOptImg[0] || '' });
+    }
+    if(optionsImgOnly && rows.some(r => !r.img)){
+      toast('Para "solo imágenes" todas las opciones necesitan imagen'); return;
+    }
+    options = shuffleArr(rows);
+  }
+  if(!who && !prompt && !mediaUrl && !_edMediaFileData){
+    toast('Cargá al menos una frase, un "quién" o un archivo'); return;
+  }
+  const card = {
+    id: _editCardId || nextId(),
+    category: cat, title, mediaType, prompt, who, ending, hint1, hint2, options, optionsFor,
+    optionsImgOnly: !!(options && optionsImgOnly)
+  };
+  if(dialogue) card.dialogue = dialogue;
+  if(mediaType !== 'none'){
+    if(mediaType.endsWith('-upload') && _edMediaFileData){ card.mediaData = _edMediaFileData; }
+    else if(mediaUrl){ card.mediaUrl = mediaUrl; }
+  }
+  if(revealTypeVal !== 'none'){
+    card.revealType = revealTypeVal;
+    if(revealTypeVal.endsWith('url') && revealUrlVal) card.revealUrl = revealUrlVal;
+    else if(revealTypeVal.endsWith('upload') && _edRevealFileData) card.revealData = _edRevealFileData;
+  }
+  if(_editCardId){
+    const i = deck.findIndex(x => x.id === _editCardId);
+    if(i >= 0){ card.played = deck[i].played || false; deck[i] = card; } // preservamos el estado "jugada"
+  } else {
+    deck.push(card);
+  }
+  saveDeckLocal(); fbPushDeck();
+  toast(_editCardId ? '💾 Carta actualizada' : '➕ Carta agregada');
+  _editCardId = null;
+  _lastRenderedCardId = null; // fuerza remount de media por si se editó la carta visible
+  renderCard();
+  edSwitch('list');
+}
+
+// ── PLAYERS ──
+function openPlayers(){
+  const wrap = document.getElementById('pl-list-view');
+  if(wrap){
+    if(!teams.length){
+      wrap.innerHTML = `<div class="ed-empty">Todavía no llegaron los equipos desde Velada.<br>Abrí <b>velada.html</b> al menos una vez para publicarlos.</div>`;
+    } else {
+      wrap.innerHTML = teams.map(t => `
+        <div class="ed-item">
+          <div class="ed-item-icon">👥</div>
+          <div class="ed-item-body">
+            <div class="ed-item-title">${escapeHtml(t.label)}</div>
+            <div class="ed-item-sub">${(t.members||[]).map(escapeHtml).join(' & ') || 'sin apodos cargados'}</div>
+          </div>
+          <div class="ed-item-actions"><span style="font-weight:900;color:var(--gold)">${teamScores[t.index]||0} pt</span></div>
+        </div>
+      `).join('');
+    }
+  }
+  document.getElementById('pl-overlay').classList.add('open');
+}
+function closePlayers(){ document.getElementById('pl-overlay').classList.remove('open'); }
+
+// ── SETTINGS MENU ──
+function toggleSetMenu(e){
+  e.stopPropagation();
+  document.getElementById('set-menu').classList.toggle('open');
+}
+function closeSetMenu(){ document.getElementById('set-menu').classList.remove('open'); }
+document.addEventListener('click', e => {
+  if(!e.target.closest('.set-wrap')) closeSetMenu();
+});
+
+// ── EXPORT / IMPORT ──
+function exportDeck(){
+  const data = JSON.stringify({ deck, exportedAt: new Date().toISOString() }, null, 2);
+  const blob = new Blob([data], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = `quien-lo-dijo-mazo-${Date.now()}.json`;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  toast('📤 Mazo exportado');
+}
+function importDeck(){
+  const inp = document.createElement('input');
+  inp.type = 'file'; inp.accept = 'application/json,.json';
+  inp.onchange = e => {
+    const f = e.target.files[0]; if(!f) return;
+    const r = new FileReader();
+    r.onload = () => {
+      try{
+        const parsed = JSON.parse(r.result);
+        const arr = Array.isArray(parsed) ? parsed : (parsed.deck || []);
+        if(!Array.isArray(arr)) throw new Error('Formato inválido');
+        if(!confirm(`¿Importar ${arr.length} cartas?\n\nElegí OK para AGREGAR al mazo actual, o Cancel y decidí si querés reemplazarlo.`)){
+          if(!confirm('¿Querés REEMPLAZAR el mazo actual con las cartas importadas?')) return;
+          deck = arr.map(c => ({ ...c, id: c.id || nextId() }));
+        } else {
+          deck = deck.concat(arr.map(c => ({ ...c, id: c.id || nextId() })));
+        }
+        saveDeckLocal(); fbPushDeck(); renderCard(); renderEditorList();
+        toast(`📥 Importadas ${arr.length} cartas`);
+      }catch(err){ alert('Error al importar: ' + err.message); }
+    };
+    r.readAsText(f);
+  };
+  inp.click();
+}
+function resetScores(){
+  if(!confirm('¿Reiniciar los puntajes de todos los equipos?\n(Esto no toca el resultado ya finalizado, si lo hay — usá "Reabrir ronda" para eso.)')) return;
+  Object.keys(teamScores).forEach(k => teamScores[k] = 0);
+  saveTeamScores(); renderScores(); fbPushLive();
+  toast('↺ Puntajes reiniciados');
+}
+function resetPlayedFlags(){
+  if(!confirm('¿Marcar todas las cartas del mazo como "sin jugar"?\n(Útil para arrancar una nueva ronda con el mismo mazo.)')) return;
+  deck.forEach(c => { c.played = false; });
+  saveDeckLocal(); fbPushDeck();
+  renderEditorList();
+  const cur = currentCard(); if(cur) renderCondText(cur);
+  toast('🔲 Cartas reiniciadas — todas sin jugar');
+}
+function resetAll(){
+  if(!confirm('⚠️ Esto borra TODO: mazo, puntajes y cartas.\n¿Seguro?')) return;
+  if(!confirm('Última chance. ¿Realmente borrar todo?')) return;
+  deck = DEFAULT_DECK(); cardIdx = 0; revealed = false; hintsShown = {1:false,2:false};
+  Object.keys(teamScores).forEach(k => teamScores[k] = 0);
+  saveDeckLocal(); saveTeamScores(); saveIdx(); fbPushDeck(); fbPushLive();
+  renderCard(); renderScores(); renderEditorList();
+  toast('🗑 Todo reiniciado');
+}
+
+// ── KEYBOARD ──
+document.addEventListener('keydown', e => {
+  if(MODE !== 'conductor') return;
+  const t = e.target;
+  if(t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA')) return;
+  if(document.querySelector('.overlay.open')) return;
+  if(e.key === 'ArrowRight') navigate(1);
+  else if(e.key === 'ArrowLeft') navigate(-1);
+  else if(e.key === ' '){ e.preventDefault(); toggleReveal(); }
+  else if(e.key === '1') toggleHint(1);
+  else if(e.key === '2') toggleHint(2);
+  else if(e.key === 'r' || e.key === 'R') randomCard();
+});
+
+// ── DEFAULT DECK ──
+function DEFAULT_DECK(){
+  const now = Date.now();
+  const cards = [
+    // ─── Películas doblaje latino ───
+    { category:'peliculas', title:'Willy Wonka — Hola estrellitas', mediaType:'none',
+      prompt:'Hola estrellitas, la Tierra les dice ___',
+      who:'Willy Wonka (Charlie y la Fábrica de Chocolate)', ending:'hola',
+      hint1:'Sale de una fábrica en un ascensor de vidrio',
+      hint2:'La versión clásica es de Gene Wilder de 1971' },
+    { category:'peliculas', title:'Buzz Lightyear — Al infinito', mediaType:'none',
+      prompt:'Al infinito ___',
+      who:'Buzz Lightyear (Toy Story)', ending:'y más allá',
+      hint1:'Space Ranger, ala delta',
+      hint2:'Rival y luego mejor amigo de Woody' },
+    { category:'peliculas', title:'Shrek — Los ogros son como cebollas', mediaType:'none',
+      prompt:'Los ogros son como ___',
+      who:'Shrek', ending:'las cebollas',
+      hint1:'Se lo explica a un burro',
+      hint2:'Tienen capas' },
+    { category:'peliculas', title:'Simba — Hakuna Matata', mediaType:'none',
+      prompt:'Hakuna Matata, ___',
+      who:'Timón y Pumba (El Rey León)', ending:'vive y sé feliz (o "una forma de ser")',
+      hint1:'Se traduce como "sin problemas"',
+      hint2:'Se lo enseñan a un cachorro perdido' },
+    { category:'peliculas', title:'Buscando a Nemo — Sigue nadando', mediaType:'none',
+      prompt:'Sigue nadando, sigue nadando, ___',
+      who:'Dory (Buscando a Nemo)', ending:'sigue nadando',
+      hint1:'Tiene memoria de corto plazo',
+      hint2:'Es un pez cirujano azul' },
+
+    // ─── Famosos AR / TV ───
+    { category:'famosos', title:'Ricardo Fort — Como te va', mediaType:'none',
+      prompt:'"¿___?" (saludo icónico con acento marcado)',
+      who:'Ricardo Fort', ending:'Cómo te va, cómo te va, cómo te va',
+      hint1:'Empresario chocolatero',
+      hint2:'"Comandante"' },
+    { category:'famosos', title:'Moria Casán — Hablá con mi abogado', mediaType:'none',
+      prompt:'"Hablá con ___"',
+      who:'Moria Casán', ending:'mi abogado',
+      hint1:'La One',
+      hint2:'Vedette y jurado de reality' },
+    { category:'famosos', title:'Marcelo Tinelli — Buenas noches', mediaType:'none',
+      prompt:'"Buenas noches, ___ y ___" (saludo de apertura)',
+      who:'Marcelo Tinelli', ending:'América y el mundo',
+      hint1:'Conductor bailando por un sueño',
+      hint2:'De Videomatch a ShowMatch' },
+    { category:'famosos', title:'Susana Giménez — Qué lo parió', mediaType:'none',
+      prompt:'"Qué ___" (expresión de sorpresa)',
+      who:'Susana Giménez', ending:'lo parió',
+      hint1:'Diva de los teléfonos',
+      hint2:'"Hola, Susana"' },
+    { category:'famosos', title:'Guillermo Francella — Casados con hijos', mediaType:'none',
+      prompt:'"Moni, dame una ___" (frase de Pepe Argento)',
+      who:'Pepe Argento — Guillermo Francella (Casados con hijos)', ending:'cerveza',
+      hint1:'Es zapatero',
+      hint2:'Vive con Moni, Coqui, Paola y Dardo' },
+
+    // ─── Fútbol ───
+    { category:'futbol', title:'Riquelme — Seremos menos malos', mediaType:'none',
+      prompt:'"Seremos menos malos que ___"',
+      who:'Juan Román Riquelme', ending:'los demás',
+      hint1:'Ídolo de Boca',
+      hint2:'Vicepresidente y hoy presidente del club' },
+    { category:'futbol', title:'Bilardo — No se le pega al que perdió', mediaType:'none',
+      prompt:'"Al que gana ni ___, al que pierde ni ___"',
+      who:'Carlos Bilardo', ending:'agua / se lo mira (versión popular)',
+      hint1:'DT campeón del mundo 86',
+      hint2:'Doctor, muy cabulero' },
+    { category:'futbol', title:'Bielsa — No hay nada más humano', mediaType:'none',
+      prompt:'"El éxito es ___, deforma"',
+      who:'Marcelo Bielsa', ending:'una deformación',
+      hint1:'Loco',
+      hint2:'DT de Newell\'s, Vélez, Chile, Athletic, Leeds' },
+    { category:'futbol', title:'Maradona — La tenía adentro', mediaType:'none',
+      prompt:'"Se le escapó la tortuga" — ¿quién es famoso por decir ___?',
+      who:'Diego Armando Maradona', ending:'"se les escapó la tortuga"',
+      hint1:'D10S',
+      hint2:'Después del Mundial 94' },
+    { category:'futbol', title:'Ruggeri — Callate la boca', mediaType:'none',
+      prompt:'"___, callate la boca" (frase icónica)',
+      who:'Oscar Ruggeri', ending:'Vos',
+      hint1:'Cabezón',
+      hint2:'Hoy en F90 y ESPN' },
+    { category:'futbol', title:'Messi — Andá pa allá bobo', mediaType:'none',
+      prompt:'"Qué mirás, ___? Andá pa allá ___"',
+      who:'Lionel Messi (vs Weghorst, Mundial 2022)', ending:'bobo / bobo',
+      hint1:'Contra un jugador neerlandés',
+      hint2:'Cuartos de final, penales' },
+
+    // ─── Los Simpsons ───
+    { category:'dibujos', title:'Homero — Mmm', mediaType:'none',
+      prompt:'"Mmm, ___" (Homero mirando comida)',
+      who:'Homero Simpson', ending:'donas / rosquillas',
+      hint1:'Trabaja en la planta nuclear',
+      hint2:'"D\'oh"' },
+    { category:'dibujos', title:'Bart — Ay caramba', mediaType:'none',
+      prompt:'"¡Ay ___!"',
+      who:'Bart Simpson', ending:'caramba',
+      hint1:'Skate y honda',
+      hint2:'"Multiplícate por cero"' },
+    { category:'dibujos', title:'Sr. Burns — Excelente', mediaType:'none',
+      prompt:'"___" (juntando las manos con maldad)',
+      who:'Sr. Burns', ending:'Excelente',
+      hint1:'Dueño de la planta nuclear',
+      hint2:'Su asistente es Smithers' },
+    { category:'dibujos', title:'Ralph — Me sabe a rico', mediaType:'none',
+      prompt:'"Me ___ a rico" (comiendo algo raro)',
+      who:'Ralph Wiggum', ending:'sabe',
+      hint1:'Hijo del jefe Górgori',
+      hint2:'"Soy un unicornio"' },
+
+    // ─── Series argentinas ───
+    { category:'series', title:'Los Simuladores — Encienda un cigarrillo', mediaType:'none',
+      prompt:'"Encienda un ___" (Santos operativo)',
+      who:'Los Simuladores', ending:'cigarrillo',
+      hint1:'Cuatro tipos que resuelven problemas',
+      hint2:'Damián Szifron' },
+    { category:'series', title:'El Marginal — Diosito', mediaType:'none',
+      prompt:'"Yo soy tu ___" — hermano de Mario Borges',
+      who:'Diosito Borges (El Marginal)', ending:'hermano / Dios',
+      hint1:'Se peina hacia atrás',
+      hint2:'San Onofre, pabellón' },
+
+    // ─── Memes / imágenes ───
+    { category:'memes', title:'Hide the Pain Harold', mediaType:'image',
+      mediaUrl:'https://upload.wikimedia.org/wikipedia/commons/thumb/d/d3/Andr%C3%A1s_Arat%C3%B3.jpg/320px-Andr%C3%A1s_Arat%C3%B3.jpg',
+      prompt:'¿Quién es este meme?',
+      who:'Hide the Pain Harold (András Arató)',
+      hint1:'Sonríe pero se le nota que sufre',
+      hint2:'Ingeniero húngaro real, apareció en stock photos' },
+
+    // ─── Canciones ───
+    { category:'canciones', title:'Soda Stereo — De música ligera', mediaType:'none',
+      prompt:'"Ella durmió al calor de las ___"',
+      who:'Soda Stereo — De música ligera', ending:'masas',
+      hint1:'Cerati la escribió',
+      hint2:'Cierre del "Gracias totales"' },
+    { category:'canciones', title:'Los Redondos — Jijiji', mediaType:'none',
+      prompt:'"Ella baila con todos, pero baila ___"',
+      who:'Los Redondos — Jijiji', ending:'conmigo (más tarde…)',
+      hint1:'El Indio Solari',
+      hint2:'Un misil al corazón de la ciudad' },
+    { category:'canciones', title:'Charly García — Los dinosaurios', mediaType:'none',
+      prompt:'"Los amigos del barrio ___ desaparecer"',
+      who:'Charly García — Los dinosaurios', ending:'pueden',
+      hint1:'Contra la dictadura',
+      hint2:'Del disco "Clics modernos" (1983)' },
+  ];
+  return cards.map((c, i) => ({ ...c, id: now + i }));
+}
+
+// ── INIT ──
+loadState();
+// splash está visible por defecto; el resto se activa desde dismissSplash
 </script>
 </body>
 </html>
