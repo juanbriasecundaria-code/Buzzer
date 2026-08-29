@@ -680,6 +680,7 @@
   .control-panel[open] .rule-chevron { transform: rotate(180deg); color: var(--accent); }
   .control-panel-body { padding: 1.1rem; display: flex; flex-direction: column; gap: 0.9rem; }
   .control-panel-body .card { margin: 0; }
+  .control-panel-section-title { font-size: 13px; font-weight: 700; margin-bottom: 0.35rem; }
 
   /* EDICIÓN — distinguir visualmente lo que se puede tocar */
   .edit-mode-card, .rule-card.edit-mode {
@@ -3441,6 +3442,32 @@ function renderReglas() {
           </div>
           <button class="final-end-btn" onclick="resetBuzzers()">↺ Restablecer buzzers (nombres + puntajes)</button>
         </div>
+
+        <!-- ── BACKUP DE LA NOCHE ── -->
+        <div class="card" id="backup-card">
+          <div class="control-panel-section-title">💾 Backup de la noche</div>
+          <p style="font-size:12.5px;color:var(--muted);line-height:1.55;margin-bottom:0.9rem">
+            Descargá un archivo con todo lo cargado hasta ahora (puntajes, fixtures, reglas, fotos del muro, etc.)
+            para poder restaurarlo si algo falla a mitad del evento.
+          </p>
+          <div style="display:flex;gap:0.5rem;flex-wrap:wrap;margin-bottom:0.6rem">
+            <button class="btn" style="flex:1;min-width:150px;padding:0.65rem;font-size:12.5px" onclick="downloadNightBackup(true)">⬇️ Descargar la noche</button>
+            <button class="btn" style="flex:1;min-width:150px;padding:0.65rem;font-size:12.5px" onclick="downloadNightBackup(false)">⬇️ Solo puntajes (liviano)</button>
+          </div>
+          <button class="btn" style="width:100%;padding:0.65rem;font-size:12.5px" onclick="triggerRestoreFile()">⬆️ Restaurar desde archivo</button>
+          <input type="file" id="restore-file-input" accept="application/json" style="display:none" onchange="handleRestoreFile(this)">
+          <div style="font-size:10.5px;color:var(--muted);margin-top:0.6rem;line-height:1.5">
+            "Solo puntajes" no incluye las fotos del muro ni las fotos de jugadores — pesa mucho menos y es lo que más vas a necesitar si hay que recuperarse rápido.
+          </div>
+        </div>
+
+        <!-- ── ADMIN ── -->
+        <div class="card" style="border-color:rgba(255,95,95,0.3)">
+          <div class="control-panel-section-title" style="color:var(--danger)">⚠️ Zona de administración</div>
+          <p class="rules-intro" style="margin-bottom:1rem">Esto pone en 0 los puntos de todos los jugadores y equipos (Fase 1, Fase 2, Impostor, comodines y ajustes manuales). El roster, los fixtures, las estaciones/colores y las reglas configuradas quedan tal cual están. Útil para hacer pruebas antes del evento o para reutilizar la app en una próxima velada del año sin perder la configuración.</p>
+          <button class="btn btn-danger" style="width:100%;padding:0.875rem;font-size:14px;border-color:var(--danger)" onclick="resetEverything()">🔄 Reiniciar puntos de la noche</button>
+          ${editing ? `<button class="btn btn-danger" style="width:100%;padding:0.6rem;font-size:13px;margin-top:0.6rem" onclick="resetRulesConfig()">↩️ Restaurar reglas a los valores originales</button>` : ''}
+        </div>
       </div>
     </details>
 
@@ -3681,18 +3708,6 @@ function renderReglas() {
           <button class="final-edit-save" onclick="saveReglasFinalEdits()">Guardar cambios</button>
         </div>` : ''}
     </div>
-
-    <!-- ADMIN -->
-    <div class="section-header anchor-target" id="reglas-admin" style="margin-top:2rem">
-      <span class="section-title">Zona de administración</span>
-    </div>
-    <div class="card" style="border-color:rgba(255,95,95,0.3)">
-      <p class="rules-intro" style="margin-bottom:1rem">Esto pone en 0 los puntos de todos los jugadores y equipos (Fase 1, Fase 2, Impostor, comodines y ajustes manuales). El roster, los fixtures, las estaciones/colores y las reglas configuradas quedan tal cual están. Útil para hacer pruebas antes del evento o para reutilizar la app en una próxima velada del año sin perder la configuración.</p>
-      <button class="btn btn-danger" style="width:100%;padding:0.875rem;font-size:14px;border-color:var(--danger)" onclick="resetEverything()">🔄 Reiniciar puntos de la noche</button>
-    </div>
-    ${editing ? `<div style="margin-top:0.75rem">
-      <button class="btn btn-danger" style="width:100%;padding:0.6rem;font-size:13px" onclick="resetRulesConfig()">↩️ Restaurar reglas a los valores originales</button>
-    </div>` : ''}
   `;
 
   renderVarToggle(VarSwitch.enabled);
@@ -6679,7 +6694,7 @@ function closeModal() {
 let _confirmCallback = null;
 let _confirmCancelCallback = null;
 
-function showConfirmModal(title, sub, onConfirm, onCancel) {
+function showConfirmModal(title, sub, onConfirm, onCancel, confirmLabel) {
   _confirmCallback = onConfirm;
   _confirmCancelCallback = onCancel || null;
   const bg = document.getElementById('modal-bg');
@@ -6692,7 +6707,7 @@ function showConfirmModal(title, sub, onConfirm, onCancel) {
     ${sub ? `<div class="modal-sub">${sub}</div>` : ''}
     <div class="modal-actions" style="margin-top:1.5rem">
       <button class="btn btn-ghost" onclick="cancelConfirmModal()">Cancelar</button>
-      <button class="btn btn-danger" style="background:rgba(255,95,95,0.12);color:var(--danger);border-color:rgba(255,95,95,0.3)" onclick="doConfirmModal()">Eliminar</button>
+      <button class="btn btn-danger" style="background:rgba(255,95,95,0.12);color:var(--danger);border-color:rgba(255,95,95,0.3)" onclick="doConfirmModal()">${confirmLabel || 'Eliminar'}</button>
     </div>
   `;
   bg.classList.add('open');
@@ -6721,6 +6736,119 @@ function restoreModalHTML() {
 document.getElementById('modal-bg').addEventListener('click', function(e) {
   if (e.target === this) closeModal();
 });
+
+// ============================================================
+// BACKUP / RESTORE — paracaídas manual de toda la noche
+// ============================================================
+
+// Claves con fotos/imágenes en base64: pesan mucho y no hacen falta para
+// recuperar puntajes rápido a mitad del evento.
+const BACKUP_HEAVY_KEYS = ['ndj_wall', 'ndj_photos', 'ndj_miis', 'ndj_producer_photo', 'ndj_foto_noche'];
+
+// Junta todo lo que esta app (y las páginas de juegos hermanas que comparten
+// origen/localStorage) tienen guardado. includeHeavy=false salta las fotos.
+function collectBackupSnapshot(includeHeavy) {
+  const snap = {};
+  for (let i = 0; i < localStorage.length; i++) {
+    const key = localStorage.key(i);
+    if (!includeHeavy && BACKUP_HEAVY_KEYS.indexOf(key) !== -1) continue;
+    snap[key] = localStorage.getItem(key);
+  }
+  return snap;
+}
+
+function downloadJsonFile(obj, filename) {
+  const blob = new Blob([JSON.stringify(obj)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 4000);
+}
+
+function pad2(n) { return String(n).padStart(2, '0'); }
+
+function backupFilename(tag) {
+  const d = new Date();
+  const ts = `${d.getFullYear()}-${pad2(d.getMonth()+1)}-${pad2(d.getDate())}_${pad2(d.getHours())}${pad2(d.getMinutes())}`;
+  return `velada-backup-${tag}-${ts}.json`;
+}
+
+function downloadNightBackup(full) {
+  const payload = {
+    __ndjBackup: true,
+    version: 1,
+    exportedAt: Date.now(),
+    exportedAtLabel: new Date().toLocaleString('es-AR'),
+    heavy: !!full,
+    localStorage: collectBackupSnapshot(full)
+  };
+  downloadJsonFile(payload, backupFilename(full ? 'completo' : 'puntajes'));
+  showToast('💾', full ? 'Backup completo descargado' : 'Backup de puntajes descargado', false);
+}
+
+function triggerRestoreFile() {
+  const input = document.getElementById('restore-file-input');
+  if (input) { input.value = ''; input.click(); }
+}
+
+function handleRestoreFile(input) {
+  const file = input.files && input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    let payload;
+    try { payload = JSON.parse(reader.result); }
+    catch (e) { showToast('⚠️', 'Ese archivo no es un backup válido (JSON inválido)', false); return; }
+    if (!payload || !payload.__ndjBackup || typeof payload.localStorage !== 'object') {
+      showToast('⚠️', 'Ese archivo no parece un backup de la velada', false);
+      return;
+    }
+    const when = payload.exportedAtLabel || '(fecha desconocida)';
+    const kind = payload.heavy ? 'completo (con fotos)' : 'liviano (solo puntajes)';
+    const keyCount = Object.keys(payload.localStorage).length;
+    showConfirmModal(
+      '¿Restaurar este backup?',
+      `Backup ${kind} del ${when} — ${keyCount} claves guardadas.<br><br>` +
+      `Esto va a <b>reemplazar todo lo que está cargado ahora</b> (puntajes, fixtures, reglas, etc.) por lo que había en ese momento. ` +
+      `Antes de aplicarlo se descarga automáticamente un backup de seguridad del estado actual, por si te arrepentís. La página se va a recargar.`,
+      () => applyRestoredBackup(payload),
+      null,
+      'Restaurar'
+    );
+  };
+  reader.readAsText(file);
+}
+
+function applyRestoredBackup(payload) {
+  // Red de seguridad: primero bajamos el estado actual, por si el restore no era lo que queríamos
+  try { downloadNightBackup(true); } catch (e) {}
+
+  const data = payload.localStorage || {};
+  Object.keys(data).forEach(key => {
+    try { localStorage.setItem(key, data[key]); } catch (e) { console.warn('restore: no se pudo escribir', key, e); }
+  });
+
+  // Empujamos a Firebase las claves que la app sincroniza en vivo (TV / participante.html las leen de ahí)
+  try {
+    if (window._fbReady && window._fbWrite) {
+      if (data.ndj_state)      window._fbWrite('state', data.ndj_state);
+      if (data.ndj_rules)      window._fbWrite('rules', data.ndj_rules);
+      if (data.ndj_comodines)  window._fbWrite('comodines', data.ndj_comodines);
+      if (data.ndj_wall)       window._fbWrite('wall', data.ndj_wall);
+      if (data.ndj_miis)       window._fbWrite('miis', data.ndj_miis);
+    }
+    if (data.velada_var_enabled != null) {
+      try { VarSwitch.set(data.velada_var_enabled === '1', { push: true }); } catch (e) {}
+    }
+  } catch (e) { console.warn('restore: fallo al sincronizar con Firebase', e); }
+
+  showToast('✅', 'Backup restaurado — recargando…', false);
+  setTimeout(() => location.reload(), 900);
+}
 
 // ============================================================
 // ADMINISTRACIÓN — reinicio total
