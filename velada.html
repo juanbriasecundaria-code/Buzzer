@@ -610,7 +610,18 @@
   .rules-hero-title { font-size: 21px; font-weight: 700; letter-spacing: -0.5px; margin-bottom: 0.5rem; }
   .rules-hero-sub { font-size: 13px; color: var(--muted); line-height: 1.6; max-width: 460px; margin: 0 auto; }
 
-  .rules-chips { display: flex; gap: 0.5rem; overflow-x: auto; padding: 0.1rem 0 1.5rem; scrollbar-width: none; }
+  .rules-chips-wrap {
+    position: sticky;
+    top: 0;
+    z-index: 90;
+    background: var(--bg);
+    padding-top: 0.6rem;
+    margin: 0 -1.5rem;
+    padding-left: 1.5rem;
+    padding-right: 1.5rem;
+  }
+  .rules-chips-wrap.stuck { box-shadow: 0 8px 16px -12px rgba(0,0,0,0.5); border-bottom: 0.5px solid var(--border2); }
+  .rules-chips { display: flex; gap: 0.5rem; overflow-x: auto; padding: 0.1rem 0 1rem; scrollbar-width: none; }
   .rules-chips::-webkit-scrollbar { display: none; }
   .rules-chip {
     flex-shrink: 0;
@@ -627,6 +638,7 @@
     transition: border-color .15s, color .15s, background .15s;
   }
   .rules-chip:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-dim); }
+  .rules-chip.active { border-color: var(--accent); color: var(--accent); background: var(--accent-dim); }
   .rules-chip .dot-indicator { margin-right: 0; }
 
   .rules-intro { font-size: 13px; color: var(--muted); line-height: 1.65; }
@@ -637,9 +649,80 @@
   .dot-indicator.fase2 { background: var(--info); box-shadow: 0 0 8px rgba(96,180,240,0.6); }
   .dot-indicator.impostor { background: var(--danger); box-shadow: 0 0 8px rgba(255,95,95,0.6); }
   .dot-indicator.quien { background: #c060e8; box-shadow: 0 0 8px rgba(192,96,232,0.6); }
+  .dot-indicator.ruleta { background: #ff9d4d; box-shadow: 0 0 8px rgba(255,157,77,0.6); }
   .dot-indicator.final { background: var(--gold); box-shadow: 0 0 8px rgba(245,200,66,0.6); }
 
-  .anchor-target { scroll-margin-top: 78px; }
+  .anchor-target { scroll-margin-top: 132px; }
+
+  /* PANEL DE CONTROL (operativo, colapsado por defecto) */
+  .control-panel {
+    background: var(--surface);
+    border: 0.5px solid var(--border2);
+    border-radius: var(--radius-lg);
+    margin-bottom: 1.25rem;
+    overflow: hidden;
+  }
+  .control-panel summary {
+    list-style: none;
+    cursor: pointer;
+    padding: 1rem 1.15rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+  }
+  .control-panel summary::-webkit-details-marker { display: none; }
+  .control-panel summary:hover { background: var(--surface2); }
+  .control-panel-title { font-size: 14px; font-weight: 700; display: flex; align-items: center; gap: 0.6rem; }
+  .control-panel-sub { font-size: 11.5px; color: var(--muted); font-weight: 500; margin-top: 2px; }
+  .control-panel[open] summary { border-bottom: 0.5px solid var(--border); }
+  .control-panel .rule-chevron { color: var(--muted); font-size: 11px; transition: transform 0.2s; flex-shrink: 0; }
+  .control-panel[open] .rule-chevron { transform: rotate(180deg); color: var(--accent); }
+  .control-panel-body { padding: 1.1rem; display: flex; flex-direction: column; gap: 0.9rem; }
+  .control-panel-body .card { margin: 0; }
+
+  /* EDICIÓN — distinguir visualmente lo que se puede tocar */
+  .edit-mode-card, .rule-card.edit-mode {
+    border: 1.5px dashed var(--accent) !important;
+    background: var(--accent-dim) !important;
+  }
+
+  /* Progreso de la estación (según resultados ya cargados) */
+  .station-badge {
+    font-size: 10px; font-weight: 700; padding: 0.22rem 0.55rem;
+    border-radius: 99px; flex-shrink: 0; white-space: nowrap;
+  }
+  .station-badge.done { background: rgba(78,203,126,0.14); color: var(--success); }
+  .station-badge.live { background: rgba(245,200,66,0.16); color: var(--gold); }
+
+  /* Grilla 2x2 de puntajes (reemplaza las pills amontonadas en las estaciones) */
+  .rule-stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; margin-top: 1rem; }
+  .rule-stat { background: var(--surface2); border-radius: 10px; padding: 0.55rem 0.65rem; }
+  .rule-stat-value { font-size: 14.5px; font-weight: 800; line-height: 1.2; }
+  .rule-stat-value.win { color: var(--success); }
+  .rule-stat-value.bonus { color: var(--gold); }
+  .rule-stat-value.lose { color: var(--muted); }
+  .rule-stat-value.draw { color: var(--info); }
+  .rule-stat-label { font-size: 9.5px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.04em; margin-top: 2px; }
+  .rule-stat-caption { font-size: 11px; color: var(--muted); line-height: 1.5; margin-top: 0.7rem; }
+
+  /* Timeline vertical de fases (reemplaza la tabla en mobile) */
+  .phase-timeline { display: flex; flex-direction: column; }
+  .phase-timeline-item { display: flex; gap: 0.9rem; position: relative; padding-bottom: 1.15rem; }
+  .phase-timeline-item:last-child { padding-bottom: 0; }
+  .phase-timeline-item:not(:last-child)::before {
+    content: ''; position: absolute; left: 13px; top: 28px; bottom: 0; width: 1px; background: var(--border2);
+  }
+  .phase-timeline-dot {
+    width: 28px; height: 28px; border-radius: 50%; background: var(--surface2);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11.5px; font-weight: 800; color: var(--text);
+    flex-shrink: 0; position: relative; z-index: 1;
+  }
+  .phase-timeline-body { flex: 1; padding-top: 0.2rem; min-width: 0; }
+  .phase-timeline-title { font-size: 13.5px; font-weight: 700; }
+  .phase-timeline-meta { font-size: 11.5px; color: var(--muted); margin-top: 0.35rem; display: flex; flex-wrap: wrap; gap: 0.4rem 0.6rem; }
+  .phase-timeline-tag { display: inline-flex; align-items: center; gap: 4px; }
 
   .tiebreak-list { display: flex; flex-direction: column; gap: 0.7rem; }
   .tiebreak-item { display: flex; align-items: flex-start; gap: 0.75rem; font-size: 13px; line-height: 1.55; color: var(--text); }
@@ -670,7 +753,8 @@
   }
   .rule-card summary::-webkit-details-marker { display: none; }
   .rule-card summary:hover { background: var(--surface2); }
-  .rule-name { font-size: 14px; font-weight: 600; display: flex; align-items: center; gap: 0.7rem; }
+  .rule-name { font-size: 14px; font-weight: 600; display: flex; align-items: center; gap: 0.7rem; min-width: 0; }
+  .rule-summary-right { display: flex; align-items: center; gap: 0.6rem; flex-shrink: 0; }
   .rule-icon-badge {
     width: 32px; height: 32px; flex-shrink: 0;
     border-radius: 50%;
@@ -2990,6 +3074,17 @@ function syncRulestoRuntime() {
 }
 
 let _rulesEditMode = false;
+let _ctrlPanelOpen = false;
+let _reglasAllExpanded = false;
+
+function toggleExpandAllReglas() {
+  _reglasAllExpanded = !_reglasAllExpanded;
+  document.querySelectorAll('#reglas-root .rule-card').forEach(d => {
+    if (_reglasAllExpanded) d.setAttribute('open', ''); else d.removeAttribute('open');
+  });
+  const btn = document.getElementById('reglas-expand-all-btn');
+  if (btn) btn.textContent = _reglasAllExpanded ? 'Colapsar todo' : 'Expandir todo';
+}
 
 function toggleRulesEdit() {
   _rulesEditMode = !_rulesEditMode;
@@ -3110,25 +3205,52 @@ function renderReglas() {
   const editBarLabel = editing ? '✏️ Modo edición activo — los cambios se guardan al tocar "Guardar"' : '⚙️ Podés editar juegos, puntajes y reglas';
   const editBtnLabel = editing ? 'Terminar edición' : 'Editar reglas';
 
+  // Progreso real de una estación, según los resultados ya cargados en el fixture
+  function stationProgress(phase, idx) {
+    const fixture = phase === 'f1' ? F1_FIXTURE : F2_FIXTURE;
+    const st = (phase === 'f1' ? state.f1 : state.f2) || {};
+    const matches = fixture.filter(m => m[3] === idx);
+    if (!matches.length) return null;
+    const doneCount = matches.filter(m => st[`${m[0]}-${m[1]}-${m[2]}`]).length;
+    if (doneCount === 0) return null;
+    return doneCount === matches.length ? 'done' : 'live';
+  }
+
   // Helper: render a game card
   function gameCard(phase, idx) {
     const g = rc[phase][idx];
     const phaseClass = phase === 'f1' ? 'fase1' : 'fase2';
     const prefix = `rule-edit-${phase}-${idx}`;
     const rulesHtml = g.rules.map(r => `<li>${r}</li>`).join('');
-    const drawPill = g.allow_draw ? `<span class="score-pill draw">Empate · ${g.pts_draw} pt c/u</span>` : '';
+    const drawStat = g.allow_draw ? `
+          <div class="rule-stat">
+            <div class="rule-stat-value draw">${g.pts_draw} pt c/u</div>
+            <div class="rule-stat-label">Empate</div>
+          </div>` : '';
 
     const viewBody = `
       <div class="rule-body">
         <p class="rule-desc">${g.desc}</p>
         ${g.rules.length ? `<div class="rule-label">Reglas</div><ul class="rule-list">${rulesHtml}</ul>` : ''}
-        <div class="rule-footer">
+        <div class="rule-footer" style="border-top:0;margin-top:0.9rem;padding-top:0">
           <span class="match-game-badge">${g.format}</span>
-          <span class="score-pill win">Victoria · ${g.pts_win} pts</span>
-          <span class="score-pill bonus">${g.bonus_label} · +${g.pts_bonus} pt</span>
-          <span class="score-pill lose">Derrota · ${g.pts_lose}</span>
-          ${drawPill}
         </div>
+        <div class="rule-stats-grid">
+          <div class="rule-stat">
+            <div class="rule-stat-value win">${g.pts_win} pts</div>
+            <div class="rule-stat-label">Victoria</div>
+          </div>
+          <div class="rule-stat">
+            <div class="rule-stat-value bonus">+${g.pts_bonus} pt</div>
+            <div class="rule-stat-label">Bonus</div>
+          </div>
+          <div class="rule-stat">
+            <div class="rule-stat-value lose">${g.pts_lose} pts</div>
+            <div class="rule-stat-label">Derrota</div>
+          </div>
+          ${drawStat}
+        </div>
+        <div class="rule-stat-caption">🏅 Bonus si: ${g.bonus_label}</div>
       </div>`;
 
     const existingRulesInputs = g.rules.map(r => `
@@ -3192,8 +3314,12 @@ function renderReglas() {
         </div>
       </div>` : '';
 
-    return `<details class="rule-card" data-rule-card="${phase}-${idx}">
-      <summary><span class="rule-name"><span class="rule-icon-badge ${phaseClass}">${g.icon}</span>${g.name}${editing?'<span class="rule-edited-badge">✏️ editable</span>':''}</span><span class="rule-chevron">▾</span></summary>
+    const prog = stationProgress(phase, idx);
+    const progBadge = prog === 'done' ? '<span class="station-badge done">✓ Jugada</span>'
+                     : prog === 'live' ? '<span class="station-badge live">▶ En juego</span>' : '';
+
+    return `<details class="rule-card${editing ? ' edit-mode' : ''}" data-rule-card="${phase}-${idx}">
+      <summary><span class="rule-name"><span class="rule-icon-badge ${phaseClass}">${g.icon}</span>${g.name}${editing?'<span class="rule-edited-badge">✏️ editable</span>':''}</span><span class="rule-summary-right">${progBadge}<span class="rule-chevron">▾</span></span></summary>
       ${viewBody}
       ${editBody}
     </details>`;
@@ -3257,91 +3383,128 @@ function renderReglas() {
       <div class="rules-hero-sub">Todo lo que hay que saber antes de jugar: estructura de la noche, sistema de puntos y las reglas de cada estación.</div>
     </div>
 
-    <div class="card" style="text-align:center;border-color:rgba(96,180,240,0.3)">
-      <div style="font-size:13px;color:var(--muted);margin-bottom:0.9rem">Presentá uno por uno a los concursantes de la Fase 1.</div>
-      <button class="final-end-btn" style="border-color:rgba(96,180,240,0.6);color:var(--info)" onclick="openPlayerCeremony()">🎤 Presentar a los concursantes</button>
-    </div>
+    <!-- ── PANEL DE CONTROL (todo lo operativo, colapsado por defecto) ── -->
+    <details class="control-panel" id="ctrl-panel" ${_ctrlPanelOpen ? 'open' : ''}>
+      <summary>
+        <span class="control-panel-title">🎛️ Panel de control
+          <span class="control-panel-sub" style="display:block;font-weight:500">Ceremonias, atajos a los juegos, VAR y buzzers</span>
+        </span>
+        <span class="rule-chevron">▾</span>
+      </summary>
+      <div class="control-panel-body">
+        <div class="card" style="text-align:center;border-color:rgba(96,180,240,0.3)">
+          <div style="font-size:13px;color:var(--muted);margin-bottom:0.9rem">Presentá uno por uno a los concursantes de la Fase 1.</div>
+          <button class="final-end-btn" style="border-color:rgba(96,180,240,0.6);color:var(--info)" onclick="openPlayerCeremony()">🎤 Presentar a los concursantes</button>
+        </div>
 
-    <div class="card" style="text-align:center;border-color:rgba(245,200,66,0.3)">
-      <div style="font-size:13px;color:var(--muted);margin-bottom:0.9rem">Antes de arrancar, presentá a los equipos en pantalla grande.</div>
-      <button class="final-end-btn" onclick="openCeremony()">🎤 Presentar a los equipos</button>
-    </div>
+        <div class="card" style="text-align:center;border-color:rgba(245,200,66,0.3)">
+          <div style="font-size:13px;color:var(--muted);margin-bottom:0.9rem">Antes de arrancar, presentá a los equipos en pantalla grande.</div>
+          <button class="final-end-btn" onclick="openCeremony()">🎤 Presentar a los equipos</button>
+        </div>
 
-    <div style="display:flex;gap:0.6rem;margin-bottom:1.25rem;flex-wrap:wrap">
-      <button onclick="window.open('100_Argentinos_Dicen.html','_blank')" style="flex:1;min-width:140px;display:flex;align-items:center;gap:0.5rem;padding:0.65rem 0.9rem;border-radius:var(--radius);border:1.5px solid var(--border2);background:var(--surface2);color:var(--text);cursor:pointer;font-size:13px;font-weight:700;font-family:inherit;transition:border-color 0.15s" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border2)'">
-        🎤 <span>100 Argentinos Dicen</span> <span style="margin-left:auto;font-size:10px;color:var(--muted)">↗</span>
-      </button>
-      <button onclick="window.open('palabras_a_tiempo.html','_blank')" style="flex:1;min-width:140px;display:flex;align-items:center;gap:0.5rem;padding:0.65rem 0.9rem;border-radius:var(--radius);border:1.5px solid var(--border2);background:var(--surface2);color:var(--text);cursor:pointer;font-size:13px;font-weight:700;font-family:inherit;transition:border-color 0.15s" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border2)'">
-        ⏱️ <span>Palabras a Tiempo</span> <span style="margin-left:auto;font-size:10px;color:var(--muted)">↗</span>
-      </button>
-      <button onclick="window.open('el_erudito.html','_blank')" style="flex:1;min-width:140px;display:flex;align-items:center;gap:0.5rem;padding:0.65rem 0.9rem;border-radius:var(--radius);border:1.5px solid var(--border2);background:var(--surface2);color:var(--text);cursor:pointer;font-size:13px;font-weight:700;font-family:inherit;transition:border-color 0.15s" onmouseover="this.style.borderColor='var(--red)'" onmouseout="this.style.borderColor='var(--border2)'">
-        🧠 <span>El Erudito</span> <span style="margin-left:auto;font-size:10px;color:var(--muted)">↗</span>
-      </button>
-      <button onclick="window.open('guess_Movies_Songs.html','_blank')" style="flex:1;min-width:140px;display:flex;align-items:center;gap:0.5rem;padding:0.65rem 0.9rem;border-radius:var(--radius);border:1.5px solid var(--border2);background:var(--surface2);color:var(--text);cursor:pointer;font-size:13px;font-weight:700;font-family:inherit;transition:border-color 0.15s" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border2)'">
-        🎬 <span>Guess Movies Songs</span> <span style="margin-left:auto;font-size:10px;color:var(--muted)">↗</span>
-      </button>
-      <button id="btn-launch-var" onclick="window.open('VAR.html','_blank')" style="flex:1;min-width:140px;display:flex;align-items:center;gap:0.5rem;padding:0.65rem 0.9rem;border-radius:var(--radius);border:1.5px solid var(--border2);background:var(--surface2);color:var(--text);cursor:pointer;font-size:13px;font-weight:700;font-family:inherit;transition:border-color 0.15s" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border2)'">
-        📺 <span>VAR</span> <span style="margin-left:auto;font-size:10px;color:var(--muted)">↗</span>
-      </button>
-      <button onclick="window.open('quien_lo_dijo.html','_blank')" style="flex:1;min-width:140px;display:flex;align-items:center;gap:0.5rem;padding:0.65rem 0.9rem;border-radius:var(--radius);border:1.5px solid var(--border2);background:var(--surface2);color:var(--text);cursor:pointer;font-size:13px;font-weight:700;font-family:inherit;transition:border-color 0.15s" onmouseover="this.style.borderColor='var(--gold)'" onmouseout="this.style.borderColor='var(--border2)'">
-        🗣️ <span>¿Quién lo dijo?</span> <span style="margin-left:auto;font-size:10px;color:var(--muted)">↗</span>
-      </button>
-    </div>
+        <div style="display:flex;gap:0.6rem;flex-wrap:wrap">
+          <button onclick="window.open('100_Argentinos_Dicen.html','_blank')" style="flex:1;min-width:140px;display:flex;align-items:center;gap:0.5rem;padding:0.65rem 0.9rem;border-radius:var(--radius);border:1.5px solid var(--border2);background:var(--surface2);color:var(--text);cursor:pointer;font-size:13px;font-weight:700;font-family:inherit;transition:border-color 0.15s" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border2)'">
+            🎤 <span>100 Argentinos Dicen</span> <span style="margin-left:auto;font-size:10px;color:var(--muted)">↗</span>
+          </button>
+          <button onclick="window.open('palabras_a_tiempo.html','_blank')" style="flex:1;min-width:140px;display:flex;align-items:center;gap:0.5rem;padding:0.65rem 0.9rem;border-radius:var(--radius);border:1.5px solid var(--border2);background:var(--surface2);color:var(--text);cursor:pointer;font-size:13px;font-weight:700;font-family:inherit;transition:border-color 0.15s" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border2)'">
+            ⏱️ <span>Palabras a Tiempo</span> <span style="margin-left:auto;font-size:10px;color:var(--muted)">↗</span>
+          </button>
+          <button onclick="window.open('el_erudito.html','_blank')" style="flex:1;min-width:140px;display:flex;align-items:center;gap:0.5rem;padding:0.65rem 0.9rem;border-radius:var(--radius);border:1.5px solid var(--border2);background:var(--surface2);color:var(--text);cursor:pointer;font-size:13px;font-weight:700;font-family:inherit;transition:border-color 0.15s" onmouseover="this.style.borderColor='var(--red)'" onmouseout="this.style.borderColor='var(--border2)'">
+            🧠 <span>El Erudito</span> <span style="margin-left:auto;font-size:10px;color:var(--muted)">↗</span>
+          </button>
+          <button onclick="window.open('guess_Movies_Songs.html','_blank')" style="flex:1;min-width:140px;display:flex;align-items:center;gap:0.5rem;padding:0.65rem 0.9rem;border-radius:var(--radius);border:1.5px solid var(--border2);background:var(--surface2);color:var(--text);cursor:pointer;font-size:13px;font-weight:700;font-family:inherit;transition:border-color 0.15s" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border2)'">
+            🎬 <span>Guess Movies Songs</span> <span style="margin-left:auto;font-size:10px;color:var(--muted)">↗</span>
+          </button>
+          <button id="btn-launch-var" onclick="window.open('VAR.html','_blank')" style="flex:1;min-width:140px;display:flex;align-items:center;gap:0.5rem;padding:0.65rem 0.9rem;border-radius:var(--radius);border:1.5px solid var(--border2);background:var(--surface2);color:var(--text);cursor:pointer;font-size:13px;font-weight:700;font-family:inherit;transition:border-color 0.15s" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border2)'">
+            📺 <span>VAR</span> <span style="margin-left:auto;font-size:10px;color:var(--muted)">↗</span>
+          </button>
+          <button onclick="window.open('quien_lo_dijo.html','_blank')" style="flex:1;min-width:140px;display:flex;align-items:center;gap:0.5rem;padding:0.65rem 0.9rem;border-radius:var(--radius);border:1.5px solid var(--border2);background:var(--surface2);color:var(--text);cursor:pointer;font-size:13px;font-weight:700;font-family:inherit;transition:border-color 0.15s" onmouseover="this.style.borderColor='var(--gold)'" onmouseout="this.style.borderColor='var(--border2)'">
+            🗣️ <span>¿Quién lo dijo?</span> <span style="margin-left:auto;font-size:10px;color:var(--muted)">↗</span>
+          </button>
+        </div>
 
-    <!-- ── INTERRUPTOR GLOBAL DEL VAR ── -->
-    <div class="card" id="var-toggle-card" style="text-align:center;border-color:rgba(255,95,95,0.3)">
-      <div style="font-size:13px;color:var(--muted);margin-bottom:0.9rem">
-        El <b>VAR</b> se usa únicamente en <b>Palabras a Tiempo</b> y <b>Time's Up</b>.
-        Si lo desactivás desaparece de esos juegos (y se oculta el botón de acá arriba).
+        <!-- ── INTERRUPTOR GLOBAL DEL VAR ── -->
+        <div class="card" id="var-toggle-card" style="text-align:center">
+          <div style="font-size:13px;color:var(--muted);margin-bottom:0.9rem">
+            El <b>VAR</b> se usa únicamente en <b>Palabras a Tiempo</b> y <b>Time's Up</b>.
+            Si lo desactivás desaparece de esos juegos (y se oculta el botón de acá arriba).
+          </div>
+          <button class="final-end-btn" id="var-toggle-btn" onclick="toggleVarGlobal()">📺 VAR</button>
+          <div id="var-toggle-state" style="font-size:12px;color:var(--muted);margin-top:0.7rem"></div>
+        </div>
+
+        <!-- ── Restablecer los buzzers entre juego y juego ── -->
+        <div class="card" style="text-align:center">
+          <div style="font-size:13px;color:var(--muted);margin-bottom:0.9rem">
+            Cuando termina un juego y se sientan dos personas nuevas, esto deja los buzzers
+            de <b>Guess Movies</b> y <b>100 Argentinos</b> en Equipo 1 / Equipo 2 y el marcador en 0.
+          </div>
+          <button class="final-end-btn" onclick="resetBuzzers()">↺ Restablecer buzzers (nombres + puntajes)</button>
+        </div>
       </div>
-      <button class="final-end-btn" id="var-toggle-btn" onclick="toggleVarGlobal()">📺 VAR</button>
-      <div id="var-toggle-state" style="font-size:12px;color:var(--muted);margin-top:0.7rem"></div>
-    </div>
-
-    <!-- ── ADMIN: restablecer los buzzers entre juego y juego ── -->
-    <div class="card" style="text-align:center;border-color:rgba(255,95,95,0.3)">
-      <div style="font-size:13px;color:var(--muted);margin-bottom:0.9rem">
-        Cuando termina un juego y se sientan dos personas nuevas, esto deja los buzzers
-        de <b>Guess Movies</b> y <b>100 Argentinos</b> en Equipo 1 / Equipo 2 y el marcador en 0.
-      </div>
-      <button class="final-end-btn" style="border-color:rgba(255,95,95,0.6);color:var(--red)" onclick="resetBuzzers()">↺ Restablecer buzzers (nombres + puntajes)</button>
-    </div>
+    </details>
 
     <div class="${editBarClass}">
       <span class="rules-edit-bar-label">${editBarLabel}</span>
       <button class="rules-edit-toggle" onclick="toggleRulesEdit()">${editBtnLabel}</button>
     </div>
 
-    <div class="rules-chips">
-      <a href="#reglas-general" class="rules-chip"><span class="dot-indicator general"></span>General</a>
-      <a href="#reglas-fase1" class="rules-chip"><span class="dot-indicator fase1"></span>Fase 1</a>
-      <a href="#reglas-impostor" class="rules-chip"><span class="dot-indicator impostor"></span>Impostor</a>
-      <a href="#reglas-fase2" class="rules-chip"><span class="dot-indicator fase2"></span>Fase 2</a>
-      <a href="#reglas-quien" class="rules-chip"><span class="dot-indicator quien"></span>¿Quién lo dijo?</a>
-      <a href="#reglas-ruleta" class="rules-chip"><span class="dot-indicator impostor"></span>Ruleta</a>
-      <a href="#reglas-final" class="rules-chip"><span class="dot-indicator final"></span>Final</a>
+    <div class="rules-chips-wrap" id="rules-chips-wrap">
+      <div class="rules-chips">
+        <a href="#reglas-general" class="rules-chip"><span class="dot-indicator general"></span>General</a>
+        <a href="#reglas-fase1" class="rules-chip"><span class="dot-indicator fase1"></span>Fase 1</a>
+        <a href="#reglas-impostor" class="rules-chip"><span class="dot-indicator impostor"></span>Impostor</a>
+        <a href="#reglas-fase2" class="rules-chip"><span class="dot-indicator fase2"></span>Fase 2</a>
+        <a href="#reglas-quien" class="rules-chip"><span class="dot-indicator quien"></span>¿Quién lo dijo?</a>
+        <a href="#reglas-ruleta" class="rules-chip"><span class="dot-indicator ruleta"></span>Ruleta</a>
+        <a href="#reglas-final" class="rules-chip"><span class="dot-indicator final"></span>Final</a>
+      </div>
     </div>
 
     <!-- GENERAL -->
-    <div class="section-header anchor-target" id="reglas-general">
+    <div class="section-header anchor-target" id="reglas-general" style="display:flex;align-items:center;justify-content:space-between;gap:0.75rem">
       <span class="section-title">Reglamento general</span>
+      <button class="rules-edit-toggle" id="reglas-expand-all-btn" style="font-size:11.5px;padding:0.4rem 0.75rem" onclick="toggleExpandAllReglas()">${_reglasAllExpanded ? 'Colapsar todo' : 'Expandir todo'}</button>
     </div>
-    <div class="card" id="gen-edit-card">
+    <div class="card${editing ? ' edit-mode-card' : ''}" id="gen-edit-card">
       <p class="rules-intro" style="margin-bottom:1rem">${gen.intro}</p>
-      <div class="table-wrap">
-        <table class="ranking">
-          <thead><tr><th style="width:28px">#</th><th>Fase</th><th>Modalidad</th><th>Estaciones</th><th>Ronda especial</th><th>Clasifican</th></tr></thead>
-          <tbody>
-            <tr><td style="color:var(--muted)">1</td><td>Fase 1</td><td>Individual (1 vs 1)</td><td>${rc.f1.length}</td><td><span style="color:var(--danger)">🕵️ Impostor</span></td><td>1° jugador</td></tr>
-            <tr><td style="color:var(--muted)">2</td><td>Fase 2</td><td>Grupal (equipo vs equipo)</td><td>${rc.f2.length}</td><td><span style="color:#c060e8">🗣️ ¿Quién lo dijo?</span></td><td>1° equipo</td></tr>
-            <tr><td style="color:var(--muted)">3</td><td>Final</td><td>Todos contra todos</td><td>1 juego</td><td>—</td><td>—</td></tr>
-          </tbody>
-        </table>
+      <div class="phase-timeline">
+        <div class="phase-timeline-item">
+          <div class="phase-timeline-dot">1</div>
+          <div class="phase-timeline-body">
+            <div class="phase-timeline-title">Fase 1 — Individual (1 vs 1)</div>
+            <div class="phase-timeline-meta">
+              <span class="score-pill lose phase-timeline-tag">${rc.f1.length} estaciones</span>
+              <span class="score-pill draw phase-timeline-tag" style="color:var(--danger);background:rgba(255,95,95,0.12)">🕵️ Ronda especial: Impostor</span>
+              <span class="score-pill win phase-timeline-tag">Clasifica: 1° jugador</span>
+            </div>
+          </div>
+        </div>
+        <div class="phase-timeline-item">
+          <div class="phase-timeline-dot">2</div>
+          <div class="phase-timeline-body">
+            <div class="phase-timeline-title">Fase 2 — Grupal (equipo vs equipo)</div>
+            <div class="phase-timeline-meta">
+              <span class="score-pill lose phase-timeline-tag">${rc.f2.length} estaciones</span>
+              <span class="score-pill draw phase-timeline-tag" style="color:#c060e8;background:rgba(192,96,232,0.12)">🗣️ Ronda especial: ¿Quién lo dijo?</span>
+              <span class="score-pill win phase-timeline-tag">Clasifica: 1° equipo</span>
+            </div>
+          </div>
+        </div>
+        <div class="phase-timeline-item">
+          <div class="phase-timeline-dot">3</div>
+          <div class="phase-timeline-body">
+            <div class="phase-timeline-title">Final — Todos contra todos</div>
+            <div class="phase-timeline-meta">
+              <span class="score-pill lose phase-timeline-tag">1 juego</span>
+            </div>
+          </div>
+        </div>
       </div>
       ${genEditBody}
     </div>
 
-    <div class="card">
+    <div class="card${editing ? ' edit-mode-card' : ''}">
       <p class="rules-intro" style="margin-bottom:1rem">${gen.pointsIntro}</p>
       <div class="score-pills" style="display:flex;flex-wrap:wrap;gap:0.5rem">
         <span class="score-pill win">Victoria · pts según el juego</span>
@@ -3381,8 +3544,8 @@ function renderReglas() {
     <div class="section-header anchor-target" id="reglas-impostor" style="margin-top:2rem">
       <span class="section-title"><span class="dot-indicator impostor"></span>Ronda especial — Impostor</span>
     </div>
-    <details class="rule-card" id="imp-rule-card">
-      <summary><span class="rule-name"><span class="rule-icon-badge impostor">🕵️</span>Impostor (todos contra todos)${editing?'<span class="rule-edited-badge">✏️ editable</span>':''}</span><span class="rule-chevron">▾</span></summary>
+    <details class="rule-card${editing ? ' edit-mode' : ''}" id="imp-rule-card">
+      <summary><span class="rule-name"><span class="rule-icon-badge impostor">🕵️</span>Impostor (todos contra todos)${editing?'<span class="rule-edited-badge">✏️ editable</span>':''}</span><span class="rule-summary-right">${(state.impostor && Array.isArray(state.impostor.rounds) && state.impostor.rounds.length > 0) ? '<span class="station-badge done">✓ Jugada</span>' : ''}<span class="rule-chevron">▾</span></span></summary>
       <div class="rule-body">
         <p class="rule-desc">${imp.desc}</p>
         <div class="rule-footer">
@@ -3419,7 +3582,7 @@ function renderReglas() {
       <span class="section-title"><span class="dot-indicator quien"></span>Ronda especial — ¿Quién lo dijo?</span>
     </div>
     <details class="rule-card" id="quien-rule-card">
-      <summary><span class="rule-name"><span class="rule-icon-badge quien">🗣️</span>¿Quién lo dijo? (por parejas de Fase 2)</span><span class="rule-chevron">▾</span></summary>
+      <summary><span class="rule-name"><span class="rule-icon-badge quien">🗣️</span>¿Quién lo dijo? (por parejas de Fase 2)</span><span class="rule-summary-right">${(window._qldTeamPoints && Object.keys(window._qldTeamPoints).length > 0) ? '<span class="station-badge done">✓ Jugada</span>' : ''}<span class="rule-chevron">▾</span></span></summary>
       <div class="rule-body">
         <p class="rule-desc">Se muestran frases, memes, imágenes, audios o videos cortados de famosos, fútbol, películas, series y dibujitos. Hay que adivinar quién lo dijo y/o cómo termina la frase. El buzzer del celular es individual (cada uno presiona con su propio nombre), pero lo que acierte suma para la pareja de Fase 2 a la que pertenece. Se juega hasta que una pareja llegue a 10 puntos, o hasta que se terminen las cartas del mazo — en ese caso gana la que tenga más puntos.</p>
         <div class="rule-footer">
@@ -3432,9 +3595,9 @@ function renderReglas() {
 
     <!-- RULETA DE COMODINES -->
     <div class="section-header anchor-target" id="reglas-ruleta" style="margin-top:2rem">
-      <span class="section-title"><span class="dot-indicator impostor"></span>Ruleta de comodines</span>
+      <span class="section-title"><span class="dot-indicator ruleta"></span>Ruleta de comodines</span>
     </div>
-    <div class="card">
+    <div class="card${editing ? ' edit-mode-card' : ''}">
       <p class="rules-intro" style="margin-bottom:1rem">Esto es todo lo que puede salir al girar la ruleta en Fase 1 y Fase 2. Ninguno mueve más de ${Math.max(1, ...COMODINES.map(c => Math.abs(c.delta||1)))} punto${Math.max(1, ...COMODINES.map(c => Math.abs(c.delta||1))) === 1 ? '' : 's'} de diferencia por defecto, pero podés ajustarlo al agregar uno nuevo.</p>
       <div style="display:flex;flex-direction:column;gap:0.5rem">
         ${COMODINES.map(c => `
@@ -3485,7 +3648,7 @@ function renderReglas() {
     <div class="section-header anchor-target" id="reglas-final" style="margin-top:2rem">
       <span class="section-title"><span class="dot-indicator final"></span>Fase Final</span>
     </div>
-    <div class="card">
+    <div class="card${editing ? ' edit-mode-card' : ''}">
       <p class="rules-intro" style="margin-bottom:0.9rem">${(FINAL_CONFIG && FINAL_CONFIG.intro) ? FINAL_CONFIG.intro : FINAL_CONFIG_DEFAULT.intro}</p>
       <div class="rule-label">Juego</div>
       ${(FINAL_CONFIG && FINAL_CONFIG.juego) ? `<div style="margin-bottom:0.9rem"><span class="match-game-badge" style="font-size:12px;padding:3px 10px;border-radius:99px;background:var(--gold-dim);color:var(--gold);font-weight:600">🏆 ${FINAL_CONFIG.juego}</span></div>` : `<p style="font-size:13px;color:var(--muted);font-style:italic;margin-bottom:0.9rem">Sin definir aún</p>`}
@@ -3533,6 +3696,55 @@ function renderReglas() {
   `;
 
   renderVarToggle(VarSwitch.enabled);
+
+  // Recordar si el Panel de control quedó abierto (para no cerrarlo en cada re-render)
+  const ctrlPanel = document.getElementById('ctrl-panel');
+  if (ctrlPanel) {
+    ctrlPanel.addEventListener('toggle', () => { _ctrlPanelOpen = ctrlPanel.open; });
+  }
+
+  initReglasScrollSpy();
+}
+
+// ── Chips sticky con scroll-spy: resalta la sección visible y agrega sombra al pegarse ──
+function initReglasScrollSpy() {
+  const wrap = document.getElementById('rules-chips-wrap');
+  const chips = Array.from(document.querySelectorAll('#reglas-root .rules-chips .rules-chip'));
+  if (!wrap || !chips.length) return;
+
+  if (window._reglasSpyObserver) { window._reglasSpyObserver.disconnect(); }
+  if (window._reglasStuckObserver) { window._reglasStuckObserver.disconnect(); }
+
+  const map = new Map();
+  chips.forEach(chip => {
+    const target = document.querySelector(chip.getAttribute('href'));
+    if (target) map.set(target, chip);
+  });
+
+  const spyObs = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      const chip = map.get(entry.target);
+      if (!chip || !entry.isIntersecting) return;
+      chips.forEach(c => c.classList.remove('active'));
+      chip.classList.add('active');
+    });
+  }, { rootMargin: '-140px 0px -65% 0px', threshold: 0 });
+  map.forEach((chip, target) => spyObs.observe(target));
+  window._reglasSpyObserver = spyObs;
+
+  // Sombra cuando el bloque de chips queda "pegado" arriba
+  let sentinel = document.getElementById('reglas-chips-sentinel');
+  if (!sentinel) {
+    sentinel = document.createElement('div');
+    sentinel.id = 'reglas-chips-sentinel';
+    sentinel.style.cssText = 'height:1px';
+  }
+  wrap.parentNode.insertBefore(sentinel, wrap);
+  const stuckObs = new IntersectionObserver(([entry]) => {
+    wrap.classList.toggle('stuck', !entry.isIntersecting);
+  }, { threshold: 0 });
+  stuckObs.observe(sentinel);
+  window._reglasStuckObserver = stuckObs;
 }
 
 // ── INTERRUPTOR GLOBAL DEL VAR ───────────────────────────────────
