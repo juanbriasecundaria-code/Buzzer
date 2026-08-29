@@ -1244,58 +1244,52 @@
   .fn-section { margin-bottom: 1.5rem; }
   .fn-board {
     position: relative;
-    background:
-      repeating-radial-gradient(ellipse at 18% 25%, rgba(120,80,30,0.22) 0px, transparent 5px),
-      repeating-radial-gradient(ellipse at 72% 55%, rgba(150,100,40,0.16) 0px, transparent 6px),
-      repeating-radial-gradient(ellipse at 40% 75%, rgba(100,65,20,0.18) 0px, transparent 4px),
-      repeating-radial-gradient(ellipse at 85% 15%, rgba(170,120,50,0.13) 0px, transparent 7px),
-      #b5895a;
-    border-radius: 10px;
-    border: 5px solid #6b4423;
-    box-shadow: inset 0 0 18px rgba(60,35,10,0.35), 0 4px 16px rgba(0,0,0,0.5);
-    padding: 2rem 1.5rem 1.5rem;
+    background: radial-gradient(ellipse at 50% 0%, rgba(245,200,66,0.07), transparent 65%), var(--surface);
+    border-radius: var(--radius-lg);
+    border: 0.5px solid var(--border2);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.03);
+    padding: 2.25rem 1.5rem 1.75rem;
     display: flex;
     flex-direction: column;
     align-items: center;
   }
   .fn-pin {
-    width: 16px; height: 16px;
+    width: 10px; height: 10px;
     border-radius: 50%;
-    background: radial-gradient(circle at 35% 35%, #ef5350, #b71c1c);
-    border: 1.5px solid #7f0000;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.5), inset 0 1px 2px rgba(255,100,100,0.3);
+    background: radial-gradient(circle at 35% 35%, #ffe9a8, var(--gold));
+    box-shadow: 0 2px 8px rgba(245,200,66,0.45);
     position: relative;
     z-index: 3;
-    margin-bottom: -8px;
+    margin-bottom: -6px;
     flex-shrink: 0;
   }
   .fn-pin::after {
     content: "";
     position: absolute;
-    bottom: -11px; left: 50%;
+    bottom: -10px; left: 50%;
     transform: translateX(-50%);
-    width: 2.5px; height: 12px;
-    background: linear-gradient(to bottom, #999, #666);
+    width: 2px; height: 11px;
+    background: linear-gradient(to bottom, rgba(255,255,255,0.22), rgba(255,255,255,0.05));
     border-radius: 0 0 2px 2px;
   }
   .fn-polaroid {
-    background: #f5f0e8;
-    padding: 8px 8px 36px 8px;
-    border-radius: 2px;
-    transform: rotate(-2.8deg);
-    box-shadow: 3px 5px 18px rgba(0,0,0,0.55), 0 1px 3px rgba(0,0,0,0.2);
+    background: #f7f3ea;
+    padding: 9px 9px 38px 9px;
+    border-radius: 3px;
+    transform: rotate(-1.6deg);
+    box-shadow: 0 14px 32px rgba(0,0,0,0.4), 0 2px 8px rgba(0,0,0,0.3);
     position: relative;
     width: 100%;
     max-width: 340px;
     cursor: pointer;
-    transition: transform 0.2s ease;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
     z-index: 2;
   }
-  .fn-polaroid:hover { transform: rotate(-1.5deg) scale(1.015); }
+  .fn-polaroid:hover { transform: rotate(-0.5deg) scale(1.012); box-shadow: 0 16px 36px rgba(0,0,0,0.45), 0 2px 8px rgba(0,0,0,0.3); }
   .fn-area {
     width: 100%;
     aspect-ratio: 4/3;
-    background: #2a2a36;
+    background: var(--surface2);
     overflow: hidden;
     display: flex;
     flex-direction: column;
@@ -1310,8 +1304,8 @@
     object-fit: cover;
     display: none;
   }
-  .fn-hint { display: flex; flex-direction: column; align-items: center; gap: 7px; color: #888; pointer-events: none; }
-  .fn-hint svg { opacity: 0.45; }
+  .fn-hint { display: flex; flex-direction: column; align-items: center; gap: 7px; color: var(--muted); pointer-events: none; }
+  .fn-hint svg { opacity: 0.5; }
   .fn-hint span { font-size: 12px; letter-spacing: 0.02em; }
   .fn-cap-display {
     position: absolute;
@@ -1319,7 +1313,7 @@
     text-align: center;
     font-family: Georgia, serif;
     font-size: 13px;
-    color: #6b4423;
+    color: #8a6d3d;
     font-style: italic;
     padding: 0 8px;
     white-space: nowrap;
@@ -1330,38 +1324,38 @@
     display: flex;
     align-items: center;
     gap: 10px;
-    margin-top: 1rem;
+    margin-top: 1.1rem;
     width: 100%;
     max-width: 340px;
   }
   .fn-cap-input {
     flex: 1;
-    background: rgba(0,0,0,0.25);
-    border: 0.5px solid rgba(255,255,255,0.12);
+    background: var(--surface2);
+    border: 0.5px solid var(--border2);
     border-radius: 6px;
     color: var(--text);
     font-size: 12px;
     font-family: inherit;
-    padding: 5px 10px;
+    padding: 6px 10px;
     outline: none;
     caret-color: var(--accent);
   }
   .fn-cap-input::placeholder { color: rgba(255,255,255,0.3); }
-  .fn-cap-input:focus { border-color: rgba(255,255,255,0.25); }
+  .fn-cap-input:focus { border-color: var(--gold); }
   .fn-btn {
-    background: rgba(0,0,0,0.25);
-    border: 0.5px solid rgba(255,255,255,0.12);
+    background: var(--surface2);
+    border: 0.5px solid var(--border2);
     border-radius: 6px;
-    color: rgba(255,255,255,0.5);
+    color: var(--muted);
     font-size: 12px;
     font-family: inherit;
-    padding: 5px 12px;
+    padding: 6px 12px;
     cursor: pointer;
     white-space: nowrap;
     transition: color 0.1s, border-color 0.1s;
     display: flex; align-items: center; gap: 5px;
   }
-  .fn-btn:hover { color: var(--text); border-color: rgba(255,255,255,0.3); }
+  .fn-btn:hover { color: var(--text); border-color: var(--gold); }
 
   /* MOTES DE LA NOCHE */
   .mote-item {
@@ -2939,9 +2933,19 @@ window.VarSwitch = (function () {
   <div id="my-next-f1" style="margin-bottom:0.75rem"></div>
   <div class="stats-grid" id="stats-fase1"></div>
 
-  <div id="f1-roster-admin"></div>
-
-  <div id="bonus-manual-f1"></div>
+  <!-- ── CONFIGURACIÓN DE FASE 1 (se carga una vez, al principio) ── -->
+  <details class="control-panel" id="f1-config-panel" style="margin-bottom:1.25rem">
+    <summary>
+      <span class="control-panel-title">🎛️ Configuración de Fase 1
+        <span class="control-panel-sub" style="display:block;font-weight:500">Jugadores y bonus manual (Kahoot)</span>
+      </span>
+      <span class="rule-chevron">▾</span>
+    </summary>
+    <div class="control-panel-body">
+      <div id="f1-roster-admin"></div>
+      <div id="bonus-manual-f1"></div>
+    </div>
+  </details>
 
   <div id="comodines-f1"></div>
 
@@ -2953,6 +2957,7 @@ window.VarSwitch = (function () {
     <span class="section-title"><span class="dot-indicator fase1"></span>Clasificación individual</span>
     <span class="especial-badge">★ 1° clasifica</span>
   </div>
+  <div style="font-size:11px;color:var(--muted);margin-bottom:0.6rem;line-height:1.5">Esp. = Impostor · 🎯 = bonus previo · 🃏 = apuestas · ⚖️ = ajuste manual</div>
   <div class="card" style="padding:0">
     <div class="table-wrap">
       <table class="ranking" id="ranking-fase1">
