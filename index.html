@@ -121,7 +121,10 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
 .team-btn:active{transform:scale(.97);opacity:.85}
 .team-a{background:var(--blue-dim);border-color:var(--blue);color:var(--blue)}
 .team-b{background:var(--gold-dim);border-color:var(--gold);color:var(--gold)}
-.team-indiv{background:var(--purple-dim);border-color:var(--purple);color:var(--purple);padding:.85rem;font-size:15px}
+.team-indiv{background:var(--purple-dim);border-color:var(--purple);color:var(--purple);padding:.7rem .85rem;font-size:15px;display:flex;align-items:center;gap:.55rem;text-align:left}
+.indiv-avatar-img{width:30px;height:30px;border-radius:50%;object-fit:cover;flex-shrink:0;border:1.5px solid var(--purple)}
+.indiv-avatar-fallback{width:30px;height:30px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;background:rgba(192,96,232,.22);border:1.5px solid var(--purple);color:var(--purple)}
+.indiv-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 #team-list-individual{display:none;grid-template-columns:1fr 1fr;gap:.6rem}
 #team-list-individual.show{display:grid}
 @media (max-width:360px){#team-list-individual{grid-template-columns:1fr}}
@@ -577,9 +580,29 @@ let indivFallbackTimer = null;
 function stopIndivListener(){
   if(indivFallbackTimer){ clearTimeout(indivFallbackTimer); indivFallbackTimer=null; }
   if(indivListener && fbDb){ try{ fbDb.ref('velada/qld/teams').off('value', indivListener); }catch(e){} indivListener=null; }
+  stopIndivPhotosListener();
+}
+// Fotos de los participantes — las publica velada.html (mismo mapa que usa
+// para los podios y avatares). Se leen por separado de la lista de nombres
+// para que una foto que se agregue en vivo actualice la grilla al toque.
+let qldPhotos = {};
+let lastIndivList = [];
+let indivPhotosListener = null;
+function stopIndivPhotosListener(){
+  if(indivPhotosListener && fbDb){ try{ fbDb.ref('velada/qld/photos').off('value', indivPhotosListener); }catch(e){} indivPhotosListener=null; }
+}
+function startIndivPhotosListener(){
+  stopIndivPhotosListener();
+  if(!fbDb) return;
+  indivPhotosListener = fbDb.ref('velada/qld/photos').on('value', snap=>{
+    const d = snap.val() || {};
+    qldPhotos = d.photos || {};
+    if(lastIndivList.length) renderIndividualPlayers(lastIndivList);
+  }, err=>{ console.warn('[QLD] No se pudieron leer las fotos:', err); });
 }
 function startIndividualPlayerListener(){
   stopIndivListener();
+  startIndivPhotosListener();
   const ref = fbDb.ref('velada/qld/teams');
   let resolved = false;
   const finish = list => {
@@ -614,9 +637,18 @@ function startIndividualPlayerListener(){
 }
 const DEFAULT_QLD_PLAYERS = ['Martin','Valentín','Laza','Tomás','Thiago','Lara','Totti','Risu','Cori','Flor'];
 function renderIndividualPlayers(list){
+  lastIndivList = list;
   const wrap = document.getElementById('team-list-individual');
   if(!wrap) return;
-  wrap.innerHTML = list.map(p => `<button class="team-btn team-indiv" onclick="selectTeam('${p.replace(/'/g,"\\'")}')">🎤 ${p}</button>`).join('');
+  wrap.innerHTML = list.map(p => `<button class="team-btn team-indiv" onclick="selectTeam('${p.replace(/'/g,"\\'")}')">${indivAvatarHtml(p)}<span class="indiv-name">${p}</span></button>`).join('');
+}
+// Avatar circular con la foto del participante (cargada en Fase 1 desde
+// velada.html); si todavía no tiene foto, cae a un círculo con su inicial.
+function indivAvatarHtml(name){
+  const photo = qldPhotos[name];
+  if(photo) return `<img class="indiv-avatar-img" src="${photo}" alt="">`;
+  const initial = (String(name||'?').trim()[0]||'?').toUpperCase();
+  return `<div class="indiv-avatar-fallback">${initial}</div>`;
 }
 
 // ── EDITOR DE NOMBRES (buzzer) ──────────────────────────────────
