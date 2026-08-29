@@ -118,6 +118,17 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
 .score-chip-recent{position:absolute;top:-6px;right:-6px;background:var(--green);color:#0a0a0e;font-size:9px;font-weight:900;padding:1px 5px;border-radius:99px;pointer-events:none}
 .score-chip{position:relative}
 
+/* ── AVATARES DE EQUIPO/JUGADOR (fotos sincronizadas desde velada.html) ── */
+.team-avatar-img{border-radius:50%;object-fit:cover;flex-shrink:0;border:1.5px solid var(--border2);display:block}
+.team-avatar-fallback{border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-weight:800;background:var(--purple-dim);color:var(--purple);border:1.5px solid var(--border2)}
+.team-avatar-duo{display:inline-flex;align-items:center;flex-shrink:0}
+.team-avatar-duo>*{margin-bottom:0}
+.team-avatar-duo>*:nth-child(2){margin-left:-9px}
+.team-avatar-duo>*:nth-child(1){z-index:2;position:relative}
+.score-chip .team-avatar-img,.score-chip .team-avatar-fallback,.score-chip .team-avatar-duo{margin-bottom:.25rem}
+.part-chip .team-avatar-img,.part-chip .team-avatar-fallback,.part-chip .team-avatar-duo{margin-bottom:.25rem}
+.ed-item-icon.has-avatar{display:flex;align-items:center;justify-content:center;width:auto;min-width:32px}
+
 /* ── COND TOP BAR ── */
 .cond-topbar{display:flex;gap:.4rem;padding:.6rem .75rem;align-items:center;flex-wrap:wrap}
 .cta-btn{padding:.5rem .85rem;border-radius:99px;border:1.5px solid var(--border2);background:var(--surface2);color:var(--text);font-family:inherit;font-size:12px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:.35rem;transition:border-color .15s,background .15s}
@@ -777,6 +788,7 @@ function initFirebase(){
       const d = snap.val();
       if(d && Array.isArray(d.teams)) applyTeams(d.teams);
     });
+    startPhotosListener();
     if(MODE==='participant'){
       fbStateRef.on('value', snap => { const d = snap.val(); if(d) applyLive(d); });
       fbDeckRef.on('value', snap => {
@@ -956,6 +968,39 @@ function applyTeams(newTeams){
   if(MODE === 'participant') renderPartScores();
 }
 
+// ── FOTOS (sincronizadas en vivo desde velada.html, misma foto que usan los podios de Fase 1/2) ──
+let qldPhotos = {};
+function startPhotosListener(){
+  if(!fbDb) return;
+  fbDb.ref('velada/qld/photos').on('value', snap => {
+    const d = snap.val() || {};
+    qldPhotos = d.photos || {};
+    renderScores();
+    if(MODE === 'participant') renderPartScores();
+    if(document.getElementById('pl-overlay') && document.getElementById('pl-overlay').classList.contains('open')) openPlayers();
+  });
+}
+// Avatar (foto o inicial) de un equipo/jugador. Si el equipo tiene dos
+// integrantes (equipo "Fulano / Mengano") se muestran ambas fotos
+// solapadas, igual que en velada.html.
+function teamAvatarHtml(t, size){
+  const members = (t.members && t.members.length) ? t.members : [t.label];
+  if(members.length > 1){
+    const s2 = Math.round(size * 0.86);
+    return `<div class="team-avatar-duo" style="height:${s2}px">`
+      + avatarPieceHtml(members[0], s2)
+      + avatarPieceHtml(members[1], s2)
+      + `</div>`;
+  }
+  return avatarPieceHtml(members[0], size);
+}
+function avatarPieceHtml(name, size){
+  const photo = qldPhotos[name];
+  if(photo) return `<img class="team-avatar-img" src="${photo}" style="width:${size}px;height:${size}px" alt="">`;
+  const initial = (String(name||'?').trim()[0]||'?').toUpperCase();
+  return `<div class="team-avatar-fallback" style="width:${size}px;height:${size}px;font-size:${Math.round(size*0.42)}px">${initial}</div>`;
+}
+
 // ── HELPERS ──
 function currentCard(){ return deck[cardIdx] || null; }
 function toast(msg){
@@ -1035,6 +1080,7 @@ function renderScores(){
     const shortLabel = (t.members && t.members.length) ? t.members.join(' & ') : t.label;
     return `<button class="score-chip ${leader?'leader':''}" onclick="quickAssignPrompt(${t.index})" title="${escapeHtml(t.label)}">
       ${recent ? '<span class="score-chip-recent">+</span>' : ''}
+      ${teamAvatarHtml(t, 28)}
       <div class="score-chip-name">${escapeHtml(shortLabel)}</div>
       <div class="score-chip-pts">${pts}</div>
     </button>`;
@@ -1050,6 +1096,7 @@ function renderPartScores(){
     const leader = max > 0 && pts === max;
     const shortLabel = (t.members && t.members.length) ? t.members.join(' & ') : t.label;
     return `<div class="part-chip ${leader?'leader':''}" title="${escapeHtml(t.label)}">
+      ${teamAvatarHtml(t, 24)}
       <div class="part-chip-name">${escapeHtml(shortLabel)}</div>
       <div class="part-chip-pts">${pts}</div>
     </div>`;
@@ -2294,7 +2341,7 @@ function openPlayers(){
     } else {
       wrap.innerHTML = teams.map(t => `
         <div class="ed-item">
-          <div class="ed-item-icon">👥</div>
+          <div class="ed-item-icon has-avatar">${teamAvatarHtml(t, 30)}</div>
           <div class="ed-item-body">
             <div class="ed-item-title">${escapeHtml(t.label)}</div>
             <div class="ed-item-sub">${(t.members||[]).map(escapeHtml).join(' & ') || 'sin apodos cargados'}</div>
