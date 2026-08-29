@@ -474,7 +474,7 @@ function renderBetCard(myName, myIdx) {
     const mine = (bets[key] || {})[myName];
     const nA = String(PLAYERS[m[1]] || '?').split(' ')[0];
     const nB = String(PLAYERS[m[2]] || '?').split(' ')[0];
-    const game = GAMES_F1_DEFAULT[m[3]] || '';
+    const game = gameNameF1(m[3]);
     // Solo se puede apostar la ronda que el conductor tenga abierta
     const bettable = bw.open && m[0] === bw.round && !res;
 
