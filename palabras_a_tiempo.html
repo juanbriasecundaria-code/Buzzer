@@ -1654,6 +1654,8 @@ function requestVAR(team) {
   if (!VarSwitch.enabled) return;   // VAR desactivado desde velada.html
   if (team !== 'a' && team !== 'b') return;
   if (varUses[team] <= 0) return;
+  playWhistle();
+  if (navigator.vibrate) navigator.vibrate([60, 40, 60, 40, 140]);
   const pin = getStoredPin();
   if (pin) {
     openPinOverlay(team);
@@ -1674,8 +1676,6 @@ function _doRequestVAR(team) {
   ov.classList.remove('open', 'closing', 'reviewing');
   void ov.offsetWidth;
   ov.classList.add('open');
-  playWhistle();
-  if (navigator.vibrate) navigator.vibrate([60, 40, 60, 40, 140]);
   clearTimeout(_varTimer);
   _varTimer = setTimeout(() => ov.classList.add('reviewing'), 1150);
 }
