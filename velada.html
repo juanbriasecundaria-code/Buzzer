@@ -862,6 +862,7 @@
   .rule-icon-badge.impostor { background: rgba(255,95,95,0.12); }
   .rule-icon-badge.quien { background: rgba(192,96,232,0.12); }
   .rule-icon-badge.final { background: var(--gold-dim); }
+  .rule-icon-badge.ruleta { background: rgba(255,157,77,0.15); }
   .rule-chevron { color: var(--muted); font-size: 11px; transition: transform 0.2s; flex-shrink: 0; }
   .rule-card[open] .rule-chevron { transform: rotate(180deg); color: var(--accent); }
   .rule-card[open] summary { border-bottom: 0.5px solid var(--border); }
@@ -2949,8 +2950,6 @@ window.VarSwitch = (function () {
 
   <div id="comodines-f1"></div>
 
-  <div id="adjust-f1"></div>
-
   <div id="podium-fase1"></div>
 
   <div class="section-header">
@@ -3007,8 +3006,6 @@ window.VarSwitch = (function () {
   </details>
 
   <div id="comodines-f2"></div>
-
-  <div id="adjust-f2"></div>
 
   <div id="podium-fase2"></div>
 
@@ -3606,8 +3603,8 @@ function renderReglas() {
         <a href="#reglas-impostor" class="rules-chip"><span class="dot-indicator impostor"></span>Impostor</a>
         <a href="#reglas-fase2" class="rules-chip"><span class="dot-indicator fase2"></span>Fase 2</a>
         <a href="#reglas-quien" class="rules-chip"><span class="dot-indicator quien"></span>¿Quién lo dijo?</a>
-        <a href="#reglas-ruleta" class="rules-chip"><span class="dot-indicator ruleta"></span>Ruleta</a>
         <a href="#reglas-final" class="rules-chip"><span class="dot-indicator final"></span>Final</a>
+        <a href="#reglas-ruleta" class="rules-chip"><span class="dot-indicator ruleta"></span>Ruleta</a>
       </div>
     </div>
 
@@ -3743,57 +3740,6 @@ function renderReglas() {
       </div>
     </details>
 
-    <!-- RULETA DE COMODINES -->
-    <div class="section-header anchor-target" id="reglas-ruleta" style="margin-top:2rem">
-      <span class="section-title"><span class="dot-indicator ruleta"></span>Ruleta de comodines</span>
-    </div>
-    <div class="card${editing ? ' edit-mode-card' : ''}">
-      <p class="rules-intro" style="margin-bottom:1rem">Esto es todo lo que puede salir al girar la ruleta en Fase 1 y Fase 2. Ninguno mueve más de ${Math.max(1, ...COMODINES.map(c => Math.abs(c.delta||1)))} punto${Math.max(1, ...COMODINES.map(c => Math.abs(c.delta||1))) === 1 ? '' : 's'} de diferencia por defecto, pero podés ajustarlo al agregar uno nuevo.</p>
-      <div style="display:flex;flex-direction:column;gap:0.5rem">
-        ${COMODINES.map(c => `
-          <div style="display:flex;align-items:center;gap:0.6rem;padding:0.6rem 0.7rem;border:1px solid var(--border);border-radius:var(--radius);background:var(--surface2)">
-            <span style="font-size:20px;flex-shrink:0">${c.emoji}</span>
-            <div style="flex:1;min-width:0">
-              <div style="font-size:13px;font-weight:800;color:${c.kind === 'bueno' ? 'var(--success)' : 'var(--danger)'}">${c.name}</div>
-              <div style="font-size:11.5px;color:var(--muted);line-height:1.4;margin-top:0.1rem">${c.desc}</div>
-              <div style="font-size:10px;color:var(--muted);margin-top:0.25rem;text-transform:uppercase;letter-spacing:0.04em">${COMODIN_WHEN_LABEL[c.when] || c.when}</div>
-            </div>
-            ${editing ? `<button onclick="deleteComodinCatalog('${c.key}')" title="Eliminar" style="padding:0.35rem 0.5rem;border-radius:8px;border:1px solid rgba(255,95,95,0.25);background:transparent;color:var(--danger);cursor:pointer;font-size:12px;flex-shrink:0">✕</button>` : ''}
-          </div>`).join('')}
-      </div>
-      ${editing ? `
-        <div style="border-top:0.5px solid var(--border);margin-top:1rem;padding-top:1rem">
-          <div class="rule-label" style="margin-top:0">Agregar un comodín nuevo</div>
-          <div style="display:flex;flex-direction:column;gap:0.55rem">
-            <div style="display:flex;gap:0.5rem">
-              <input id="nc-emoji" type="text" placeholder="🎲" maxlength="4" style="width:56px;padding:0.55rem 0.5rem;text-align:center;border-radius:var(--radius);border:1px solid var(--border2);background:var(--surface2);color:var(--text);font-size:16px">
-              <input id="nc-name" type="text" placeholder="Nombre del comodín..." style="flex:1;padding:0.55rem 0.75rem;border-radius:var(--radius);border:1px solid var(--border2);background:var(--surface2);color:var(--text);font-size:13px">
-            </div>
-            <input id="nc-desc" type="text" placeholder="Descripción que se muestra al salir..." style="padding:0.55rem 0.75rem;border-radius:var(--radius);border:1px solid var(--border2);background:var(--surface2);color:var(--text);font-size:13px">
-            <div style="display:flex;gap:0.5rem;flex-wrap:wrap">
-              <select id="nc-kind" style="flex:1;min-width:110px;padding:0.55rem 0.5rem;border-radius:var(--radius);border:1px solid var(--border2);background:var(--surface2);color:var(--text);font-size:13px">
-                <option value="bueno">✅ Comodín bueno</option>
-                <option value="malo">❌ Comodín malo</option>
-              </select>
-              <select id="nc-when" style="flex:1;min-width:150px;padding:0.55rem 0.5rem;border-radius:var(--radius);border:1px solid var(--border2);background:var(--surface2);color:var(--text);font-size:13px">
-                <option value="now">Al toque (ya mismo)</option>
-                <option value="target">Le roba puntos a otro</option>
-                <option value="donate">Dona puntos al último</option>
-                <option value="win">En su próxima victoria</option>
-                <option value="bonus">En su próximo bonus</option>
-                <option value="lose">Si pierde la próxima</option>
-              </select>
-              <input id="nc-delta" type="number" step="1" placeholder="±pts" value="1" style="width:80px;padding:0.55rem 0.5rem;border-radius:var(--radius);border:1px solid var(--border2);background:var(--surface2);color:var(--text);font-size:13px">
-            </div>
-            <div style="font-size:11px;color:var(--muted)">"Al toque" aplica los puntos ya mismo. "Roba"/"Dona" mueven puntos entre jugadores en el momento. Las otras tres quedan pendientes hasta que se cargue el próximo resultado de esa persona o equipo.</div>
-            <button class="btn" style="padding:0.6rem 1rem" onclick="addComodinCatalog()">+ Agregar comodín</button>
-          </div>
-        </div>
-        <div style="margin-top:0.75rem">
-          <button class="btn btn-danger" style="width:100%;padding:0.55rem;font-size:12.5px" onclick="resetComodinesConfig()">↩️ Restaurar comodines originales</button>
-        </div>` : ''}
-    </div>
-
     <!-- FINAL -->
     <div class="section-header anchor-target" id="reglas-final" style="margin-top:2rem">
       <span class="section-title"><span class="dot-indicator final"></span>Fase Final</span>
@@ -3831,6 +3777,60 @@ function renderReglas() {
           <button class="final-edit-save" onclick="saveReglasFinalEdits()">Guardar cambios</button>
         </div>` : ''}
     </div>
+
+    <!-- RULETA DE COMODINES -->
+    <div class="section-header anchor-target" id="reglas-ruleta" style="margin-top:2rem">
+      <span class="section-title"><span class="dot-indicator ruleta"></span>Ruleta de comodines</span>
+    </div>
+    <details class="rule-card${editing ? ' edit-mode' : ''}" id="ruleta-rule-card">
+      <summary><span class="rule-name"><span class="rule-icon-badge ruleta">🎰</span>Todo lo que puede salir${editing?'<span class="rule-edited-badge">✏️ editable</span>':''}</span><span class="rule-summary-right"><span class="rule-chevron">▾</span></span></summary>
+      <div class="rule-body">
+        <p class="rules-intro" style="margin-bottom:1rem">Esto es todo lo que puede salir al girar la ruleta en Fase 1 y Fase 2. Ninguno mueve más de ${Math.max(1, ...COMODINES.map(c => Math.abs(c.delta||1)))} punto${Math.max(1, ...COMODINES.map(c => Math.abs(c.delta||1))) === 1 ? '' : 's'} de diferencia por defecto, pero podés ajustarlo al agregar uno nuevo.</p>
+        <div style="display:flex;flex-direction:column;gap:0.5rem">
+          ${COMODINES.map(c => `
+            <div style="display:flex;align-items:center;gap:0.6rem;padding:0.6rem 0.7rem;border:1px solid var(--border);border-radius:var(--radius);background:var(--surface2)">
+              <span style="font-size:20px;flex-shrink:0">${c.emoji}</span>
+              <div style="flex:1;min-width:0">
+                <div style="font-size:13px;font-weight:800;color:${c.kind === 'bueno' ? 'var(--success)' : 'var(--danger)'}">${c.name}</div>
+                <div style="font-size:11.5px;color:var(--muted);line-height:1.4;margin-top:0.1rem">${c.desc}</div>
+                <div style="font-size:10px;color:var(--muted);margin-top:0.25rem;text-transform:uppercase;letter-spacing:0.04em">${COMODIN_WHEN_LABEL[c.when] || c.when}</div>
+              </div>
+              ${editing ? `<button onclick="deleteComodinCatalog('${c.key}')" title="Eliminar" style="padding:0.35rem 0.5rem;border-radius:8px;border:1px solid rgba(255,95,95,0.25);background:transparent;color:var(--danger);cursor:pointer;font-size:12px;flex-shrink:0">✕</button>` : ''}
+            </div>`).join('')}
+        </div>
+        ${editing ? `
+          <div style="border-top:0.5px solid var(--border);margin-top:1rem;padding-top:1rem">
+            <div class="rule-label" style="margin-top:0">Agregar un comodín nuevo</div>
+            <div style="display:flex;flex-direction:column;gap:0.55rem">
+              <div style="display:flex;gap:0.5rem">
+                <input id="nc-emoji" type="text" placeholder="🎲" maxlength="4" style="width:56px;padding:0.55rem 0.5rem;text-align:center;border-radius:var(--radius);border:1px solid var(--border2);background:var(--surface2);color:var(--text);font-size:16px">
+                <input id="nc-name" type="text" placeholder="Nombre del comodín..." style="flex:1;padding:0.55rem 0.75rem;border-radius:var(--radius);border:1px solid var(--border2);background:var(--surface2);color:var(--text);font-size:13px">
+              </div>
+              <input id="nc-desc" type="text" placeholder="Descripción que se muestra al salir..." style="padding:0.55rem 0.75rem;border-radius:var(--radius);border:1px solid var(--border2);background:var(--surface2);color:var(--text);font-size:13px">
+              <div style="display:flex;gap:0.5rem;flex-wrap:wrap">
+                <select id="nc-kind" style="flex:1;min-width:110px;padding:0.55rem 0.5rem;border-radius:var(--radius);border:1px solid var(--border2);background:var(--surface2);color:var(--text);font-size:13px">
+                  <option value="bueno">✅ Comodín bueno</option>
+                  <option value="malo">❌ Comodín malo</option>
+                </select>
+                <select id="nc-when" style="flex:1;min-width:150px;padding:0.55rem 0.5rem;border-radius:var(--radius);border:1px solid var(--border2);background:var(--surface2);color:var(--text);font-size:13px">
+                  <option value="now">Al toque (ya mismo)</option>
+                  <option value="target">Le roba puntos a otro</option>
+                  <option value="donate">Dona puntos al último</option>
+                  <option value="win">En su próxima victoria</option>
+                  <option value="bonus">En su próximo bonus</option>
+                  <option value="lose">Si pierde la próxima</option>
+                </select>
+                <input id="nc-delta" type="number" step="1" placeholder="±pts" value="1" style="width:80px;padding:0.55rem 0.5rem;border-radius:var(--radius);border:1px solid var(--border2);background:var(--surface2);color:var(--text);font-size:13px">
+              </div>
+              <div style="font-size:11px;color:var(--muted)">"Al toque" aplica los puntos ya mismo. "Roba"/"Dona" mueven puntos entre jugadores en el momento. Las otras tres quedan pendientes hasta que se cargue el próximo resultado de esa persona o equipo.</div>
+              <button class="btn" style="padding:0.6rem 1rem" onclick="addComodinCatalog()">+ Agregar comodín</button>
+            </div>
+          </div>
+          <div style="margin-top:0.75rem">
+            <button class="btn btn-danger" style="width:100%;padding:0.55rem;font-size:12.5px" onclick="resetComodinesConfig()">↩️ Restaurar comodines originales</button>
+          </div>` : ''}
+      </div>
+    </details>
   `;
 
   renderVarToggle(VarSwitch.enabled);
@@ -4729,6 +4729,7 @@ let state = {
   bets: {},      // key "r-a-b" (F1_FIXTURE) => { nombreApostador: idxGanadorApostado }
   betsOverride: {}, // override manual del total de apuestas de un jugador: nombre => pts
   betsF2: {},    // key "r-a-b" (F2_FIXTURE) => { nombreApostador: idxEquipoGanadorApostado }
+  betsOverrideF2: {}, // override manual del total de apuestas de un equipo (Fase 2): nombre => pts
   adjust: { f1: [], f2: [] }, // ajustes manuales: [{id, name, pts, label, ts}]
   betWindow: { open: false, round: 0 }, // ventana de apuestas de Fase 1: qué ronda está abierta
   betWindowF2: { open: false, round: 0 }, // ventana de apuestas de Fase 2: qué ronda está abierta
@@ -5280,6 +5281,14 @@ function getTeamPoints() {
     if (net) pts[tIdx].betsF2 = (pts[tIdx].betsF2 || 0) + net;
   });
 
+  // Override manual de apuestas de Fase 2: pisa el valor calculado por equipo
+  const betsOverrideF2 = state.betsOverrideF2 || {};
+  TEAMS.forEach((name, idx) => {
+    if (Object.prototype.hasOwnProperty.call(betsOverrideF2, name)) {
+      pts[idx].betsF2 = Number(betsOverrideF2[name]) || 0;
+    }
+  });
+
   // Comodines de la ruleta (solo los ya resueltos suman/restan)
   const comosF2 = state.comodinesF2 || [];
   TEAMS.forEach((name, idx) => {
@@ -5422,7 +5431,6 @@ function renderFase1() {
   renderBonusManualF1();
   renderBetControl();
   renderComodinesPanel('f1');
-  renderAdjustPanel('f1');
   renderNextMatch('f1');
   renderMyNext('f1');
   const ppts = getPlayerPoints();
@@ -5880,7 +5888,6 @@ function renderFase2() {
   renderF2RosterAdmin();
   renderBetControlF2();
   renderComodinesPanel('f2');
-  renderAdjustPanel('f2');
   renderNextMatch('f2');
   renderMyNext('f2');
   const tpts = getTeamPoints();
@@ -5899,7 +5906,7 @@ function renderFase2() {
   if (theadRowF2) {
     const totalRoundsF2 = F2_FIXTURE.reduce((m, x) => Math.max(m, x[0]), 0);
     const roundThs = Array.from({length: totalRoundsF2}, (_, i) => `<th>R${i+1}</th>`).join('');
-    theadRowF2.innerHTML = `<th style="width:36px">#</th><th>Equipo</th>${roundThs}<th title="¿Quién lo dijo? — puntos individuales sumados al equipo. Tocá para editar" style="color:var(--purple)">🗣️ QLD</th><th title="Apuestas acertadas">🃏</th><th style="text-align:right">Total</th>`;
+    theadRowF2.innerHTML = `<th style="width:36px">#</th><th>Equipo</th>${roundThs}<th title="¿Quién lo dijo? — puntos individuales sumados al equipo. Tocá para editar" style="color:var(--purple)">🗣️ QLD</th><th title="Apuestas acertadas — tocá para editar">🃏</th><th style="text-align:right">Total</th>`;
   }
 
   const tbody = document.getElementById('tbody-fase2');
@@ -5923,9 +5930,10 @@ function renderFase2() {
     const qldCell = pts.qld > 0
       ? `<td class="round-pts" onclick="editQldPts(${i})" style="cursor:pointer;color:var(--purple);font-weight:800" title="Puntos de ¿Quién lo dijo? — tocá para editar">${pts.qld}</td>`
       : `<td class="round-pts pending" onclick="editQldPts(${i})" style="cursor:pointer" title="Tocá para cargar los puntos de ¿Quién lo dijo?">—</td>`;
+    const betsOvF2 = Object.prototype.hasOwnProperty.call(state.betsOverrideF2 || {}, n);
     const betsCell = pts.betsF2
-      ? `<td class="round-pts win" title="Apuestas acertadas">+${pts.betsF2}</td>`
-      : `<td class="round-pts pending" title="Apuestas acertadas">—</td>`;
+      ? `<td class="round-pts win${betsOvF2 ? ' overridden' : ''}" onclick="editBetsPtsF2('${nSafe}')" style="cursor:pointer" title="Apuestas acertadas — tocá para editar">+${pts.betsF2}</td>`
+      : `<td class="round-pts pending${betsOvF2 ? ' overridden' : ''}" onclick="editBetsPtsF2('${nSafe}')" style="cursor:pointer" title="Tocá para editar los puntos de apuestas">—</td>`;
     return `<tr class="${rowClass}">
       <td><div class="pos-badge ${badgeClass}">${pos+1}</div></td>
       <td class="player-name" style="font-size:12px">${playerAvatarHtml(n, i)}<span>${n}</span></td>
@@ -6329,40 +6337,29 @@ function editBetsPts(name) {
   renderFase1();
 }
 
-// Puntos manuales (columna ⚖️): suma o resta libre, con motivo opcional
-function editManualPts(phase, name) {
-  state.adjust = state.adjust || { f1: [], f2: [] };
-  state.adjust[phase] = state.adjust[phase] || [];
-  const mine = state.adjust[phase].filter(a => a.name === name);
-  const total = mine.reduce((s, a) => s + (Number(a.pts) || 0), 0);
-  const who = String(name).split('/')[0].trim().split(' ')[0];
-  const detail = mine.length
-    ? '\n\nActual: ' + mine.map(a => `${a.pts > 0 ? '+' : ''}${a.pts}${a.label ? ' (' + a.label + ')' : ''}`).join(', ') + ` = ${total > 0 ? '+' : ''}${total}`
-    : '';
+// Puntos de apuestas de Fase 2 (columna 🃏): normalmente se calculan solos a
+// partir de lo que apuestan los invitados por los duelos de equipos, pero se
+// pueden pisar a mano por equipo.
+function editBetsPtsF2(name) {
+  state.betsOverrideF2 = state.betsOverrideF2 || {};
+  const cur = state.betsOverrideF2[name];
+  const who = String(name).split('/')[0].trim();
   const val = prompt(
-    `Puntos manuales para ${who}${detail}\n\n` +
-    `Escribí cuánto sumar o restar (ej: 2, -1, 0.5).\n` +
-    `Escribí 0 o dejalo vacío para borrar todos los suyos.`,
-    ''
+    `Puntos de apuestas para ${who}\n\n` +
+    `Escribí un número para fijarlo a mano.\n` +
+    `Dejalo vacío para volver al valor calculado automáticamente.`,
+    (cur !== undefined && cur !== null) ? String(cur) : ''
   );
-  if (val === null) return;
-  if (String(val).trim() === '' || parseFloat(val) === 0) {
-    state.adjust[phase] = state.adjust[phase].filter(a => a.name !== name);
-    saveState();
-    if (phase === 'f1') renderFase1(); else renderFase2();
-    showToast('⚖️', 'Puntos manuales de ' + who + ' borrados', true);
-    return;
+  if (val === null) return; // canceló
+  if (String(val).trim() === '') {
+    delete state.betsOverrideF2[name];
+  } else {
+    const num = parseFloat(val);
+    if (isNaN(num)) { showToast('⚠️', 'Poné un número válido', false); return; }
+    state.betsOverrideF2[name] = num;
   }
-  const num = parseFloat(val);
-  if (isNaN(num)) { showToast('⚠️', 'Poné un número válido', false); return; }
-  const label = (prompt('Motivo (opcional)', '') || '').trim();
-  state.adjust[phase].push({
-    id: 'a' + Date.now() + Math.floor(Math.random() * 999),
-    name: name, pts: num, label: label, ts: Date.now()
-  });
   saveState();
-  if (phase === 'f1') renderFase1(); else renderFase2();
-  showToast('⚖️', who + ' ' + (num > 0 ? '+' : '') + num, true);
+  renderFase2();
 }
 
 // Puntos de ¿Quién lo dijo? (columna 🗣️ QLD de Fase 2): normalmente llegan
@@ -6548,89 +6545,6 @@ function renderBetControlF2() {
       </div>
       ${body}
     </div>`;
-}
-
-// ── AJUSTES MANUALES DE PUNTAJE (Fase 1 y Fase 2) ────────────────────
-// Para todo lo que surge en la noche y no encaja en el fixture: una prenda
-// cumplida, un desempate a mano, una penalización, un premio sorpresa.
-let _adjustOpen = { f1: false, f2: false };
-function toggleAdjust(phase) { _adjustOpen[phase] = !_adjustOpen[phase]; renderAdjustPanel(phase); }
-
-function renderAdjustPanel(phase) {
-  const el = document.getElementById('adjust-' + phase);
-  if (!el) return;
-  const names = phase === 'f1' ? PLAYERS : TEAMS;
-  const list = ((state.adjust || {})[phase]) || [];
-  const open = _adjustOpen[phase];
-  const accent = phase === 'f1' ? 'var(--accent)' : 'var(--info)';
-
-  const chips = list.map(a => {
-    const pos = (Number(a.pts) || 0) >= 0;
-    const col = pos ? 'var(--success)' : 'var(--danger)';
-    const bg  = pos ? 'rgba(78,203,126,0.1)' : 'rgba(255,95,95,0.1)';
-    return `<span style="display:inline-flex;align-items:center;gap:5px;padding:4px 8px 4px 10px;border-radius:99px;background:${bg};border:1px solid ${col};font-size:12px;font-weight:600;color:${col}">
-      ${String(a.name).split('/')[0].trim().split(' ')[0]} ${pos ? '+' : ''}${a.pts}${a.label ? ' · <span style="color:var(--muted);font-weight:500">' + escHtmlName(a.label) + '</span>' : ''}
-      <button onclick="deleteAdjust('${phase}','${a.id}')" title="Quitar" style="border:none;background:transparent;color:${col};cursor:pointer;font-size:12px;padding:0 2px;line-height:1">✕</button>
-    </span>`;
-  }).join('');
-
-  let form = '';
-  if (open) {
-    const opts = names.map(n => `<option value="${escHtmlName(n)}">${escHtmlName(n)}</option>`).join('');
-    form = `
-      <div style="margin-top:0.85rem;display:flex;flex-direction:column;gap:0.5rem">
-        <select id="adj-name-${phase}" style="padding:0.55rem 0.65rem;border-radius:var(--radius);border:1px solid var(--border2);background:var(--surface2);color:var(--text);font-size:13px;font-family:inherit">${opts}</select>
-        <div style="display:flex;gap:0.5rem">
-          <input id="adj-pts-${phase}" type="number" step="0.5" value="1" placeholder="Pts"
-            style="width:80px;padding:0.55rem;border-radius:var(--radius);border:1px solid var(--border2);background:var(--surface2);color:var(--text);font-size:13px;text-align:center;font-family:inherit">
-          <input id="adj-label-${phase}" type="text" placeholder="Motivo (opcional)" maxlength="40"
-            onkeydown="if(event.key==='Enter')addAdjust('${phase}')"
-            style="flex:1;min-width:0;padding:0.55rem 0.65rem;border-radius:var(--radius);border:1px solid var(--border2);background:var(--surface2);color:var(--text);font-size:13px;font-family:inherit">
-        </div>
-        <div style="font-size:11px;color:var(--muted)">Usá negativos para restar (ej: -1). Se puede cargar más de un ajuste por ${phase === 'f1' ? 'jugador' : 'equipo'}.</div>
-        <button class="btn btn-primary" style="width:100%" onclick="addAdjust('${phase}')">+ Agregar ajuste</button>
-      </div>`;
-  }
-
-  el.innerHTML = `
-    <div class="card" style="margin-bottom:1.25rem">
-      <div style="display:flex;align-items:center;justify-content:space-between;gap:0.5rem">
-        <span style="font-size:12px;font-weight:600;color:${open ? accent : 'var(--muted)'}">⚖️ Puntos manuales</span>
-        <button class="rules-edit-toggle" onclick="toggleAdjust('${phase}')">${open ? 'Cerrar' : (list.length ? 'Editar' : 'Cargar')}</button>
-      </div>
-      ${list.length ? `<div style="display:flex;flex-wrap:wrap;gap:0.4rem;margin-top:0.7rem">${chips}</div>` : ''}
-      ${form}
-    </div>`;
-}
-
-function addAdjust(phase) {
-  const nameEl = document.getElementById('adj-name-' + phase);
-  const ptsEl  = document.getElementById('adj-pts-' + phase);
-  const lblEl  = document.getElementById('adj-label-' + phase);
-  if (!nameEl || !ptsEl) return;
-  const name = nameEl.value;
-  const pts  = parseFloat(ptsEl.value);
-  if (!name || isNaN(pts) || pts === 0) { showToast('⚠️', 'Elegí a quién y cuántos puntos', false); return; }
-  state.adjust = state.adjust || { f1: [], f2: [] };
-  state.adjust[phase] = state.adjust[phase] || [];
-  state.adjust[phase].push({
-    id: 'a' + Date.now() + Math.floor(Math.random() * 999),
-    name: name, pts: pts,
-    label: (lblEl && lblEl.value.trim()) || '',
-    ts: Date.now()
-  });
-  saveState();
-  if (lblEl) lblEl.value = '';
-  ptsEl.value = '1';
-  if (phase === 'f1') renderFase1(); else renderFase2();
-  showToast('⚖️', String(name).split('/')[0].trim().split(' ')[0] + ' ' + (pts > 0 ? '+' : '') + pts, true);
-}
-
-function deleteAdjust(phase, id) {
-  state.adjust = state.adjust || { f1: [], f2: [] };
-  state.adjust[phase] = (state.adjust[phase] || []).filter(a => a.id !== id);
-  saveState();
-  if (phase === 'f1') renderFase1(); else renderFase2();
 }
 
 // ── COMODINES: panel en Fase 1 y Fase 2 ──────────────────────────────
@@ -7208,6 +7122,7 @@ function resetEverything() {
       state.bets = {};
       state.betsOverride = {};
       state.betsF2 = {};
+      state.betsOverrideF2 = {};
       state.betWindow = { open: false, round: 0 };
       state.betWindowF2 = { open: false, round: 0 };
       state.qldOverride = {};
