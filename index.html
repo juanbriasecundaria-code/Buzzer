@@ -550,10 +550,30 @@ function selectGame(gameId){
 
 // Lista de jugadores para el modo individual — se lee del roster de equipos publicado por velada.html.
 let indivListener = null;
-function stopIndivListener(){ if(indivListener && fbDb){ try{ fbDb.ref('velada/qld/teams').off('value', indivListener); }catch(e){} indivListener=null; } }
+let indivFallbackTimer = null;
+function stopIndivListener(){
+  if(indivFallbackTimer){ clearTimeout(indivFallbackTimer); indivFallbackTimer=null; }
+  if(indivListener && fbDb){ try{ fbDb.ref('velada/qld/teams').off('value', indivListener); }catch(e){} indivListener=null; }
+}
 function startIndividualPlayerListener(){
   stopIndivListener();
   const ref = fbDb.ref('velada/qld/teams');
+  let resolved = false;
+  const finish = list => {
+    resolved = true;
+    if(indivFallbackTimer){ clearTimeout(indivFallbackTimer); indivFallbackTimer=null; }
+    renderIndividualPlayers(list);
+    document.getElementById('connecting-dot').style.display = 'none';
+    document.getElementById('connecting-text').style.display = 'none';
+  };
+  // Red de seguridad: si Firebase no contesta (ni éxito ni error) en unos
+  // segundos — por ejemplo, conexión lenta o colgada — no dejamos al
+  // participante mirando "Conectando…" para siempre.
+  indivFallbackTimer = setTimeout(() => {
+    if(resolved) return;
+    console.warn('[QLD] Timeout esperando el roster de equipos — uso lista por defecto.');
+    finish(DEFAULT_QLD_PLAYERS);
+  }, 4000);
   indivListener = ref.on('value', snap => {
     const d = snap.val() || {};
     const teams = Array.isArray(d.teams) ? d.teams : [];
@@ -561,9 +581,12 @@ function startIndividualPlayerListener(){
     teams.forEach(t => { if(Array.isArray(t.members)) list = list.concat(t.members); });
     // Si todavía no se publicó el roster (velada.html no se abrió en esta sesión), usamos un default
     if(!list.length) list = DEFAULT_QLD_PLAYERS;
-    renderIndividualPlayers(list);
-    document.getElementById('connecting-dot').style.display = 'none';
-    document.getElementById('connecting-text').style.display = 'none';
+    finish(list);
+  }, err => {
+    // Permiso denegado, reglas de Firebase, etc.: antes esto se perdía en
+    // silencio y la pantalla se quedaba en "Conectando…" para siempre.
+    console.warn('[QLD] No se pudo leer el roster de equipos:', err);
+    finish(DEFAULT_QLD_PLAYERS);
   });
 }
 const DEFAULT_QLD_PLAYERS = ['Martin','Valentín','Laza','Tomás','Thiago','Lara','Totti','Risu','Cori','Flor'];
