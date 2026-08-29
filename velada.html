@@ -2593,6 +2593,108 @@ body.started .velada-bg-scrim { display: block; }
 </style>
 <style>.hub-link{position:fixed;top:max(0.75rem,env(safe-area-inset-top));left:max(0.75rem,env(safe-area-inset-left));z-index:99999;font-size:11px;font-weight:700;color:rgba(240,239,232,0.7);background:rgba(10,10,14,0.6);border:1px solid rgba(255,255,255,0.1);border-radius:99px;padding:0.38rem 0.85rem;text-decoration:none;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);letter-spacing:0.04em;transition:color 0.15s,border-color 0.15s;white-space:nowrap}.hub-link:hover{color:#f0efe8;border-color:rgba(255,255,255,0.25)}</style></head>
 <body>
+<script>window.VAR_SWITCH_MANUAL = true;</script>
+<!-- ══════════════════════════════════════════════════════════════════
+     INTERRUPTOR GLOBAL DEL VAR
+     Se prende/apaga desde velada.html (pestaña Reglamento).
+     Se sincroniza por Firebase RTDB (velada/config/varEnabled) y,
+     como respaldo, por localStorage entre pestañas del mismo navegador.
+     ══════════════════════════════════════════════════════════════════ -->
+<script>
+window.VarSwitch = (function () {
+  const LS_KEY    = 'velada_var_enabled';
+  const RTDB_PATH = 'velada/config/varEnabled';
+  const CFG = {
+    apiKey: "AIzaSyB37WkRQqBWVYkZ84AE2u17pAOs_9ZCgCg",
+    authDomain: "guessmovie-905e2.firebaseapp.com",
+    databaseURL: "https://guessmovie-905e2-default-rtdb.firebaseio.com",
+    projectId: "guessmovie-905e2",
+    appId: "1:313601369235:web:f8b28a2ec187a934fa1966"
+  };
+
+  let enabled = true;          // por defecto el VAR viene activado
+  let _ref    = null;
+  const subs  = [];
+
+  function readInitial() {
+    try {
+      const q = new URLSearchParams(location.search).get('var');
+      if (q === '0' || q === '1') {
+        localStorage.setItem(LS_KEY, q);
+        return q === '1';
+      }
+      const raw = localStorage.getItem(LS_KEY);
+      if (raw === null) return true;
+      return raw === '1';
+    } catch (e) { return true; }
+  }
+
+  function emit() {
+    subs.forEach(fn => { try { fn(enabled); } catch (e) {} });
+  }
+
+  function set(v, opts) {
+    v = !!v;
+    const push    = !!(opts && opts.push);
+    const changed = (v !== enabled);
+    enabled = v;
+    try { localStorage.setItem(LS_KEY, v ? '1' : '0'); } catch (e) {}
+    if (push && _ref) { try { _ref.set(v); } catch (e) {} }
+    if (changed) emit();
+  }
+
+  enabled = readInitial();
+
+  // Otras pestañas del mismo navegador
+  window.addEventListener('storage', function (e) {
+    if (e.key === LS_KEY) set(e.newValue === '1');
+  });
+
+  function attachRef(ref) {
+    _ref = ref;
+    ref.on('value', function (snap) {
+      const v = snap.val();
+      if (v === null || v === undefined) return;
+      set(v === true || v === 1 || v === '1');
+    });
+  }
+
+  // Conexión propia a Firebase (solo si la página no la maneja por su cuenta)
+  function loadScript(src) {
+    return new Promise(function (res, rej) {
+      const s = document.createElement('script');
+      s.src = src; s.onload = res; s.onerror = rej;
+      document.head.appendChild(s);
+    });
+  }
+  if (!window.VAR_SWITCH_MANUAL) {
+    (async function () {
+      try {
+        if (typeof firebase === 'undefined' || !firebase.database) {
+          await loadScript('https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js');
+          await loadScript('https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js');
+        }
+        let app;
+        try { app = firebase.app('varcfg'); } catch (e) { app = firebase.initializeApp(CFG, 'varcfg'); }
+        attachRef(app.database().ref(RTDB_PATH));
+      } catch (e) {
+        console.warn('VarSwitch: sin sincronización remota, se usa localStorage', e);
+      }
+    })();
+  }
+
+  return {
+    get enabled() { return enabled; },
+    set: set,
+    attachRef: attachRef,
+    onChange: function (fn) {
+      subs.push(fn);
+      try { fn(enabled); } catch (e) {}
+    }
+  };
+})();
+</script>
+
 <a class="hub-link" href="index.html">← Hub</a>
 
 <!-- ── FONDO ANIMADO (persiste en todas las pestañas) ── -->
@@ -3178,12 +3280,22 @@ function renderReglas() {
       <button onclick="window.open('guess_Movies_Songs.html','_blank')" style="flex:1;min-width:140px;display:flex;align-items:center;gap:0.5rem;padding:0.65rem 0.9rem;border-radius:var(--radius);border:1.5px solid var(--border2);background:var(--surface2);color:var(--text);cursor:pointer;font-size:13px;font-weight:700;font-family:inherit;transition:border-color 0.15s" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border2)'">
         🎬 <span>Guess Movies Songs</span> <span style="margin-left:auto;font-size:10px;color:var(--muted)">↗</span>
       </button>
-      <button onclick="window.open('VAR.html','_blank')" style="flex:1;min-width:140px;display:flex;align-items:center;gap:0.5rem;padding:0.65rem 0.9rem;border-radius:var(--radius);border:1.5px solid var(--border2);background:var(--surface2);color:var(--text);cursor:pointer;font-size:13px;font-weight:700;font-family:inherit;transition:border-color 0.15s" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border2)'">
+      <button id="btn-launch-var" onclick="window.open('VAR.html','_blank')" style="flex:1;min-width:140px;display:flex;align-items:center;gap:0.5rem;padding:0.65rem 0.9rem;border-radius:var(--radius);border:1.5px solid var(--border2);background:var(--surface2);color:var(--text);cursor:pointer;font-size:13px;font-weight:700;font-family:inherit;transition:border-color 0.15s" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border2)'">
         📺 <span>VAR</span> <span style="margin-left:auto;font-size:10px;color:var(--muted)">↗</span>
       </button>
       <button onclick="window.open('quien_lo_dijo.html','_blank')" style="flex:1;min-width:140px;display:flex;align-items:center;gap:0.5rem;padding:0.65rem 0.9rem;border-radius:var(--radius);border:1.5px solid var(--border2);background:var(--surface2);color:var(--text);cursor:pointer;font-size:13px;font-weight:700;font-family:inherit;transition:border-color 0.15s" onmouseover="this.style.borderColor='var(--gold)'" onmouseout="this.style.borderColor='var(--border2)'">
         🗣️ <span>¿Quién lo dijo?</span> <span style="margin-left:auto;font-size:10px;color:var(--muted)">↗</span>
       </button>
+    </div>
+
+    <!-- ── INTERRUPTOR GLOBAL DEL VAR ── -->
+    <div class="card" id="var-toggle-card" style="text-align:center;border-color:rgba(255,95,95,0.3)">
+      <div style="font-size:13px;color:var(--muted);margin-bottom:0.9rem">
+        El <b>VAR</b> se usa únicamente en <b>Palabras a Tiempo</b> y <b>Time's Up</b>.
+        Si lo desactivás desaparece de esos juegos (y se oculta el botón de acá arriba).
+      </div>
+      <button class="final-end-btn" id="var-toggle-btn" onclick="toggleVarGlobal()">📺 VAR</button>
+      <div id="var-toggle-state" style="font-size:12px;color:var(--muted);margin-top:0.7rem"></div>
     </div>
 
     <!-- ── ADMIN: restablecer los buzzers entre juego y juego ── -->
@@ -3419,7 +3531,33 @@ function renderReglas() {
       <button class="btn btn-danger" style="width:100%;padding:0.6rem;font-size:13px" onclick="resetRulesConfig()">↩️ Restaurar reglas a los valores originales</button>
     </div>` : ''}
   `;
+
+  renderVarToggle(VarSwitch.enabled);
 }
+
+// ── INTERRUPTOR GLOBAL DEL VAR ───────────────────────────────────
+function toggleVarGlobal() {
+  VarSwitch.set(!VarSwitch.enabled, { push: true });
+}
+
+function renderVarToggle(on) {
+  const btn = document.getElementById('var-toggle-btn');
+  if (btn) {
+    btn.textContent  = on ? '📺 VAR activado — tocá para desactivarlo'
+                          : '🚫 VAR desactivado — tocá para activarlo';
+    btn.style.borderColor = on ? 'rgba(200,240,96,0.6)' : 'rgba(255,95,95,0.6)';
+    btn.style.color       = on ? 'var(--accent)' : 'var(--red)';
+  }
+  const st = document.getElementById('var-toggle-state');
+  if (st) {
+    st.textContent = on ? 'Disponible en Palabras a Tiempo y Time\'s Up.'
+                        : 'No aparece en ningún juego.';
+  }
+  const launch = document.getElementById('btn-launch-var');
+  if (launch) launch.style.display = on ? 'flex' : 'none';
+}
+
+try { VarSwitch.onChange(renderVarToggle); } catch (e) {}
 
 // ============================================================
 const PLAYERS = [
@@ -4442,6 +4580,10 @@ function saveState() {
       const qldApp = firebase.initializeApp(QLD_CFG, 'qld');
       const qldDb = qldApp.database();
       window._qldDb = qldDb; // lo usa resetBuzzers()
+
+      // Interruptor global del VAR (lo leen palabras_a_tiempo.html y VAR.html)
+      try { VarSwitch.attachRef(qldDb.ref('velada/config/varEnabled')); } catch(e){ console.warn('VarSwitch attach', e); }
+
 
       // Publicamos el roster de equipos de Fase 2 (con apodos) para que "¿Quién lo dijo?"
       // siempre juegue con los equipos actuales — se resincroniza cada vez que se abre esta página.
