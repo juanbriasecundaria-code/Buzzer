@@ -580,29 +580,15 @@ let indivFallbackTimer = null;
 function stopIndivListener(){
   if(indivFallbackTimer){ clearTimeout(indivFallbackTimer); indivFallbackTimer=null; }
   if(indivListener && fbDb){ try{ fbDb.ref('velada/qld/teams').off('value', indivListener); }catch(e){} indivListener=null; }
-  stopIndivPhotosListener();
 }
-// Fotos de los participantes — las publica velada.html (mismo mapa que usa
-// para los podios y avatares). Se leen por separado de la lista de nombres
-// para que una foto que se agregue en vivo actualice la grilla al toque.
-let qldPhotos = {};
+// Fotos de los participantes: llegan por Firestore (ver <script type="module">
+// más abajo, mismo documento 'ndj/photos' que escribe velada.html), no por
+// esta conexión RTDB. window.qldPhotos se actualiza solo y llama a
+// window.onQldPhotosUpdate() cuando cambia.
 let lastIndivList = [];
-let indivPhotosListener = null;
-function stopIndivPhotosListener(){
-  if(indivPhotosListener && fbDb){ try{ fbDb.ref('velada/qld/photos').off('value', indivPhotosListener); }catch(e){} indivPhotosListener=null; }
-}
-function startIndivPhotosListener(){
-  stopIndivPhotosListener();
-  if(!fbDb) return;
-  indivPhotosListener = fbDb.ref('velada/qld/photos').on('value', snap=>{
-    const d = snap.val() || {};
-    qldPhotos = d.photos || {};
-    if(lastIndivList.length) renderIndividualPlayers(lastIndivList);
-  }, err=>{ console.warn('[QLD] No se pudieron leer las fotos:', err); });
-}
+window.onQldPhotosUpdate = function(){ if(lastIndivList.length) renderIndividualPlayers(lastIndivList); };
 function startIndividualPlayerListener(){
   stopIndivListener();
-  startIndivPhotosListener();
   const ref = fbDb.ref('velada/qld/teams');
   let resolved = false;
   const finish = list => {
@@ -645,7 +631,7 @@ function renderIndividualPlayers(list){
 // Avatar circular con la foto del participante (cargada en Fase 1 desde
 // velada.html); si todavía no tiene foto, cae a un círculo con su inicial.
 function indivAvatarHtml(name){
-  const photo = qldPhotos[name];
+  const photo = (window.qldPhotos || {})[name];
   if(photo) return `<img class="indiv-avatar-img" src="${photo}" alt="">`;
   const initial = (String(name||'?').trim()[0]||'?').toUpperCase();
   return `<div class="indiv-avatar-fallback">${initial}</div>`;
@@ -980,6 +966,34 @@ function checkPw(){
     if(t==='a'||t==='b') setTimeout(()=>selectTeam(t), 800);
   }
 })();
+</script>
+<!-- ── FOTOS DE PERFIL: conexión directa a Firestore (mismo proyecto y documento
+     'ndj/photos' que arma velada.html). En vivo, sin depender de reabrir
+     velada.html — igual que participante.html. ── -->
+<script type="module">
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
+import { getFirestore, doc, onSnapshot } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+const photosFbConfig = {
+  apiKey: "AIzaSyB-1B426OH2ZYKHT1n8VVzmv0h_10186Zo",
+  authDomain: "cumple-598e7.firebaseapp.com",
+  projectId: "cumple-598e7",
+  storageBucket: "cumple-598e7.firebasestorage.app",
+  messagingSenderId: "92890914103",
+  appId: "1:92890914103:web:ab78f983eee410e6eb8eb2"
+};
+const photosApp = initializeApp(photosFbConfig, 'photos');
+const photosDb = getFirestore(photosApp);
+window.qldPhotos = {};
+onSnapshot(doc(photosDb, 'ndj', 'photos'), (snap) => {
+  if (!snap.exists()) return;
+  try {
+    const o = JSON.parse(snap.data().data);
+    if (o && typeof o === 'object') {
+      window.qldPhotos = o;
+      if (typeof window.onQldPhotosUpdate === 'function') window.onQldPhotosUpdate();
+    }
+  } catch (e) { console.warn('Error al parsear fotos:', e); }
+}, (err) => console.warn('Firebase onSnapshot error (photos):', err));
 </script>
 </body>
 </html>
