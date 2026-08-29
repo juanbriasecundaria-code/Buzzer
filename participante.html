@@ -416,6 +416,7 @@ function renderDashboard(myName) {
     ${renderPhaseCard('f1', myIdx, myName)}
     ${teamIdx >= 0 ? renderPhaseCard('f2', teamIdx, myName) : ''}
     ${safeBlock(() => renderBetCard(myName, myIdx))}
+    ${teamIdx >= 0 ? safeBlock(() => renderBetCardF2(myName, teamIdx)) : ''}
     ${safeBlock(() => renderMiiCard(myName, teamIdx >= 0 ? TEAMS[teamIdx] : null))}
     <div class="gh-wall-card">
       <div class="gh-wall-title">📸 Muro de fotos</div>
@@ -432,6 +433,7 @@ function renderDashboard(myName) {
   const wallBtn = document.getElementById('gh-wall-btn');
   if (wallBtn) wallBtn.addEventListener('click', () => pickAndUploadPhotos(myName));
   try { wireBetCard(myName, myIdx); } catch (e) { console.warn('bet card:', e); }
+  try { if (teamIdx >= 0) wireBetCardF2(myName); } catch (e) { console.warn('bet card f2:', e); }
   try { wireMiiCard(myName, teamIdx >= 0 ? TEAMS[teamIdx] : null); } catch (e) { console.warn('mii card:', e); }
 }
 
@@ -557,6 +559,132 @@ function wireBetCard(myName, myIdx) {
         all[key][myName] = pick;
         await setDoc(doc(db, 'ndj', 'bets'), { data: JSON.stringify(all), ts: Date.now() });
         latestState.bets = all;
+        if (status) status.textContent = '✓ Apuesta guardada';
+      } catch (e) {
+        if (status) status.textContent = 'No se pudo guardar. Probá de nuevo.';
+      }
+    });
+  });
+}
+
+// ── APUESTAS · FASE 2 (equipos) ─────────────────────────────────
+// Mismo mecanismo que en Fase 1, pero apostando a los duelos de equipos.
+// Cada acierto suma 1 punto al EQUIPO del apostador (Fase 2 puntúa por equipo).
+function myBetTallyF2(myName) {
+  const bets = latestState.betsF2 || {};
+  const myTeamIdx = teamIndexForPlayer(myName);
+  let hits = 0, misses = 0, blown = false, pending = 0;
+  Object.keys(bets).forEach(key => {
+    const b = bets[key][myName];
+    if (typeof b !== 'number') return;
+    const res = (latestState.f2 || {})[key];
+    if (!res) { pending++; return; }
+    if (res.winner === 'empate') return;
+    const p = key.split('-').map(Number);
+    const own = (p[1] === myTeamIdx || p[2] === myTeamIdx);
+    if (res.winner === b) hits++;
+    else { misses++; if (own) blown = true; }
+  });
+  return { hits: hits, misses: misses, blown: blown, pending: pending, net: blown ? 0 : hits };
+}
+
+function renderBetCardF2(myName, myTeamIdx) {
+  const bets = latestState.betsF2 || {};
+  const bw = latestState.betWindowF2 || { open: false, round: 0 };
+  const t = myBetTallyF2(myName);
+
+  const rows = (F2_FIXTURE || []).map(m => {
+    const key = m[0] + '-' + m[1] + '-' + m[2];
+    const res = (latestState.f2 || {})[key];
+    const own = (m[1] === myTeamIdx || m[2] === myTeamIdx);
+    const mine = (bets[key] || {})[myName];
+    const nA = String(TEAMS[m[1]] || '?').split('/')[0].trim();
+    const nB = String(TEAMS[m[2]] || '?').split('/')[0].trim();
+    const game = gameNameF2(m[3]);
+    // Solo se puede apostar la ronda que el conductor tenga abierta
+    const bettable = bw.open && m[0] === bw.round && !res;
+
+    if (res) {
+      let mark = '<span class="gh-b-none">sin apuesta</span>';
+      if (typeof mine === 'number') {
+        if (res.winner === 'empate') mark = '<span class="gh-b-none">empate</span>';
+        else if (res.winner === mine) mark = '<span class="gh-b-hit">✓ +1</span>';
+        else mark = own ? '<span class="gh-b-blown">✕ perdiste el tuyo</span>' : '<span class="gh-b-miss">✕</span>';
+      }
+      const wName = res.winner === 'empate' ? 'Empate' : String(TEAMS[res.winner] || '?').split('/')[0].trim();
+      return `<div class="gh-b-row done${own ? ' own' : ''}">
+        <div class="gh-b-info"><span class="gh-b-vs">${escapeHtml(nA)} vs ${escapeHtml(nB)}</span>
+        <span class="gh-b-game">R${m[0]} · ${escapeHtml(game)} · ganó ${escapeHtml(wName)}</span></div>
+        <div class="gh-b-mark">${mark}</div>
+      </div>`;
+    }
+
+    if (!bettable) {
+      const why = typeof mine === 'number'
+        ? '<span class="gh-b-locked">🔒 ' + escapeHtml(String(TEAMS[mine] || '').split('/')[0].trim()) + '</span>'
+        : '<span class="gh-b-locked">🔒</span>';
+      return `<div class="gh-b-row locked${own ? ' own' : ''}">
+        <div class="gh-b-info"><span class="gh-b-vs">${escapeHtml(nA)} vs ${escapeHtml(nB)}</span>
+        <span class="gh-b-game">R${m[0]} · ${escapeHtml(game)}${own ? ' · <b>tu equipo</b>' : ''}</span></div>
+        <div class="gh-b-mark">${why}</div>
+      </div>`;
+    }
+
+    const btn = (idx, nm) => `<button class="gh-b-opt gh-b-opt-f2${mine === idx ? ' picked' : ''}" data-key="${key}" data-bet="${idx}">${escapeHtml(nm)}</button>`;
+    return `<div class="gh-b-row${own ? ' own' : ''}">
+      <div class="gh-b-info"><span class="gh-b-vs">${escapeHtml(nA)} vs ${escapeHtml(nB)}</span>
+      <span class="gh-b-game">R${m[0]} · ${escapeHtml(game)}${own ? ' · <b>tu equipo</b>' : ''}</span></div>
+      <div class="gh-b-opts">${btn(m[1], nA)}${btn(m[2], nB)}</div>
+    </div>`;
+  }).join('');
+
+  const banner = bw.open
+    ? `<div class="gh-b-window open">🔓 Apuestas abiertas · <b>Ronda ${bw.round}</b></div>`
+    : `<div class="gh-b-window">🔒 Apuestas cerradas — esperá a que el conductor las abra</div>`;
+
+  const resume = t.blown
+    ? `<div class="gh-b-summary blown">💥 Apostaste al duelo de tu equipo y lo perdiste: se te anularon ${t.hits} punto${t.hits === 1 ? '' : 's'}.</div>`
+    : `<div class="gh-b-summary">Aciertos: <b>${t.hits}</b> · Puntos ganados para tu equipo: <b>+${t.net}</b>${t.pending ? ' · ' + t.pending + ' pendiente' + (t.pending === 1 ? '' : 's') : ''}</div>`;
+
+  return `<div class="gh-bet-card">
+    <div class="gh-bet-title">🃏 Apuestas · Fase 2</div>
+    <div class="gh-bet-sub">Cada acierto suma <b>1 punto a tu equipo</b>.<br>
+      ⚠️ Podés apostar al duelo de tu propio equipo, pero si lo perdés <b>se le borran todos los puntos de apuestas a tu equipo</b>.</div>
+    ${banner}
+    ${resume}
+    <div class="gh-b-list">${rows || '<div class="gh-b-none" style="padding:0.6rem 0">Todavía no hay duelos cargados.</div>'}</div>
+    <div class="gh-bet-status" id="gh-bet-status-f2"></div>
+  </div>`;
+}
+
+function wireBetCardF2(myName) {
+  document.querySelectorAll('.gh-b-opt-f2').forEach(b => {
+    b.addEventListener('click', async () => {
+      const key  = b.getAttribute('data-key');
+      const pick = Number(b.getAttribute('data-bet'));
+      const row  = b.closest('.gh-b-row');
+      const status = document.getElementById('gh-bet-status-f2');
+      // Revalidar por si el conductor cerró las apuestas mientras tanto
+      const bw = latestState.betWindowF2 || { open: false, round: 0 };
+      const kr = Number(String(key).split('-')[0]);
+      if (!bw.open || kr !== bw.round) {
+        if (status) status.textContent = '🔒 Las apuestas de esa ronda están cerradas.';
+        render();
+        return;
+      }
+      if (row) row.querySelectorAll('.gh-b-opt-f2').forEach(x => x.classList.remove('picked'));
+      b.classList.add('picked');
+      if (status) status.textContent = 'Guardando…';
+      try {
+        let all = {};
+        try {
+          const snap = await getDoc(doc(db, 'ndj', 'betsF2'));
+          if (snap.exists()) { const o = JSON.parse(snap.data().data); if (o && typeof o === 'object') all = o; }
+        } catch (e) {}
+        all[key] = all[key] || {};
+        all[key][myName] = pick;
+        await setDoc(doc(db, 'ndj', 'betsF2'), { data: JSON.stringify(all), ts: Date.now() });
+        latestState.betsF2 = all;
         if (status) status.textContent = '✓ Apuesta guardada';
       } catch (e) {
         if (status) status.textContent = 'No se pudo guardar. Probá de nuevo.';
@@ -736,6 +864,15 @@ onSnapshot(doc(db, 'ndj', 'bets'), (snap) => {
   try {
     const o = JSON.parse(snap.data().data);
     if (o && typeof o === 'object') { latestState.bets = o; if (ready) render(); }
+  } catch (e) {}
+}, () => {});
+
+// Apuestas de Fase 2 en vivo (equipos)
+onSnapshot(doc(db, 'ndj', 'betsF2'), (snap) => {
+  if (!snap.exists()) return;
+  try {
+    const o = JSON.parse(snap.data().data);
+    if (o && typeof o === 'object') { latestState.betsF2 = o; if (ready) render(); }
   } catch (e) {}
 }, () => {});
 
