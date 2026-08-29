@@ -4864,47 +4864,18 @@ function addComodinCatalog() {
 }
 
 // Load from localStorage
-function _applyStateParsed(loaded) {
-  state = Object.assign({}, state, loaded);
-  // Migration: old single-object impostor shape -> rounds array
-  if (!state.impostor || !Array.isArray(state.impostor.rounds)) {
-    state.impostor = { rounds: [] };
-  }
-}
 function loadState() {
   try {
     const s = localStorage.getItem('ndj_state');
-    if (s) _applyStateParsed(JSON.parse(s));
-  } catch(e) {}
-}
-// En paralelo (después de loadState(), que usa localStorage para que la app
-// arranque rápido), traemos el último estado guardado en Firebase y lo
-// aplicamos si hay algo. Sin esto, un dispositivo que no se usó hace rato —
-// por ejemplo el celular, mientras la partida sigue avanzando en la PC —
-// se queda viendo lo último que tenía guardado en SU propio localStorage en
-// vez de lo último cargado desde la PC. Mismo patrón que loadRulesConfig().
-function syncStateFromFirebase() {
-  function tryFbLoad() {
-    if (window._fbReady && window._fbRead) {
-      window._fbRead('state').then(data => {
-        if (!data) return;
-        try {
-          _applyStateParsed(JSON.parse(data));
-          localStorage.setItem('ndj_state', data);
-          window._ndjState = data;
-          restoreRosterAndFixtures();
-          restoreImpGame();
-          const activeTabEl = document.querySelector('.nav-tab.active');
-          activateTab((activeTabEl && activeTabEl.dataset.tab) || state.lastTab || 'reglas');
-          updateNavProgress();
-          console.log('Estado cargado desde Firebase ✓');
-        } catch(e) { console.warn('Error al parsear estado de Firebase:', e); }
-      });
-    } else {
-      setTimeout(tryFbLoad, 500);
+    if (s) {
+      const loaded = JSON.parse(s);
+      state = Object.assign({}, state, loaded);
+      // Migration: old single-object impostor shape -> rounds array
+      if (!state.impostor || !Array.isArray(state.impostor.rounds)) {
+        state.impostor = { rounds: [] };
+      }
     }
-  }
-  setTimeout(tryFbLoad, 300);
+  } catch(e) {}
 }
 // Canal de sincronización instantánea entre ventanas del mismo origen (misma PC)
 window._bc = (() => { try { return new BroadcastChannel('ndj_sync'); } catch(e) { return null; } })();
@@ -8079,9 +8050,9 @@ function renderImpSetup() {
           <div>
             <div style="font-size:10.5px;color:var(--muted);margin-bottom:0.6rem">Tocá una palabra para sacarla del mazo de esta noche (no se borra, solo se excluye)</div>
             ${(() => {
-              const dupCount = getDuplicateWordsSet().size;
+              const dupCount = getDuplicateWordsInCategory(impGame._manageCat||Object.keys(IMP_WORDS)[0]).size;
               return dupCount
-                ? `<div style="font-size:10.5px;color:var(--info);margin:-0.15rem 0 0.6rem;display:flex;align-items:center;gap:5px">🔁 <span>${dupCount} palabra${dupCount===1?'':'s'} repetida${dupCount===1?'':'s'} en más de una categoría — marcadas en <b>azul</b></span></div>`
+                ? `<div style="font-size:10.5px;color:var(--info);margin:-0.15rem 0 0.6rem;display:flex;align-items:center;gap:5px">🔁 <span>${dupCount} palabra${dupCount===1?'':'s'} cargada${dupCount===1?'':'s'} más de una vez en esta categoría — marcadas en <b>azul</b></span></div>`
                 : '';
             })()}
             <div id="imp-manage-words" style="display:flex;flex-wrap:wrap;gap:0.4rem">
@@ -8252,27 +8223,22 @@ function removeCustomWord(cat, word) {
   renderImpSetup();
 }
 
-// Detecta palabras repetidas en más de una categoría (excluye "Todas juntas 🎲",
-// que por diseño repite todo lo demás y no cuenta como duplicado real).
-// Devuelve un Set de palabras normalizadas que aparecen 2+ veces.
-function getDuplicateWordsSet() {
+// Detecta palabras repetidas dentro de UNA MISMA categoría (ej. "Brasil" cargado
+// dos veces en "Países 🌍"). Cada categoría se evalúa por separado — no importa
+// si una palabra también aparece en otra categoría, eso es normal y no cuenta.
+// Devuelve un Set de palabras normalizadas que aparecen 2+ veces en esa categoría.
+function getDuplicateWordsInCategory(cat) {
   const TODAS = 'Todas juntas 🎲';
+  let words;
+  if (cat === '➕ Palabras propias') {
+    words = impGame.customWords || [];
+  } else if (IMP_WORDS[cat]) {
+    words = [...IMP_WORDS[cat], ...((impGame.customCatWords && impGame.customCatWords[cat]) || [])];
+  } else {
+    words = (impGame.customCatWords && impGame.customCatWords[cat]) || [];
+  }
   const counts = {};
-  const bump = (w) => {
-    const n = norm(w);
-    counts[n] = (counts[n] || 0) + 1;
-  };
-  for (const [cat, words] of Object.entries(IMP_WORDS)) {
-    if (cat === TODAS) continue;
-    words.forEach(bump);
-  }
-  if (impGame.customCatWords) {
-    for (const [cat, words] of Object.entries(impGame.customCatWords)) {
-      if (cat === TODAS) continue;
-      (words || []).forEach(bump);
-    }
-  }
-  (impGame.customWords || []).forEach(bump);
+  words.forEach(w => { const n = norm(w); counts[n] = (counts[n] || 0) + 1; });
   const dups = new Set();
   for (const [n, c] of Object.entries(counts)) if (c > 1) dups.add(n);
   return dups;
@@ -8281,7 +8247,7 @@ function getDuplicateWordsSet() {
 function renderManageWordsHtml(cat) {
   const excluded = impGame.excludedWords || [];
   const highlight = impGame._highlightWord || null; // lowercase word to highlight as duplicate recién agregada
-  const dupSet = getDuplicateWordsSet();
+  const dupSet = getDuplicateWordsInCategory(cat);
 
   if (cat === '➕ Palabras propias') {
     const words = impGame.customWords || [];
@@ -8294,7 +8260,7 @@ function renderManageWordsHtml(cat) {
       const bg = isHit ? 'rgba(245,200,66,0.18)' : isDup ? 'rgba(96,180,240,0.14)' : 'rgba(200,240,96,0.08)';
       const color = isHit ? 'var(--gold)' : isDup ? 'var(--info)' : 'var(--accent)';
       const extra = isHit ? 'box-shadow:0 0 0 2px rgba(245,200,66,0.35)' : '';
-      return `<span title="${isDup?'Repetida en otra categoría':''}" style="display:inline-flex;align-items:center;gap:4px;padding:0.35rem 0.6rem;border-radius:99px;border:1px solid ${border};background:${bg};font-size:12px;color:${color};${extra}">${w}${isDup?' 🔁':''}<span onclick="removeCustomWord('➕ Palabras propias','${safeW}')" style="cursor:pointer;opacity:0.6;font-size:14px;line-height:1">×</span></span>`;
+      return `<span title="${isDup?'Repetida dentro de esta categoría':''}" style="display:inline-flex;align-items:center;gap:4px;padding:0.35rem 0.6rem;border-radius:99px;border:1px solid ${border};background:${bg};font-size:12px;color:${color};${extra}">${w}${isDup?' 🔁':''}<span onclick="removeCustomWord('➕ Palabras propias','${safeW}')" style="cursor:pointer;opacity:0.6;font-size:14px;line-height:1">×</span></span>`;
     }).join('');
   }
 
@@ -8311,7 +8277,7 @@ function renderManageWordsHtml(cat) {
       const bg = isHit ? 'rgba(245,200,66,0.18)' : isDup ? 'rgba(96,180,240,0.14)' : 'rgba(200,240,96,0.08)';
       const color = isHit ? 'var(--gold)' : isDup ? 'var(--info)' : 'var(--accent)';
       const extra = isHit ? 'box-shadow:0 0 0 2px rgba(245,200,66,0.35)' : '';
-      return `<span title="${isDup?'Repetida en otra categoría':''}" style="display:inline-flex;align-items:center;gap:4px;padding:0.35rem 0.6rem;border-radius:99px;border:1px solid ${border};background:${bg};font-size:12px;color:${color};${extra}">${w}${isDup?' 🔁':''}<span onclick="removeCustomWord('${catSafe}','${safeW}')" style="cursor:pointer;opacity:0.6;font-size:14px;line-height:1">×</span></span>`;
+      return `<span title="${isDup?'Repetida dentro de esta categoría':''}" style="display:inline-flex;align-items:center;gap:4px;padding:0.35rem 0.6rem;border-radius:99px;border:1px solid ${border};background:${bg};font-size:12px;color:${color};${extra}">${w}${isDup?' 🔁':''}<span onclick="removeCustomWord('${catSafe}','${safeW}')" style="cursor:pointer;opacity:0.6;font-size:14px;line-height:1">×</span></span>`;
     }).join('');
   }
   const baseWords = IMP_WORDS[cat].map(w => {
@@ -8329,7 +8295,7 @@ function renderManageWordsHtml(cat) {
     } else {
       border = 'var(--border2)'; bg = 'var(--surface)'; color = 'var(--text)'; deco = ''; extra = '';
     }
-    return `<span onclick="toggleExcludeWord('${safeW}',this)" title="${isDup?'Repetida en otra categoría':''}" style="display:inline-flex;align-items:center;gap:4px;padding:0.35rem 0.6rem;border-radius:99px;border:1px solid ${border};background:${bg};font-size:12px;cursor:pointer;color:${color};text-decoration:${deco};${extra}transition:all 0.15s">${w}${isDup&&!isExcluded?' 🔁':''}${isExcluded?'<span style="font-size:14px;line-height:1">×</span>':''}</span>`;
+    return `<span onclick="toggleExcludeWord('${safeW}',this)" title="${isDup?'Repetida dentro de esta categoría':''}" style="display:inline-flex;align-items:center;gap:4px;padding:0.35rem 0.6rem;border-radius:99px;border:1px solid ${border};background:${bg};font-size:12px;cursor:pointer;color:${color};text-decoration:${deco};${extra}transition:all 0.15s">${w}${isDup&&!isExcluded?' 🔁':''}${isExcluded?'<span style="font-size:14px;line-height:1">×</span>':''}</span>`;
   });
 
   // Custom words added to this specific category
@@ -8343,7 +8309,7 @@ function renderManageWordsHtml(cat) {
     const bg = isHit ? 'rgba(245,200,66,0.18)' : isDup ? 'rgba(96,180,240,0.14)' : 'rgba(200,240,96,0.08)';
     const color = isHit ? 'var(--gold)' : isDup ? 'var(--info)' : 'var(--accent)';
     const extra = isHit ? 'box-shadow:0 0 0 2px rgba(245,200,66,0.35)' : '';
-    return `<span title="${isDup?'Repetida en otra categoría':''}" style="display:inline-flex;align-items:center;gap:4px;padding:0.35rem 0.6rem;border-radius:99px;border:1px solid ${border};background:${bg};font-size:12px;color:${color};${extra}">${w}${isDup?' 🔁':''}<span onclick="removeCustomWord('${catSafe}','${safeW}')" style="cursor:pointer;opacity:0.6;font-size:14px;line-height:1">×</span></span>`;
+    return `<span title="${isDup?'Repetida dentro de esta categoría':''}" style="display:inline-flex;align-items:center;gap:4px;padding:0.35rem 0.6rem;border-radius:99px;border:1px solid ${border};background:${bg};font-size:12px;color:${color};${extra}">${w}${isDup?' 🔁':''}<span onclick="removeCustomWord('${catSafe}','${safeW}')" style="cursor:pointer;opacity:0.6;font-size:14px;line-height:1">×</span></span>`;
   });
 
   return [...baseWords, ...customSpans].join('');
@@ -14422,7 +14388,6 @@ loadElencoConfig();
 syncRulestoRuntime();
 restoreRosterAndFixtures();
 restoreImpGame();
-syncStateFromFirebase();
 renderReglas();
 activateTab(state.lastTab || 'reglas');
 updateNavProgress();
