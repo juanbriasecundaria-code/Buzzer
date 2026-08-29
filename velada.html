@@ -4864,18 +4864,47 @@ function addComodinCatalog() {
 }
 
 // Load from localStorage
+function _applyStateParsed(loaded) {
+  state = Object.assign({}, state, loaded);
+  // Migration: old single-object impostor shape -> rounds array
+  if (!state.impostor || !Array.isArray(state.impostor.rounds)) {
+    state.impostor = { rounds: [] };
+  }
+}
 function loadState() {
   try {
     const s = localStorage.getItem('ndj_state');
-    if (s) {
-      const loaded = JSON.parse(s);
-      state = Object.assign({}, state, loaded);
-      // Migration: old single-object impostor shape -> rounds array
-      if (!state.impostor || !Array.isArray(state.impostor.rounds)) {
-        state.impostor = { rounds: [] };
-      }
-    }
+    if (s) _applyStateParsed(JSON.parse(s));
   } catch(e) {}
+}
+// En paralelo (después de loadState(), que usa localStorage para que la app
+// arranque rápido), traemos el último estado guardado en Firebase y lo
+// aplicamos si hay algo. Sin esto, un dispositivo que no se usó hace rato —
+// por ejemplo el celular, mientras la partida sigue avanzando en la PC —
+// se queda viendo lo último que tenía guardado en SU propio localStorage en
+// vez de lo último cargado desde la PC. Mismo patrón que loadRulesConfig().
+function syncStateFromFirebase() {
+  function tryFbLoad() {
+    if (window._fbReady && window._fbRead) {
+      window._fbRead('state').then(data => {
+        if (!data) return;
+        try {
+          _applyStateParsed(JSON.parse(data));
+          localStorage.setItem('ndj_state', data);
+          window._ndjState = data;
+          restoreRosterAndFixtures();
+          restoreImpGame();
+          const activeTabEl = document.querySelector('.nav-tab.active');
+          activateTab((activeTabEl && activeTabEl.dataset.tab) || state.lastTab || 'reglas');
+          updateNavProgress();
+          console.log('Estado cargado desde Firebase ✓');
+        } catch(e) { console.warn('Error al parsear estado de Firebase:', e); }
+      });
+    } else {
+      setTimeout(tryFbLoad, 500);
+    }
+  }
+  setTimeout(tryFbLoad, 300);
 }
 // Canal de sincronización instantánea entre ventanas del mismo origen (misma PC)
 window._bc = (() => { try { return new BroadcastChannel('ndj_sync'); } catch(e) { return null; } })();
@@ -14393,6 +14422,7 @@ loadElencoConfig();
 syncRulestoRuntime();
 restoreRosterAndFixtures();
 restoreImpGame();
+syncStateFromFirebase();
 renderReglas();
 activateTab(state.lastTab || 'reglas');
 updateNavProgress();
