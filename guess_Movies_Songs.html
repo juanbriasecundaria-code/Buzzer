@@ -362,6 +362,9 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
 .klyr-wrap{position:relative;display:inline-block;max-width:100%}
 .klyr-base{color:var(--text)}
 .klyr-fill{position:absolute;left:0;top:0;width:100%;height:100%;color:var(--accent);text-shadow:0 2px 22px rgba(200,240,96,.5);clip-path:inset(0 100% 0 0);pointer-events:none;white-space:pre-wrap}
+.tapsync-line{padding:.35rem .5rem;border-radius:8px;font-size:13px;color:var(--muted);transition:background .2s,color .2s}
+.tapsync-line.cur{background:var(--purple-dim);color:var(--purple);font-weight:800}
+.tapsync-line.done{color:var(--accent)}
 .part-lyric-line.is-hidden{visibility:hidden}
 .part-lyric-gap{width:100%;height:.9em}
 .part-lyric-blank{display:inline-block;min-width:2.2em;border-bottom:3px solid var(--purple);margin:0 .12em;vertical-align:bottom;height:.9em;border-radius:2px}
@@ -792,6 +795,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
       <div id="audio-yt-wrap">
         <div class="fc"><div class="form-label">URL de YouTube</div><input class="form-input" id="ns-url" placeholder="https://www.youtube.com/watch?v=…" type="url"></div>
         <div class="fc"><div class="form-label">Empezar en (segundos)</div><input class="form-input" id="ns-start" placeholder="0" type="number" min="0" inputmode="numeric" style="max-width:120px"></div>
+        <div class="fc"><div class="form-label">Cortar en (segundos, opcional)</div><input class="form-input" id="ns-end" placeholder="ej: 25 (antes del título)" type="number" min="0" inputmode="numeric" style="max-width:220px"></div>
       </div>
       <div id="audio-file-wrap" style="display:none">
         <div class="fc"><div class="form-label">Archivo de audio (.mp3, .wav, .ogg)</div>
@@ -800,6 +804,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
           <div id="audio-file-preview" style="font-size:11px;color:var(--muted);margin-top:.2rem"></div>
         </div>
         <div class="fc"><div class="form-label">Empezar en (segundos)</div><input class="form-input" id="ns-start-local" placeholder="0" type="number" min="0" inputmode="numeric" style="max-width:120px"></div>
+        <div class="fc"><div class="form-label">Cortar en (segundos, opcional)</div><input class="form-input" id="ns-end-local" placeholder="ej: 25 (antes del título)" type="number" min="0" inputmode="numeric" style="max-width:220px"></div>
       </div>
       <div class="fc"><div class="form-label">Letra (una línea por renglón — opcional)</div>
         <textarea class="form-input" id="ns-lyrics" rows="4" placeholder="Pegá la letra (una frase por renglón)&#10;o pegá un .lrc con tiempos: [00:12.50]Is this the real life&#10;Marcá con *asteriscos* la palabra a tapar en Huecos"></textarea>
@@ -812,13 +817,34 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
           <button class="ist-btn" id="sm-huecos" style="flex:1 1 30%" onclick="setSongMode('huecos')">▁ Huecos</button>
           <button class="ist-btn" id="sm-karaoke" style="flex:1 1 30%" onclick="setSongMode('karaoke')">🎤 Karaoke</button>
         </div>
-        <div style="font-size:10.5px;color:var(--muted);margin-top:.25rem;line-height:1.5">Progresiva y Karaoke necesitan letra. Karaoke reproduce el audio.<br>🎤 <b>Sync perfecto:</b> pegá un <b>.lrc</b> (con <code>[mm:ss.xx]</code>) y el karaoke queda clavado, sin grabar nada.<br>▁ <b>Huecos:</b> marcá la palabra clave con <code>*asteriscos*</code> (ej: <code>Is this the *real life*</code>) y solo esa se tapa. Sin marcas, tapa al azar.</div>
+        <div style="font-size:10.5px;color:var(--muted);margin-top:.25rem;line-height:1.5">Progresiva y Karaoke necesitan letra. Karaoke reproduce el audio.<br>🎤 <b>Sync perfecto:</b> pegá un <b>.lrc</b> (con <code>[mm:ss.xx]</code>) y el karaoke queda clavado, sin grabar nada.<br>✂️ <b>Cortar en:</b> si solo usás una parte de la canción (ej: hasta antes del título), poné ahí el segundo de corte — el audio se para solo ahí y el relleno de Karaoke se calcula sobre ESE tramo, no sobre la canción entera (más preciso).<br>▁ <b>Huecos:</b> marcá la palabra clave con <code>*asteriscos*</code> (ej: <code>Is this the *real life*</code>) y solo esa se tapa. Sin marcas, tapa al azar.</div>
+        <button type="button" class="audio-file-btn" style="margin-top:.5rem;border-color:var(--purple);color:var(--purple)" onclick="openTapSync()">🎯 Sincronizar tocando (máxima precisión)</button>
       </div>
       <div class="fl"><button class="add-submit" onclick="submitSong()">Guardar canción</button><button class="sheet-close" style="flex:0 0 auto;width:auto;padding:.75rem 1rem;font-size:13px" onclick="hideAddForms()">✕</button></div>
     </div>
     <div class="divider"></div>
     <div class="deck-list-wrap" id="deck-list"></div>
     <button class="sheet-close" onclick="closeDeckEditor()">Listo</button>
+  </div>
+</div>
+
+<!-- Sincronizar tocando (tap sync): genera tiempos exactos por línea sin escribir nada a mano -->
+<div class="sheet-ov" id="tapsync-ov">
+  <div class="sheet-panel" id="tapsync-panel" style="max-width:480px">
+    <div class="sheet-title">🎯 Sincronizar letra</div>
+    <div class="sheet-sub">Tocá "▶ Empezar" y después tocá el botón grande (o apretá ESPACIO) justo cuando arranca cada línea.</div>
+    <div id="tapsync-lines" style="max-height:32vh;overflow-y:auto;display:flex;flex-direction:column;gap:.3rem;padding:.5rem;background:var(--surface2);border-radius:10px"></div>
+    <div id="tapsync-yt-wrap" style="display:none"><div id="tapsync-yt"></div></div>
+    <audio id="tapsync-audio" controls style="width:100%;display:none"></audio>
+    <button id="tapsync-tap" onclick="tapSyncTap()" disabled style="padding:1.3rem;border-radius:14px;border:none;background:linear-gradient(150deg,var(--purple),#8a3fd0);color:#fff;font-family:inherit;font-weight:900;font-size:16px;letter-spacing:.05em;cursor:pointer">TOCÁ AQUÍ<div style="font-size:11px;font-weight:700;opacity:.75;margin-top:.15rem">o apretá ESPACIO</div></button>
+    <div class="fl">
+      <button class="sheet-btn" id="tapsync-start" style="flex:1" onclick="tapSyncStart()">▶ Empezar</button>
+      <button class="sheet-close" id="tapsync-undo" style="flex:0 0 auto" onclick="tapSyncUndo()" disabled>↩ Deshacer</button>
+    </div>
+    <div class="fl">
+      <button class="add-submit" id="tapsync-finish" style="flex:1" onclick="tapSyncFinish()" disabled>✅ Guardar tiempos</button>
+      <button class="sheet-close" style="flex:0 0 auto;width:auto;padding:.75rem 1rem;font-size:13px" onclick="closeTapSync()">✕</button>
+    </div>
   </div>
 </div>
 
@@ -1003,7 +1029,9 @@ function createCondPlayer(c){
   if(ytCond){try{ytCond.destroy();}catch(e){}ytCond=null;}
   const w=document.getElementById('yt-cond-el');if(!w)return;
   w.innerHTML='<div id="yt-ci"></div>';
-  ytCond=new YT.Player('yt-ci',{videoId:c.youtubeId,height:'110',width:'100%',playerVars:{start:c.startAt||0,autoplay:0,controls:1,modestbranding:1,rel:0}});
+  const pv={start:c.startAt||0,autoplay:0,controls:1,modestbranding:1,rel:0};
+  if(c.endAt>0&&c.endAt>(c.startAt||0))pv.end=c.endAt;
+  ytCond=new YT.Player('yt-ci',{videoId:c.youtubeId,height:'110',width:'100%',playerVars:pv});
 }
 function condPlay(c){try{ytCond&&ytCond.playVideo();}catch(e){}}            // reanuda desde donde estaba
 function condPause(){try{ytCond&&ytCond.pauseVideo();}catch(e){}}           // pausa sin perder la posición
@@ -1725,7 +1753,7 @@ function renderCondCard(){
   syncLyricHintUI();
   syncFrameHintUI();
   if(c.type==='song'&&c.youtubeId&&c.id!==_lastCondId) createCondPlayer(c);
-  if(c.type==='song'&&c.audioData){const au=document.getElementById('local-audio-cond');if(au){au.currentTime=c.startAt||0;}}
+  if(c.type==='song'&&c.audioData){const au=document.getElementById('local-audio-cond');if(au){au.currentTime=c.startAt||0;_bindLocalAudioEndAt(au,c);}}
   updateCondProgress();
   _lastCondId=c.id;
   sendState();
@@ -1736,6 +1764,11 @@ function doCondRestart(){const c=currentCard();if(!c||!c.youtubeId)return;condRe
 function doCondPlayLocal(){const au=document.getElementById('local-audio-cond');if(au){au.play();broadcast({type:'local_play',startAt:currentCard()?.startAt||0});}maybeStartKaraokeSync();}
 function doCondStopLocal(){const au=document.getElementById('local-audio-cond');if(au){au.pause();}broadcast({type:'local_stop'});stopKaraokeSync();}
 function doCondRestartLocal(){const au=document.getElementById('local-audio-cond');if(au){au.currentTime=currentCard()?.startAt||0;au.play();}broadcast({type:'local_play',startAt:currentCard()?.startAt||0});lyricLine=0;maybeStartKaraokeSync();}
+// "Cortar en": si la carta tiene endAt, el audio local se para solo ahí (antes solo se guardaba, no hacía nada).
+function _bindLocalAudioEndAt(au,c){
+  if(!au||au._endAtBound)return;au._endAtBound=true;
+  au.addEventListener('timeupdate',()=>{const cc=currentCard();if(cc&&cc.audioData&&cc.endAt>cc.startAt&&au.currentTime>=cc.endAt){au.pause();}});
+}
 
 // ─── CONDUCTOR: ATAJOS DE TECLADO ────────────────────────────────
 // Pensados para no tener que tocar el mouse durante la partida.
@@ -1981,9 +2014,10 @@ function karaokeLineTimings(c,dur){
   if(Array.isArray(c.lyricTimes)&&c.lyricTimes.length===n){
     return c.lyricTimes.map((t,i)=>({start:t,end:i<n-1?c.lyricTimes[i+1]:((dur&&dur>t)?dur:t+4)}));
   }
+  const effDur=(c.endAt>start)?c.endAt:dur; // si hay "Cortar en", el reparto usa ESE tramo, no la canción entera
   const weights=lines.map(l=>Math.max(3,l.replace(/\s+/g,'').length));
   const totalW=weights.reduce((a,b)=>a+b,0)||1;
-  const span=Math.max(0,(dur||0)-start);
+  const span=Math.max(0,(effDur||0)-start);
   let acc=start;const out=[];
   for(const w of weights){const d=span*(w/totalW);out.push({start:acc,end:acc+d});acc+=d;}
   return out;
@@ -2022,6 +2056,101 @@ function startKaraokeSync(){
 }
 function stopKaraokeSync(){if(_karaokeTimer){clearInterval(_karaokeTimer);_karaokeTimer=null;}}
 function maybeStartKaraokeSync(){const c=currentCard();if(c&&c.type==='song'&&(c.songMode||'audio')==='karaoke'&&karaokeHasAudio(c))startKaraokeSync();}
+
+// ── Sincronizar tocando: genera tiempos [mm:ss.xx] exactos tocando en vivo ──
+// Reproduce el audio ya cargado en el formulario y, cada vez que el conductor toca
+// (o apreta espacio) al empezar una línea, guarda ese instante. Al terminar, arma
+// el mismo formato .lrc que ya soporta el parseo de letra — no agrega otro sistema.
+let _tapLines=[],_tapIdx=0,_tapTimes=[],_tapMode=null,_tapYtId='',_tapYt=null,_tapAudioEl=null;
+function openTapSync(){
+  const raw=(document.getElementById('ns-lyrics').value||'');
+  const parsed=parseLyricsInput(raw);
+  _tapLines=parsed.lyrics.split('\n').filter(s=>s.trim()!=='');
+  if(!_tapLines.length){showToast('Pegá la letra primero');return;}
+  if(_audioSrc==='yt'){
+    const id=ytIdFromUrl(document.getElementById('ns-url').value.trim());
+    if(!id){showToast('Cargá un video de YouTube primero');return;}
+    _tapMode='yt';_tapYtId=id;
+  }else{
+    if(!_audioData){showToast('Subí un archivo de audio primero');return;}
+    _tapMode='file';
+  }
+  _tapIdx=0;_tapTimes=[];
+  renderTapLines();
+  document.getElementById('tapsync-tap').disabled=true;
+  document.getElementById('tapsync-undo').disabled=true;
+  document.getElementById('tapsync-finish').disabled=true;
+  document.getElementById('tapsync-start').style.display='';
+  document.getElementById('tapsync-start').textContent='▶ Empezar';
+  document.getElementById('tapsync-ov').classList.add('open');
+  document.addEventListener('keydown',_tapKeyHandler);
+}
+function closeTapSync(){
+  document.getElementById('tapsync-ov').classList.remove('open');
+  document.removeEventListener('keydown',_tapKeyHandler);
+  tapSyncStopMedia();
+}
+function _tapKeyHandler(e){if(e.code==='Space'){e.preventDefault();tapSyncTap();}}
+function renderTapLines(){
+  const box=document.getElementById('tapsync-lines');if(!box)return;
+  box.innerHTML=_tapLines.map((l,i)=>`<div class="tapsync-line${i===_tapIdx?' cur':''}${i<_tapIdx?' done':''}" id="tapsync-l-${i}">${esc(l)}</div>`).join('');
+  const cur=document.getElementById('tapsync-l-'+_tapIdx);
+  if(cur&&cur.scrollIntoView)try{cur.scrollIntoView({block:'center'});}catch(e){}
+}
+function tapSyncStart(){
+  document.getElementById('tapsync-start').style.display='none';
+  document.getElementById('tapsync-tap').disabled=false;
+  if(_tapMode==='file'){
+    const au=document.getElementById('tapsync-audio');
+    au.src=_audioData;au.currentTime=0;au.style.display='';
+    au.play().catch(()=>{});
+    _tapAudioEl=au;
+  }else{
+    if(!ytReady){showToast('YouTube está cargando, esperá un segundo y tocá de nuevo');document.getElementById('tapsync-start').style.display='';return;}
+    document.getElementById('tapsync-yt-wrap').style.display='';
+    if(_tapYt){try{_tapYt.destroy();}catch(e){}}
+    _tapYt=new YT.Player('tapsync-yt',{videoId:_tapYtId,height:'110',width:'100%',playerVars:{autoplay:1,controls:1,modestbranding:1,rel:0}});
+  }
+}
+function tapSyncClock(){
+  if(_tapMode==='file'&&_tapAudioEl)return _tapAudioEl.currentTime||0;
+  if(_tapMode==='yt'&&_tapYt){try{return _tapYt.getCurrentTime()||0;}catch(e){return 0;}}
+  return 0;
+}
+function tapSyncTap(){
+  if(_tapIdx>=_tapLines.length)return;
+  _tapTimes.push(+tapSyncClock().toFixed(2));
+  _tapIdx++;
+  document.getElementById('tapsync-undo').disabled=false;
+  if(_tapIdx>=_tapLines.length){
+    document.getElementById('tapsync-tap').disabled=true;
+    document.getElementById('tapsync-finish').disabled=false;
+    showToast('¡Listo! Todas las líneas marcadas — tocá Guardar tiempos');
+  }
+  renderTapLines();
+}
+function tapSyncUndo(){
+  if(!_tapTimes.length)return;
+  _tapTimes.pop();_tapIdx=Math.max(0,_tapIdx-1);
+  document.getElementById('tapsync-tap').disabled=false;
+  document.getElementById('tapsync-finish').disabled=true;
+  document.getElementById('tapsync-undo').disabled=!_tapTimes.length;
+  renderTapLines();
+}
+function tapSyncStopMedia(){
+  if(_tapAudioEl){try{_tapAudioEl.pause();}catch(e){}_tapAudioEl=null;}
+  const au=document.getElementById('tapsync-audio');if(au){au.style.display='none';au.removeAttribute('src');}
+  if(_tapYt){try{_tapYt.destroy();}catch(e){}_tapYt=null;}
+  document.getElementById('tapsync-yt-wrap').style.display='none';
+}
+function tapSyncFinish(){
+  if(_tapTimes.length!==_tapLines.length){showToast('Faltan líneas por marcar');return;}
+  const lrcText=_tapLines.map((l,i)=>`[${fmtLrc(_tapTimes[i])}]${l}`).join('\n');
+  document.getElementById('ns-lyrics').value=lrcText;
+  setSongMode('karaoke');
+  closeTapSync();
+  showToast(`🎯 ${_tapTimes.length} tiempos guardados — guardá la canción para aplicarlos`);
+}
 
 // ── Películas: auto-revelado progresivo (blur/recorte/grid) + rotación de frames ──
 function movieIsMultiFrame(c){return !!(c&&c.type==='movie'&&c.imgKind==='frame'&&(c.frames||[]).length>1);}
@@ -2551,7 +2680,7 @@ function editCard(i){
     (c.bonusOptions||[]).forEach((v,slot)=>{if(slot<4){document.getElementById('nm-bonus-opt'+slot).value=v;if(slot===c.bonusCorrect)document.getElementById('nm-bonus-r'+slot).checked=true;}});
     document.getElementById('add-movie-form').dataset.ei=i;
   }
-  else{showAddForm('song');document.getElementById('ns-title').value=c.title;if(c.audioData){setAudioSrc('file');_audioData=c.audioData;document.getElementById('audio-file-preview').textContent='✓ audio guardado';document.getElementById('ns-start-local').value=c.startAt||0;}else{setAudioSrc('yt');document.getElementById('ns-url').value=c.youtubeId?`https://youtu.be/${c.youtubeId}`:'';document.getElementById('ns-start').value=c.startAt||0;}(function(){const nl=document.getElementById('ns-lyrics');const tms=c.lyricTimes,lns=(c.lyrics||'').split('\n');if(Array.isArray(tms)&&tms.length===lns.length&&tms.length){nl.value=lns.map((l,i)=>`[${fmtLrc(tms[i])}]${l}`).join('\n');}else{nl.value=c.lyrics||'';}})();setSongMode(c.songMode||'audio');document.getElementById('add-song-form').dataset.ei=i;}
+  else{showAddForm('song');document.getElementById('ns-title').value=c.title;if(c.audioData){setAudioSrc('file');_audioData=c.audioData;document.getElementById('audio-file-preview').textContent='✓ audio guardado';document.getElementById('ns-start-local').value=c.startAt||0;document.getElementById('ns-end-local').value=c.endAt||'';}else{setAudioSrc('yt');document.getElementById('ns-url').value=c.youtubeId?`https://youtu.be/${c.youtubeId}`:'';document.getElementById('ns-start').value=c.startAt||0;document.getElementById('ns-end').value=c.endAt||'';}(function(){const nl=document.getElementById('ns-lyrics');const tms=c.lyricTimes,lns=(c.lyrics||'').split('\n');if(Array.isArray(tms)&&tms.length===lns.length&&tms.length){nl.value=lns.map((l,i)=>`[${fmtLrc(tms[i])}]${l}`).join('\n');}else{nl.value=c.lyrics||'';}})();setSongMode(c.songMode||'audio');document.getElementById('add-song-form').dataset.ei=i;}
   setTimeout(()=>{document.getElementById('deck-panel').scrollTop=0;},80);
 }
 function showAddForm(type){hideAddForms();document.getElementById(type==='movie'?'add-movie-form':'add-song-form').style.display='';if(type==='movie')setRevealMode(randomRevealMode());else setSongMode('audio');setTimeout(()=>document.getElementById('deck-panel').scrollTop=0,50);}
@@ -2650,7 +2779,7 @@ function submitMovie(){
 }
 function setAudioSrc(s){_audioSrc=s;document.getElementById('ast-yt').classList.toggle('on',s==='yt');document.getElementById('ast-file').classList.toggle('on',s==='file');document.getElementById('audio-yt-wrap').style.display=s==='yt'?'':'none';document.getElementById('audio-file-wrap').style.display=s==='file'?'':'none';}
 function handleAudioFile(input){const f=input.files[0];if(!f)return;const r=new FileReader();r.onload=e=>{_audioData=e.target.result;document.getElementById('audio-file-preview').textContent='✓ '+f.name;};r.readAsDataURL(f);input.value='';}
-function submitSong(){const t=document.getElementById('ns-title').value.trim();if(!t){showToast('Falta el título');return;}const ei=parseInt(document.getElementById('add-song-form').dataset.ei);let youtubeId='',startAt=0,audioData='';if(_audioSrc==='yt'){youtubeId=ytIdFromUrl(document.getElementById('ns-url').value.trim());startAt=parseInt(document.getElementById('ns-start').value)||0;}else{audioData=_audioData||'';startAt=parseInt(document.getElementById('ns-start-local').value)||0;}const _pl=parseLyricsInput(document.getElementById('ns-lyrics').value);const lyrics=_pl.lyrics;const lyricTimes=_pl.lyricTimes;const card={id:isNaN(ei)?nextId++:deck[ei].id,type:'song',title:t,youtubeId,startAt,audioData,lyrics,lyricTimes:lyricTimes||null,songMode:_songMode||'audio'};if(!isNaN(ei))deck[ei]=card;else deck.push(card);saveDeck();if(order.length!==deck.length){order=deck.map((_,i)=>i);cardIdx=0;saveOrder();renderCondCard();updateCount();}renderDeckList();hideAddForms();const _msg=isNaN(ei)?'Canción agregada ✓':'Actualizada ✓';showToast(lyricTimes?`${_msg} · 🎤 ${lyricTimes.length} tiempos LRC`:_msg);}
+function submitSong(){const t=document.getElementById('ns-title').value.trim();if(!t){showToast('Falta el título');return;}const ei=parseInt(document.getElementById('add-song-form').dataset.ei);let youtubeId='',startAt=0,audioData='',endAt=0;if(_audioSrc==='yt'){youtubeId=ytIdFromUrl(document.getElementById('ns-url').value.trim());startAt=parseInt(document.getElementById('ns-start').value)||0;endAt=parseInt(document.getElementById('ns-end').value)||0;}else{audioData=_audioData||'';startAt=parseInt(document.getElementById('ns-start-local').value)||0;endAt=parseInt(document.getElementById('ns-end-local').value)||0;}const _pl=parseLyricsInput(document.getElementById('ns-lyrics').value);const lyrics=_pl.lyrics;const lyricTimes=_pl.lyricTimes;const card={id:isNaN(ei)?nextId++:deck[ei].id,type:'song',title:t,youtubeId,startAt,endAt:(endAt>startAt?endAt:0),audioData,lyrics,lyricTimes:lyricTimes||null,songMode:_songMode||'audio'};if(!isNaN(ei))deck[ei]=card;else deck.push(card);saveDeck();if(order.length!==deck.length){order=deck.map((_,i)=>i);cardIdx=0;saveOrder();renderCondCard();updateCount();}renderDeckList();hideAddForms();const _msg=isNaN(ei)?'Canción agregada ✓':'Actualizada ✓';showToast(lyricTimes?`${_msg} · 🎤 ${lyricTimes.length} tiempos LRC`:_msg);}
 function ytIdFromUrl(url){if(!url)return'';url=url.trim();const m=url.match(/(?:v=|youtu\.be\/|embed\/|shorts\/)([A-Za-z0-9_-]{11})/);return m?m[1]:(url.length===11?url:'');}
 
 // ─── NAME EDITOR ─────────────────────────────────────────────────
