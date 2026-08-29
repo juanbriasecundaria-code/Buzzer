@@ -495,6 +495,10 @@
   }
   .imp-cat-btn:hover { border-color: var(--danger); }
   .imp-cat-btn.sel { border-color: var(--danger); background: rgba(255,95,95,0.1); color: var(--danger); }
+  .imp-cat-btn { display: inline-flex; align-items: center; gap: 6px; }
+  .imp-cat-count { font-size: 10px; font-weight: 700; opacity: 0.6; }
+  .imp-cat-btn.exhausted { opacity: 0.5; }
+  .imp-cat-btn.exhausted .imp-cat-count { color: var(--danger); opacity: 1; }
   .imp-custom-tag {
     display: inline-flex;
     align-items: center;
@@ -555,6 +559,25 @@
   .imp-history-word { font-weight: 600; flex: 1; }
   .imp-history-impostor { color: var(--muted); white-space: nowrap; }
   .imp-history-outcome { font-size: 10.5px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; white-space: nowrap; }
+
+  /* Interruptor genérico reutilizable (usado por "Modo doble impostor", etc.) */
+  .switch-track {
+    width: 46px; height: 26px; border-radius: 13px;
+    border: 1px solid var(--border2); background: var(--surface);
+    position: relative; cursor: pointer; flex-shrink: 0; padding: 0;
+    transition: background 0.2s, border-color 0.2s;
+  }
+  .switch-track:disabled, .switch-track.disabled { cursor: not-allowed; }
+  .switch-track.on.danger-on { background: rgba(255,95,95,0.85); border-color: var(--danger); }
+  .switch-thumb {
+    position: absolute; top: 2px; left: 2px; width: 20px; height: 20px;
+    border-radius: 50%; background: var(--muted); transition: left 0.2s, background 0.2s;
+  }
+  .switch-track.on .switch-thumb { left: 22px; background: #111; }
+
+  /* Variantes de color para .station-badge, reusadas en el historial del Impostor */
+  .station-badge.danger { background: rgba(255,95,95,0.14); color: var(--danger); }
+  .station-badge.gold { background: rgba(245,200,66,0.16); color: var(--gold); }
   .progress-dots {
     display: flex; gap: 6px; justify-content: center; margin: 1rem 0;
   }
@@ -7437,31 +7460,64 @@ function impRoot(html) {
   document.getElementById('imp-root').innerHTML = html;
 }
 
-function allImpWords() {
+function allImpWords(catOverride) {
   const TODAS = 'Todas juntas 🎲';
-  let list = impGame.activeCategory ? (IMP_WORDS[impGame.activeCategory] ? [...IMP_WORDS[impGame.activeCategory]] : []) : [];
+  const cat = catOverride !== undefined ? catOverride : impGame.activeCategory;
+  let list = cat ? (IMP_WORDS[cat] ? [...IMP_WORDS[cat]] : []) : [];
   const excluded = impGame.excludedWords || [];
   list = list.filter(w => !excluded.includes(w));
 
   if (impGame.customCatWords) {
-    if (impGame.activeCategory === TODAS) {
+    if (cat === TODAS) {
       // Todas juntas: reúne todo (base + custom de cada cat + userCats)
       const seen = new Set(list);
-      for (const [cat, words] of Object.entries(impGame.customCatWords)) {
-        if (cat === TODAS || cat === '➕ Palabras propias') continue;
+      for (const [c, words] of Object.entries(impGame.customCatWords)) {
+        if (c === TODAS || c === '➕ Palabras propias') continue;
         for (const w of words) { if (!seen.has(w) && !excluded.includes(w)) { seen.add(w); list.push(w); } }
       }
       if (impGame.customCatWords[TODAS]) {
         for (const w of impGame.customCatWords[TODAS]) { if (!seen.has(w) && !excluded.includes(w)) { seen.add(w); list.push(w); } }
       }
-    } else if (impGame.activeCategory && impGame.customCatWords[impGame.activeCategory]) {
-      list = [...list, ...impGame.customCatWords[impGame.activeCategory].filter(w => !excluded.includes(w))];
+    } else if (cat && impGame.customCatWords[cat]) {
+      list = [...list, ...impGame.customCatWords[cat].filter(w => !excluded.includes(w))];
     }
   }
 
   // Si la categoría activa es una userCat, sus palabras ya están en customCatWords arriba.
-  // Palabras propias globales (legacy)
+  // Palabras propias globales (legacy) — cuentan para cualquier categoría, como en el pool real.
   return [...list, ...(impGame.customWords || [])];
+}
+
+// Disponibilidad de una categoría puntual (para el badge en su chip), sin
+// depender de cuál sea la categoría activa de esta ronda.
+function categoryAvailability(cat) {
+  const pool = allImpWords(cat);
+  const used = (impGame.usedWords || []).filter(w => pool.includes(w)).length;
+  return { total: pool.length, available: pool.length - used };
+}
+
+// Refresca solo los números de los chips de categoría (sin re-renderizar toda
+// la pantalla), para usar después de acciones puntuales como excluir una palabra.
+function refreshCatBadges() {
+  document.querySelectorAll('#imp-root .imp-cat-btn').forEach(btn => {
+    const cat = btn.getAttribute('data-cat');
+    const countEl = btn.querySelector('.imp-cat-count');
+    if (!cat || !countEl) return;
+    const av = categoryAvailability(cat);
+    countEl.textContent = `${av.available}/${av.total}`;
+    btn.classList.toggle('exhausted', av.total > 0 && av.available <= 0);
+  });
+}
+
+// Nombres que ya fueron impostor en algún momento de la noche (para que el
+// organizador pueda repartir el rol de forma más pareja entre rondas).
+function getPastImpostors() {
+  const names = new Set();
+  (state.impostor.rounds || []).forEach(rd => {
+    if (rd.mode === 'doble') (rd.impostorNames || []).forEach(n => names.add(n));
+    else if (rd.impostorName) names.add(rd.impostorName);
+  });
+  return Array.from(names);
 }
 
 function pickRandomWord() {
@@ -7521,15 +7577,15 @@ function renderImpHistoryHtml() {
       const caughtNames = rd.caughtNames || [];
       const total = (rd.impostorNames || []).length;
       outcome = caughtNames.length === total
-        ? `<span style="color:var(--success)">ambos descubiertos</span>`
+        ? `<span class="station-badge done">ambos descubiertos</span>`
         : caughtNames.length === 0
-          ? `<span style="color:var(--danger)">ninguno descubierto</span>`
-          : `<span style="color:var(--gold)">${caughtNames.length}/${total} descubiertos</span>`;
+          ? `<span class="station-badge danger">ninguno descubierto</span>`
+          : `<span class="station-badge gold">${caughtNames.length}/${total} descubiertos</span>`;
       impostorLabel = `🕵️🕵️ ${(rd.impostorNames || []).join(' y ')}`;
     } else {
       outcome = rd.mode === 'descubierto'
-        ? `<span style="color:var(--success)">descubierto</span>`
-        : `<span style="color:var(--danger)">no descubierto</span>`;
+        ? `<span class="station-badge done">descubierto</span>`
+        : `<span class="station-badge danger">no descubierto</span>`;
       impostorLabel = `🕵️ ${rd.impostorName}`;
     }
     return `<div class="imp-history-row">
@@ -7565,9 +7621,13 @@ function renderImpSetup() {
   impGame.phase = 'setup';
   saveImpGame();
   const cats = [...Object.keys(IMP_WORDS), ...(impGame.userCats||[]).filter(c => !IMP_WORDS[c])];
-  const catHtml = cats.map(c => `
-    <button onclick="toggleCat(this,'${c}')" data-cat="${c}" class="imp-cat-btn ${impGame.activeCategory===c?'sel':''}">${c}</button>
-  `).join('');
+  const catHtml = cats.map(c => {
+    const av = categoryAvailability(c);
+    const exhausted = av.total > 0 && av.available <= 0;
+    return `<button onclick="toggleCat(this,'${c}')" data-cat="${c}" class="imp-cat-btn ${impGame.activeCategory===c?'sel':''}${exhausted?' exhausted':''}">
+      <span>${c}</span><span class="imp-cat-count">${av.available}/${av.total}</span>
+    </button>`;
+  }).join('');
 
   // Custom words are added silently — no visible tags shown
 
@@ -7587,72 +7647,76 @@ function renderImpSetup() {
         <div style="font-size:13px;font-weight:600">🕵️🕵️ Modo doble impostor</div>
         <div style="font-size:12px;color:var(--muted);margin-top:2px">${canDouble ? 'Dos impostores en la misma ronda, que no se conocen entre sí. Ideal con 7+ jugadores.' : `Necesitás al menos 6 jugadores para activarlo (hay ${impGame.players.length}).`}</div>
       </div>
-      <button onclick="toggleDoubleMode()" ${canDouble?'':'disabled'} title="${canDouble ? (impGame.doubleMode?'Desactivar modo doble impostor':'Activar modo doble impostor') : 'Necesitás al menos 6 jugadores'}" style="width:46px;height:26px;border-radius:13px;border:1px solid var(--border2);background:${impGame.doubleMode && canDouble?'var(--accent)':'var(--surface)'};position:relative;cursor:${canDouble?'pointer':'not-allowed'};flex-shrink:0;transition:background 0.2s;padding:0">
-        <span style="position:absolute;top:2px;left:${impGame.doubleMode && canDouble?'22px':'2px'};width:20px;height:20px;border-radius:50%;background:${impGame.doubleMode && canDouble?'#111':'var(--muted)'};transition:left 0.2s"></span>
+      <button onclick="toggleDoubleMode()" ${canDouble?'':'disabled'} title="${canDouble ? (impGame.doubleMode?'Desactivar modo doble impostor':'Activar modo doble impostor') : 'Necesitás al menos 6 jugadores'}" class="switch-track ${impGame.doubleMode && canDouble ? 'on danger-on' : ''} ${canDouble ? '' : 'disabled'}">
+        <span class="switch-thumb"></span>
       </button>
     </div>
   `;
+
+  const pastImpostors = getPastImpostors();
+  const pastImpostorsHtml = pastImpostors.length ? `
+    <div style="font-size:11.5px;color:var(--muted);margin-bottom:1.25rem;display:flex;flex-wrap:wrap;align-items:center;gap:0.4rem 0.5rem">
+      <span>🕵️ Ya fueron impostor:</span>
+      ${pastImpostors.map(n => `<span class="imp-custom-tag" style="padding:0.25rem 0.6rem;font-size:11px">${n}</span>`).join('')}
+    </div>` : '';
 
   impRoot(`
     <div style="max-width:560px;margin:0 auto;padding:0.5rem 0">
       <div style="font-size:20px;font-weight:700;letter-spacing:-0.5px;margin-bottom:0.25rem">Impostor</div>
       <div style="font-size:13px;color:var(--muted);margin-bottom:1.5rem;line-height:1.6">Todos reciben la misma palabra secreta en su carta, <b style="color:var(--text)">excepto uno</b> que es el impostor y tiene que camuflarse. Si no lo descubren, se repite la votación con la misma palabra hasta que lo encuentren.</div>
 
-      <div style="font-size:11px;font-weight:600;letter-spacing:0.07em;text-transform:uppercase;color:var(--muted);margin-bottom:0.75rem">Categoría de palabras</div>
-      <div style="display:flex;flex-wrap:wrap;gap:0.5rem;margin-bottom:1.25rem">${catHtml}</div>
+      ${pastImpostorsHtml}
 
-      <!-- GESTIÓN UNIFICADA DE PALABRAS -->
-      <details style="margin-bottom:1.25rem" ${impGame._manageOpen?'open':''}>
-        <summary onclick="toggleManageOpen()" style="font-size:11px;font-weight:600;letter-spacing:0.07em;text-transform:uppercase;color:var(--muted);cursor:pointer;list-style:none;display:flex;align-items:center;gap:0.5rem;margin-bottom:0.75rem">
-          <span>✏️ Gestionar palabras</span>
-          <span style="font-size:10px;opacity:0.6">${impGame._manageOpen?'▲':'▼'}</span>
+      <div style="font-size:11px;font-weight:600;letter-spacing:0.07em;text-transform:uppercase;color:var(--muted);margin-bottom:0.15rem">Categoría de palabras</div>
+      <div style="font-size:11px;color:var(--muted);margin-bottom:0.75rem">De acá sale la palabra de esta ronda</div>
+      <div style="display:flex;flex-wrap:wrap;gap:0.5rem;margin-bottom:0.5rem">${catHtml}</div>
+
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:0.75rem;margin-bottom:1.25rem">
+        <div style="font-size:10.5px;color:var(--muted);line-height:1.5">
+          💾 El banco de palabras (usadas, propias y categorías creadas) ya queda incluido en el backup de la noche —
+          <button onclick="goToBackupPanel()" style="background:none;border:none;padding:0;color:var(--info);text-decoration:underline;cursor:pointer;font-size:inherit;font-family:inherit">Reglas → Panel de control</button>.
+        </div>
+        ${usedCount > 0
+          ? `<button onclick="resetWordPool()" style="flex-shrink:0;padding:0.4rem 0.8rem;border-radius:var(--radius);border:1px solid var(--border2);background:var(--surface);color:var(--muted);cursor:pointer;font-size:12px;font-weight:600;white-space:nowrap;transition:border-color 0.15s,color 0.15s" onmouseover="this.style.borderColor='var(--danger)';this.style.color='var(--danger)'" onmouseout="this.style.borderColor='var(--border2)';this.style.color='var(--muted)'">🔄 Resetear pool</button>`
+          : ''
+        }
+      </div>
+
+      <!-- GESTIÓN AVANZADA DEL BANCO DE PALABRAS (colapsado por defecto) -->
+      <details class="control-panel" id="imp-bank-panel" style="margin-bottom:1.5rem" ${impGame._manageOpen?'open':''}>
+        <summary>
+          <span class="control-panel-title">🗂️ Banco de palabras (avanzado)
+            <span class="control-panel-sub" style="display:block;font-weight:500">Editar categorías, agregar palabras propias, resetear el pool</span>
+          </span>
+          <span class="rule-chevron">▾</span>
         </summary>
-        <div style="background:var(--surface2);border-radius:var(--radius);padding:1rem;margin-top:0.5rem">
+        <div class="control-panel-body">
 
-          <!-- Selector de categoría -->
-          <div style="display:flex;gap:0.5rem;margin-bottom:0.85rem">
-            <select id="imp-manage-cat" style="flex:1;padding:0.6rem 0.75rem;border-radius:var(--radius);border:1px solid var(--border2);background:var(--surface);color:var(--text);font-size:13px" onchange="renderManageWords()">
+          <div>
+            <div style="font-size:11px;font-weight:600;letter-spacing:0.05em;color:var(--muted);margin-bottom:0.15rem">Categoría a editar</div>
+            <div style="font-size:10.5px;color:var(--muted);margin-bottom:0.6rem">Esto solo agrega o saca palabras del mazo — no es la categoría de esta ronda</div>
+            <select id="imp-manage-cat" style="width:100%;padding:0.6rem 0.75rem;border-radius:var(--radius);border:1px solid var(--border2);background:var(--surface2);color:var(--text);font-size:13px" onchange="renderManageWords()">
               ${[...Object.keys(IMP_WORDS), ...(impGame.userCats||[]).filter(c => !IMP_WORDS[c]), '➕ Palabras propias'].map(c=>`<option value="${c}" ${(impGame._manageCat||Object.keys(IMP_WORDS)[0])===c?'selected':''}>${c}</option>`).join('')}
             </select>
           </div>
 
-          <!-- Palabras de la categoría seleccionada -->
-          <div id="imp-manage-words" style="display:flex;flex-wrap:wrap;gap:0.4rem;margin-bottom:0.85rem">
-            ${renderManageWordsHtml((impGame._manageCat||Object.keys(IMP_WORDS)[0]))}
+          <div>
+            <div style="font-size:10.5px;color:var(--muted);margin-bottom:0.6rem">Tocá una palabra para sacarla del mazo de esta noche (no se borra, solo se excluye)</div>
+            <div id="imp-manage-words" style="display:flex;flex-wrap:wrap;gap:0.4rem">
+              ${renderManageWordsHtml((impGame._manageCat||Object.keys(IMP_WORDS)[0]))}
+            </div>
           </div>
 
-          <!-- Input para agregar nueva palabra a la categoría seleccionada -->
           <div style="border-top:0.5px solid var(--border);padding-top:0.85rem">
             <div style="font-size:11px;color:var(--muted);margin-bottom:0.5rem">Agregar palabra a esta categoría</div>
             <div style="display:flex;gap:0.5rem">
-              <input id="imp-custom-input" type="text" placeholder="Nueva palabra..." style="flex:1;padding:0.6rem 0.75rem;border-radius:var(--radius);border:1px solid var(--border2);background:var(--surface);color:var(--text);font-size:13px" onkeydown="if(event.key==='Enter')addCustomWord()">
+              <input id="imp-custom-input" type="text" placeholder="Nueva palabra..." style="flex:1;padding:0.6rem 0.75rem;border-radius:var(--radius);border:1px solid var(--border2);background:var(--surface2);color:var(--text);font-size:13px" onkeydown="if(event.key==='Enter')addCustomWord()">
               <button class="btn btn-primary" style="padding:0.6rem 1rem;white-space:nowrap" onclick="addCustomWord()">Agregar</button>
             </div>
           </div>
 
         </div>
       </details>
-
-      <div style="display:flex;align-items:center;justify-content:space-between;padding:1rem;background:var(--surface2);border-radius:var(--radius);margin-bottom:0.5rem;gap:0.75rem">
-        <div style="flex:1">
-          <div style="font-size:13px;font-weight:500">Banco de palabras</div>
-          ${usedCount > 0
-            ? `<div style="font-size:12px;color:var(--muted)">${availableCount} disponibles · <span style="color:var(--danger)">${usedCount} ya usadas</span></div>`
-            : `<div style="font-size:12px;color:var(--muted)">${wordCount} palabras disponibles</div>`
-          }
-        </div>
-        <div style="display:flex;align-items:center;gap:0.75rem;flex-wrap:wrap;justify-content:flex-end">
-          ${usedCount > 0
-            ? `<button onclick="resetWordPool()" style="padding:0.4rem 0.8rem;border-radius:var(--radius);border:1px solid var(--border2);background:var(--surface);color:var(--muted);cursor:pointer;font-size:12px;font-weight:600;transition:border-color 0.15s,color 0.15s" onmouseover="this.style.borderColor='var(--danger)';this.style.color='var(--danger)'" onmouseout="this.style.borderColor='var(--border2)';this.style.color='var(--muted)'">🔄 Resetear</button>`
-            : ''
-          }
-          <div style="font-size:22px;font-weight:700;color:${poolExhausted?'var(--danger)':availableCount>0?'var(--accent)':'var(--muted)'}">${availableCount}</div>
-        </div>
-      </div>
-      <div style="font-size:10.5px;color:var(--muted);margin-bottom:1.5rem;line-height:1.5">
-        💾 Estas palabras (usadas, propias y categorías creadas) ya quedan incluidas en el backup de la noche —
-        <button onclick="goToBackupPanel()" style="background:none;border:none;padding:0;color:var(--info);text-decoration:underline;cursor:pointer;font-size:inherit;font-family:inherit">Reglas → Panel de control</button>.
-      </div>
 
       <div style="font-size:11px;font-weight:600;letter-spacing:0.07em;text-transform:uppercase;color:var(--muted);margin-bottom:0.75rem">Jugadores (se puede sumar invitados de último momento)</div>
       <div style="display:flex;gap:0.5rem;margin-bottom:0.75rem">
@@ -7678,6 +7742,14 @@ function renderImpSetup() {
       ${renderImpHistoryHtml()}
     </div>
   `);
+
+  const bankPanel = document.getElementById('imp-bank-panel');
+  if (bankPanel) {
+    bankPanel.addEventListener('toggle', () => {
+      impGame._manageOpen = bankPanel.open;
+      saveImpGame();
+    });
+  }
 }
 
 function resetWordPool() {
@@ -7860,11 +7932,6 @@ function renderManageWords() {
   if (container) container.innerHTML = renderManageWordsHtml(cat);
 }
 
-function toggleManageOpen() {
-  impGame._manageOpen = !impGame._manageOpen;
-  saveImpGame();
-}
-
 function toggleExcludeWord(word, el) {
   if (!impGame.excludedWords) impGame.excludedWords = [];
   const idx = impGame.excludedWords.indexOf(word);
@@ -7884,6 +7951,7 @@ function toggleExcludeWord(word, el) {
     el.innerHTML = word;
   }
   saveImpGame();
+  refreshCatBadges();
 }
 
 function addImpPlayer() {
