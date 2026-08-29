@@ -73,6 +73,7 @@
     padding: 1rem 1.5rem 1rem 0;
     border-right: 0.5px solid var(--border);
     margin-right: 1rem;
+    margin-left: 4.5rem; /* deja lugar al chip fijo "← Hub" para que no se solapen */
     letter-spacing: -0.3px;
   }
   .nav-tabs { display: flex; gap: 0; }
@@ -502,43 +503,93 @@
   .imp-custom-tag {
     display: inline-flex;
     align-items: center;
-    padding: 0.4rem 0.7rem;
+    gap: 0.4rem;
+    padding: 0.3rem 0.6rem 0.3rem 0.35rem;
     border-radius: 99px;
     background: var(--surface2);
     border: 1px solid var(--border2);
     font-size: 12.5px;
     color: var(--text);
   }
-  .imp-card-face {
+  /* ---- Carta del Impostor: contenedor 3D con flip real ---- */
+  .imp-card-stage {
     width: 100%;
-    max-width: 320px;
+    max-width: 280px;
     margin: 0 auto;
-    min-height: 200px;
-    border-radius: var(--radius-lg);
-    border: 1.5px solid var(--border2);
-    background: var(--surface2);
+    aspect-ratio: 3 / 4.2;
+    perspective: 1400px;
+  }
+  .imp-card-flipper {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    transition: transform 0.7s cubic-bezier(.2,.7,.2,1);
+    transform-style: preserve-3d;
+  }
+  .imp-card-flipper.flipped { transform: rotateY(180deg); }
+  .imp-card-face {
+    position: absolute;
+    inset: 0;
+    backface-visibility: hidden;
+    border-radius: 20px;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    padding: 2rem 1.5rem;
-    cursor: pointer;
-    transition: border-color 0.2s, background 0.2s;
+    padding: 1.75rem 1.25rem;
     user-select: none;
     text-align: center;
+    box-shadow: 0 18px 40px -20px rgba(0,0,0,0.6);
   }
-  .imp-card-back:hover { border-color: var(--danger); background: rgba(255,95,95,0.06); }
+  .imp-card-back {
+    border: 1.5px solid var(--border2);
+    background:
+      repeating-linear-gradient(135deg, rgba(255,255,255,0.025) 0px, rgba(255,255,255,0.025) 2px, transparent 2px, transparent 14px),
+      linear-gradient(160deg, var(--surface2), var(--surface));
+    cursor: pointer;
+    transition: border-color 0.2s, box-shadow 0.2s, transform 0.15s;
+  }
+  .imp-card-back:hover {
+    border-color: var(--danger);
+    box-shadow: 0 18px 40px -20px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,95,95,0.25) inset;
+  }
+  .imp-card-back:active { transform: scale(0.98); }
+  .imp-card-back-ring {
+    width: 76px; height: 76px;
+    border-radius: 50%;
+    border: 1.5px dashed var(--border2);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 30px;
+    margin-bottom: 1rem;
+    transition: border-color 0.2s;
+  }
+  .imp-card-back:hover .imp-card-back-ring { border-color: var(--danger); }
+  .imp-card-front {
+    transform: rotateY(180deg);
+  }
   .imp-card-impostor {
-    border-color: rgba(255,95,95,0.4);
-    background: rgba(255,95,95,0.08);
+    border: 1.5px solid rgba(255,95,95,0.45);
+    background: radial-gradient(circle at 50% 0%, rgba(255,95,95,0.16), transparent 60%), var(--surface2);
     color: var(--danger);
-    cursor: default;
   }
   .imp-card-word {
-    border-color: rgba(200,240,96,0.35);
-    background: rgba(200,240,96,0.06);
+    border: 1.5px solid rgba(200,240,96,0.4);
+    background: radial-gradient(circle at 50% 0%, rgba(200,240,96,0.16), transparent 60%), var(--surface2);
     color: var(--accent);
-    cursor: default;
+  }
+  .imp-card-role-icon { font-size: 34px; margin-bottom: 0.6rem; }
+  @media (prefers-reduced-motion: reduce) {
+    .imp-card-flipper { transition: none; }
+  }
+
+  /* ---- Avatares reutilizables (jugadores del Impostor) ---- */
+  .imp-avatar {
+    display: inline-flex; align-items: center; justify-content: center;
+    border-radius: 50%;
+    font-weight: 700;
+    flex-shrink: 0;
+    color: #111;
+    letter-spacing: 0;
   }
   .imp-history-card {
     display: flex;
@@ -597,28 +648,48 @@
     text-align: center;
     padding: 2rem;
     overflow-y: auto;
+    animation: coverIn 0.35s ease both;
   }
-  .cover-overlay .cover-icon { font-size: 56px; margin-bottom: 1rem; }
+  @keyframes coverIn {
+    from { opacity: 0; transform: scale(0.98); }
+    to   { opacity: 1; transform: scale(1); }
+  }
+  /* Tinte de fondo según el desenlace — sutil, no un color plano */
+  .cover-overlay.tint-danger  { background: radial-gradient(ellipse at 50% 30%, rgba(255,95,95,0.22), transparent 60%), var(--bg); }
+  .cover-overlay.tint-success { background: radial-gradient(ellipse at 50% 30%, rgba(78,203,126,0.22), transparent 60%), var(--bg); }
+  .cover-overlay.tint-gold    { background: radial-gradient(ellipse at 50% 30%, rgba(245,200,66,0.22), transparent 60%), var(--bg); }
+  .cover-overlay .cover-icon {
+    font-size: 56px; margin-bottom: 1rem;
+    animation: coverIconPop 0.5s cubic-bezier(.2,1.4,.4,1) both;
+  }
+  @keyframes coverIconPop {
+    0%   { opacity: 0; transform: scale(0.4); }
+    100% { opacity: 1; transform: scale(1); }
+  }
   .cover-overlay .cover-title { font-size: 22px; font-weight: 700; letter-spacing: -0.5px; margin-bottom: 0.5rem; }
   .cover-overlay .cover-sub { font-size: 14px; color: var(--muted); margin-bottom: 2rem; }
   .result-vote-grid {
     display: grid; grid-template-columns: repeat(3,1fr);
-    gap: 0.5rem; margin-bottom: 1rem;
+    gap: 0.6rem; margin-bottom: 1rem;
   }
   .vote-player-btn {
-    padding: 0.75rem 0.5rem;
-    border-radius: var(--radius);
+    display: flex; flex-direction: column; align-items: center; gap: 0.4rem;
+    padding: 0.9rem 0.5rem 0.75rem;
+    border-radius: var(--radius-lg);
     border: 1.5px solid var(--border2);
     background: var(--surface2);
     color: var(--text);
     cursor: pointer;
     font-size: 12px;
-    font-weight: 500;
+    font-weight: 600;
     text-align: center;
-    transition: border-color 0.15s, background 0.15s;
+    transition: border-color 0.15s, background 0.15s, transform 0.1s;
   }
-  .vote-player-btn:hover { border-color: var(--danger); }
+  .vote-player-btn:hover { border-color: var(--danger); transform: translateY(-1px); }
+  .vote-player-btn:active { transform: translateY(0) scale(0.97); }
   .vote-player-btn.sel { border-color: var(--danger); background: rgba(255,95,95,0.1); color: var(--danger); }
+  .vote-player-btn.sel .imp-avatar { box-shadow: 0 0 0 2px var(--surface2), 0 0 0 4px var(--danger); }
+  .vote-player-btn .imp-avatar { transition: box-shadow 0.15s; }
 
   /* REGLAS */
   .rules-hero {
@@ -858,7 +929,7 @@
   }
   .roulette-item {
     flex-shrink: 0;
-    padding: 0 1.25rem;
+    padding: 0 1.1rem;
     font-size: 15px;
     font-weight: 600;
     color: var(--muted);
@@ -866,13 +937,16 @@
     height: 100%;
     display: flex;
     align-items: center;
+    gap: 0.5rem;
     border-right: 0.5px solid var(--border);
     transition: color 0.1s, font-size 0.1s;
   }
+  .roulette-item .imp-avatar { width: 22px; height: 22px; font-size: 10px; opacity: 0.85; }
   .roulette-item.winner {
     color: var(--gold);
     font-size: 17px;
   }
+  .roulette-item.winner .imp-avatar { opacity: 1; box-shadow: 0 0 0 2px rgba(245,200,66,0.5); }
   .roulette-pointer {
     position: absolute;
     top: 0; bottom: 0;
@@ -1797,7 +1871,7 @@
     /* Nav: scroll horizontal para que todas las pestañas sean accesibles */
     nav { padding: 0 0.5rem; overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
     nav::-webkit-scrollbar { display: none; }
-    .nav-logo { font-size: 14px; padding: 0.85rem 0.85rem 0.85rem 0; margin-right: 0.5rem; flex-shrink: 0; }
+    .nav-logo { font-size: 14px; padding: 0.85rem 0.85rem 0.85rem 0; margin-right: 0.5rem; margin-left: 5rem; flex-shrink: 0; }
     .nav-tabs { flex-shrink: 0; }
     .nav-tab { padding: 0.9rem 0.7rem; font-size: 12.5px; flex-shrink: 0; }
 
@@ -7460,6 +7534,26 @@ function impRoot(html) {
   document.getElementById('imp-root').innerHTML = html;
 }
 
+// Avatares con color estable por jugador (mismo nombre = mismo color siempre)
+const IMP_AVATAR_PALETTE = ['#c8f060','#f5c842','#60b4f0','#ff9d4d','#c060e8','#4ecb7e','#ff5f5f','#e0e0e0'];
+function impAvatarColor(name) {
+  let h = 0;
+  for (let i = 0; i < name.length; i++) h = (h * 31 + name.charCodeAt(i)) >>> 0;
+  return IMP_AVATAR_PALETTE[h % IMP_AVATAR_PALETTE.length];
+}
+function impInitials(name) {
+  return name.trim().split(/\s+/).slice(0,2).map(w => w[0]).join('').toUpperCase();
+}
+function impAvatar(name, size) {
+  size = size || 40;
+  const photo = (typeof getPlayerPhoto === 'function') ? getPlayerPhoto(name) : null;
+  if (photo) {
+    return `<img src="${photo}" alt="" style="width:${size}px;height:${size}px;border-radius:50%;object-fit:cover;flex-shrink:0;border:1px solid var(--border2)">`;
+  }
+  const color = impAvatarColor(name);
+  return `<div class="imp-avatar" style="width:${size}px;height:${size}px;background:${color};font-size:${Math.round(size*0.4)}px">${impInitials(name)}</div>`;
+}
+
 function allImpWords(catOverride) {
   const TODAS = 'Todas juntas 🎲';
   const cat = catOverride !== undefined ? catOverride : impGame.activeCategory;
@@ -7632,7 +7726,12 @@ function renderImpSetup() {
   // Custom words are added silently — no visible tags shown
 
   const playerHtml = impGame.players.map((name,i) => `
-    <span class="imp-custom-tag">${name}<span onclick="removeImpPlayer(${i})" style="cursor:pointer;margin-left:6px;opacity:0.5">×</span></span>
+    <span class="imp-custom-tag">
+      ${impAvatar(name, 22)}
+      <span>${name}</span>
+      <span onclick="triggerPhotoUpload('${name.replace(/'/g,"\\'")}','imp')" style="cursor:pointer;margin-left:6px;opacity:0.6;font-size:12px" title="Agregar/cambiar foto">📷</span>
+      <span onclick="removeImpPlayer(${i})" style="cursor:pointer;margin-left:4px;opacity:0.5" title="Quitar jugador">×</span>
+    </span>
   `).join('');
 
   const wordCount = allImpWords().length;
@@ -8038,6 +8137,7 @@ function goToImpSetup() {
 function renderImpCards() {
   const step = impGame.currentCardStep;
   const total = impGame.roundPlayers.length;
+  const currentName = impGame.roundPlayers[step];
 
   const dots = Array.from({length: total}, (_,i) =>
     `<div class="dot ${i < step ? 'done' : i === step ? 'current' : ''}"></div>`
@@ -8047,21 +8147,28 @@ function renderImpCards() {
     <div style="max-width:400px;margin:0 auto;padding:0.5rem 0;text-align:center">
       <div style="font-size:11px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);margin-bottom:0.5rem">Carta ${step+1} de ${total}</div>
       <div class="progress-dots" style="justify-content:center;flex-wrap:wrap">${dots}</div>
-      <div style="font-size:14px;color:var(--muted);margin:1.25rem 0 0.5rem">Pasá el dispositivo a <b style="color:var(--text)">${impGame.roundPlayers[step]}</b></div>
-      <div style="font-size:13px;color:var(--muted);margin-bottom:2rem">Mirá tu carta en privado, sin que nadie vea</div>
 
-      <div id="imp-card-area">
-        <div class="imp-card-face imp-card-back" onclick="flipCard()" id="imp-card-back">
-          <div style="font-size:48px;margin-bottom:0.75rem">🃏</div>
-          <div style="font-size:16px;font-weight:600;margin-bottom:0.25rem">Tu carta</div>
-          <div style="font-size:12px;color:var(--muted)">Tocá para revelar</div>
+      <div style="display:flex;align-items:center;justify-content:center;gap:0.6rem;margin:1.5rem 0 0.4rem">
+        ${impAvatar(currentName, 34)}
+        <div style="font-size:14px;color:var(--muted);text-align:left">Pasá el dispositivo a<br><b style="color:var(--text);font-size:15px">${currentName}</b></div>
+      </div>
+      <div style="font-size:12.5px;color:var(--muted);margin-bottom:1.75rem">🔒 Mirá tu carta en privado, sin que nadie vea</div>
+
+      <div class="imp-card-stage" id="imp-card-stage">
+        <div class="imp-card-flipper" id="imp-card-flipper">
+          <div class="imp-card-face imp-card-back" onclick="flipCard()" id="imp-card-back">
+            <div class="imp-card-back-ring">🕵️</div>
+            <div style="font-size:15px;font-weight:700;margin-bottom:0.25rem">Tu carta</div>
+            <div style="font-size:12px;color:var(--muted)">Tocá para revelar</div>
+          </div>
+          <div class="imp-card-face imp-card-front" id="imp-card-front"></div>
         </div>
       </div>
 
-      <div id="imp-card-next" style="display:none;margin-top:1.5rem">
+      <div id="imp-card-next" style="display:none;margin-top:1.75rem">
         ${step < total - 1
-          ? `<button class="btn btn-primary" style="width:100%;padding:0.875rem;font-size:14px" onclick="nextCard()">Siguiente jugador</button>`
-          : `<button class="btn btn-primary" style="width:100%;padding:0.875rem;font-size:14px;background:var(--gold);border-color:var(--gold);color:#111" onclick="goToVoting()">¡Arrancar el juego!</button>`
+          ? `<button class="btn btn-primary" style="width:100%;padding:0.875rem;font-size:14px" onclick="nextCard()">Siguiente jugador →</button>`
+          : `<button class="btn btn-primary" style="width:100%;padding:0.875rem;font-size:14px;background:var(--gold);border-color:var(--gold);color:#111" onclick="goToVoting()">🎉 ¡Arrancar el juego!</button>`
         }
       </div>
     </div>
@@ -8074,21 +8181,23 @@ function flipCard() {
   const isDouble = impGame.impostorIdxs.length > 1;
   const word = impGame.selectedWord;
 
-  const cardEl = document.getElementById('imp-card-back');
-  if (!cardEl) return;
+  const flipperEl = document.getElementById('imp-card-flipper');
+  const frontEl = document.getElementById('imp-card-front');
+  if (!flipperEl || !frontEl) return;
 
   const impostorDesc = isDouble
     ? 'Sos uno de los 2 impostores. No sabés la palabra ni quién es el otro. Escuchá, camuflate y que no los descubran a los dos.'
     : 'No sabés la palabra. Escuchá, camuflate y no te descubran.';
 
-  const areaEl = document.getElementById('imp-card-area');
-  areaEl.innerHTML = `
-    <div class="imp-card-face ${isImpostor ? 'imp-card-impostor' : 'imp-card-word'}">
-      <div style="font-size:11px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;margin-bottom:0.75rem;opacity:0.7">${isImpostor ? 'Tu rol' : 'Palabra secreta'}</div>
-      <div style="font-size:${isImpostor ? '28px' : '36px'};font-weight:800;letter-spacing:-0.5px;margin-bottom:0.5rem">${isImpostor ? 'IMPOSTOR' : word}</div>
-      <div style="font-size:12px;opacity:0.65;line-height:1.5">${isImpostor ? impostorDesc : 'Esta es tu palabra. Dá pistas sin decirla directamente.'}</div>
-    </div>
+  frontEl.className = `imp-card-face imp-card-front ${isImpostor ? 'imp-card-impostor' : 'imp-card-word'}`;
+  frontEl.innerHTML = `
+    <div class="imp-card-role-icon">${isImpostor ? '🕵️' : '🔎'}</div>
+    <div style="font-size:11px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;margin-bottom:0.75rem;opacity:0.7">${isImpostor ? 'Tu rol' : 'Palabra secreta'}</div>
+    <div style="font-size:${isImpostor ? '24px' : '30px'};font-weight:800;letter-spacing:-0.5px;margin-bottom:0.5rem;word-break:break-word">${isImpostor ? 'IMPOSTOR' : word}</div>
+    <div style="font-size:12px;opacity:0.7;line-height:1.5">${isImpostor ? impostorDesc : 'Esta es tu palabra. Dá pistas sin decirla directamente.'}</div>
   `;
+
+  flipperEl.classList.add('flipped');
   document.getElementById('imp-card-next').style.display = '';
 }
 
@@ -8105,7 +8214,7 @@ function goToVoting() {
   const winnerIdx = Math.floor(Math.random() * players.length);
 
   const cover = document.createElement('div');
-  cover.className = 'cover-overlay';
+  cover.className = 'cover-overlay tint-gold';
   cover.innerHTML = `
     <div class="cover-icon">🎲</div>
     <div class="cover-title">¡Todos tienen su carta!</div>
@@ -8124,7 +8233,7 @@ function goToVoting() {
         if (!hint) hint = detectWordCategory(w);
       }
       return hint
-        ? `<div style="font-size:12px;color:var(--muted);margin-bottom:0.9rem">Categoría: <b style="color:var(--info)">${hint}</b></div>`
+        ? `<div style="margin-bottom:0.9rem"><span class="score-pill draw">Categoría: ${hint}</span></div>`
         : '<div style="margin-bottom:0.9rem"></div>';
     })()}
     <div class="roulette-strip-wrap" id="roulette-wrap">
@@ -8147,7 +8256,7 @@ function goToVoting() {
       players.forEach((p, i) => {
         const el = document.createElement('div');
         el.className = 'roulette-item';
-        el.textContent = p.split(' ')[0];
+        el.innerHTML = impAvatar(p, 22) + `<span>${p.split(' ')[0]}</span>`;
         el.dataset.playerIdx = i;
         strip.appendChild(el);
       });
@@ -8223,7 +8332,7 @@ function goToVoting() {
             const dist = Math.abs(r.left + r.width / 2 - cAbs);
             if (dist < minDist) { minDist = dist; centeredEl = el; }
           });
-          const actualWinner = centeredEl ? centeredEl.textContent : players[winnerIdx].split(' ')[0];
+          const actualWinner = centeredEl ? (centeredEl.querySelector('span')?.textContent || centeredEl.textContent) : players[winnerIdx].split(' ')[0];
 
           const resultEl = document.getElementById('roulette-result');
           const subEl    = document.getElementById('roulette-sub');
@@ -8249,25 +8358,25 @@ function renderImpResult() {
 
   const btnHtml = impGame.roundPlayers.map((n,i) => {
     if (caught.includes(i)) return '';
-    return `<button class="vote-player-btn ${acc===i?'sel':''}" onclick="accuseCardPlayer(${i})">${n.split(' ')[0]}</button>`;
+    return `<button class="vote-player-btn ${acc===i?'sel':''}" onclick="accuseCardPlayer(${i})">${impAvatar(n, 40)}<span>${n.split(' ')[0]}</span></button>`;
   }).join('');
 
   const maxVotes = Math.ceil(impGame.roundPlayers.length / 2);
   const usedVotes = impGame.failedVotes || 0;
   const remainingVotes = maxVotes - usedVotes;
-  const votesNote = `<div style="font-size:12px;color:${remainingVotes<=1?'var(--danger)':'var(--gold)'};margin-bottom:0.75rem">🎯 ${remainingVotes} oportunidad${remainingVotes===1?'':'es'} restante${remainingVotes===1?'':'s'} de ${maxVotes}</div>`;
+  const votesNote = `<span class="score-pill ${remainingVotes<=1?'lose':'bonus'}" style="${remainingVotes<=1?'color:var(--danger);background:rgba(255,95,95,0.12)':''}">🎯 ${remainingVotes} oportunidad${remainingVotes===1?'':'es'} de ${maxVotes}</span>`;
   const caughtNote = caught.length
-    ? `<div style="font-size:12px;color:var(--success);margin-bottom:0.75rem">✅ Ya descubrieron a ${caught.map(i=>impGame.roundPlayers[i].split(' ')[0]).join(' y ')}. ${totalImpostors - caught.length === 1 ? 'Queda 1 impostor más escondido.' : `Quedan ${totalImpostors - caught.length} más escondidos.`}</div>`
+    ? `<span class="score-pill win">✅ Ya cayeron: ${caught.map(i=>impGame.roundPlayers[i].split(' ')[0]).join(' y ')}${totalImpostors - caught.length === 1 ? ' · queda 1 escondido' : ` · quedan ${totalImpostors - caught.length}`}</span>`
     : '';
   const doubleNote = (totalImpostors > 1 && !caught.length)
-    ? `<div style="font-size:12px;color:var(--gold);margin-bottom:0.75rem">🕵️🕵️ Modo doble impostor — hay 2 escondidos</div>`
+    ? `<span class="score-pill bonus">🕵️🕵️ Doble impostor — hay 2 escondidos</span>`
     : '';
 
   impRoot(`
     <div style="max-width:480px;margin:0 auto;padding:0.5rem 0">
       <div style="font-size:20px;font-weight:700;letter-spacing:-0.5px;margin-bottom:0.25rem">Votación 🗳️</div>
-      <div style="font-size:13px;color:var(--muted);margin-bottom:0.5rem">¿Quién creen que es el impostor?</div>
-      ${votesNote}${doubleNote}${caughtNote}
+      <div style="font-size:13px;color:var(--muted);margin-bottom:0.75rem">¿Quién creen que es el impostor?</div>
+      <div style="display:flex;flex-wrap:wrap;gap:0.4rem;margin-bottom:1rem">${votesNote}${doubleNote}${caughtNote}</div>
       <div class="result-vote-grid">${btnHtml}</div>
       <button class="btn btn-primary" style="width:100%;padding:0.875rem;font-size:15px;margin-top:0.75rem" onclick="confirmVote()" ${acc!==null?'':'disabled'}>
         ✅ Confirmar elección
@@ -8316,11 +8425,11 @@ function revealImpResult() {
     if (remaining.length === 0) {
       // todos los impostores fueron descubiertos
       const cover = document.createElement('div');
-      cover.className = 'cover-overlay';
+      cover.className = 'cover-overlay tint-success';
       cover.innerHTML = `
         <div class="cover-icon">🎉</div>
         <div class="cover-title">¡${totalImpostors>1 ? 'Impostores descubiertos' : 'Impostor descubierto'}!</div>
-        <div class="cover-sub"><b>${accName}</b> era ${totalImpostors>1?'uno de los impostores':'el impostor'}.</div>
+        <div style="display:flex;align-items:center;gap:0.5rem;margin-bottom:0.5rem">${impAvatar(accName, 32)}<div class="cover-sub" style="margin:0"><b>${accName}</b> era ${totalImpostors>1?'uno de los impostores':'el impostor'}.</div></div>
         <div style="font-size:14px;color:var(--muted);margin:0.5rem 0 2rem">La palabra era <b style="color:var(--accent);font-size:18px">${word}</b></div>
         <button class="btn btn-primary" style="padding:0.875rem 1.75rem;font-size:14px" onclick="finalizeImpGame('descubierto')">
           Registrar → ${RULES_CONFIG.impostor.pts_descubierto} pts para cada jugador (excepto ${totalImpostors>1?'los impostores':'el impostor'})
@@ -8330,11 +8439,11 @@ function revealImpResult() {
     } else {
       // descubrieron a uno, pero todavía queda otro escondido (modo doble)
       const cover = document.createElement('div');
-      cover.className = 'cover-overlay';
+      cover.className = 'cover-overlay tint-gold';
       cover.innerHTML = `
         <div class="cover-icon">🕵️‍♂️</div>
         <div class="cover-title">¡Encontraron a un impostor!</div>
-        <div class="cover-sub"><b>${accName}</b> era impostor. Pero todavía queda ${remaining.length === 1 ? '1 impostor más' : remaining.length + ' impostores más'} escondido${remaining.length>1?'s':''}.</div>
+        <div style="display:flex;align-items:center;gap:0.5rem;margin-bottom:2rem">${impAvatar(accName, 32)}<div class="cover-sub" style="margin:0"><b>${accName}</b> era impostor. Todavía queda ${remaining.length === 1 ? '1 impostor más' : remaining.length + ' impostores más'} escondido${remaining.length>1?'s':''}.</div></div>
         <button class="btn btn-primary" style="padding:0.875rem 1.75rem;font-size:14px" onclick="document.querySelectorAll('.cover-overlay').forEach(e=>e.remove());impGame.accusedIdx=null;saveImpGame();goToVoting();">🎲 Nueva ruleta — seguir buscando</button>
         <button class="btn" style="margin-top:0.6rem;color:var(--muted);font-size:12px" onclick="finalizeImpGame()">🏁 Terminar la ronda acá</button>
       `;
@@ -8351,12 +8460,12 @@ function revealImpResult() {
     if (remaining <= 0) {
       // Sin oportunidades — gana el impostor
       const cover = document.createElement('div');
-      cover.className = 'cover-overlay';
+      cover.className = 'cover-overlay tint-danger';
       cover.innerHTML = `
         <div class="cover-icon">🕵️</div>
         <div class="cover-title">¡${realNames.length>1?'Los impostores ganaron':'El impostor ganó'}!</div>
-        <div class="cover-sub">Se acabaron las oportunidades. <b>${accName}</b> no era impostor.</div>
-        <div style="font-size:13px;color:var(--muted);margin-top:0.25rem">${realNames.length>1?'Los impostores eran':'El impostor era'} <b style="color:var(--danger)">${realNames.join(' y ')}</b>.</div>
+        <div style="display:flex;align-items:center;gap:0.5rem">${impAvatar(accName, 32)}<div class="cover-sub" style="margin:0">Se acabaron las oportunidades. <b>${accName}</b> no era impostor.</div></div>
+        <div style="font-size:13px;color:var(--muted);margin-top:0.5rem">${realNames.length>1?'Los impostores eran':'El impostor era'} <b style="color:var(--danger)">${realNames.join(' y ')}</b>.</div>
         <div style="font-size:14px;color:var(--muted);margin:0.5rem 0 1.5rem">La palabra era <b style="color:var(--accent);font-size:18px">${word}</b></div>
         <button class="btn btn-primary" style="padding:0.875rem 1.75rem;font-size:14px;background:var(--danger);border-color:var(--danger)" onclick="finalizeImpGame('noDescubierto')">
           Registrar → ${RULES_CONFIG.impostor.pts_noDescubierto} pts ${realNames.length>1?'a cada impostor':'al impostor'}
@@ -8369,9 +8478,9 @@ function revealImpResult() {
       cover.className = 'cover-overlay';
       cover.innerHTML = `
         <div class="cover-icon">❌</div>
-        <div class="cover-title"><b>${accName}</b> no era impostor</div>
+        <div style="display:flex;align-items:center;gap:0.5rem;justify-content:center;margin-bottom:0.5rem">${impAvatar(accName, 32)}<div class="cover-title" style="margin:0"><b>${accName}</b> no era impostor</div></div>
         <div class="cover-sub" style="margin-bottom:0.5rem">El impostor sigue escondido. Sigan debatiendo.</div>
-        <div style="font-size:13px;color:var(--gold);font-weight:600;margin-bottom:1.75rem">${remaining} oportunidad${remaining===1?'':'es'} restante${remaining===1?'':'s'}</div>
+        <span class="score-pill bonus" style="margin-bottom:1.75rem">${remaining} oportunidad${remaining===1?'':'es'} restante${remaining===1?'':'s'}</span>
         <button class="btn btn-primary" style="padding:0.875rem 1.75rem;font-size:14px" onclick="document.querySelectorAll('.cover-overlay').forEach(e=>e.remove());impGame.accusedIdx=null;saveImpGame();renderImpResult();">
           🔍 Seguir buscando
         </button>
@@ -8435,8 +8544,8 @@ function renderImpRoundDone(rd) {
     ptsHtml = rd.players.map(name => {
       const isImp = impostorNames.includes(name);
       const pts = isImp ? (caughtNames.includes(name) ? 0 : ndPts) : crewPts;
-      return `<div style="display:flex;align-items:center;justify-content:space-between;padding:0.4rem 0;border-bottom:0.5px solid var(--border)">
-        <span style="font-size:13px">${name}${isImp ? (caughtNames.includes(name) ? ' 🕵️✅' : ' 🕵️') : ''}</span>
+      return `<div style="display:flex;align-items:center;justify-content:space-between;gap:0.5rem;padding:0.4rem 0;border-bottom:0.5px solid var(--border)">
+        <span style="display:flex;align-items:center;gap:0.5rem;font-size:13px">${impAvatar(name, 24)}${name}${isImp ? (caughtNames.includes(name) ? ' 🕵️✅' : ' 🕵️') : ''}</span>
         <span style="font-size:13px;font-weight:600;color:${pts > 0 ? 'var(--success)' : 'var(--muted)'}">${pts > 0 ? '+' + pts : '—'}</span>
       </div>`;
     }).join('');
@@ -8457,8 +8566,8 @@ function renderImpRoundDone(rd) {
       let pts = 0;
       if (rd.mode === 'noDescubierto') pts = name === rd.impostorName ? ndPts : 0;
       else pts = name === rd.impostorName ? 0 : dPts;
-      return `<div style="display:flex;align-items:center;justify-content:space-between;padding:0.4rem 0;border-bottom:0.5px solid var(--border)">
-        <span style="font-size:13px">${name}${name === rd.impostorName ? ' 🕵️' : ''}</span>
+      return `<div style="display:flex;align-items:center;justify-content:space-between;gap:0.5rem;padding:0.4rem 0;border-bottom:0.5px solid var(--border)">
+        <span style="display:flex;align-items:center;gap:0.5rem;font-size:13px">${impAvatar(name, 24)}${name}${name === rd.impostorName ? ' 🕵️' : ''}</span>
         <span style="font-size:13px;font-weight:600;color:${pts > 0 ? 'var(--success)' : 'var(--muted)'}">${pts > 0 ? '+' + pts : '—'}</span>
       </div>`;
     }).join('');
@@ -8797,6 +8906,7 @@ function triggerPhotoUpload(entityName, phase) {
         ctx.drawImage(img, sx, sy, minDim, minDim, 0, 0, 120, 120);
         setPlayerPhoto(entityName, canvas.toDataURL('image/jpeg', 0.82));
         if (phase === 'f2') { renderF2RosterAdmin(); renderFase2(); }
+        else if (phase === 'imp') { renderImpSetup(); }
         else { renderF1RosterAdmin(); renderFase1(); }
       };
       img.src = e.target.result;
