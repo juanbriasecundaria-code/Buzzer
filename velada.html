@@ -2988,11 +2988,23 @@ window.VarSwitch = (function () {
 
 <!-- ======================== FASE 2 ======================== -->
 <div class="page" id="page-fase2">
+  <div id="bet-control-f2"></div>
   <div id="next-match-f2" style="margin-bottom:0.75rem"></div>
   <div id="my-next-f2" style="margin-bottom:0.75rem"></div>
   <div class="stats-grid" id="stats-fase2"></div>
 
-  <div id="f2-roster-admin"></div>
+  <!-- ── CONFIGURACIÓN DE FASE 2 (se carga una vez, al principio) ── -->
+  <details class="control-panel" id="f2-config-panel" style="margin-bottom:1.25rem">
+    <summary>
+      <span class="control-panel-title">🎛️ Configuración de Fase 2
+        <span class="control-panel-sub" style="display:block;font-weight:500">Equipos</span>
+      </span>
+      <span class="rule-chevron">▾</span>
+    </summary>
+    <div class="control-panel-body">
+      <div id="f2-roster-admin"></div>
+    </div>
+  </details>
 
   <div id="comodines-f2"></div>
 
@@ -3575,7 +3587,7 @@ function renderReglas() {
         <!-- ── ADMIN ── -->
         <div class="card" style="border-color:rgba(255,95,95,0.3)">
           <div class="control-panel-section-title" style="color:var(--danger)">⚠️ Zona de administración</div>
-          <p class="rules-intro" style="margin-bottom:1rem">Esto pone en 0 los puntos de todos los jugadores y equipos (Fase 1, Fase 2, Impostor, comodines y ajustes manuales). El roster, los fixtures, las estaciones/colores y las reglas configuradas quedan tal cual están. Útil para hacer pruebas antes del evento o para reutilizar la app en una próxima velada del año sin perder la configuración.</p>
+          <p class="rules-intro" style="margin-bottom:1rem">Esto pone en 0 los puntos de todos los jugadores y equipos (Fase 1, Fase 2, Impostor, comodines, apuestas y ajustes manuales). El roster, los fixtures, las estaciones/colores y las reglas configuradas quedan tal cual están. Útil para hacer pruebas antes del evento o para reutilizar la app en una próxima velada del año sin perder la configuración.</p>
           <button class="btn btn-danger" style="width:100%;padding:0.875rem;font-size:14px;border-color:var(--danger)" onclick="resetEverything()">🔄 Reiniciar puntos de la noche</button>
           ${editing ? `<button class="btn btn-danger" style="width:100%;padding:0.6rem;font-size:13px;margin-top:0.6rem" onclick="resetRulesConfig()">↩️ Restaurar reglas a los valores originales</button>` : ''}
         </div>
@@ -3930,6 +3942,14 @@ const FULL_NAMES = {
   'Flor':     'Florencia L.',
   'Tomás':    'Tomás P.',
 };
+
+// Devuelve el índice del equipo de Fase 2 al que pertenece un jugador (por su
+// apodo de Fase 1), usando FULL_NAMES para pasar de apodo a nombre completo.
+// Se usa para las apuestas de Fase 2: el punto de un acierto va al equipo del apostador.
+function teamIndexForPlayer(playerName) {
+  const full = FULL_NAMES[playerName] || playerName;
+  return TEAMS.findIndex(t => t.includes(full));
+}
 
 // Color por índice de juego (bg, color) — 6 colores distintos por fase
 const GAME_COLORS_F1 = [
@@ -4706,10 +4726,13 @@ let state = {
   vsJC: {}, // key: playerName => 'win'|'lose'|null  (resultado del jugador vs Juan Cruz)
   comodines: [], // [{id, player, key, status:'pending'|'done', delta, note, ts}] — Fase 1 (jugadores)
   comodinesF2: [], // idem, pero para Fase 2 (equipos)
-  bets: {},      // key "r-a-b" => { nombreApostador: idxGanadorApostado }
+  bets: {},      // key "r-a-b" (F1_FIXTURE) => { nombreApostador: idxGanadorApostado }
+  betsF2: {},    // key "r-a-b" (F2_FIXTURE) => { nombreApostador: idxEquipoGanadorApostado }
   adjust: { f1: [], f2: [] }, // ajustes manuales: [{id, name, pts, label, ts}]
-  betWindow: { open: false, round: 0 }, // ventana de apuestas: qué ronda está abierta
+  betWindow: { open: false, round: 0 }, // ventana de apuestas de Fase 1: qué ronda está abierta
+  betWindowF2: { open: false, round: 0 }, // ventana de apuestas de Fase 2: qué ronda está abierta
   cellPts: { f1: {}, f2: {} }, // override manual de una celda: "nombre||ronda" => pts
+  qldOverride: {}, // override manual de los puntos de ¿Quién lo dijo? por equipo: idxEquipo => pts
 };
 
 // ── COMODINES: catálogo (editable desde "Reglas") ────────────────────
@@ -5214,9 +5237,38 @@ function getTeamPoints() {
   });
 
   // Puntos de "¿Quién lo dijo?" — ya vienen resueltos por equipo (1°=3, 2°=2, 3°=1) desde Firebase,
-  // una vez que el conductor finaliza la ronda especial.
+  // una vez que el conductor finaliza la ronda especial. Se puede pisar a mano por equipo
+  // (state.qldOverride) — por ejemplo si el resultado no llegó bien sincronizado.
   const qldTeamPoints = window._qldTeamPoints || {};
-  pts.forEach((p, idx) => { p.qld = qldTeamPoints[idx] || 0; });
+  const qldOverride = state.qldOverride || {};
+  pts.forEach((p, idx) => {
+    p.qld = Object.prototype.hasOwnProperty.call(qldOverride, idx)
+      ? (Number(qldOverride[idx]) || 0)
+      : (qldTeamPoints[idx] || 0);
+  });
+
+  // Apuestas de Fase 2: cada jugador (invitado) apuesta a los duelos de equipos.
+  // Cada acierto suma 1 punto al EQUIPO del apostador (en Fase 2 se puntúa por equipo).
+  // Igual que en Fase 1: se puede apostar al propio equipo, pero si lo perdés se te
+  // anulan todos los puntos que hayas ganado apostando.
+  const betsF2 = state.betsF2 || {};
+  PLAYERS.forEach(name => {
+    const tIdx = teamIndexForPlayer(name);
+    if (tIdx < 0 || !pts[tIdx]) return;
+    let won = 0, blown = false;
+    Object.keys(betsF2).forEach(key => {
+      const res = state.f2[key];
+      if (!res || res.winner === 'empate') return;
+      const b = betsF2[key] && betsF2[key][name];
+      if (typeof b !== 'number') return;
+      const parts = key.split('-').map(Number);
+      const isOwn = (parts[1] === tIdx || parts[2] === tIdx);
+      if (b === res.winner) won++;
+      else if (isOwn) blown = true;
+    });
+    const net = blown ? 0 : won;
+    if (net) pts[tIdx].betsF2 = (pts[tIdx].betsF2 || 0) + net;
+  });
 
   // Comodines de la ruleta (solo los ya resueltos suman/restan)
   const comosF2 = state.comodinesF2 || [];
@@ -5244,7 +5296,7 @@ function getTeamPoints() {
   });
 
   pts.forEach(p => {
-    p.total = p.rounds.reduce((s,v) => s + (typeof v === 'number' ? v : 0), 0) + (p.qld || 0) + (p.comodin || 0) + (p.adjust || 0);
+    p.total = p.rounds.reduce((s,v) => s + (typeof v === 'number' ? v : 0), 0) + (p.qld || 0) + (p.betsF2 || 0) + (p.comodin || 0) + (p.adjust || 0);
   });
   return pts;
 }
@@ -5820,6 +5872,7 @@ function renderMyNext(phase) {
 
 function renderFase2() {
   renderF2RosterAdmin();
+  renderBetControlF2();
   renderComodinesPanel('f2');
   renderAdjustPanel('f2');
   renderNextMatch('f2');
@@ -5840,7 +5893,7 @@ function renderFase2() {
   if (theadRowF2) {
     const totalRoundsF2 = F2_FIXTURE.reduce((m, x) => Math.max(m, x[0]), 0);
     const roundThs = Array.from({length: totalRoundsF2}, (_, i) => `<th>R${i+1}</th>`).join('');
-    theadRowF2.innerHTML = `<th style="width:36px">#</th><th>Equipo</th>${roundThs}<th title="¿Quién lo dijo? — puntos individuales sumados al equipo" style="color:var(--purple)">🗣️ QLD</th><th title="Puntos manuales cargados durante la noche">⚖️</th><th style="text-align:right">Total</th>`;
+    theadRowF2.innerHTML = `<th style="width:36px">#</th><th>Equipo</th>${roundThs}<th title="¿Quién lo dijo? — puntos individuales sumados al equipo. Tocá para editar" style="color:var(--purple)">🗣️ QLD</th><th title="Apuestas acertadas">🃏</th><th style="text-align:right">Total</th>`;
   }
 
   const tbody = document.getElementById('tbody-fase2');
@@ -5862,17 +5915,17 @@ function renderFase2() {
       return `<td class="round-pts${ov}"${click}>${v}</td>`;
     }).join('');
     const qldCell = pts.qld > 0
-      ? `<td class="round-pts" style="color:var(--purple);font-weight:800" title="Puntos de ¿Quién lo dijo?">${pts.qld}</td>`
-      : `<td class="round-pts pending">—</td>`;
-    const adjCell = pts.adjust
-      ? `<td class="round-pts" onclick="editManualPts('f2','${nSafe}')" style="cursor:pointer;color:${pts.adjust > 0 ? 'var(--success)' : 'var(--danger)'};font-weight:800" title="Puntos manuales — tocá para editar">${pts.adjust > 0 ? '+' : ''}${pts.adjust}</td>`
-      : `<td class="round-pts pending" onclick="editManualPts('f2','${nSafe}')" style="cursor:pointer" title="Tocá para agregar puntos manuales">—</td>`;
+      ? `<td class="round-pts" onclick="editQldPts(${i})" style="cursor:pointer;color:var(--purple);font-weight:800" title="Puntos de ¿Quién lo dijo? — tocá para editar">${pts.qld}</td>`
+      : `<td class="round-pts pending" onclick="editQldPts(${i})" style="cursor:pointer" title="Tocá para cargar los puntos de ¿Quién lo dijo?">—</td>`;
+    const betsCell = pts.betsF2
+      ? `<td class="round-pts win" title="Apuestas acertadas">+${pts.betsF2}</td>`
+      : `<td class="round-pts pending" title="Apuestas acertadas">—</td>`;
     return `<tr class="${rowClass}">
       <td><div class="pos-badge ${badgeClass}">${pos+1}</div></td>
       <td class="player-name" style="font-size:12px">${playerAvatarHtml(n, i)}<span>${n}</span></td>
       ${rounds}
       ${qldCell}
-      ${adjCell}
+      ${betsCell}
       <td style="text-align:right"><span class="total-pts">${pts.total}</span></td>
     </tr>`;
   }).join('');
@@ -6257,6 +6310,32 @@ function editManualPts(phase, name) {
   showToast('⚖️', who + ' ' + (num > 0 ? '+' : '') + num, true);
 }
 
+// Puntos de ¿Quién lo dijo? (columna 🗣️ QLD de Fase 2): normalmente llegan
+// solos, sincronizados desde la app externa, pero se pueden pisar a mano.
+function editQldPts(teamIdx) {
+  state.qldOverride = state.qldOverride || {};
+  const teamName = (TEAMS[teamIdx] || '').split('/')[0].trim();
+  const auto = (window._qldTeamPoints && window._qldTeamPoints[teamIdx]) || 0;
+  const cur = state.qldOverride[teamIdx];
+  const val = prompt(
+    `Puntos de ¿Quién lo dijo? para ${teamName}\n\n` +
+    `Valor sincronizado automáticamente: ${auto}\n\n` +
+    `Escribí un número para fijarlo a mano.\n` +
+    `Dejalo vacío para volver al valor automático.`,
+    (cur !== undefined && cur !== null) ? String(cur) : ''
+  );
+  if (val === null) return; // canceló
+  if (String(val).trim() === '') {
+    delete state.qldOverride[teamIdx];
+  } else {
+    const num = parseFloat(val);
+    if (isNaN(num)) { showToast('⚠️', 'Poné un número válido', false); return; }
+    state.qldOverride[teamIdx] = num;
+  }
+  saveState();
+  renderFase2();
+}
+
 // ── VENTANA DE APUESTAS ──────────────────────────────────────────────
 // El conductor abre las apuestas de una ronda, se cierran antes de jugar, y
 // al reabrirlas saltan solas a la ronda siguiente que quede pendiente.
@@ -6332,6 +6411,85 @@ function renderBetControl() {
       <div style="display:flex;align-items:center;justify-content:space-between;gap:0.5rem">
         <span style="font-size:12px;font-weight:700;color:${open ? 'var(--gold)' : 'var(--muted)'}">🃏 Apuestas ${open ? '· ABIERTAS' : '· cerradas'}</span>
         <span style="font-size:10px;font-weight:800;letter-spacing:0.08em;text-transform:uppercase;padding:3px 9px;border-radius:99px;background:${open ? 'rgba(245,200,66,0.15)' : 'var(--surface2)'};color:${open ? 'var(--gold)' : 'var(--muted)'}">${open ? 'Ronda ' + bw.round : 'en pausa'}</span>
+      </div>
+      ${body}
+    </div>`;
+}
+
+// ── VENTANA DE APUESTAS · FASE 2 (equipos) ───────────────────────────
+// Mismo mecanismo que en Fase 1, pero sobre F2_FIXTURE (duelos de equipos).
+function firstPendingRoundF2() {
+  const rounds = [...new Set(F2_FIXTURE.map(m => m[0]))].sort((a, b) => a - b);
+  for (const r of rounds) {
+    const some = F2_FIXTURE.some(m => m[0] === r && !state.f2[m[0] + '-' + m[1] + '-' + m[2]]);
+    if (some) return r;
+  }
+  return 0; // no queda nada pendiente
+}
+function roundProgressF2(r) {
+  const all = F2_FIXTURE.filter(m => m[0] === r);
+  const done = all.filter(m => state.f2[m[0] + '-' + m[1] + '-' + m[2]]).length;
+  return { done: done, total: all.length };
+}
+function openBetsF2() {
+  const r = firstPendingRoundF2();
+  if (!r) { showToast('🏁', 'No quedan rondas pendientes en Fase 2', false); return; }
+  state.betWindowF2 = { open: true, round: r, ts: Date.now() };
+  saveState(); renderFase2();
+  showToast('🔓', 'Apuestas ABIERTAS · Ronda ' + r, true);
+}
+function closeBetsF2() {
+  const r = (state.betWindowF2 && state.betWindowF2.round) || 0;
+  state.betWindowF2 = { open: false, round: r, ts: Date.now() };
+  saveState(); renderFase2();
+  showToast('🔒', 'Apuestas cerradas' + (r ? ' · Ronda ' + r : ''), true);
+}
+function renderBetControlF2() {
+  const el = document.getElementById('bet-control-f2');
+  if (!el) return;
+  const bw = state.betWindowF2 || { open: false, round: 0 };
+  const pending = firstPendingRoundF2();
+  const open = !!bw.open;
+
+  // Contamos cuántos apostaron en la ronda abierta
+  let bettors = 0;
+  if (open && bw.round) {
+    const keys = F2_FIXTURE.filter(m => m[0] === bw.round).map(m => m[0] + '-' + m[1] + '-' + m[2]);
+    const who = new Set();
+    keys.forEach(k => Object.keys((state.betsF2 || {})[k] || {}).forEach(n => who.add(n)));
+    bettors = who.size;
+  }
+
+  const prog = bw.round ? roundProgressF2(bw.round) : { done: 0, total: 0 };
+  const nextR = open ? null : pending;
+
+  let body;
+  if (open) {
+    body = `
+      <div style="font-size:12px;color:var(--muted);margin:0.5rem 0 0.7rem;line-height:1.5">
+        Los invitados pueden apostar los duelos de la <b style="color:var(--info)">Ronda ${bw.round}</b>.
+        Cerralas antes de empezar a jugar.${bettors ? ` <b style="color:var(--success)">${bettors} ya apostaron.</b>` : ''}
+      </div>
+      <button onclick="closeBetsF2()" style="width:100%;padding:0.8rem;border-radius:var(--radius);border:1.5px solid var(--danger);background:rgba(255,95,95,0.12);color:var(--danger);font-family:inherit;font-size:14px;font-weight:800;cursor:pointer">🔒 Cerrar apuestas de la Ronda ${bw.round}</button>`;
+  } else if (nextR) {
+    const doneTxt = bw.round && bw.round !== nextR
+      ? `<div style="font-size:11px;color:var(--muted);margin-bottom:0.5rem">Última ronda apostada: ${bw.round}</div>` : '';
+    body = `
+      ${doneTxt}
+      <div style="font-size:12px;color:var(--muted);margin:0.5rem 0 0.7rem;line-height:1.5">
+        Apuestas cerradas. Al abrirlas van a corresponder a la <b style="color:var(--info)">Ronda ${nextR}</b>${
+          bw.round === nextR && prog.total ? ` (${prog.done}/${prog.total} duelos jugados)` : ''}.
+      </div>
+      <button onclick="openBetsF2()" style="width:100%;padding:0.8rem;border-radius:var(--radius);border:1.5px solid var(--success);background:rgba(78,203,126,0.12);color:var(--success);font-family:inherit;font-size:14px;font-weight:800;cursor:pointer">🔓 Abrir apuestas · Ronda ${nextR}</button>`;
+  } else {
+    body = `<div style="font-size:12px;color:var(--muted);margin-top:0.5rem">🏁 Fase 2 completa: no quedan rondas para apostar.</div>`;
+  }
+
+  el.innerHTML = `
+    <div class="card" style="margin-bottom:0.75rem;border-color:${open ? 'var(--info)' : 'var(--border2)'}">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:0.5rem">
+        <span style="font-size:12px;font-weight:700;color:${open ? 'var(--info)' : 'var(--muted)'}">🃏 Apuestas ${open ? '· ABIERTAS' : '· cerradas'}</span>
+        <span style="font-size:10px;font-weight:800;letter-spacing:0.08em;text-transform:uppercase;padding:3px 9px;border-radius:99px;background:${open ? 'rgba(96,180,240,0.15)' : 'var(--surface2)'};color:${open ? 'var(--info)' : 'var(--muted)'}">${open ? 'Ronda ' + bw.round : 'en pausa'}</span>
       </div>
       ${body}
     </div>`;
@@ -6977,7 +7135,7 @@ function applyRestoredBackup(payload) {
 function resetEverything() {
   showConfirmModal(
     '¿Reiniciar los puntos de la noche?',
-    'Pone en 0 los puntos de todos los jugadores y equipos (Fase 1, Fase 2, Impostor, comodines y ajustes manuales). NO toca el roster, los fixtures, las estaciones/colores ni las reglas configuradas. No se puede deshacer.',
+    'Pone en 0 los puntos de todos los jugadores y equipos (Fase 1, Fase 2, Impostor, comodines, apuestas y ajustes manuales). NO toca el roster, los fixtures, las estaciones/colores ni las reglas configuradas. No se puede deshacer.',
     () => {
       // Resultados de partidos (de acá sale el puntaje de Fase 1 / Fase 2)
       state.f1 = {};
@@ -6993,6 +7151,10 @@ function resetEverything() {
       state.bonusManual = {};
       state.vsJC = {};
       state.bets = {};
+      state.betsF2 = {};
+      state.betWindow = { open: false, round: 0 };
+      state.betWindowF2 = { open: false, round: 0 };
+      state.qldOverride = {};
       state.adjust = { f1: [], f2: [] };
       state.lastTab = 'reglas';
       saveState();
@@ -13990,6 +14152,28 @@ window._ndjWall = JSON.stringify(_wall);
           window._ndjState = JSON.stringify(state);
           const tab = document.querySelector('.nav-tab.active');
           if (tab && tab.dataset.tab === 'fase1') renderFase1();
+        }
+      } catch(e) {}
+    }).catch(() => {});
+    // Apuestas de Fase 2
+    window._fbRead('betsF2').then(data => {
+      if (!data) return;
+      try {
+        const remote = JSON.parse(data);
+        if (!remote || typeof remote !== 'object') return;
+        state.betsF2 = state.betsF2 || {};
+        let changed = false;
+        Object.keys(remote).forEach(key => {
+          state.betsF2[key] = state.betsF2[key] || {};
+          Object.keys(remote[key]).forEach(who => {
+            if (state.betsF2[key][who] !== remote[key][who]) { state.betsF2[key][who] = remote[key][who]; changed = true; }
+          });
+        });
+        if (changed) {
+          try { localStorage.setItem('ndj_state', JSON.stringify(state)); } catch(e) {}
+          window._ndjState = JSON.stringify(state);
+          const tab = document.querySelector('.nav-tab.active');
+          if (tab && tab.dataset.tab === 'fase2') renderFase2();
         }
       } catch(e) {}
     }).catch(() => {});
