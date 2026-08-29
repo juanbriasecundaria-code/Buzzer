@@ -399,7 +399,7 @@ function escapeHtml(s) { return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;'
 // completo tal como aparece en TEAMS (ej. "Martín H."). Replicamos acá el
 // mismo criterio de resolución que usa velada.html para que coincidan.
 let PLAYER_PHOTOS = {};
-function getPlayerPhoto(name) { return PLAYER_PHOTOS[name] || null; }
+function getPlayerPhoto(name) { return PLAYER_PHOTOS[String(name || '').trim()] || PLAYER_PHOTOS[name] || null; }
 function entityMembers(name) { return String(name || '').split('/').map(s => s.trim()).filter(Boolean); }
 function entityPhotos(name) {
   const parts = entityMembers(name);
