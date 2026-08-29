@@ -137,6 +137,21 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
 .cc-media img,.cc-media video{max-width:100%;max-height:340px;display:block;border-radius:10px}
 .cc-media iframe{width:100%;aspect-ratio:16/9;border:none;border-radius:10px;background:#000}
 .cc-media.empty{color:var(--muted);font-size:12px;padding:1.25rem;min-height:0}
+.cc-media.audio{flex-direction:column;gap:.6rem;padding:1rem;min-height:0}
+.cc-media.audio audio{width:100%}
+.media-audio-tag{font-size:11px;font-weight:800;color:var(--gold);letter-spacing:.08em;text-transform:uppercase}
+/* tarjeta de audio en la pantalla de participantes */
+.part-audio{width:100%;border-radius:16px;background:var(--surface2);border:1.5px solid var(--border2);padding:1.4rem 1rem;display:flex;flex-direction:column;align-items:center;gap:.8rem}
+.part-audio-icon{font-size:2.6rem}
+.part-audio-txt{font-size:13px;font-weight:800;color:var(--muted2);text-align:center}
+.part-audio-eq{display:flex;align-items:flex-end;gap:4px;height:34px}
+.part-audio-eq span{width:6px;border-radius:3px;background:var(--gold);height:8px}
+.part-audio.playing .part-audio-eq span{animation:eqBar .9s ease-in-out infinite}
+.part-audio-eq span:nth-child(2){animation-delay:.12s}
+.part-audio-eq span:nth-child(3){animation-delay:.24s}
+.part-audio-eq span:nth-child(4){animation-delay:.36s}
+.part-audio-eq span:nth-child(5){animation-delay:.48s}
+@keyframes eqBar{0%,100%{height:8px}50%{height:32px}}
 .cc-prompt{font-size:clamp(15px,3.5vw,20px);font-weight:700;line-height:1.4;color:var(--text);padding:.5rem .25rem}
 .cc-prompt .gap{display:inline-block;min-width:80px;border-bottom:2.5px solid var(--purple);margin:0 .15rem;color:transparent;padding:0 .3rem}
 .cc-prompt.revealed .gap{color:var(--purple);border-bottom-color:var(--purple);background:var(--purple-dim);border-radius:4px}
@@ -533,13 +548,15 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
       </div>
       <div class="form-row">
         <span class="form-lbl">Tipo de contenido</span>
-        <select class="form-sel" id="f-media" onchange="edMediaChanged()">
+        <select class="form-sel" id="f-media" onchange="edMediaTypeSwitched()">
           <option value="none">Solo frase (sin media)</option>
           <option value="image">Imagen (URL)</option>
           <option value="image-upload">Imagen (subir archivo)</option>
           <option value="video-url">Video (URL directa .mp4/.webm)</option>
           <option value="youtube">YouTube (link o ID)</option>
           <option value="gif">GIF (URL)</option>
+          <option value="audio-url">🔊 Solo audio (URL)</option>
+          <option value="audio-upload">🔊 Solo audio (subir archivo)</option>
         </select>
       </div>
       <div class="form-row" id="f-media-row">
@@ -767,7 +784,8 @@ function initFirebase(){
         if(d && Array.isArray(d.deck)){
           deck = d.deck;
           try{ localStorage.setItem(SK.DECK, JSON.stringify(deck)); }catch(e){}
-          // Las imagenes subidas de las opciones viajan con el mazo: re-renderizamos la carta actual
+          // Las imágenes/audios subidos viajan con el mazo: re-renderizamos la carta actual
+          if(_partMediaPending) _lastPartCardId = null; // forzamos remontar la media
           if(_lastLiveState) renderPartCard(_lastLiveState);
         }
       });
@@ -1097,6 +1115,17 @@ function mountCondMedia(cur){
     condVideoEl.addEventListener('play',   () => pushVideoSync({ url:src, playing:true,  t: condVideoEl.currentTime }));
     condVideoEl.addEventListener('pause',  () => pushVideoSync({ url:src, playing:false, t: condVideoEl.currentTime }));
     condVideoEl.addEventListener('seeked', () => pushVideoSync({ url:src, playing:!condVideoEl.paused, t: condVideoEl.currentTime }));
+  } else if(cur.mediaType === 'audio-url' || cur.mediaType === 'audio-upload'){
+    // Solo audio: la carta no muestra nada, se escucha. Se sincroniza igual que un video.
+    mount.innerHTML = `<div class="cc-media audio">
+      <div class="media-audio-tag">🔊 Solo audio</div>
+      <audio id="cc-video-el" src="${escapeHtml(src)}" controls preload="metadata"></audio>
+    </div>`;
+    condVideoEl = document.getElementById('cc-video-el');
+    const syncSrc = String(src).startsWith('data:') ? null : src;
+    condVideoEl.addEventListener('play',   () => pushVideoSync({ url:syncSrc, audio:true, playing:true,  t: condVideoEl.currentTime }));
+    condVideoEl.addEventListener('pause',  () => pushVideoSync({ url:syncSrc, audio:true, playing:false, t: condVideoEl.currentTime }));
+    condVideoEl.addEventListener('seeked', () => pushVideoSync({ url:syncSrc, audio:true, playing:!condVideoEl.paused, t: condVideoEl.currentTime }));
   } else {
     // image / gif / image-upload
     mount.innerHTML = `<div class="cc-media"><img src="${escapeHtml(src)}" alt=""></div>`;
@@ -1513,6 +1542,7 @@ let partVideoEl = null;
 let _lastVideoSyncTs = 0;
 let _pendingVideoSync = null;
 let _partAudioUnlocked = false;
+let _partMediaPending = false; // true si la carta usa un archivo subido que todavía no llegó con el mazo
 let _lastRevealCueTs = 0;
 let _revealAudioEl = null;
 
@@ -1553,16 +1583,42 @@ function destroyPartPlayers(){
   if(partYtPlayer){ try{ partYtPlayer.destroy(); }catch(e){} partYtPlayer = null; }
   partVideoEl = null;
 }
+// Los archivos subidos (base64) no viajan en el estado en vivo por peso — llegan con el mazo.
+// Acá buscamos la carta completa en el mazo local del participante para recuperarlos.
+function partMediaSrc(c){
+  if(c.mediaUrl) return c.mediaUrl;
+  if(!c.mediaIsLocal) return '';
+  const full = Array.isArray(deck) ? deck.find(x => x && x.id === c.id) : null;
+  return (full && full.mediaData) || '';
+}
 function mountPartMedia(c){
   const mount = document.getElementById('part-media-mount');
   if(!mount) return;
   if(!c.mediaType || c.mediaType === 'none'){ mount.innerHTML = ''; return; }
-  if(c.mediaIsLocal && !c.mediaUrl){
-    mount.innerHTML = `<div class="part-media" style="min-height:80px;color:var(--muted);font-size:12px;padding:1rem">📁 El video/imagen está solo en la pantalla del conductor</div>`;
+  const src = partMediaSrc(c);
+  const isAudio = c.mediaType === 'audio-url' || c.mediaType === 'audio-upload';
+  if(!src){
+    _partMediaPending = !!c.mediaIsLocal;
+    mount.innerHTML = `<div class="part-media" style="min-height:80px;color:var(--muted);font-size:12px;padding:1rem">${c.mediaIsLocal ? '📁 Sincronizando el archivo…' : ''}</div>`;
     return;
   }
-  const src = c.mediaUrl;
-  if(!src) return;
+  _partMediaPending = false;
+  if(isAudio){
+    // Solo audio: no hay nada que mirar, mostramos un ecualizador y el audio va oculto
+    mount.innerHTML = `<div class="part-audio" id="part-audio-box">
+      <div class="part-audio-icon">🔊</div>
+      <div class="part-audio-eq"><span></span><span></span><span></span><span></span><span></span></div>
+      <div class="part-audio-txt">Escuchá con atención</div>
+      <audio id="part-video-el" src="${escapeHtml(src)}" playsinline preload="auto"></audio>
+    </div>`;
+    partVideoEl = document.getElementById('part-video-el');
+    const box = document.getElementById('part-audio-box');
+    partVideoEl.addEventListener('play',  () => box && box.classList.add('playing'));
+    partVideoEl.addEventListener('pause', () => box && box.classList.remove('playing'));
+    partVideoEl.addEventListener('ended', () => box && box.classList.remove('playing'));
+    if(_pendingVideoSync){ applyVideoSync(_pendingVideoSync, c); _pendingVideoSync = null; }
+    return;
+  }
   if(c.mediaType === 'youtube'){
     const id = youtubeId(src);
     if(!id) return;
@@ -1592,7 +1648,7 @@ function applyVideoSync(sync, c){
       if(sync.playing){ partYtPlayer.playVideo(); maybeShowAudioUnlock(); }
       else partYtPlayer.pauseVideo();
     }catch(e){ _pendingVideoSync = sync; }
-  } else if(c.mediaType === 'video-url'){
+  } else if(c.mediaType === 'video-url' || c.mediaType === 'audio-url' || c.mediaType === 'audio-upload'){
     if(!partVideoEl){ _pendingVideoSync = sync; return; }
     const targetT = sync.playing ? sync.t + (Date.now() - sync.ts) / 1000 : sync.t;
     const setNow = () => { try{ partVideoEl.currentTime = targetT; }catch(e){} };
@@ -1849,6 +1905,16 @@ function edAddDialogueLine(){
   cur.push({who:'', text:''});
   edRenderDialogueList(cur);
 }
+// Si el usuario cambia el tipo a mano y el archivo cargado ya no sirve (audio↔imagen), lo descartamos
+function edMediaTypeSwitched(){
+  const v = document.getElementById('f-media').value;
+  if(v !== 'image-upload' && v !== 'audio-upload') _edMediaFileData = null;
+  else if(_edMediaFileData){
+    const isAudioData = String(_edMediaFileData).startsWith('data:audio');
+    if((v === 'audio-upload') !== isAudioData) _edMediaFileData = null;
+  }
+  edMediaChanged();
+}
 function edMediaChanged(){
   const v = document.getElementById('f-media').value;
   const row = document.getElementById('f-media-row');
@@ -1871,8 +1937,19 @@ function edMediaChanged(){
   else if(v === 'video-url'){ lbl.textContent = '🎥 URL directa de video (.mp4 / .webm)'; url.placeholder = 'https://…/video.mp4'; help.textContent = 'Debe ser una URL directa al archivo de video (mp4, webm). No sirve un link de YouTube — para eso usá la opción de YouTube.'; }
   else if(v === 'youtube'){ lbl.textContent = '📹 YouTube (link o ID)'; url.placeholder = 'https://youtube.com/watch?v=… o solo el ID'; help.textContent = 'Pegá el link completo o el ID de 11 caracteres.'; }
   else if(v === 'gif'){ lbl.textContent = '🎞 URL de GIF'; url.placeholder = 'https://…/imagen.gif'; help.textContent = 'URL pública del gif (por ejemplo de tenor.com o giphy).'; }
+  else if(v === 'audio-url'){
+    lbl.textContent = '🔊 URL de audio';
+    url.placeholder = 'https://…/audio.mp3';
+    help.textContent = 'Link directo a un archivo de audio (mp3, ogg, m4a, wav). La carta no muestra imagen: solo se escucha.';
+  }
+  else if(v === 'audio-upload'){
+    lbl.textContent = '🔊 Subir audio del dispositivo';
+    url.style.display = 'none'; file.style.display = ''; file.accept = 'audio/*';
+    help.innerHTML = 'Se guarda en el mazo y se sincroniza a los participantes. Usá clips cortos (2–15 segundos) para que no pese — máx 4MB.';
+    if(_edMediaFileData){ prev.style.display = 'flex'; prev.innerHTML = `<audio src="${_edMediaFileData}" controls style="width:100%"></audio>`; }
+  }
   // preview live
-  if(v !== 'image-upload' && url.value.trim()){ edPreviewUrl(v, url.value.trim()); }
+  if(!v.endsWith('-upload') && url.value.trim()){ edPreviewUrl(v, url.value.trim()); }
   url.oninput = () => edPreviewUrl(v, url.value.trim());
 }
 function edPreviewUrl(mediaType, src){
@@ -1884,12 +1961,31 @@ function edPreviewUrl(mediaType, src){
     prev.innerHTML = id ? `<iframe src="https://www.youtube.com/embed/${id}" allowfullscreen></iframe>` : '<span>⚠️ ID inválido</span>';
   } else if(mediaType === 'video-url'){
     prev.innerHTML = `<video src="${escapeHtml(src)}" controls playsinline preload="metadata"></video>`;
+  } else if(mediaType === 'audio-url' || mediaType === 'audio-upload'){
+    prev.innerHTML = `<audio src="${escapeHtml(src)}" controls style="width:100%"></audio>`;
   } else {
     prev.innerHTML = `<img src="${escapeHtml(src)}" alt="">`;
   }
 }
 function edFileChosen(e){
   const f = e.target.files[0]; if(!f) return;
+  const mediaType = document.getElementById('f-media').value;
+  // ── Audio: no se comprime, se guarda tal cual (por eso pedimos clips cortos) ──
+  if(mediaType === 'audio-upload'){
+    if(!/^audio\//.test(f.type)){ toast('Elegí un archivo de audio'); return; }
+    if(f.size > 4*1024*1024){ toast('Audio muy pesado — máx 4MB para que sincronice bien'); return; }
+    const ra = new FileReader();
+    ra.onload = () => {
+      _edMediaFileData = ra.result;
+      const prevA = document.getElementById('f-media-preview');
+      prevA.style.display = 'flex';
+      prevA.innerHTML = `<audio src="${_edMediaFileData}" controls style="width:100%"></audio>`;
+      toast(`🔊 Audio cargado (~${Math.round(ra.result.length*0.75/1024)} KB)`);
+    };
+    ra.onerror = () => toast('Error al leer el archivo');
+    ra.readAsDataURL(f);
+    return;
+  }
   if(!/^image\//.test(f.type)){ toast('Elegí un archivo de imagen'); return; }
   if(f.size > 15*1024*1024){ toast('Imagen demasiado pesada (máx 15MB de archivo original)'); return; }
   const prev = document.getElementById('f-media-preview');
@@ -2167,7 +2263,7 @@ function edSave(){
   };
   if(dialogue) card.dialogue = dialogue;
   if(mediaType !== 'none'){
-    if(mediaType === 'image-upload' && _edMediaFileData){ card.mediaData = _edMediaFileData; }
+    if(mediaType.endsWith('-upload') && _edMediaFileData){ card.mediaData = _edMediaFileData; }
     else if(mediaUrl){ card.mediaUrl = mediaUrl; }
   }
   if(revealTypeVal !== 'none'){
