@@ -70,6 +70,16 @@
 
   /* header */
   .gh-header { text-align: center; padding: 1.1rem 0 1.6rem; }
+  .gh-avatar-wrap { display: flex; justify-content: center; margin-bottom: 0.7rem; }
+  .gh-avatar-wrap .pa-img, .gh-avatar-wrap .pa-fallback { box-shadow: 0 0 0 3px var(--bg-2), 0 0 0 5px var(--accent-glow); }
+
+  /* ── AVATARES (fotos de perfil publicadas desde velada.html) ── */
+  .pa-img { border-radius: 50%; object-fit: cover; flex-shrink: 0; display: block; }
+  .pa-fallback { border-radius: 50%; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-weight: 800; color: var(--text); opacity: 0.92; }
+  .pa-duo { display: inline-flex; align-items: center; flex-shrink: 0; }
+  .pa-duo > *:nth-child(2) { margin-left: -8px; }
+  .pa-duo > *:nth-child(1) { z-index: 1; position: relative; }
+  .ranking-name { display: inline-flex; align-items: center; gap: 0.5rem; }
   .gh-eyebrow { font-family: var(--font-head); font-size: 11.5px; font-weight: 700; letter-spacing: 0.22em; text-transform: uppercase; color: var(--muted); margin-bottom: 0.4rem; }
   .gh-title { font-family: var(--font-head); font-size: 26px; font-weight: 700; color: var(--accent); letter-spacing: -0.01em; text-shadow: 0 0 24px var(--accent-glow); }
 
@@ -382,6 +392,49 @@ function ordinal(n) { return n + '°'; }
 
 function escapeHtml(s) { return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 
+// ── FOTOS DE PERFIL (las publica el organizador desde velada.html) ──
+// Mismo documento Firestore ('ndj/photos') que arma velada.html: un mapa
+// { nombre: dataURL }. Para jugadores solo (Fase 1) la clave es el apodo
+// (ej. "Risu"); para integrantes de equipo (Fase 2) la clave es el nombre
+// completo tal como aparece en TEAMS (ej. "Martín H."). Replicamos acá el
+// mismo criterio de resolución que usa velada.html para que coincidan.
+let PLAYER_PHOTOS = {};
+function getPlayerPhoto(name) { return PLAYER_PHOTOS[name] || null; }
+function entityMembers(name) { return String(name || '').split('/').map(s => s.trim()).filter(Boolean); }
+function entityPhotos(name) {
+  const parts = entityMembers(name);
+  if (parts.length > 1) {
+    const teamPhoto = getPlayerPhoto(name);
+    return parts.map(p => getPlayerPhoto(p) || null).map((p, i) => p || (i === 0 ? teamPhoto : null));
+  }
+  return [getPlayerPhoto(name) || null];
+}
+function avatarColor(name) {
+  const s = String(name || '');
+  let h = 0;
+  for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0;
+  return MII_COLORS[h % MII_COLORS.length];
+}
+function avatarFallbackHtml(name, size) {
+  const initial = (String(name).trim()[0] || '?').toUpperCase();
+  return `<div class="pa-fallback" style="width:${size}px;height:${size}px;font-size:${Math.round(size * 0.42)}px;background:${avatarColor(name)}">${escapeHtml(initial)}</div>`;
+}
+// Avatar (foto real si hay, si no un círculo de color con la inicial). Para
+// equipos de dos (nombre con "/") arma un dúo de avatares solapados.
+function avatarHtml(name, size) {
+  size = size || 28;
+  const parts = entityMembers(name);
+  if (parts.length > 1) {
+    const s2 = Math.round(size * 0.86);
+    const ph = entityPhotos(name);
+    const one = (p, m) => p ? `<img class="pa-img" src="${p}" style="width:${s2}px;height:${s2}px" alt="">` : avatarFallbackHtml(m, s2);
+    return `<span class="pa-duo">${one(ph[0], parts[0])}${one(ph[1], parts[1])}</span>`;
+  }
+  const photo = getPlayerPhoto(name);
+  if (photo) return `<img class="pa-img" src="${photo}" style="width:${size}px;height:${size}px" alt="">`;
+  return avatarFallbackHtml(name.split('/')[0], size);
+}
+
 // ── Rendering ──────────────────────────────────────────────
 
 function renderSelection() {
@@ -427,7 +480,7 @@ function renderPhaseCard(type, myIdx, myName) {
   const rankingRows = list.map((e, i) => `
     <tr class="${e.i === myIdx ? 'me' : ''}">
       <td class="pos">${ordinal(i + 1)}</td>
-      <td>${escapeHtml(isF1 ? e.n.split(' ')[0] : e.n)}</td>
+      <td><span class="ranking-name">${avatarHtml(e.n, 24)}<span>${escapeHtml(isF1 ? e.n.split(' ')[0] : e.n)}</span></span></td>
       <td class="pts">${e.total}</td>
     </tr>`).join('');
 
@@ -460,6 +513,7 @@ function renderDashboard(myName) {
 
   app.innerHTML = `
     <div class="gh-header">
+      <div class="gh-avatar-wrap">${avatarHtml(myName, 64)}</div>
       <div class="gh-eyebrow">🎮 La Velada del Año</div>
       <div class="gh-title">Hola, ${escapeHtml(myName)} 👋</div>
     </div>
@@ -970,6 +1024,15 @@ onSnapshot(doc(db, 'ndj', 'rules'), (snap) => {
     render();
   }
 }, (err) => console.warn('Firebase onSnapshot error (rules):', err));
+
+// Fotos de perfil publicadas desde velada.html
+onSnapshot(doc(db, 'ndj', 'photos'), (snap) => {
+  if (!snap.exists()) return;
+  try {
+    const o = JSON.parse(snap.data().data);
+    if (o && typeof o === 'object') { PLAYER_PHOTOS = o; if (ready) render(); }
+  } catch (e) { console.warn('Error al parsear fotos:', e); }
+}, (err) => console.warn('Firebase onSnapshot error (photos):', err));
 </script>
 </body>
 </html>
