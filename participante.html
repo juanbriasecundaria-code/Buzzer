@@ -96,8 +96,14 @@
     font-weight: 600;
     cursor: pointer;
     text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
     transition: border-color 0.18s var(--ease), background 0.18s var(--ease), transform 0.18s var(--ease), box-shadow .18s var(--ease);
   }
+  .gh-sel-btn .pa-img, .gh-sel-btn .pa-fallback { box-shadow: 0 0 0 2px var(--bg-2), 0 0 0 4px rgba(255,255,255,0.06); }
+  .gh-sel-btn:hover .pa-img, .gh-sel-btn:hover .pa-fallback { box-shadow: 0 0 0 2px var(--bg-2), 0 0 0 4px var(--accent-glow); }
   .gh-sel-btn:hover { border-color: var(--accent); background: var(--accent-dim); color: var(--accent); transform: translateY(-2px); box-shadow: 0 8px 20px -8px rgba(200,240,96,0.35); }
   .gh-sel-btn:active { transform: translateY(0) scale(0.98); }
 
@@ -445,7 +451,7 @@ function renderSelection() {
       <div class="gh-title">¿Quién sos?</div>
     </div>
     <div class="gh-sel-grid">
-      ${PLAYERS.map(p => `<button class="gh-sel-btn" data-p="${escapeHtml(p)}">${escapeHtml(p)}</button>`).join('')}
+      ${PLAYERS.map(p => `<button class="gh-sel-btn" data-p="${escapeHtml(p)}">${avatarHtml(p, 30)}<span>${escapeHtml(p)}</span></button>`).join('')}
     </div>
   `;
   app.querySelectorAll('.gh-sel-btn').forEach(btn => {
