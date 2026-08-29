@@ -8049,6 +8049,12 @@ function renderImpSetup() {
 
           <div>
             <div style="font-size:10.5px;color:var(--muted);margin-bottom:0.6rem">Tocá una palabra para sacarla del mazo de esta noche (no se borra, solo se excluye)</div>
+            ${(() => {
+              const dupCount = getDuplicateWordsSet().size;
+              return dupCount
+                ? `<div style="font-size:10.5px;color:var(--info);margin:-0.15rem 0 0.6rem;display:flex;align-items:center;gap:5px">🔁 <span>${dupCount} palabra${dupCount===1?'':'s'} repetida${dupCount===1?'':'s'} en más de una categoría — marcadas en <b>azul</b></span></div>`
+                : '';
+            })()}
             <div id="imp-manage-words" style="display:flex;flex-wrap:wrap;gap:0.4rem">
               ${renderManageWordsHtml((impGame._manageCat||Object.keys(IMP_WORDS)[0]))}
             </div>
@@ -8217,9 +8223,36 @@ function removeCustomWord(cat, word) {
   renderImpSetup();
 }
 
+// Detecta palabras repetidas en más de una categoría (excluye "Todas juntas 🎲",
+// que por diseño repite todo lo demás y no cuenta como duplicado real).
+// Devuelve un Set de palabras normalizadas que aparecen 2+ veces.
+function getDuplicateWordsSet() {
+  const TODAS = 'Todas juntas 🎲';
+  const counts = {};
+  const bump = (w) => {
+    const n = norm(w);
+    counts[n] = (counts[n] || 0) + 1;
+  };
+  for (const [cat, words] of Object.entries(IMP_WORDS)) {
+    if (cat === TODAS) continue;
+    words.forEach(bump);
+  }
+  if (impGame.customCatWords) {
+    for (const [cat, words] of Object.entries(impGame.customCatWords)) {
+      if (cat === TODAS) continue;
+      (words || []).forEach(bump);
+    }
+  }
+  (impGame.customWords || []).forEach(bump);
+  const dups = new Set();
+  for (const [n, c] of Object.entries(counts)) if (c > 1) dups.add(n);
+  return dups;
+}
+
 function renderManageWordsHtml(cat) {
   const excluded = impGame.excludedWords || [];
-  const highlight = impGame._highlightWord || null; // lowercase word to highlight as duplicate
+  const highlight = impGame._highlightWord || null; // lowercase word to highlight as duplicate recién agregada
+  const dupSet = getDuplicateWordsSet();
 
   if (cat === '➕ Palabras propias') {
     const words = impGame.customWords || [];
@@ -8227,7 +8260,12 @@ function renderManageWordsHtml(cat) {
     return words.map(w => {
       const safeW = w.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
       const isHit = highlight && norm(w) === highlight;
-      return `<span style="display:inline-flex;align-items:center;gap:4px;padding:0.35rem 0.6rem;border-radius:99px;border:1px solid ${isHit?'var(--gold)':'var(--accent)'};background:${isHit?'rgba(245,200,66,0.18)':'rgba(200,240,96,0.08)'};font-size:12px;color:${isHit?'var(--gold)':'var(--accent)'};${isHit?'box-shadow:0 0 0 2px rgba(245,200,66,0.35)':''}">${w}<span onclick="removeCustomWord('➕ Palabras propias','${safeW}')" style="cursor:pointer;opacity:0.6;font-size:14px;line-height:1">×</span></span>`;
+      const isDup = !isHit && dupSet.has(norm(w));
+      const border = isHit ? 'var(--gold)' : isDup ? 'var(--info)' : 'var(--accent)';
+      const bg = isHit ? 'rgba(245,200,66,0.18)' : isDup ? 'rgba(96,180,240,0.14)' : 'rgba(200,240,96,0.08)';
+      const color = isHit ? 'var(--gold)' : isDup ? 'var(--info)' : 'var(--accent)';
+      const extra = isHit ? 'box-shadow:0 0 0 2px rgba(245,200,66,0.35)' : '';
+      return `<span title="${isDup?'Repetida en otra categoría':''}" style="display:inline-flex;align-items:center;gap:4px;padding:0.35rem 0.6rem;border-radius:99px;border:1px solid ${border};background:${bg};font-size:12px;color:${color};${extra}">${w}${isDup?' 🔁':''}<span onclick="removeCustomWord('➕ Palabras propias','${safeW}')" style="cursor:pointer;opacity:0.6;font-size:14px;line-height:1">×</span></span>`;
     }).join('');
   }
 
@@ -8239,22 +8277,30 @@ function renderManageWordsHtml(cat) {
       const safeW = w.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
       const catSafe = cat.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
       const isHit = highlight && norm(w) === highlight;
-      return `<span style="display:inline-flex;align-items:center;gap:4px;padding:0.35rem 0.6rem;border-radius:99px;border:1px solid ${isHit?'var(--gold)':'var(--accent)'};background:${isHit?'rgba(245,200,66,0.18)':'rgba(200,240,96,0.08)'};font-size:12px;color:${isHit?'var(--gold)':'var(--accent)'};${isHit?'box-shadow:0 0 0 2px rgba(245,200,66,0.35)':''}">${w}<span onclick="removeCustomWord('${catSafe}','${safeW}')" style="cursor:pointer;opacity:0.6;font-size:14px;line-height:1">×</span></span>`;
+      const isDup = !isHit && dupSet.has(norm(w));
+      const border = isHit ? 'var(--gold)' : isDup ? 'var(--info)' : 'var(--accent)';
+      const bg = isHit ? 'rgba(245,200,66,0.18)' : isDup ? 'rgba(96,180,240,0.14)' : 'rgba(200,240,96,0.08)';
+      const color = isHit ? 'var(--gold)' : isDup ? 'var(--info)' : 'var(--accent)';
+      const extra = isHit ? 'box-shadow:0 0 0 2px rgba(245,200,66,0.35)' : '';
+      return `<span title="${isDup?'Repetida en otra categoría':''}" style="display:inline-flex;align-items:center;gap:4px;padding:0.35rem 0.6rem;border-radius:99px;border:1px solid ${border};background:${bg};font-size:12px;color:${color};${extra}">${w}${isDup?' 🔁':''}<span onclick="removeCustomWord('${catSafe}','${safeW}')" style="cursor:pointer;opacity:0.6;font-size:14px;line-height:1">×</span></span>`;
     }).join('');
   }
   const baseWords = IMP_WORDS[cat].map(w => {
     const isExcluded = excluded.includes(w);
     const isHit = highlight && norm(w) === highlight;
+    const isDup = !isHit && !isExcluded && dupSet.has(norm(w));
     const safeW = w.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
     let border, bg, color, deco, extra;
     if (isHit) {
       border = 'var(--gold)'; bg = 'rgba(245,200,66,0.18)'; color = 'var(--gold)'; deco = ''; extra = 'box-shadow:0 0 0 2px rgba(245,200,66,0.35);';
     } else if (isExcluded) {
       border = 'var(--danger)'; bg = 'rgba(255,95,95,0.1)'; color = 'var(--danger)'; deco = 'line-through'; extra = '';
+    } else if (isDup) {
+      border = 'var(--info)'; bg = 'rgba(96,180,240,0.14)'; color = 'var(--info)'; deco = ''; extra = '';
     } else {
       border = 'var(--border2)'; bg = 'var(--surface)'; color = 'var(--text)'; deco = ''; extra = '';
     }
-    return `<span onclick="toggleExcludeWord('${safeW}',this)" style="display:inline-flex;align-items:center;gap:4px;padding:0.35rem 0.6rem;border-radius:99px;border:1px solid ${border};background:${bg};font-size:12px;cursor:pointer;color:${color};text-decoration:${deco};${extra}transition:all 0.15s">${w}${isExcluded?'<span style="font-size:14px;line-height:1">×</span>':''}</span>`;
+    return `<span onclick="toggleExcludeWord('${safeW}',this)" title="${isDup?'Repetida en otra categoría':''}" style="display:inline-flex;align-items:center;gap:4px;padding:0.35rem 0.6rem;border-radius:99px;border:1px solid ${border};background:${bg};font-size:12px;cursor:pointer;color:${color};text-decoration:${deco};${extra}transition:all 0.15s">${w}${isDup&&!isExcluded?' 🔁':''}${isExcluded?'<span style="font-size:14px;line-height:1">×</span>':''}</span>`;
   });
 
   // Custom words added to this specific category
@@ -8263,7 +8309,12 @@ function renderManageWordsHtml(cat) {
     const safeW = w.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
     const catSafe = cat.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
     const isHit = highlight && norm(w) === highlight;
-    return `<span style="display:inline-flex;align-items:center;gap:4px;padding:0.35rem 0.6rem;border-radius:99px;border:1px solid ${isHit?'var(--gold)':'var(--accent)'};background:${isHit?'rgba(245,200,66,0.18)':'rgba(200,240,96,0.08)'};font-size:12px;color:${isHit?'var(--gold)':'var(--accent)'};${isHit?'box-shadow:0 0 0 2px rgba(245,200,66,0.35)':''}">${w}<span onclick="removeCustomWord('${catSafe}','${safeW}')" style="cursor:pointer;opacity:0.6;font-size:14px;line-height:1">×</span></span>`;
+    const isDup = !isHit && dupSet.has(norm(w));
+    const border = isHit ? 'var(--gold)' : isDup ? 'var(--info)' : 'var(--accent)';
+    const bg = isHit ? 'rgba(245,200,66,0.18)' : isDup ? 'rgba(96,180,240,0.14)' : 'rgba(200,240,96,0.08)';
+    const color = isHit ? 'var(--gold)' : isDup ? 'var(--info)' : 'var(--accent)';
+    const extra = isHit ? 'box-shadow:0 0 0 2px rgba(245,200,66,0.35)' : '';
+    return `<span title="${isDup?'Repetida en otra categoría':''}" style="display:inline-flex;align-items:center;gap:4px;padding:0.35rem 0.6rem;border-radius:99px;border:1px solid ${border};background:${bg};font-size:12px;color:${color};${extra}">${w}${isDup?' 🔁':''}<span onclick="removeCustomWord('${catSafe}','${safeW}')" style="cursor:pointer;opacity:0.6;font-size:14px;line-height:1">×</span></span>`;
   });
 
   return [...baseWords, ...customSpans].join('');
