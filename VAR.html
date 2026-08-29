@@ -766,6 +766,107 @@ body.var-reviewing .var-static-bg::after {
 </style>
 <style>.hub-link{position:fixed;top:max(0.75rem,env(safe-area-inset-top));left:max(0.75rem,env(safe-area-inset-left));z-index:99999;font-size:11px;font-weight:700;color:rgba(240,239,232,0.7);background:rgba(10,10,14,0.6);border:1px solid rgba(255,255,255,0.1);border-radius:99px;padding:0.38rem 0.85rem;text-decoration:none;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);letter-spacing:0.04em;transition:color 0.15s,border-color 0.15s;white-space:nowrap}.hub-link:hover{color:#f0efe8;border-color:rgba(255,255,255,0.25)}</style></head>
 <body>
+<!-- ══════════════════════════════════════════════════════════════════
+     INTERRUPTOR GLOBAL DEL VAR
+     Se prende/apaga desde velada.html (pestaña Reglamento).
+     Se sincroniza por Firebase RTDB (velada/config/varEnabled) y,
+     como respaldo, por localStorage entre pestañas del mismo navegador.
+     ══════════════════════════════════════════════════════════════════ -->
+<script>
+window.VarSwitch = (function () {
+  const LS_KEY    = 'velada_var_enabled';
+  const RTDB_PATH = 'velada/config/varEnabled';
+  const CFG = {
+    apiKey: "AIzaSyB37WkRQqBWVYkZ84AE2u17pAOs_9ZCgCg",
+    authDomain: "guessmovie-905e2.firebaseapp.com",
+    databaseURL: "https://guessmovie-905e2-default-rtdb.firebaseio.com",
+    projectId: "guessmovie-905e2",
+    appId: "1:313601369235:web:f8b28a2ec187a934fa1966"
+  };
+
+  let enabled = true;          // por defecto el VAR viene activado
+  let _ref    = null;
+  const subs  = [];
+
+  function readInitial() {
+    try {
+      const q = new URLSearchParams(location.search).get('var');
+      if (q === '0' || q === '1') {
+        localStorage.setItem(LS_KEY, q);
+        return q === '1';
+      }
+      const raw = localStorage.getItem(LS_KEY);
+      if (raw === null) return true;
+      return raw === '1';
+    } catch (e) { return true; }
+  }
+
+  function emit() {
+    subs.forEach(fn => { try { fn(enabled); } catch (e) {} });
+  }
+
+  function set(v, opts) {
+    v = !!v;
+    const push    = !!(opts && opts.push);
+    const changed = (v !== enabled);
+    enabled = v;
+    try { localStorage.setItem(LS_KEY, v ? '1' : '0'); } catch (e) {}
+    if (push && _ref) { try { _ref.set(v); } catch (e) {} }
+    if (changed) emit();
+  }
+
+  enabled = readInitial();
+
+  // Otras pestañas del mismo navegador
+  window.addEventListener('storage', function (e) {
+    if (e.key === LS_KEY) set(e.newValue === '1');
+  });
+
+  function attachRef(ref) {
+    _ref = ref;
+    ref.on('value', function (snap) {
+      const v = snap.val();
+      if (v === null || v === undefined) return;
+      set(v === true || v === 1 || v === '1');
+    });
+  }
+
+  // Conexión propia a Firebase (solo si la página no la maneja por su cuenta)
+  function loadScript(src) {
+    return new Promise(function (res, rej) {
+      const s = document.createElement('script');
+      s.src = src; s.onload = res; s.onerror = rej;
+      document.head.appendChild(s);
+    });
+  }
+  if (!window.VAR_SWITCH_MANUAL) {
+    (async function () {
+      try {
+        if (typeof firebase === 'undefined' || !firebase.database) {
+          await loadScript('https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js');
+          await loadScript('https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js');
+        }
+        let app;
+        try { app = firebase.app('varcfg'); } catch (e) { app = firebase.initializeApp(CFG, 'varcfg'); }
+        attachRef(app.database().ref(RTDB_PATH));
+      } catch (e) {
+        console.warn('VarSwitch: sin sincronización remota, se usa localStorage', e);
+      }
+    })();
+  }
+
+  return {
+    get enabled() { return enabled; },
+    set: set,
+    attachRef: attachRef,
+    onChange: function (fn) {
+      subs.push(fn);
+      try { fn(enabled); } catch (e) {}
+    }
+  };
+})();
+</script>
+
 <a class="hub-link" href="index.html">← Hub</a>
 
 <!-- ── CUSTOM CONFIRM MODAL ── -->
@@ -1039,6 +1140,34 @@ function loadState() {
     if (s.varUses)         varUses   = Object.assign({ a: maxUses, b: maxUses }, s.varUses);
   } catch(e) {}
 }
+
+// ── INTERRUPTOR GLOBAL (velada.html) ─────────
+function applyVarSwitch(on) {
+  let ov = document.getElementById('var-disabled-overlay');
+  if (!on) {
+    if (!ov) {
+      ov = document.createElement('div');
+      ov.id = 'var-disabled-overlay';
+      ov.style.cssText = 'position:fixed;inset:0;z-index:99998;background:#0a0a0e;' +
+        'display:flex;flex-direction:column;align-items:center;justify-content:center;' +
+        'gap:0.9rem;text-align:center;padding:2rem;' +
+        'font-family:-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif';
+      ov.innerHTML =
+        '<div style="font-size:52px">🚫</div>' +
+        '<div style="font-size:22px;font-weight:900;letter-spacing:-0.02em;color:#f0efe8">VAR desactivado</div>' +
+        '<div style="font-size:14px;font-weight:600;color:rgba(240,239,232,0.55);max-width:320px;line-height:1.5">' +
+        'Activalo desde <b>velada.html</b> → Reglamento → interruptor del VAR.</div>';
+      document.body.appendChild(ov);
+    }
+    ov.style.display = 'flex';
+  } else if (ov) {
+    ov.style.display = 'none';
+  }
+}
+try { VarSwitch.onChange(applyVarSwitch); } catch (e) {}
+document.addEventListener('DOMContentLoaded', function () {
+  try { applyVarSwitch(VarSwitch.enabled); } catch (e) {}
+});
 
 // ── SPLASH ───────────────────────────────────
 function dismissSplash() {
