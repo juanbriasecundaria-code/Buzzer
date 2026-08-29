@@ -1350,7 +1350,9 @@ function syncUI() {
 function requestVAR(team) {
   if (team !== 'a' && team !== 'b') return;
   if (maxUses < 99 && varUses[team] <= 0) return;
-  // Si hay PIN configurado, primero pedirlo
+  playWhistle();
+  if (navigator.vibrate) navigator.vibrate([60, 40, 60, 40, 140]);
+  // Si hay PIN configurado, primero pedirlo (después del silbato)
   const pin = getStoredPin();
   if (pin) {
     openPinOverlay(team);
@@ -1376,9 +1378,6 @@ function _doRequestVAR(team) {
   void ov.offsetWidth;
   ov.classList.add('open');
   document.body.classList.add('var-reviewing');
-
-  playWhistle();
-  if (navigator.vibrate) navigator.vibrate([60, 40, 60, 40, 140]);
 
   clearTimeout(_varTimer);
   _varTimer = setTimeout(() => ov.classList.add('reviewing'), 1200);
