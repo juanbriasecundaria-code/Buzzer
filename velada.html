@@ -3586,6 +3586,8 @@ function renderReglas() {
           <div class="control-panel-section-title" style="color:var(--danger)">⚠️ Zona de administración</div>
           <p class="rules-intro" style="margin-bottom:1rem">Esto pone en 0 los puntos de todos los jugadores y equipos (Fase 1, Fase 2, Impostor, comodines, apuestas y ajustes manuales). El roster, los fixtures, las estaciones/colores y las reglas configuradas quedan tal cual están. Útil para hacer pruebas antes del evento o para reutilizar la app en una próxima velada del año sin perder la configuración.</p>
           <button class="btn btn-danger" style="width:100%;padding:0.875rem;font-size:14px;border-color:var(--danger)" onclick="resetEverything()">🔄 Reiniciar puntos de la noche</button>
+          <p class="rules-intro" style="margin:1rem 0 0.6rem">Esto borra solo las apuestas de los invitados (Fase 1 y Fase 2) y cierra la ventana de apuestas abierta. No toca los resultados de los partidos ni el resto de los puntajes — útil si hubo que reiniciar una ronda de apuestas o hacer una prueba.</p>
+          <button class="btn btn-danger" style="width:100%;padding:0.7rem;font-size:13px" onclick="resetBets()">🃏 Reiniciar apuestas</button>
           ${editing ? `<button class="btn btn-danger" style="width:100%;padding:0.6rem;font-size:13px;margin-top:0.6rem" onclick="resetRulesConfig()">↩️ Restaurar reglas a los valores originales</button>` : ''}
         </div>
       </div>
@@ -7171,8 +7173,46 @@ function resetEverything() {
       state.adjust = { f1: [], f2: [] };
       state.lastTab = 'reglas';
       saveState();
+      // Ver comentario en resetBets(): las apuestas de los invitados también
+      // viven en documentos Firebase aparte, hay que limpiarlos acá también.
+      if (window._fbReady && window._fbWrite) {
+        window._fbWrite('bets', '{}');
+        window._fbWrite('betsF2', '{}');
+      }
       closeModal();
       activateTab('reglas');
+    },
+    null
+  );
+}
+
+// Reinicia SOLO las apuestas (Fase 1 y Fase 2): borra lo que cargaron los
+// invitados, sus puntos de apuestas y cierra la ventana de apuestas abierta.
+// No toca resultados de partidos ni el resto de los puntajes de la noche.
+function resetBets() {
+  showConfirmModal(
+    '¿Reiniciar las apuestas?',
+    'Borra todas las apuestas cargadas por los invitados (Fase 1 y Fase 2), los puntos que sumaron por acertar y cierra la ventana de apuestas si estaba abierta. No toca los resultados de los partidos ni el resto de los puntajes. No se puede deshacer.',
+    () => {
+      state.bets = {};
+      state.betsOverride = {};
+      state.betsF2 = {};
+      state.betsOverrideF2 = {};
+      state.betWindow = { open: false, round: 0 };
+      state.betWindowF2 = { open: false, round: 0 };
+      saveState();
+      // Los invitados leen/escriben sus apuestas en documentos Firebase
+      // aparte ('ndj/bets' y 'ndj/betsF2', no el doc general 'ndj/state'),
+      // y cada ~12s este mismo panel las vuelve a importar desde ahí
+      // (syncGuestData). Si no los limpiamos acá, esa importación periódica
+      // "revive" las apuestas que acabamos de borrar.
+      if (window._fbReady && window._fbWrite) {
+        window._fbWrite('bets', '{}');
+        window._fbWrite('betsF2', '{}');
+      }
+      closeModal();
+      renderReglas();
+      showToast('✓', 'Apuestas reiniciadas', false);
     },
     null
   );
