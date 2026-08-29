@@ -2957,7 +2957,7 @@ window.VarSwitch = (function () {
     <span class="section-title"><span class="dot-indicator fase1"></span>Clasificación individual</span>
     <span class="especial-badge">★ 1° clasifica</span>
   </div>
-  <div style="font-size:11px;color:var(--muted);margin-bottom:0.6rem;line-height:1.5">Esp. = Impostor · 🎯 = bonus previo · 🃏 = apuestas · ⚖️ = ajuste manual</div>
+  <div style="font-size:11px;color:var(--muted);margin-bottom:0.6rem;line-height:1.5">Esp. = Impostor · 🎯 = bonus previo (tocá para editar) · 🃏 = apuestas (tocá para editar)</div>
   <div class="card" style="padding:0">
     <div class="table-wrap">
       <table class="ranking" id="ranking-fase1">
@@ -4727,6 +4727,7 @@ let state = {
   comodines: [], // [{id, player, key, status:'pending'|'done', delta, note, ts}] — Fase 1 (jugadores)
   comodinesF2: [], // idem, pero para Fase 2 (equipos)
   bets: {},      // key "r-a-b" (F1_FIXTURE) => { nombreApostador: idxGanadorApostado }
+  betsOverride: {}, // override manual del total de apuestas de un jugador: nombre => pts
   betsF2: {},    // key "r-a-b" (F2_FIXTURE) => { nombreApostador: idxEquipoGanadorApostado }
   adjust: { f1: [], f2: [] }, // ajustes manuales: [{id, name, pts, label, ts}]
   betWindow: { open: false, round: 0 }, // ventana de apuestas de Fase 1: qué ronda está abierta
@@ -5144,6 +5145,15 @@ function getPlayerPoints() {
     if (blown) pts[idx].betsBlown = won; // cuánto se le anuló, para mostrarlo
   });
 
+  // Override manual de apuestas (columna 🃏): pisa el valor calculado arriba
+  const betsOverride = state.betsOverride || {};
+  PLAYERS.forEach((name, idx) => {
+    if (Object.prototype.hasOwnProperty.call(betsOverride, name)) {
+      pts[idx].bets = Number(betsOverride[name]) || 0;
+      pts[idx].betsBlown = 0;
+    }
+  });
+
   // Overrides de celda: pisan el valor calculado de esa ronda
   const ovF1 = (state.cellPts && state.cellPts.f1) || {};
   PLAYERS.forEach((name, idx) => {
@@ -5433,7 +5443,7 @@ function renderFase1() {
   if (theadRowF1) {
     const numRoundsF1 = F1_FIXTURE.reduce((m, x) => Math.max(m, x[0]), 0);
     const roundThs = Array.from({length: numRoundsF1}, (_, i) => `<th>R${i+1}</th>`).join('');
-    theadRowF1.innerHTML = `<th style="width:36px">#</th><th>Jugador</th>${roundThs}<th title="Puntos especiales (Impostor)">Esp.</th><th title="Bonus previo (Kahoot u otras actividades)">🎯</th><th title="Apuestas acertadas">🃏</th><th title="Puntos manuales — tocá una celda para editar">⚖️</th><th style="text-align:right">Total</th>`;
+    theadRowF1.innerHTML = `<th style="width:36px">#</th><th>Jugador</th>${roundThs}<th title="Puntos especiales (Impostor)">Esp.</th><th title="Bonus previo (Kahoot u otras actividades) — tocá para editar">🎯</th><th title="Apuestas acertadas — tocá para editar">🃏</th><th style="text-align:right">Total</th>`;
   }
   const tbody = document.getElementById('tbody-fase1');
   tbody.innerHTML = sorted.map(({n,i,pts}, pos) => {
@@ -5458,17 +5468,14 @@ function renderFase1() {
       : `<td class="round-pts pending">—</td>`;
     const bm = pts.bonusManual;
     const bmCell = bm
-      ? `<td class="round-pts bonus" title="Bonus previo: +${bm} pts">+${bm}</td>`
-      : `<td class="round-pts pending">—</td>`;
+      ? `<td class="round-pts bonus overridden" onclick="editBonusManualPts('${nSafe}')" style="cursor:pointer" title="Bonus previo: +${bm} pts — tocá para editar">+${bm}</td>`
+      : `<td class="round-pts pending" onclick="editBonusManualPts('${nSafe}')" style="cursor:pointer" title="Tocá para cargar el bonus previo (Kahoot)">—</td>`;
+    const betsOv = Object.prototype.hasOwnProperty.call(state.betsOverride || {}, n);
     const betsCell = pts.betsBlown
-      ? `<td class="round-pts" style="color:var(--danger);font-weight:800" title="Apostó a su propio duelo y lo perdió: se anularon ${pts.betsBlown} pts">💥</td>`
+      ? `<td class="round-pts" onclick="editBetsPts('${nSafe}')" style="cursor:pointer;color:var(--danger);font-weight:800" title="Apostó a su propio duelo y lo perdió: se anularon ${pts.betsBlown} pts — tocá para editar">💥</td>`
       : pts.bets
-        ? `<td class="round-pts win" title="Apuestas acertadas">+${pts.bets}</td>`
-        : `<td class="round-pts pending">—</td>`;
-    const adjVal = pts.adjust || 0;
-    const adjCell = adjVal
-      ? `<td class="round-pts" onclick="editManualPts('f1','${nSafe}')" style="cursor:pointer;color:${adjVal > 0 ? 'var(--success)' : 'var(--danger)'};font-weight:800" title="Puntos manuales — tocá para editar">${adjVal > 0 ? '+' : ''}${adjVal}</td>`
-      : `<td class="round-pts pending" onclick="editManualPts('f1','${nSafe}')" style="cursor:pointer" title="Tocá para agregar puntos manuales">—</td>`;
+        ? `<td class="round-pts win${betsOv ? ' overridden' : ''}" onclick="editBetsPts('${nSafe}')" style="cursor:pointer" title="Apuestas acertadas — tocá para editar">${pts.bets > 0 ? '+' : ''}${pts.bets}</td>`
+        : `<td class="round-pts pending${betsOv ? ' overridden' : ''}" onclick="editBetsPts('${nSafe}')" style="cursor:pointer" title="Tocá para editar los puntos de apuestas">—</td>`;
     return `<tr class="${rowClass}">
       <td><div class="pos-badge ${badgeClass}">${pos+1}</div></td>
       <td class="player-name">${playerAvatarHtml(n, i)}<span>${n}</span></td>
@@ -5476,7 +5483,6 @@ function renderFase1() {
       ${special}
       ${bmCell}
       ${betsCell}
-      ${adjCell}
       <td style="text-align:right"><span class="total-pts">${pts.total}</span></td>
     </tr>`;
   }).join('');
@@ -6272,6 +6278,55 @@ function editCellPts(phase, name, ri) {
   }
   saveState();
   if (phase === 'f1') renderFase1(); else renderFase2();
+}
+
+// Puntos de bonus previo (columna 🎯, Kahoot u otras actividades previas):
+// se puede cargar en bloque desde el panel de arriba, o tocar la celda de un
+// jugador puntual en el ranking para editarla individualmente.
+function editBonusManualPts(name) {
+  state.bonusManual = state.bonusManual || {};
+  const cur = state.bonusManual[name] && state.bonusManual[name].pts;
+  const who = String(name).split(' ')[0];
+  const val = prompt(
+    `Puntos de bonus previo (Kahoot) para ${who}\n\n` +
+    `Escribí un número para fijarlo.\n` +
+    `Dejalo vacío para borrarlo.`,
+    (cur !== undefined && cur !== null) ? String(cur) : ''
+  );
+  if (val === null) return; // canceló
+  if (String(val).trim() === '') {
+    delete state.bonusManual[name];
+  } else {
+    const num = parseFloat(val);
+    if (isNaN(num)) { showToast('⚠️', 'Poné un número válido', false); return; }
+    state.bonusManual[name] = { pts: num };
+  }
+  saveState();
+  renderFase1();
+}
+
+// Puntos de apuestas (columna 🃏): normalmente se calculan solos a partir de
+// lo que apuestan los invitados, pero se pueden pisar a mano por jugador.
+function editBetsPts(name) {
+  state.betsOverride = state.betsOverride || {};
+  const cur = state.betsOverride[name];
+  const who = String(name).split(' ')[0];
+  const val = prompt(
+    `Puntos de apuestas para ${who}\n\n` +
+    `Escribí un número para fijarlo a mano.\n` +
+    `Dejalo vacío para volver al valor calculado automáticamente.`,
+    (cur !== undefined && cur !== null) ? String(cur) : ''
+  );
+  if (val === null) return; // canceló
+  if (String(val).trim() === '') {
+    delete state.betsOverride[name];
+  } else {
+    const num = parseFloat(val);
+    if (isNaN(num)) { showToast('⚠️', 'Poné un número válido', false); return; }
+    state.betsOverride[name] = num;
+  }
+  saveState();
+  renderFase1();
 }
 
 // Puntos manuales (columna ⚖️): suma o resta libre, con motivo opcional
@@ -7151,6 +7206,7 @@ function resetEverything() {
       state.bonusManual = {};
       state.vsJC = {};
       state.bets = {};
+      state.betsOverride = {};
       state.betsF2 = {};
       state.betWindow = { open: false, round: 0 };
       state.betWindowF2 = { open: false, round: 0 };
