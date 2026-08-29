@@ -5136,31 +5136,23 @@ function getPlayerPoints() {
   });
 
   // Apuestas: +1 por cada acierto. Se puede apostar en TODOS los duelos,
-  // incluido el propio — pero si errás el tuyo, perdés lo ganado apostando
-  // EN ESA RONDA (la anulación no afecta a otras rondas de apuestas).
+  // incluido el propio — pero si errás el tuyo, perdés todo lo ganado apostando.
   const bets = state.bets || {};
   PLAYERS.forEach((name, idx) => {
-    const roundsBet = {}; // ronda -> { won, blown }
+    let won = 0, blown = false;
     Object.keys(bets).forEach(key => {
       const res = state.f1[key];
       if (!res || res.winner === 'empate') return;
       const b = bets[key] && bets[key][name];
       if (typeof b !== 'number') return;
       const parts = key.split('-').map(Number);
-      const round = parts[0];
       const isOwn = (parts[1] === idx || parts[2] === idx);
-      if (!roundsBet[round]) roundsBet[round] = { won: 0, blown: false };
-      if (b === res.winner) roundsBet[round].won++;
-      else if (isOwn) roundsBet[round].blown = true; // apostó a su propio duelo y lo perdió (anula solo esta ronda)
+      if (b === res.winner) won++;
+      else if (isOwn) blown = true; // apostó a su propio duelo y lo perdió
     });
-    let net = 0, blownTotal = 0;
-    Object.keys(roundsBet).forEach(r => {
-      const rd = roundsBet[r];
-      if (rd.blown) blownTotal += rd.won;
-      else net += rd.won;
-    });
+    const net = blown ? 0 : won;
     if (net) pts[idx].bets = net;
-    if (blownTotal) pts[idx].betsBlown = blownTotal; // cuánto se le anuló en total, para mostrarlo
+    if (blown) pts[idx].betsBlown = won; // cuánto se le anuló, para mostrarlo
   });
 
   // Override manual de apuestas (columna 🃏): pisa el valor calculado arriba
@@ -5279,30 +5271,22 @@ function getTeamPoints() {
   // Cada acierto suma 1 punto al EQUIPO del apostador (en Fase 2 se puntúa por equipo).
   // Igual que en Fase 1: se puede apostar al propio equipo, pero si lo perdés se te
   // anulan todos los puntos que hayas ganado apostando.
-  // Igual que en Fase 1: la anulación por perder la apuesta al propio equipo
-  // queda acotada a la ronda donde ocurrió, no afecta a otras rondas.
   const betsF2 = state.betsF2 || {};
   PLAYERS.forEach(name => {
     const tIdx = teamIndexForPlayer(name);
     if (tIdx < 0 || !pts[tIdx]) return;
-    const roundsBet = {}; // ronda -> { won, blown }
+    let won = 0, blown = false;
     Object.keys(betsF2).forEach(key => {
       const res = state.f2[key];
       if (!res || res.winner === 'empate') return;
       const b = betsF2[key] && betsF2[key][name];
       if (typeof b !== 'number') return;
       const parts = key.split('-').map(Number);
-      const round = parts[0];
       const isOwn = (parts[1] === tIdx || parts[2] === tIdx);
-      if (!roundsBet[round]) roundsBet[round] = { won: 0, blown: false };
-      if (b === res.winner) roundsBet[round].won++;
-      else if (isOwn) roundsBet[round].blown = true;
+      if (b === res.winner) won++;
+      else if (isOwn) blown = true;
     });
-    let net = 0;
-    Object.keys(roundsBet).forEach(r => {
-      const rd = roundsBet[r];
-      if (!rd.blown) net += rd.won;
-    });
+    const net = blown ? 0 : won;
     if (net) pts[tIdx].betsF2 = (pts[tIdx].betsF2 || 0) + net;
   });
 
@@ -6199,7 +6183,7 @@ function saveResult() {
     });
     const dly = comoMsgs.length ? 2800 : 1400;
     if (hits.length) setTimeout(() => showToast('🃏', 'Acertaron: ' + hits.map(n => n.split(' ')[0]).join(', ') + ' (+1)', false), dly);
-    if (blown.length) setTimeout(() => showToast('💥', blown.map(n => n.split(' ')[0]).join(', ') + ': apostó al suyo y perdió — apuestas anuladas en esta ronda', false), dly + 1400);
+    if (blown.length) setTimeout(() => showToast('💥', blown.map(n => n.split(' ')[0]).join(', ') + ': apostó al suyo y perdió — apuestas anuladas', false), dly + 1400);
   }
   updateNavProgress();
 }
@@ -12472,6 +12456,10 @@ function openTVMode() {
   .tv-drag.dragging{opacity:0.85;box-shadow:0 0 0 2px var(--accent),0 10px 50px rgba(0,0,0,0.6)!important;z-index:200!important}
   .tv-drag::after{content:'✥';position:absolute;top:4px;right:6px;font-size:11px;color:var(--muted);opacity:0;transition:opacity .2s;pointer-events:none}
   .tv-drag:hover::after{opacity:0.65}
+  /* Botón discreto para reubicar el widget sin depender de saber el doble-click */
+  .tv-drag-reset{position:absolute;top:3px;left:6px;width:16px;height:16px;border-radius:50%;background:rgba(0,0,0,0.35);color:var(--muted);font-size:10px;line-height:16px;text-align:center;opacity:0;transition:opacity .2s,color .2s,background .2s;cursor:pointer;z-index:5}
+  .tv-drag:hover .tv-drag-reset{opacity:0.7}
+  .tv-drag-reset:hover{opacity:1!important;color:var(--text);background:rgba(0,0,0,0.6)}
   .tv-guest-qr{position:fixed;bottom:clamp(10px,2vh,24px);left:clamp(10px,2vw,28px);z-index:50;background:var(--surface);border:1.5px solid var(--border2);border-radius:16px;padding:clamp(8px,1vh,12px);display:flex;flex-direction:column;align-items:center;gap:6px;box-shadow:0 4px 32px rgba(0,0,0,0.4)}
   .tv-guest-qr-canvas{background:#fff;border-radius:8px;width:clamp(64px,7vw,110px);height:clamp(64px,7vw,110px);display:flex;align-items:center;justify-content:center;overflow:hidden}
   .tv-guest-qr-canvas img,.tv-guest-qr-canvas canvas{width:100%!important;height:100%!important}
@@ -13046,7 +13034,6 @@ function renderTV() {
     }).join(''):'';
   });
 
-  document.getElementById('tv-footer').textContent='🔴 En vivo · ' + new Date().toLocaleTimeString('es-AR');
   renderTicker(state, PLAYERS, TEAMS);
   // El relator lee siempre el último snapshot (state es local a renderTV)
   window._tvLastState   = state;
@@ -13061,6 +13048,22 @@ function renderTV() {
       const ib = document.getElementById('tv-idle');
       if (ib) ib.classList.remove('show');
       _idleOn = false;
+    }
+  } catch(e) {}
+  // El footer separa el reloj de la etiqueta de estado: "En vivo" solo si
+  // hubo un cambio real de datos hace poco. Si no, avisamos desde cuándo
+  // no hay novedades en vez de seguir mostrando la hora actual con el
+  // marcador "En vivo" — eso daría falsa confianza si Firebase se cortó
+  // y nadie lo nota.
+  try {
+    const _footerEl = document.getElementById('tv-footer');
+    if (_footerEl) {
+      const STALE_AFTER_MS = 10000; // ~5 ciclos de polling (2s c/u)
+      const msSinceChange = Date.now() - _idleLastChange;
+      const lastChangeStr = new Date(_idleLastChange).toLocaleTimeString('es-AR');
+      _footerEl.textContent = msSinceChange < STALE_AFTER_MS
+        ? '🔴 En vivo · ' + lastChangeStr
+        : '⏸ Sin cambios desde las ' + lastChangeStr;
     }
   } catch(e) {}
   scanLogros(state, PLAYERS, TEAMS);
@@ -13510,6 +13513,14 @@ function initDraggables() {
   try { saved = JSON.parse(localStorage.getItem('ndj_tv_pos') || '{}'); } catch(e) { saved = {}; }
   const persist = () => { try { localStorage.setItem('ndj_tv_pos', JSON.stringify(saved)); } catch(e) {} };
 
+  // Reubica un widget a su posición original y limpia lo guardado.
+  // La usan tanto el doble-click como el botoncito "↺" de la esquina.
+  const resetPos = (el, id) => {
+    el.style.left = ''; el.style.top = ''; el.style.right = ''; el.style.bottom = '';
+    delete saved[id];
+    persist();
+  };
+
   document.querySelectorAll('.tv-drag').forEach(el => {
     const id = el.id;
     if (!id) return;
@@ -13521,6 +13532,23 @@ function initDraggables() {
       el.style.top = p.y + 'px';
       el.style.right = 'auto';
       el.style.bottom = 'auto';
+    }
+
+    // Pista visual del doble-click (antes no había ninguna: si alguien
+    // lo arrastraba sin querer y no sabía del doble-click, quedaba mal
+    // ubicado el resto de la noche). Botón discreto + tooltip.
+    if (!el.title || el.title === 'Arrastrame') {
+      el.title = 'Arrastrame · doble-click para reubicar';
+    }
+    if (!el.querySelector(':scope > .tv-drag-reset')) {
+      const resetBtn = document.createElement('div');
+      resetBtn.className = 'tv-drag-reset';
+      resetBtn.textContent = '↺';
+      resetBtn.title = 'Volver a la posición original';
+      resetBtn.addEventListener('mousedown', ev => ev.stopPropagation());
+      resetBtn.addEventListener('touchstart', ev => ev.stopPropagation(), { passive: true });
+      resetBtn.addEventListener('click', ev => { ev.stopPropagation(); resetPos(el, id); });
+      el.appendChild(resetBtn);
     }
 
     let sx = 0, sy = 0, ox = 0, oy = 0, moved = false;
@@ -13578,9 +13606,7 @@ function initDraggables() {
     // Doble click: volver al lugar original
     el.addEventListener('dblclick', ev => {
       if (ev.target.closest('button, a, input')) return;
-      el.style.left = ''; el.style.top = ''; el.style.right = ''; el.style.bottom = '';
-      delete saved[id];
-      persist();
+      resetPos(el, id);
     });
   });
 }
