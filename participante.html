@@ -116,7 +116,7 @@
   .gh-dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: var(--danger); margin-right: 0.35rem; animation: gh-pulse 1.4s infinite; }
   @keyframes gh-pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.35; } }
 
-  .gh-switch { display: block; margin: 0 auto 1rem; background: transparent; border: 1px solid var(--border2); color: var(--muted); border-radius: var(--radius); padding: 0.5rem 1rem; font-size: 12px; font-weight: 600; cursor: pointer; }
+  .gh-switch { display: block; margin: 0.6rem auto 0; background: transparent; border: 1px solid var(--border2); color: var(--muted); border-radius: var(--radius); padding: 0.4rem 0.9rem; font-size: 11px; font-weight: 600; cursor: pointer; }
 
   .gh-wall-card { background: var(--surface); border: 1px solid var(--border2); border-radius: 14px; padding: 1rem; margin-bottom: 1rem; text-align: center; }
   .gh-wall-title { font-size: 14px; font-weight: 800; color: var(--text); margin-bottom: 0.3rem; }
@@ -412,7 +412,6 @@ function renderDashboard(myName) {
       <div class="gh-eyebrow">🎮 La Velada del Año</div>
       <div class="gh-title">Hola, ${escapeHtml(myName)} 👋</div>
     </div>
-    <button class="gh-switch" id="gh-switch-btn">Cambiar de jugador</button>
     ${renderPhaseCard('f1', myIdx, myName)}
     ${teamIdx >= 0 ? renderPhaseCard('f2', teamIdx, myName) : ''}
     ${safeBlock(() => renderBetCard(myName, myIdx))}
@@ -424,7 +423,9 @@ function renderDashboard(myName) {
       <button class="gh-wall-btn" id="gh-wall-btn">Elegir fotos</button>
       <div class="gh-wall-status" id="gh-wall-status"></div>
     </div>
-    <div class="gh-footer"><span class="gh-dot"></span>En vivo · actualizado ${updatedTxt}</div>
+    <div class="gh-footer"><span class="gh-dot"></span>En vivo · actualizado ${updatedTxt}<br>
+      <button class="gh-switch" id="gh-switch-btn">Cambiar de jugador</button>
+    </div>
   `;
   document.getElementById('gh-switch-btn').addEventListener('click', () => {
     localStorage.removeItem('ndj_guest_who');
@@ -443,13 +444,11 @@ function safeBlock(fn) { try { return fn() || ''; } catch (e) { console.warn('bl
 // ── APUESTAS ─────────────────────────────────────────────────
 // Se puede apostar en TODOS los duelos, incluido el propio.
 // Cada acierto = 1 pt. Pero si apostás a tu propio duelo y lo perdés,
-// se te borran los puntos que hayas ganado apostando EN ESA RONDA
-// (no afecta a lo ganado en otras rondas de apuestas).
+// se te borran todos los puntos que hayas ganado apostando.
 function myBetTally(myName) {
   const bets = latestState.bets || {};
   const myIdx = PLAYERS.indexOf(myName);
-  const rounds = {}; // ronda -> { hits, misses, blown }
-  let pending = 0;
+  let hits = 0, misses = 0, blown = false, pending = 0;
   Object.keys(bets).forEach(key => {
     const b = bets[key][myName];
     if (typeof b !== 'number') return;
@@ -457,21 +456,11 @@ function myBetTally(myName) {
     if (!res) { pending++; return; }
     if (res.winner === 'empate') return;
     const p = key.split('-').map(Number);
-    const round = p[0];
     const own = (p[1] === myIdx || p[2] === myIdx);
-    if (!rounds[round]) rounds[round] = { hits: 0, misses: 0, blown: false };
-    if (res.winner === b) rounds[round].hits++;
-    else { rounds[round].misses++; if (own) rounds[round].blown = true; }
+    if (res.winner === b) hits++;
+    else { misses++; if (own) blown = true; }
   });
-  let hits = 0, misses = 0, net = 0;
-  const blownRounds = [];
-  Object.keys(rounds).forEach(r => {
-    const rd = rounds[r];
-    hits += rd.hits;
-    misses += rd.misses;
-    if (rd.blown) blownRounds.push(Number(r)); else net += rd.hits;
-  });
-  return { hits: hits, misses: misses, blown: blownRounds.length > 0, blownRounds: blownRounds, pending: pending, net: net };
+  return { hits: hits, misses: misses, blown: blown, pending: pending, net: blown ? 0 : hits };
 }
 
 function renderBetCard(myName, myIdx) {
@@ -479,7 +468,7 @@ function renderBetCard(myName, myIdx) {
   const bw = latestState.betWindow || { open: false, round: 0 };
   const t = myBetTally(myName);
 
-  const rows = (F1_FIXTURE || []).map(m => {
+  const buildRow = m => {
     const key = m[0] + '-' + m[1] + '-' + m[2];
     const res = (latestState.f1 || {})[key];
     const own = (m[1] === myIdx || m[2] === myIdx);
@@ -522,24 +511,42 @@ function renderBetCard(myName, myIdx) {
       <span class="gh-b-game">R${m[0]} · ${escapeHtml(game)}${own ? ' · <b>tu duelo</b>' : ''}</span></div>
       <div class="gh-b-opts">${btn(m[1], nA)}${btn(m[2], nB)}</div>
     </div>`;
-  }).join('');
+  };
+
+  // Los duelos de la ronda abierta van siempre visibles y primero: son los
+  // únicos en los que realmente se puede apostar ahora. El resto (jugados
+  // o todavía bloqueados) queda colapsado debajo, para no obligar a
+  // scrollear entre 30 duelos para encontrar dónde apostar.
+  const fixture = F1_FIXTURE || [];
+  const openMatches = bw.open ? fixture.filter(m => m[0] === bw.round) : [];
+  const restMatches = bw.open ? fixture.filter(m => m[0] !== bw.round) : fixture;
+
+  const openRows = openMatches.map(buildRow).join('');
+  const restRows = restMatches.map(buildRow).join('');
 
   const banner = bw.open
     ? `<div class="gh-b-window open">🔓 Apuestas abiertas · <b>Ronda ${bw.round}</b></div>`
     : `<div class="gh-b-window">🔒 Apuestas cerradas — esperá a que el conductor las abra</div>`;
 
-  const roundTxt = t.blownRounds.length === 1 ? ('la ronda ' + t.blownRounds[0]) : ('las rondas ' + t.blownRounds.join(', '));
   const resume = t.blown
-    ? `<div class="gh-b-summary blown">💥 Apostaste a tu propio duelo y lo perdiste en ${roundTxt}: se te anularon los puntos de esa${t.blownRounds.length === 1 ? '' : 's'} ronda${t.blownRounds.length === 1 ? '' : 's'}. Puntos ganados: <b>+${t.net}</b>${t.pending ? ' · ' + t.pending + ' pendiente' + (t.pending === 1 ? '' : 's') : ''}</div>`
+    ? `<div class="gh-b-summary blown">💥 Apostaste a tu propio duelo y lo perdiste: se te anularon ${t.hits} punto${t.hits === 1 ? '' : 's'}.</div>`
     : `<div class="gh-b-summary">Aciertos: <b>${t.hits}</b> · Puntos ganados: <b>+${t.net}</b>${t.pending ? ' · ' + t.pending + ' pendiente' + (t.pending === 1 ? '' : 's') : ''}</div>`;
+
+  const restSection = restMatches.length
+    ? `<div class="gh-toggle" onclick="this.classList.toggle('open');this.nextElementSibling.style.display=this.classList.contains('open')?'block':'none'">
+        <span class="card-label">Ver duelos anteriores</span><span class="gh-toggle-arrow">▶</span>
+      </div>
+      <div class="gh-b-list" style="display:none">${restRows}</div>`
+    : '';
 
   return `<div class="gh-bet-card">
     <div class="gh-bet-title">🃏 Apuestas</div>
     <div class="gh-bet-sub">Cada acierto suma <b>1 punto</b>.<br>
-      ⚠️ Podés apostar a tu propio duelo, pero si lo perdés <b>se te borran los puntos de apuestas de esa ronda</b>.</div>
+      ⚠️ Podés apostar a tu propio duelo, pero si lo perdés <b>se te borran todos los puntos de apuestas</b>.</div>
     ${banner}
     ${resume}
-    <div class="gh-b-list">${rows || '<div class="gh-b-none" style="padding:0.6rem 0">Todavía no hay duelos cargados.</div>'}</div>
+    <div class="gh-b-list">${openRows || '<div class="gh-b-none" style="padding:0.6rem 0">Todavía no hay duelos para apostar en esta ronda.</div>'}</div>
+    ${restSection}
     <div class="gh-bet-status" id="gh-bet-status"></div>
   </div>`;
 }
@@ -586,8 +593,7 @@ function wireBetCard(myName, myIdx) {
 function myBetTallyF2(myName) {
   const bets = latestState.betsF2 || {};
   const myTeamIdx = teamIndexForPlayer(myName);
-  const rounds = {}; // ronda -> { hits, misses, blown }
-  let pending = 0;
+  let hits = 0, misses = 0, blown = false, pending = 0;
   Object.keys(bets).forEach(key => {
     const b = bets[key][myName];
     if (typeof b !== 'number') return;
@@ -595,21 +601,11 @@ function myBetTallyF2(myName) {
     if (!res) { pending++; return; }
     if (res.winner === 'empate') return;
     const p = key.split('-').map(Number);
-    const round = p[0];
     const own = (p[1] === myTeamIdx || p[2] === myTeamIdx);
-    if (!rounds[round]) rounds[round] = { hits: 0, misses: 0, blown: false };
-    if (res.winner === b) rounds[round].hits++;
-    else { rounds[round].misses++; if (own) rounds[round].blown = true; }
+    if (res.winner === b) hits++;
+    else { misses++; if (own) blown = true; }
   });
-  let hits = 0, misses = 0, net = 0;
-  const blownRounds = [];
-  Object.keys(rounds).forEach(r => {
-    const rd = rounds[r];
-    hits += rd.hits;
-    misses += rd.misses;
-    if (rd.blown) blownRounds.push(Number(r)); else net += rd.hits;
-  });
-  return { hits: hits, misses: misses, blown: blownRounds.length > 0, blownRounds: blownRounds, pending: pending, net: net };
+  return { hits: hits, misses: misses, blown: blown, pending: pending, net: blown ? 0 : hits };
 }
 
 function renderBetCardF2(myName, myTeamIdx) {
@@ -617,7 +613,7 @@ function renderBetCardF2(myName, myTeamIdx) {
   const bw = latestState.betWindowF2 || { open: false, round: 0 };
   const t = myBetTallyF2(myName);
 
-  const rows = (F2_FIXTURE || []).map(m => {
+  const buildRow = m => {
     const key = m[0] + '-' + m[1] + '-' + m[2];
     const res = (latestState.f2 || {})[key];
     const own = (m[1] === myTeamIdx || m[2] === myTeamIdx);
@@ -660,24 +656,40 @@ function renderBetCardF2(myName, myTeamIdx) {
       <span class="gh-b-game">R${m[0]} · ${escapeHtml(game)}${own ? ' · <b>tu equipo</b>' : ''}</span></div>
       <div class="gh-b-opts">${btn(m[1], nA)}${btn(m[2], nB)}</div>
     </div>`;
-  }).join('');
+  };
+
+  // Mismo criterio que en Fase 1: la ronda abierta primero y siempre
+  // visible, el resto colapsado debajo.
+  const fixture = F2_FIXTURE || [];
+  const openMatches = bw.open ? fixture.filter(m => m[0] === bw.round) : [];
+  const restMatches = bw.open ? fixture.filter(m => m[0] !== bw.round) : fixture;
+
+  const openRows = openMatches.map(buildRow).join('');
+  const restRows = restMatches.map(buildRow).join('');
 
   const banner = bw.open
     ? `<div class="gh-b-window open">🔓 Apuestas abiertas · <b>Ronda ${bw.round}</b></div>`
     : `<div class="gh-b-window">🔒 Apuestas cerradas — esperá a que el conductor las abra</div>`;
 
-  const roundTxtF2 = t.blownRounds.length === 1 ? ('la ronda ' + t.blownRounds[0]) : ('las rondas ' + t.blownRounds.join(', '));
   const resume = t.blown
-    ? `<div class="gh-b-summary blown">💥 Apostaste al duelo de tu equipo y lo perdiste en ${roundTxtF2}: se anularon los puntos de esa${t.blownRounds.length === 1 ? '' : 's'} ronda${t.blownRounds.length === 1 ? '' : 's'}. Puntos ganados para tu equipo: <b>+${t.net}</b>${t.pending ? ' · ' + t.pending + ' pendiente' + (t.pending === 1 ? '' : 's') : ''}</div>`
+    ? `<div class="gh-b-summary blown">💥 Apostaste al duelo de tu equipo y lo perdiste: se te anularon ${t.hits} punto${t.hits === 1 ? '' : 's'}.</div>`
     : `<div class="gh-b-summary">Aciertos: <b>${t.hits}</b> · Puntos ganados para tu equipo: <b>+${t.net}</b>${t.pending ? ' · ' + t.pending + ' pendiente' + (t.pending === 1 ? '' : 's') : ''}</div>`;
+
+  const restSection = restMatches.length
+    ? `<div class="gh-toggle" onclick="this.classList.toggle('open');this.nextElementSibling.style.display=this.classList.contains('open')?'block':'none'">
+        <span class="card-label">Ver duelos anteriores</span><span class="gh-toggle-arrow">▶</span>
+      </div>
+      <div class="gh-b-list" style="display:none">${restRows}</div>`
+    : '';
 
   return `<div class="gh-bet-card">
     <div class="gh-bet-title">🃏 Apuestas · Fase 2</div>
     <div class="gh-bet-sub">Cada acierto suma <b>1 punto a tu equipo</b>.<br>
-      ⚠️ Podés apostar al duelo de tu propio equipo, pero si lo perdés <b>se le anulan a tu equipo los puntos de apuestas de esa ronda</b>.</div>
+      ⚠️ Podés apostar al duelo de tu propio equipo, pero si lo perdés <b>se le borran todos los puntos de apuestas a tu equipo</b>.</div>
     ${banner}
     ${resume}
-    <div class="gh-b-list">${rows || '<div class="gh-b-none" style="padding:0.6rem 0">Todavía no hay duelos cargados.</div>'}</div>
+    <div class="gh-b-list">${openRows || '<div class="gh-b-none" style="padding:0.6rem 0">Todavía no hay duelos para apostar en esta ronda.</div>'}</div>
+    ${restSection}
     <div class="gh-bet-status" id="gh-bet-status-f2"></div>
   </div>`;
 }
