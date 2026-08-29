@@ -7662,6 +7662,7 @@ function defaultImpGame() {
     doubleMode: false,        // modo doble impostor (requiere 6+ jugadores)
     impostorIdxs: [],         // índices dentro de roundPlayers — 1 normalmente, 2 en modo doble
     caughtIdxs: [],           // impostores ya descubiertos dentro del ciclo de palabra actual
+    eliminatedIdxs: [],       // impostores descubiertos + inocentes eliminados injustamente — fuera de ruleta y votación hasta la próxima palabra
     currentCardStep: 0,
     accusedIdx: null,
     failedVotes: 0,
@@ -7689,6 +7690,7 @@ function saveImpGame() {
     doubleMode: impGame.doubleMode,
     impostorIdxs: impGame.impostorIdxs,
     caughtIdxs: impGame.caughtIdxs,
+    eliminatedIdxs: impGame.eliminatedIdxs,
     currentCardStep: impGame.currentCardStep,
     accusedIdx: impGame.accusedIdx,
     failedVotes: impGame.failedVotes || 0,
@@ -7721,6 +7723,7 @@ function restoreImpGame() {
       }
     }
     if (!Array.isArray(impGame.caughtIdxs)) impGame.caughtIdxs = [];
+    if (!Array.isArray(impGame.eliminatedIdxs)) impGame.eliminatedIdxs = [];
     if (!Array.isArray(impGame.usedWords)) {
       // Migración: reconstruir usedWords desde los índices guardados (formato viejo)
       impGame.usedWords = [];
@@ -8326,6 +8329,7 @@ function beginWordCycle() {
   const impostorCount = useDouble ? 2 : 1;
   impGame.impostorIdxs = shuffleArr([...Array(n).keys()]).slice(0, impostorCount);
   impGame.caughtIdxs = [];
+  impGame.eliminatedIdxs = [];
   impGame.failedVotes = 0;
   impGame.currentCardStep = 0;
   impGame.accusedIdx = null;
@@ -8439,7 +8443,8 @@ function nextCard() {
 function goToVoting() {
   impGame.phase = 'result';
   saveImpGame();
-  const players = impGame.roundPlayers;
+  const eliminatedForRoulette = impGame.eliminatedIdxs || [];
+  const players = impGame.roundPlayers.filter((_, i) => !eliminatedForRoulette.includes(i));
   const winnerIdx = Math.floor(Math.random() * players.length);
 
   const cover = document.createElement('div');
@@ -8583,10 +8588,11 @@ function renderImpResult() {
   saveImpGame();
   const acc = impGame.accusedIdx;
   const caught = impGame.caughtIdxs || [];
+  const eliminated = impGame.eliminatedIdxs || [];
   const totalImpostors = impGame.impostorIdxs.length;
 
   const btnHtml = impGame.roundPlayers.map((n,i) => {
-    if (caught.includes(i)) return '';
+    if (eliminated.includes(i)) return '';
     return `<button class="vote-player-btn ${acc===i?'sel':''}" onclick="accuseCardPlayer(${i})">${impAvatar(n, 40)}<span>${n.split(' ')[0]}</span></button>`;
   }).join('');
 
@@ -8648,6 +8654,7 @@ function revealImpResult() {
 
   if (isImpostor) {
     if (!impGame.caughtIdxs.includes(acc)) impGame.caughtIdxs.push(acc);
+    if (!impGame.eliminatedIdxs.includes(acc)) impGame.eliminatedIdxs.push(acc);
     const remaining = impGame.impostorIdxs.filter(i => !impGame.caughtIdxs.includes(i));
     saveImpGame();
 
@@ -8679,7 +8686,8 @@ function revealImpResult() {
       document.body.appendChild(cover);
     }
   } else {
-    // Voto fallido — descontar oportunidad
+    // Voto fallido — descontar oportunidad y sacar al inocente eliminado de la ruleta y la votación
+    if (!impGame.eliminatedIdxs.includes(acc)) impGame.eliminatedIdxs.push(acc);
     impGame.failedVotes = (impGame.failedVotes || 0) + 1;
     const maxVotes = Math.ceil(impGame.roundPlayers.length / 2);
     const remaining = maxVotes - impGame.failedVotes;
