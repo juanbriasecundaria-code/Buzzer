@@ -3412,8 +3412,8 @@ function renderReglas() {
       <span class="section-title">Zona de administración</span>
     </div>
     <div class="card" style="border-color:rgba(255,95,95,0.3)">
-      <p class="rules-intro" style="margin-bottom:1rem">Esto borra todos los resultados cargados (Fase 1, Fase 2 e Impostor) y vuelve a dejar todo en cero, como recién abierta la app. Útil para hacer pruebas antes del evento o para reutilizar la app en una próxima la velada del año.</p>
-      <button class="btn btn-danger" style="width:100%;padding:0.875rem;font-size:14px;border-color:var(--danger)" onclick="resetEverything()">🔄 Reiniciar toda la noche</button>
+      <p class="rules-intro" style="margin-bottom:1rem">Esto pone en 0 los puntos de todos los jugadores y equipos (Fase 1, Fase 2, Impostor, comodines y ajustes manuales). El roster, los fixtures, las estaciones/colores y las reglas configuradas quedan tal cual están. Útil para hacer pruebas antes del evento o para reutilizar la app en una próxima velada del año sin perder la configuración.</p>
+      <button class="btn btn-danger" style="width:100%;padding:0.875rem;font-size:14px;border-color:var(--danger)" onclick="resetEverything()">🔄 Reiniciar puntos de la noche</button>
     </div>
     ${editing ? `<div style="margin-top:0.75rem">
       <button class="btn btn-danger" style="width:100%;padding:0.6rem;font-size:13px" onclick="resetRulesConfig()">↩️ Restaurar reglas a los valores originales</button>
@@ -6373,14 +6373,24 @@ document.getElementById('modal-bg').addEventListener('click', function(e) {
 // ============================================================
 function resetEverything() {
   showConfirmModal(
-    '¿Reiniciar toda la noche?',
-    'Borra TODOS los resultados de Fase 1, Fase 2 e Impostor y vuelve al estado inicial. No se puede deshacer.',
+    '¿Reiniciar los puntos de la noche?',
+    'Pone en 0 los puntos de todos los jugadores y equipos (Fase 1, Fase 2, Impostor, comodines y ajustes manuales). NO toca el roster, los fixtures, las estaciones/colores ni las reglas configuradas. No se puede deshacer.',
     () => {
+      // Resultados de partidos (de acá sale el puntaje de Fase 1 / Fase 2)
       state.f1 = {};
       state.f2 = {};
       state.sd = {};
-      resetRosterAndFixtures();
-      resetImpGameFull();
+      // Historial de rondas del Impostor (no tocamos impGame: si hay una ronda
+      // en curso, sigue en curso; solo se borran las rondas ya puntuadas)
+      state.impostor = { rounds: [] };
+      // Comodines de la ruleta (Fase 1 y Fase 2)
+      state.comodines = [];
+      state.comodinesF2 = [];
+      // Ajustes manuales de puntos
+      state.bonusManual = {};
+      state.vsJC = {};
+      state.bets = {};
+      state.adjust = { f1: [], f2: [] };
       state.lastTab = 'reglas';
       saveState();
       closeModal();
