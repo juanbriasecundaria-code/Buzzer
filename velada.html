@@ -6790,6 +6790,16 @@ function downloadNightBackup(full) {
   showToast('💾', full ? 'Backup completo descargado' : 'Backup de puntajes descargado', false);
 }
 
+// Atajo desde otras pestañas (ej. Impostor) para ir directo al panel de backup
+function goToBackupPanel() {
+  _ctrlPanelOpen = true;
+  activateTab('reglas');
+  setTimeout(() => {
+    const el = document.getElementById('backup-card');
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }, 60);
+}
+
 function triggerRestoreFile() {
   const input = document.getElementById('restore-file-input');
   if (input) { input.value = ''; input.click(); }
@@ -7403,6 +7413,16 @@ function restoreImpGame() {
     impGame.players = [...PLAYERS, ...extras];
     if (!['setup','cards','result'].includes(impGame.phase)) impGame.phase = 'setup';
     if (typeof impGame.failedVotes !== 'number') impGame.failedVotes = 0;
+
+    // Autocorrección: versiones anteriores podían crear una categoría de usuario
+    // con el mismo nombre que una categoría base (ej. dos chips "Otras 🗂️" iguales).
+    if (Array.isArray(impGame.userCats)) {
+      const cleaned = impGame.userCats.filter(c => !IMP_WORDS[c]);
+      if (cleaned.length !== impGame.userCats.length) {
+        impGame.userCats = cleaned;
+        saveImpGame();
+      }
+    }
   }
 }
 
@@ -7544,7 +7564,7 @@ function renderImpHistoryHtml() {
 function renderImpSetup() {
   impGame.phase = 'setup';
   saveImpGame();
-  const cats = [...Object.keys(IMP_WORDS), ...(impGame.userCats||[])];
+  const cats = [...Object.keys(IMP_WORDS), ...(impGame.userCats||[]).filter(c => !IMP_WORDS[c])];
   const catHtml = cats.map(c => `
     <button onclick="toggleCat(this,'${c}')" data-cat="${c}" class="imp-cat-btn ${impGame.activeCategory===c?'sel':''}">${c}</button>
   `).join('');
@@ -7592,7 +7612,7 @@ function renderImpSetup() {
           <!-- Selector de categoría -->
           <div style="display:flex;gap:0.5rem;margin-bottom:0.85rem">
             <select id="imp-manage-cat" style="flex:1;padding:0.6rem 0.75rem;border-radius:var(--radius);border:1px solid var(--border2);background:var(--surface);color:var(--text);font-size:13px" onchange="renderManageWords()">
-              ${[...Object.keys(IMP_WORDS), ...(impGame.userCats||[]), '➕ Palabras propias'].map(c=>`<option value="${c}" ${(impGame._manageCat||Object.keys(IMP_WORDS)[0])===c?'selected':''}>${c}</option>`).join('')}
+              ${[...Object.keys(IMP_WORDS), ...(impGame.userCats||[]).filter(c => !IMP_WORDS[c]), '➕ Palabras propias'].map(c=>`<option value="${c}" ${(impGame._manageCat||Object.keys(IMP_WORDS)[0])===c?'selected':''}>${c}</option>`).join('')}
             </select>
           </div>
 
@@ -7613,7 +7633,7 @@ function renderImpSetup() {
         </div>
       </details>
 
-      <div style="display:flex;align-items:center;justify-content:space-between;padding:1rem;background:var(--surface2);border-radius:var(--radius);margin-bottom:1.5rem;gap:0.75rem">
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:1rem;background:var(--surface2);border-radius:var(--radius);margin-bottom:0.5rem;gap:0.75rem">
         <div style="flex:1">
           <div style="font-size:13px;font-weight:500">Banco de palabras</div>
           ${usedCount > 0
@@ -7622,14 +7642,16 @@ function renderImpSetup() {
           }
         </div>
         <div style="display:flex;align-items:center;gap:0.75rem;flex-wrap:wrap;justify-content:flex-end">
-          <button onclick="exportImpWords()" title="Descargar un backup de las palabras usadas y propias" style="padding:0.4rem 0.8rem;border-radius:var(--radius);border:1px solid var(--border2);background:var(--surface);color:var(--muted);cursor:pointer;font-size:12px;font-weight:600;transition:border-color 0.15s,color 0.15s" onmouseover="this.style.borderColor='var(--accent)';this.style.color='var(--accent)'" onmouseout="this.style.borderColor='var(--border2)';this.style.color='var(--muted)'">⬇️ Exportar</button>
-          <button onclick="importImpWordsFile()" title="Restaurar desde un backup" style="padding:0.4rem 0.8rem;border-radius:var(--radius);border:1px solid var(--border2);background:var(--surface);color:var(--muted);cursor:pointer;font-size:12px;font-weight:600;transition:border-color 0.15s,color 0.15s" onmouseover="this.style.borderColor='var(--accent)';this.style.color='var(--accent)'" onmouseout="this.style.borderColor='var(--border2)';this.style.color='var(--muted)'">⬆️ Importar</button>
           ${usedCount > 0
             ? `<button onclick="resetWordPool()" style="padding:0.4rem 0.8rem;border-radius:var(--radius);border:1px solid var(--border2);background:var(--surface);color:var(--muted);cursor:pointer;font-size:12px;font-weight:600;transition:border-color 0.15s,color 0.15s" onmouseover="this.style.borderColor='var(--danger)';this.style.color='var(--danger)'" onmouseout="this.style.borderColor='var(--border2)';this.style.color='var(--muted)'">🔄 Resetear</button>`
             : ''
           }
           <div style="font-size:22px;font-weight:700;color:${poolExhausted?'var(--danger)':availableCount>0?'var(--accent)':'var(--muted)'}">${availableCount}</div>
         </div>
+      </div>
+      <div style="font-size:10.5px;color:var(--muted);margin-bottom:1.5rem;line-height:1.5">
+        💾 Estas palabras (usadas, propias y categorías creadas) ya quedan incluidas en el backup de la noche —
+        <button onclick="goToBackupPanel()" style="background:none;border:none;padding:0;color:var(--info);text-decoration:underline;cursor:pointer;font-size:inherit;font-family:inherit">Reglas → Panel de control</button>.
       </div>
 
       <div style="font-size:11px;font-weight:600;letter-spacing:0.07em;text-transform:uppercase;color:var(--muted);margin-bottom:0.75rem">Jugadores (se puede sumar invitados de último momento)</div>
@@ -7666,62 +7688,6 @@ function resetWordPool() {
   renderImpSetup();
 }
 
-// ── EXPORTAR / IMPORTAR PALABRAS DEL IMPOSTOR ──
-// Backup manual por si se resetea el estado (localStorage) sin querer:
-// guarda las palabras usadas + las categorías/palabras propias creadas.
-function impWordsExportData() {
-  return {
-    kind: 'impostor-palabras',
-    exportedAt: new Date().toISOString(),
-    usedWords: impGame.usedWords || [],
-    customWords: impGame.customWords || [],
-    customCatWords: impGame.customCatWords || {},
-    excludedWords: impGame.excludedWords || [],
-    userCats: impGame.userCats || [],
-  };
-}
-function exportImpWords() {
-  const data = impWordsExportData();
-  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = 'impostor-palabras-' + new Date().toISOString().slice(0, 10) + '.json';
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  setTimeout(() => URL.revokeObjectURL(url), 2000);
-  showToast('⬇️', 'Palabras exportadas', false);
-}
-function importImpWordsFile() {
-  const inp = document.createElement('input');
-  inp.type = 'file';
-  inp.accept = 'application/json,.json';
-  inp.onchange = () => {
-    const file = inp.files[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      try {
-        const data = JSON.parse(e.target.result);
-        if (Array.isArray(data.usedWords)) impGame.usedWords = data.usedWords;
-        impGame.usedWordIndices = []; // formato viejo — se reconstruye por string, no hace falta
-        if (Array.isArray(data.customWords)) impGame.customWords = data.customWords;
-        if (data.customCatWords && typeof data.customCatWords === 'object') impGame.customCatWords = data.customCatWords;
-        if (Array.isArray(data.excludedWords)) impGame.excludedWords = data.excludedWords;
-        if (Array.isArray(data.userCats)) impGame.userCats = data.userCats;
-        saveImpGame();
-        renderImpSetup();
-        showToast('⬆️', 'Palabras importadas', false);
-      } catch (err) {
-        showToast('⚠️', 'Ese archivo no es un backup válido', true);
-      }
-    };
-    reader.readAsText(file);
-  };
-  inp.click();
-}
-
 function toggleCat(btn, cat) {
   impGame.activeCategory = impGame.activeCategory === cat ? null : cat;
   saveImpGame();
@@ -7745,11 +7711,14 @@ function addCustomWord() {
   if (!cat || cat === '➕ Palabras propias') {
     const detected = detectWordCategory(val);
     cat = detected || OTRAS;
-    // Si es "Otras", crearla como userCat si no existe
+    // Si es "Otras", crearla como userCat solo si no existe ya como categoría base
+    // (evita el bug de dos chips "Otras 🗂️" iguales)
     if (cat === OTRAS) {
-      if (!impGame.userCats) impGame.userCats = [];
-      if (!impGame.userCats.includes(OTRAS)) {
-        impGame.userCats.push(OTRAS);
+      if (!IMP_WORDS[OTRAS]) {
+        if (!impGame.userCats) impGame.userCats = [];
+        if (!impGame.userCats.includes(OTRAS)) {
+          impGame.userCats.push(OTRAS);
+        }
       }
     }
   }
@@ -13858,11 +13827,11 @@ updateNavProgress();
           }
         }
       }
-      // Fusionar userCats
+      // Fusionar userCats (nunca una que ya sea categoría base, evita el bug de "Otras" duplicada)
       if (Array.isArray(parsed.userCats)) {
         impGame.userCats = impGame.userCats || [];
         for (const c of parsed.userCats) {
-          if (!impGame.userCats.includes(c)) impGame.userCats.push(c);
+          if (!IMP_WORDS[c] && !impGame.userCats.includes(c)) impGame.userCats.push(c);
         }
       }
       // Fusionar customWords
