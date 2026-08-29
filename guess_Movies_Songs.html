@@ -360,6 +360,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
 .part-lyrics.karaoke .part-lyric-line{opacity:.3}
 .part-lyrics.karaoke .part-lyric-line.active{opacity:1;color:var(--accent);transform:scale(1.05);text-shadow:0 2px 24px rgba(200,240,96,.4)}
 .part-lyric-line.is-hidden{visibility:hidden}
+.part-lyric-gap{width:100%;height:.9em}
 .part-lyric-blank{display:inline-block;min-width:2.2em;border-bottom:3px solid var(--purple);margin:0 .12em;vertical-align:bottom;height:.9em;border-radius:2px}
 .part-lyrics-tag{font-size:clamp(11px,1.6vw,18px);font-weight:800;color:var(--muted);letter-spacing:.12em;text-transform:uppercase;display:flex;align-items:center;gap:.4rem}
 .part-lyrics-yt-hidden{position:absolute;width:1px;height:1px;opacity:0;pointer-events:none;overflow:hidden;left:-9999px}
@@ -2332,30 +2333,49 @@ function _blankLyricLine(line,key){
   });
   return out.join('');
 }
+// Arma el HTML de la letra respetando las líneas en blanco que el usuario dejó
+// entre estrofas (se muestran como un separador visual, no se descartan).
+// limitCount limita cuántas líneas CON TEXTO se incluyen (Infinity = todas).
+// Devuelve también cuántas líneas "crudas" (raw) se consumieron, para poder
+// retomar exactamente donde se quedó en actualizaciones incrementales.
+function buildLyricHtml(rawLines,limitCount,lineRenderer){
+  let li=0,html='',consumed=0;
+  for(const raw of rawLines){
+    if(li>=limitCount)break;
+    consumed++;
+    if(raw.trim()===''){html+='<div class="part-lyric-gap"></div>';continue;}
+    html+=lineRenderer(raw,li);
+    li++;
+  }
+  return {html,consumed};
+}
+let _progRawPtr=0; // puntero de línea cruda para el avance incremental del modo Progresiva
 function songLyricsData(d){
   const mode=d.songMode||'audio';
-  const lines=(d.lyrics||'').split('\n').filter(s=>s.trim()!=='');
+  const raw=(d.lyrics||'').split('\n');
+  const lines=raw.filter(s=>s.trim()!=='');
   if(!lines.length)return null;
   if(mode==='audio'){
     // Solo audio, pero si el conductor cargó letra igual la mostramos al reproducir.
-    const html=lines.map(l=>`<div class="part-lyric-line">${esc(stripMarks(l))}</div>`).join('');
+    const {html}=buildLyricHtml(raw,Infinity,l=>`<div class="part-lyric-line">${esc(stripMarks(l))}</div>`);
     return {html,tag:'🎵 Letra',karaoke:false,mode};
   }
   const cur=(typeof d.lyricLine==='number')?d.lyricLine:0;
-  let html='',tag='',karaoke=false;
+  let html='',tag='',karaoke=false,consumed=raw.length;
   if(mode==='huecos'){
     const manual=lyricsHasMarks(d.lyrics);
-    html=lines.map(l=>`<div class="part-lyric-line">${manual?_blankMarked(l):_blankLyricLine(stripMarks(l),d.cardKey)}</div>`).join('');
+    ({html}=buildLyricHtml(raw,Infinity,l=>`<div class="part-lyric-line">${manual?_blankMarked(l):_blankLyricLine(stripMarks(l),d.cardKey)}</div>`));
     tag=manual?'▁ Completá la palabra clave':'▁ Completá los huecos';
   }else if(mode==='progresiva'){
-    html=lines.slice(0,cur+1).map(l=>`<div class="part-lyric-line line-in">${esc(stripMarks(l))}</div>`).join('');
+    const built=buildLyricHtml(raw,cur+1,l=>`<div class="part-lyric-line line-in">${esc(stripMarks(l))}</div>`);
+    html=built.html;consumed=built.consumed;_progRawPtr=consumed;
     tag='📝 La letra va apareciendo';
   }else if(mode==='karaoke'){
     karaoke=true;
-    html=lines.map((l,i)=>`<div class="part-lyric-line${i===cur?' active':''}">${esc(stripMarks(l))}</div>`).join('');
+    ({html}=buildLyricHtml(raw,Infinity,(l,idx)=>`<div class="part-lyric-line${idx===cur?' active':''}">${esc(stripMarks(l))}</div>`));
     tag='🎤 Seguí la letra';
   }else{ // 'lyrics'
-    html=lines.map(l=>`<div class="part-lyric-line">${esc(stripMarks(l))}</div>`).join('');
+    ({html}=buildLyricHtml(raw,Infinity,l=>`<div class="part-lyric-line">${esc(stripMarks(l))}</div>`));
     tag='📄 Adiviná por la letra';
   }
   return {html,tag,karaoke,mode};
@@ -2364,14 +2384,22 @@ function scrollActiveLyric(){const box=document.getElementById('part-lyrics');if
 function updateLyricLines(d){
   const box=document.getElementById('part-lyrics');if(!box)return;
   const mode=d.songMode||'audio';
-  const lines=(d.lyrics||'').split('\n').filter(s=>s.trim()!=='');
+  const raw=(d.lyrics||'').split('\n');
   const cur=(typeof d.lyricLine==='number')?d.lyricLine:0;
   if(mode==='karaoke'){
     box.querySelectorAll('.part-lyric-line').forEach((el,i)=>el.classList.toggle('active',i===cur));
     scrollActiveLyric();
   }else if(mode==='progresiva'){
     const have=box.querySelectorAll('.part-lyric-line').length;
-    for(let i=have;i<=cur&&i<lines.length;i++){const div=document.createElement('div');div.className='part-lyric-line line-in';div.textContent=stripMarks(lines[i]);box.appendChild(div);}
+    const need=(cur+1)-have;
+    if(need>0){
+      const remaining=raw.slice(_progRawPtr);
+      const built=buildLyricHtml(remaining,need,l=>`<div class="part-lyric-line line-in">${esc(stripMarks(l))}</div>`);
+      const tmp=document.createElement('div');
+      tmp.innerHTML=built.html;
+      while(tmp.firstChild)box.appendChild(tmp.firstChild);
+      _progRawPtr+=built.consumed;
+    }
     scrollActiveLyric();
   }
 }
