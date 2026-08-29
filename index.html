@@ -118,7 +118,8 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
 .team-a{background:var(--blue-dim);border-color:var(--blue);color:var(--blue)}
 .team-b{background:var(--gold-dim);border-color:var(--gold);color:var(--gold)}
 .team-indiv{background:var(--purple-dim);border-color:var(--purple);color:var(--purple);padding:.85rem;font-size:15px}
-#team-list-individual{display:grid !important;grid-template-columns:1fr 1fr;gap:.6rem}
+#team-list-individual{display:none;grid-template-columns:1fr 1fr;gap:.6rem}
+#team-list-individual.show{display:grid}
 @media (max-width:360px){#team-list-individual{grid-template-columns:1fr}}
 
 /* ── BUZZ SCREEN ── */
@@ -520,7 +521,7 @@ function selectGame(gameId){
   const isIndividual = !!meta.individual;
   document.getElementById('ts-section-label').textContent = isIndividual ? '¿Quién sos?' : '¿Cuál es tu equipo?';
   document.getElementById('team-list-standard').style.display   = isIndividual ? 'none' : '';
-  document.getElementById('team-list-individual').style.display = isIndividual ? '' : 'none';
+  document.getElementById('team-list-individual').classList.toggle('show', isIndividual);
   document.getElementById('edit-names-btn').style.display       = isIndividual ? 'none' : '';
 
   // Mostrar "conectando" mientras Firebase inicia
