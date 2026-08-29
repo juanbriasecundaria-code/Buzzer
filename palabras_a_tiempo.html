@@ -1090,8 +1090,6 @@ window.VarSwitch = (function () {
   </div>
   <div class="sb-controls">
     <button class="reset-link" onclick="openNameEditor()">✏️ nombres</button>
-    <span class="footer-sep">·</span>
-    <button class="reset-link" onclick="resetScore()">↺ puntaje</button>
   </div>
 
   <!-- Last category picked -->
@@ -1371,15 +1369,6 @@ function addPoint(team, delta) {
   const el = document.getElementById('sb-score-' + team);
   if (el) { el.classList.remove('bump'); void el.offsetWidth; el.classList.add('bump'); }
   if (navigator.vibrate) navigator.vibrate(delta > 0 ? 35 : 18);
-}
-
-function resetScore() {
-  customConfirm('¿Reiniciar el puntaje a 0 – 0?', () => {
-    score = { a: 0, b: 0 };
-    saveScore();
-    syncScoreUI();
-    if (navigator.vibrate) navigator.vibrate(25);
-  });
 }
 
 function openNameEditor() {
@@ -1983,13 +1972,15 @@ function dismissSplash() {
 
 // ── RESET ────────────────────────────────────
 function resetAll() {
-  customConfirm('¿Reiniciar todo? Se vuelven a habilitar todas las categorías y los comodines.', () => {
+  customConfirm('¿Reiniciar todo? Se vuelven a habilitar todas las categorías, los comodines, el VAR y se restaura el puntaje a 0 – 0.', () => {
   usedCats    = new Set();
   selectedCat = null;
   comodinUsed = { a: false, b: false, shared: false };
   varUses     = { a: 3, b: 3 };
   _varTeam    = null;
   isSpinning  = false;
+  score       = { a: 0, b: 0 };
+  saveScore();
   saveState();
   syncUI();
   syncScoreUI();
