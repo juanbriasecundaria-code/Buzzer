@@ -53,6 +53,10 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
     linear-gradient(to bottom,rgba(10,10,14,.7) 0%,transparent 22%,transparent 78%,rgba(10,10,14,.7) 100%);
 }
 #game-select-screen>*{position:relative;z-index:1}
+/* Deja lugar arriba para que el chip fijo "Participantes" no tape el
+   título del HUB en mobile: el padding-top del .screen genérico (2rem)
+   no alcanza a despejar la altura del chip fijo. */
+#game-select-screen{padding-top:calc(4.75rem + env(safe-area-inset-top))}
 
 /* ── BACK BUTTON ── */
 .back-btn{position:absolute;top:max(1rem,env(safe-area-inset-top));left:1rem;z-index:10;display:flex;align-items:center;gap:.4rem;padding:.5rem .85rem;border-radius:99px;border:1.5px solid var(--border2);background:var(--surface2);color:var(--muted);font-family:inherit;font-size:13px;font-weight:700;cursor:pointer;transition:opacity .15s}
