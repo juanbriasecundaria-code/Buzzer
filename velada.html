@@ -5030,13 +5030,15 @@ function markLocalTs(key, ts) {
               const nick = Object.keys(FULL_NAMES).find(k => FULL_NAMES[k] === full);
               return nick || full;
             });
-            return { index: idx, label, members };
+            // membersFull viaja aparte porque las fotos de Fase 2 se guardan con el
+            // nombre completo (ej. "Martín H."), mientras que "members" usa el apodo
+            // corto (ej. "Martin") — así "¿Quién lo dijo?" puede probar ambas claves.
+            return { index: idx, label, members, membersFull: fullNames };
           });
           qldDb.ref('velada/qld/teams').set({ teams: teamsPayload, updated: Date.now() });
         }catch(e){ console.warn('No se pudo publicar los equipos a QLD', e); }
       }
       pushQldTeams();
-      pushQldPhotos();
 
       // Leemos el resultado ya finalizado de la ronda (1°/2°/3° puesto → 3/2/1 pts)
       qldDb.ref('velada/qld/result').on('value', snap => {
@@ -9005,8 +9007,6 @@ function savePlayerPhotos() {
     } else {
       setPhotosSyncStatus('⚠️ Sin conexión — la foto quedó solo en esta PC. Tocá "Reenviar fotos" cuando vuelva la conexión.', true);
     }
-    // Espejo a RTDB (proyecto de QLD) para que el HUB y "¿Quién lo dijo?" muestren la foto.
-    pushQldPhotos();
   } catch(e) {}
 }
 // Fuerza un reenvío completo del mapa de fotos actual a Firebase. Útil como
@@ -9015,17 +9015,6 @@ function resyncPlayerPhotos() {
   savePlayerPhotos();
 }
 function getPlayerPhoto(name) { return _playerPhotos[String(name || '').trim()] || _playerPhotos[name] || null; }
-// Publica el mapa completo de fotos al proyecto Firebase (RTDB) que usan
-// index.html y quien_lo_dijo.html, para que muestren la foto de cada
-// participante junto al nombre en vez de solo texto. Es el mismo mapa que
-// ya se guarda en localStorage/Firestore — acá solo lo espejamos a RTDB.
-function pushQldPhotos() {
-  try {
-    if (window._qldDb) {
-      window._qldDb.ref('velada/qld/photos').set({ photos: _playerPhotos, updated: Date.now() });
-    }
-  } catch(e) { console.warn('No se pudieron publicar las fotos a QLD', e); }
-}
 
 // ── FOTO DEL ORGANIZADOR ("Una producción de…" en los créditos) ──
 const KEY_PRODUCER_PHOTO = 'ndj_producer_photo';
