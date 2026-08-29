@@ -176,6 +176,11 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
 .cc-options{display:grid;grid-template-columns:1fr 1fr;gap:.5rem;margin-top:.25rem}
 .cc-opt{padding:.65rem .8rem;border-radius:10px;background:var(--surface2);border:1.5px solid var(--border2);font-family:inherit;font-size:13px;font-weight:700;color:var(--text);cursor:default;text-align:center}
 .cc-opt.correct{border-color:var(--green);background:var(--green-dim);color:var(--green)}
+/* opciones con imagen / gif */
+.cc-opt.has-img{padding:0;overflow:hidden;position:relative;display:flex;flex-direction:column}
+.cc-opt.has-img .oi-img{width:100%;aspect-ratio:4/3;object-fit:cover;display:block;background:#000}
+.cc-opt.has-img .oi-lbl{padding:.45rem .5rem;font-size:12px;font-weight:800;line-height:1.2}
+.cc-opt .oi-tick{position:absolute;top:.3rem;right:.3rem;width:22px;height:22px;border-radius:50%;background:var(--green);color:#06110c;font-size:13px;font-weight:900;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(0,0,0,.5)}
 
 /* ── NAV ── */
 .nav-row{display:flex;gap:.4rem;align-items:center;justify-content:center;padding:.25rem 0}
@@ -307,6 +312,24 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
 .part-opts{display:grid;grid-template-columns:1fr 1fr;gap:.5rem;width:100%}
 .part-opt{padding:.85rem 1rem;border-radius:12px;background:var(--surface2);border:2px solid var(--border2);font-size:14px;font-weight:800;color:var(--text);text-align:center}
 .part-opt.correct{border-color:var(--green);background:var(--green-dim);color:var(--green)}
+/* opciones con imagen / gif */
+.part-opt.has-img{padding:0;overflow:hidden;position:relative;display:flex;flex-direction:column}
+.part-opt.has-img .oi-img{width:100%;aspect-ratio:4/3;object-fit:cover;display:block;background:#000}
+.part-opt.has-img .oi-lbl{padding:.55rem .5rem;font-size:14px;font-weight:800;line-height:1.2}
+.part-opt .oi-badge{position:absolute;top:.35rem;left:.35rem;width:24px;height:24px;border-radius:50%;background:rgba(10,10,14,.72);color:#fff;font-size:12px;font-weight:900;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(3px)}
+.part-opt .oi-tick{position:absolute;top:.35rem;right:.35rem;width:26px;height:26px;border-radius:50%;background:var(--green);color:#06110c;font-size:15px;font-weight:900;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 10px rgba(0,0,0,.5)}
+.part-opt.dimmed{opacity:.35;filter:grayscale(.6)}
+/* editor: filas de opción con imagen */
+.opt-edit-row{display:flex;gap:.5rem;align-items:flex-start;margin-bottom:.5rem}
+.opt-edit-main{flex:1;display:flex;flex-direction:column;gap:.3rem;min-width:0}
+.opt-edit-imgrow{display:flex;gap:.3rem;align-items:center}
+.opt-edit-imgrow .form-in{flex:1;font-size:11px;padding:.4rem .5rem;min-width:0}
+.opt-mini-btn{padding:.4rem .5rem;border-radius:8px;background:var(--surface2);border:1px solid var(--border2);color:var(--muted2);font-family:inherit;font-size:12px;font-weight:800;cursor:pointer;white-space:nowrap}
+.opt-mini-btn:hover{color:var(--text);border-color:var(--purple)}
+.opt-thumb{width:62px;height:62px;flex-shrink:0;border-radius:10px;background:var(--surface2);border:1px dashed var(--border2);display:flex;align-items:center;justify-content:center;overflow:hidden;font-size:18px;color:var(--muted)}
+.opt-thumb img{width:100%;height:100%;object-fit:cover;display:block}
+.opt-correct-box{padding:.55rem .6rem;border-radius:10px;background:var(--green-dim);border:1px solid var(--green);margin-bottom:.6rem}
+.opt-correct-tag{font-size:10px;font-weight:800;color:var(--green);letter-spacing:.08em;text-transform:uppercase;margin-bottom:.35rem}
 
 /* ── AUDIO UNLOCK OVERLAY (participante) ── */
 .audio-unlock{position:fixed;inset:0;z-index:9500;display:none;flex-direction:column;align-items:center;justify-content:center;gap:.75rem;background:rgba(10,10,14,.92);backdrop-filter:blur(6px);cursor:pointer;text-align:center;padding:2rem}
@@ -545,11 +568,11 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
       <div class="form-2col">
         <div class="form-row">
           <span class="form-lbl">✓ Quién lo dijo / de dónde es</span>
-          <input class="form-in" id="f-who" placeholder="Ej: Willy Wonka">
+          <input class="form-in" id="f-who" placeholder="Ej: Willy Wonka" oninput="edSyncCorrectPreview()">
         </div>
         <div class="form-row">
           <span class="form-lbl">✓ Cómo termina la frase</span>
-          <input class="form-in" id="f-ending" placeholder="Ej: hola  —  o con varios huecos: giles / financistas">
+          <input class="form-in" id="f-ending" placeholder="Ej: hola  —  o con varios huecos: giles / financistas" oninput="edSyncCorrectPreview()">
           <div class="form-help">Si la frase tiene un solo hueco, poné una sola respuesta. Si tiene varios, separá cada una con <code>/</code> en el mismo orden en que aparecen los huecos.</div>
         </div>
       </div>
@@ -582,11 +605,67 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
           <label class="opt-check"><input type="radio" name="f-opt-for" value="ending" onchange="edOptsChanged()"> Para FINAL</label>
         </div>
         <div id="f-opts-wrap" style="display:none">
-          <input class="form-in" id="f-opt1" placeholder="Opción 1" style="margin-bottom:.4rem">
-          <input class="form-in" id="f-opt2" placeholder="Opción 2" style="margin-bottom:.4rem">
-          <input class="form-in" id="f-opt3" placeholder="Opción 3" style="margin-bottom:.4rem">
-          <input class="form-in" id="f-opt4" placeholder="Opción 4">
-          <div class="form-help">La opción correcta se toma del campo de respuesta (QUIÉN o FINAL). Poné 3 opciones falsas — la correcta se agrega y baraja sola.</div>
+          <div class="opt-correct-box">
+            <div class="opt-correct-tag">✓ Opción correcta (se agrega y baraja sola)</div>
+            <div class="opt-edit-row" style="margin-bottom:0">
+              <div class="opt-edit-main">
+                <input class="form-in" id="f-opt0" placeholder="—" readonly style="opacity:.85">
+                <div class="opt-edit-imgrow">
+                  <button type="button" class="opt-mini-btn" onclick="edOptPickFile(0)">🖼 Subir</button>
+                  <input class="form-in" id="f-opt0-url" placeholder="…o URL de imagen / GIF" oninput="edOptUrlInput(0)">
+                  <button type="button" class="opt-mini-btn" onclick="edOptClearImg(0)">✕</button>
+                </div>
+              </div>
+              <div class="opt-thumb" id="f-opt0-thumb">🖼</div>
+            </div>
+          </div>
+          <div class="opt-edit-row">
+            <div class="opt-edit-main">
+              <input class="form-in" id="f-opt1" placeholder="Opción 1">
+              <div class="opt-edit-imgrow">
+                <button type="button" class="opt-mini-btn" onclick="edOptPickFile(1)">🖼 Subir</button>
+                <input class="form-in" id="f-opt1-url" placeholder="…o URL de imagen / GIF" oninput="edOptUrlInput(1)">
+                <button type="button" class="opt-mini-btn" onclick="edOptClearImg(1)">✕</button>
+              </div>
+            </div>
+            <div class="opt-thumb" id="f-opt1-thumb">🖼</div>
+          </div>
+          <div class="opt-edit-row">
+            <div class="opt-edit-main">
+              <input class="form-in" id="f-opt2" placeholder="Opción 2">
+              <div class="opt-edit-imgrow">
+                <button type="button" class="opt-mini-btn" onclick="edOptPickFile(2)">🖼 Subir</button>
+                <input class="form-in" id="f-opt2-url" placeholder="…o URL de imagen / GIF" oninput="edOptUrlInput(2)">
+                <button type="button" class="opt-mini-btn" onclick="edOptClearImg(2)">✕</button>
+              </div>
+            </div>
+            <div class="opt-thumb" id="f-opt2-thumb">🖼</div>
+          </div>
+          <div class="opt-edit-row">
+            <div class="opt-edit-main">
+              <input class="form-in" id="f-opt3" placeholder="Opción 3">
+              <div class="opt-edit-imgrow">
+                <button type="button" class="opt-mini-btn" onclick="edOptPickFile(3)">🖼 Subir</button>
+                <input class="form-in" id="f-opt3-url" placeholder="…o URL de imagen / GIF" oninput="edOptUrlInput(3)">
+                <button type="button" class="opt-mini-btn" onclick="edOptClearImg(3)">✕</button>
+              </div>
+            </div>
+            <div class="opt-thumb" id="f-opt3-thumb">🖼</div>
+          </div>
+          <div class="opt-edit-row">
+            <div class="opt-edit-main">
+              <input class="form-in" id="f-opt4" placeholder="Opción 4">
+              <div class="opt-edit-imgrow">
+                <button type="button" class="opt-mini-btn" onclick="edOptPickFile(4)">🖼 Subir</button>
+                <input class="form-in" id="f-opt4-url" placeholder="…o URL de imagen / GIF" oninput="edOptUrlInput(4)">
+                <button type="button" class="opt-mini-btn" onclick="edOptClearImg(4)">✕</button>
+              </div>
+            </div>
+            <div class="opt-thumb" id="f-opt4-thumb">🖼</div>
+          </div>
+          <input type="file" id="f-opt-file" style="display:none" accept="image/*" onchange="edOptFileChosen(event)">
+          <label class="opt-check" style="margin-bottom:.4rem"><input type="checkbox" id="f-opt-imgonly"> Mostrar solo las imágenes (sin el texto) — se numeran 1·2·3·4</label>
+          <div class="form-help">La opción correcta se toma del campo de respuesta (QUIÉN o FINAL). Poné 3 opciones falsas — la correcta se agrega y baraja sola.<br><b>Imágenes:</b> pegá una URL pública (jpg, png, webp, gif de Tenor/Giphy) o subí un archivo. Las subidas se comprimen a 480px; los GIF se guardan tal cual (máx 2MB) para no perder la animación.</div>
         </div>
       </div>
       <div class="form-actions">
@@ -685,7 +764,12 @@ function initFirebase(){
       fbStateRef.on('value', snap => { const d = snap.val(); if(d) applyLive(d); });
       fbDeckRef.on('value', snap => {
         const d = snap.val();
-        if(d && Array.isArray(d.deck)){ deck = d.deck; try{ localStorage.setItem(SK.DECK, JSON.stringify(deck)); }catch(e){} }
+        if(d && Array.isArray(d.deck)){
+          deck = d.deck;
+          try{ localStorage.setItem(SK.DECK, JSON.stringify(deck)); }catch(e){}
+          // Las imagenes subidas de las opciones viajan con el mazo: re-renderizamos la carta actual
+          if(_lastLiveState) renderPartCard(_lastLiveState);
+        }
       });
     }
     if(MODE==='conductor'){
@@ -1144,12 +1228,35 @@ function renderHints(cur){
   }
   return items.length ? `<div class="cc-hints">${items.join('')}</div>` : '';
 }
+// ── OPCIONES MÚLTIPLES (texto y/o imagen) ──
+// Formato viejo: options = ["Willy Wonka", "Shrek", …]  (array de strings)
+// Formato nuevo: options = [{text:"Willy Wonka", img:"https://…"}, …]
+// normOptions() unifica ambos para que los mazos viejos sigan funcionando.
+function normOptions(c){
+  if(!c || !c.options || !c.options.length) return [];
+  return c.options.map(o => (typeof o === 'string')
+    ? { text: o, img: '' }
+    : { text: (o && o.text) || '', img: (o && o.img) || '' });
+}
+function optIsCorrect(optText, correctText){
+  return String(optText||'').trim().toLowerCase() === String(correctText||'').trim().toLowerCase();
+}
 function renderOptions(cur, isRevealed){
-  if(!cur.options || !cur.options.length || !cur.optionsFor) return '';
+  const opts = normOptions(cur);
+  if(!opts.length || !cur.optionsFor) return '';
   const correctText = (cur.optionsFor === 'who' ? cur.who : cur.ending) || '';
-  return `<div class="cc-options">${cur.options.map(o => {
-    const isCorrect = isRevealed && o.trim().toLowerCase() === correctText.trim().toLowerCase();
-    return `<div class="cc-opt ${isCorrect?'correct':''}">${escapeHtml(o)}</div>`;
+  const imgOnly = !!cur.optionsImgOnly;
+  return `<div class="cc-options">${opts.map((o, i) => {
+    const isCorrect = isRevealed && optIsCorrect(o.text, correctText);
+    if(o.img){
+      const lbl = imgOnly ? `${i+1}` : escapeHtml(o.text);
+      return `<div class="cc-opt has-img ${isCorrect?'correct':''}">
+        <img class="oi-img" src="${escapeHtml(o.img)}" alt="" loading="lazy">
+        <div class="oi-lbl">${lbl}</div>
+        ${isCorrect ? '<div class="oi-tick">✓</div>' : ''}
+      </div>`;
+    }
+    return `<div class="cc-opt ${isCorrect?'correct':''}">${escapeHtml(o.text)}</div>`;
   }).join('')}</div>`;
 }
 
@@ -1376,14 +1483,22 @@ function liveStateSnapshot(){
       mediaIsLocal: !!(cur.mediaData && String(cur.mediaData).startsWith('data:')),
       who: cur.who || '', ending: cur.ending || '',
       hint1: cur.hint1 || '', hint2: cur.hint2 || '',
-      options: cur.options || [], optionsFor: cur.optionsFor || null,
+      // Mandamos texto + imagen, pero sin base64 (esas viajan con el mazo, no cada 500ms)
+      options: normOptions(cur).map(o => ({
+        text: o.text,
+        img: (o.img && String(o.img).startsWith('data:')) ? '' : (o.img || '')
+      })),
+      optionsFor: cur.optionsFor || null,
+      optionsImgOnly: !!cur.optionsImgOnly,
       title: cur.title || ''
     } : null,
     t: Date.now()
   };
 }
+let _lastLiveState = null;
 function applyLive(st){
   if(!st) return;
+  _lastLiveState = st;
   if(st.teamScores) teamScores = st.teamScores;
   renderPartScores();
   renderPartCard(st);
@@ -1561,12 +1676,39 @@ function renderPartText(c, st){
     ${answerHtml}
   `;
 }
+// Las imágenes subidas (base64) no viajan en el estado en vivo por peso — llegan con el mazo.
+// Acá completamos las que falten buscando la carta completa en el mazo local del participante.
+function partResolveOptions(c){
+  const opts = normOptions(c);
+  if(!opts.length) return opts;
+  if(opts.some(o => o.img)) return opts;
+  const full = Array.isArray(deck) ? deck.find(x => x && x.id === c.id) : null;
+  if(!full) return opts;
+  const fo = normOptions(full);
+  if(!fo.some(o => o.img)) return opts;
+  return opts.map(o => {
+    const m = fo.find(f => optIsCorrect(f.text, o.text));
+    return { text: o.text, img: m ? m.img : '' };
+  });
+}
 function renderPartOptions(c, isRevealed){
-  if(!c.options || !c.options.length || !c.optionsFor) return '';
+  const opts = partResolveOptions(c);
+  if(!opts.length || !c.optionsFor) return '';
   const correctText = (c.optionsFor === 'who' ? c.who : c.ending) || '';
-  return `<div class="part-opts">${c.options.map(o => {
-    const isCorrect = isRevealed && o.trim().toLowerCase() === correctText.trim().toLowerCase();
-    return `<div class="part-opt ${isCorrect?'correct':''}">${escapeHtml(o)}</div>`;
+  const imgOnly = !!c.optionsImgOnly;
+  return `<div class="part-opts">${opts.map((o, i) => {
+    const isCorrect = optIsCorrect(o.text, correctText);
+    const cls = isRevealed ? (isCorrect ? 'correct' : 'dimmed') : '';
+    if(o.img){
+      const lbl = imgOnly ? `Opción ${i+1}` : escapeHtml(o.text);
+      return `<div class="part-opt has-img ${cls}">
+        <img class="oi-img" src="${escapeHtml(o.img)}" alt="" loading="lazy">
+        <div class="oi-lbl">${lbl}</div>
+        <div class="oi-badge">${i+1}</div>
+        ${isRevealed && isCorrect ? '<div class="oi-tick">✓</div>' : ''}
+      </div>`;
+    }
+    return `<div class="part-opt ${isRevealed && isCorrect ? 'correct' : ''}">${escapeHtml(o.text)}</div>`;
   }).join('')}</div>`;
 }
 
@@ -1663,6 +1805,9 @@ function clearEditorForm(){
   document.getElementById('f-reveal-url').value = '';
   _edRevealFileData = null;
   ['f-opt1','f-opt2','f-opt3','f-opt4'].forEach(id => document.getElementById(id).value = '');
+  _edOptImg = ['','','','',''];
+  [0,1,2,3,4].forEach(i => { const u = document.getElementById(`f-opt${i}-url`); if(u) u.value = ''; edRenderOptThumb(i); });
+  document.getElementById('f-opt-imgonly').checked = false;
   document.querySelectorAll('input[name="f-opt-for"]').forEach(r => r.checked = r.value === 'none');
   _edMediaFileData = null;
   edMediaChanged(); edOptsChanged(); edRevealChanged();
@@ -1823,7 +1968,90 @@ function edRevealFileChosen(e){
 function edOptsChanged(){
   const val = document.querySelector('input[name="f-opt-for"]:checked').value;
   document.getElementById('f-opts-wrap').style.display = val === 'none' ? 'none' : '';
-  document.querySelectorAll('.opt-check').forEach(l => l.classList.toggle('on', l.querySelector('input').checked));
+  document.querySelectorAll('.opt-check').forEach(l => {
+    const inp = l.querySelector('input');
+    if(inp && inp.type === 'radio') l.classList.toggle('on', inp.checked);
+  });
+  edSyncCorrectPreview();
+}
+// ── EDITOR: imágenes de las opciones ──
+// _edOptImg[0] = imagen de la respuesta correcta; [1..4] = las opciones falsas.
+// Cada valor puede ser una URL pública o un dataURL (archivo subido y comprimido).
+let _edOptImg = ['','','','',''];
+let _edOptPickIdx = null;
+function edSyncCorrectPreview(){
+  const el = document.getElementById('f-opt0');
+  if(!el) return;
+  const forVal = document.querySelector('input[name="f-opt-for"]:checked').value;
+  const correct = forVal === 'ending'
+    ? document.getElementById('f-ending').value.trim()
+    : document.getElementById('f-who').value.trim();
+  el.value = correct || '';
+  el.placeholder = forVal === 'ending'
+    ? '— completá "Cómo termina la frase" —'
+    : '— completá "Quién lo dijo" —';
+}
+function edRenderOptThumb(i){
+  const t = document.getElementById(`f-opt${i}-thumb`);
+  if(!t) return;
+  const src = _edOptImg[i];
+  t.innerHTML = src ? `<img src="${escapeHtml(src)}" alt="">` : '🖼';
+}
+function edOptUrlInput(i){
+  const v = document.getElementById(`f-opt${i}-url`).value.trim();
+  _edOptImg[i] = v;
+  edRenderOptThumb(i);
+}
+function edOptPickFile(i){
+  _edOptPickIdx = i;
+  const f = document.getElementById('f-opt-file');
+  f.value = '';
+  f.click();
+}
+function edOptClearImg(i){
+  _edOptImg[i] = '';
+  const u = document.getElementById(`f-opt${i}-url`);
+  if(u) u.value = '';
+  edRenderOptThumb(i);
+}
+function edOptFileChosen(e){
+  const f = e.target.files[0];
+  const i = _edOptPickIdx;
+  if(!f || i === null) return;
+  if(!/^image\//.test(f.type)){ toast('Elegí un archivo de imagen'); return; }
+  const isGif = /gif$/i.test(f.type);
+  if(isGif && f.size > 2*1024*1024){ toast('GIF muy pesado — máx 2MB para que sincronice bien'); return; }
+  if(!isGif && f.size > 15*1024*1024){ toast('Imagen demasiado pesada (máx 15MB)'); return; }
+  const r = new FileReader();
+  r.onload = () => {
+    // Un GIF no se puede comprimir con canvas sin perder la animación: lo guardamos tal cual.
+    if(isGif){
+      _edOptImg[i] = r.result;
+      document.getElementById(`f-opt${i}-url`).value = '';
+      edRenderOptThumb(i);
+      toast(`🎞 GIF cargado (~${Math.round(r.result.length*0.75/1024)} KB)`);
+      return;
+    }
+    const img = new Image();
+    img.onload = () => {
+      const MAX = 480;
+      const scale = Math.min(1, MAX / Math.max(img.width, img.height));
+      const w = Math.max(1, Math.round(img.width * scale));
+      const h = Math.max(1, Math.round(img.height * scale));
+      const canvas = document.createElement('canvas');
+      canvas.width = w; canvas.height = h;
+      canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+      const dataUrl = canvas.toDataURL('image/jpeg', 0.78);
+      _edOptImg[i] = dataUrl;
+      document.getElementById(`f-opt${i}-url`).value = '';
+      edRenderOptThumb(i);
+      toast(`🖼 Imagen comprimida (~${Math.round(dataUrl.length*0.75/1024)} KB)`);
+    };
+    img.onerror = () => toast('No se pudo leer la imagen');
+    img.src = r.result;
+  };
+  r.onerror = () => toast('Error al leer el archivo');
+  r.readAsDataURL(f);
 }
 function edEdit(id){
   const c = deck.find(x => x.id === id);
@@ -1856,8 +2084,23 @@ function edEdit(id){
   document.getElementById('f-reveal-type').value = revealType;
   _edRevealFileData = revealType.endsWith('upload') ? revealData : null;
   document.getElementById('f-reveal-url').value = revealType.endsWith('url') ? revealUrl : '';
-  const opts = c.options || [];
-  ['f-opt1','f-opt2','f-opt3','f-opt4'].forEach((id, i) => document.getElementById(id).value = opts[i] || '');
+  // Opciones: separamos la correcta (va en su propia fila) de las falsas
+  const allOpts = normOptions(c);
+  const correctText = (c.optionsFor === 'ending' ? c.ending : c.who) || '';
+  const correctOpt = allOpts.find(o => optIsCorrect(o.text, correctText));
+  const wrongOpts = allOpts.filter(o => o !== correctOpt);
+  _edOptImg = ['','','','',''];
+  _edOptImg[0] = correctOpt ? (correctOpt.img || '') : '';
+  ['f-opt1','f-opt2','f-opt3','f-opt4'].forEach((id, i) => {
+    document.getElementById(id).value = wrongOpts[i] ? wrongOpts[i].text : '';
+    _edOptImg[i+1] = wrongOpts[i] ? (wrongOpts[i].img || '') : '';
+  });
+  [0,1,2,3,4].forEach(i => {
+    const u = document.getElementById(`f-opt${i}-url`);
+    if(u) u.value = (_edOptImg[i] && !String(_edOptImg[i]).startsWith('data:')) ? _edOptImg[i] : '';
+    edRenderOptThumb(i);
+  });
+  document.getElementById('f-opt-imgonly').checked = !!c.optionsImgOnly;
   document.querySelectorAll('input[name="f-opt-for"]').forEach(r => r.checked = r.value === (c.optionsFor || 'none'));
   edMediaChanged(); edOptsChanged(); edRevealChanged();
 }
@@ -1893,23 +2136,34 @@ function edSave(){
   const revealTypeVal = document.getElementById('f-reveal-type').value;
   const revealUrlVal = document.getElementById('f-reveal-url').value.trim();
   const optsForRaw = document.querySelector('input[name="f-opt-for"]:checked').value;
+  const optionsImgOnly = document.getElementById('f-opt-imgonly').checked;
   let options = null, optionsFor = null;
   if(optsForRaw !== 'none'){
     optionsFor = optsForRaw;
-    const raw = ['f-opt1','f-opt2','f-opt3','f-opt4'].map(id => document.getElementById(id).value.trim()).filter(Boolean);
     const correct = (optionsFor === 'who' ? who : ending);
     if(!correct){ toast('Completá primero el campo de respuesta (QUIÉN o FINAL) para las opciones'); return; }
-    // Include correct answer if not already there
-    const already = raw.some(o => o.toLowerCase() === correct.toLowerCase());
-    options = already ? raw : raw.concat([correct]);
-    options = shuffleArr(options);
+    const rows = ['f-opt1','f-opt2','f-opt3','f-opt4']
+      .map((id, i) => ({ text: document.getElementById(id).value.trim(), img: _edOptImg[i+1] || '' }))
+      .filter(r => r.text || r.img);
+    // La correcta puede estar tipeada en alguna fila: si es así le pegamos su imagen ahí
+    const idx = rows.findIndex(r => optIsCorrect(r.text, correct));
+    if(idx >= 0){
+      if(!rows[idx].img && _edOptImg[0]) rows[idx].img = _edOptImg[0];
+    } else {
+      rows.push({ text: correct, img: _edOptImg[0] || '' });
+    }
+    if(optionsImgOnly && rows.some(r => !r.img)){
+      toast('Para "solo imágenes" todas las opciones necesitan imagen'); return;
+    }
+    options = shuffleArr(rows);
   }
   if(!who && !prompt && !mediaUrl && !_edMediaFileData){
     toast('Cargá al menos una frase, un "quién" o un archivo'); return;
   }
   const card = {
     id: _editCardId || nextId(),
-    category: cat, title, mediaType, prompt, who, ending, hint1, hint2, options, optionsFor
+    category: cat, title, mediaType, prompt, who, ending, hint1, hint2, options, optionsFor,
+    optionsImgOnly: !!(options && optionsImgOnly)
   };
   if(dialogue) card.dialogue = dialogue;
   if(mediaType !== 'none'){
