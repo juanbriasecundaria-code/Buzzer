@@ -4366,7 +4366,21 @@ function saveF1PlayerName(idx) {
   if (!val) { inp.value = PLAYERS[idx]; return; }
   if (val !== PLAYERS[idx] && PLAYERS.includes(val)) { showToast('⚠️', 'Ese nombre ya está en la lista', false); inp.value = PLAYERS[idx]; return; }
   if (val === PLAYERS[idx]) return;
+  const oldName = PLAYERS[idx];
   PLAYERS[idx] = val;
+  // Si el jugador ya tenía foto/color asignados con el nombre viejo, los
+  // migramos al nuevo nombre en vez de dejarlos huérfanos (esto era la causa
+  // de que la foto "desapareciera" para participante.html tras renombrar).
+  if (_playerPhotos[oldName] && !_playerPhotos[val]) {
+    _playerPhotos[val] = _playerPhotos[oldName];
+    delete _playerPhotos[oldName];
+    savePlayerPhotos();
+  }
+  if (typeof _entityColors === 'object' && _entityColors[oldName] && !_entityColors[val]) {
+    _entityColors[val] = _entityColors[oldName];
+    delete _entityColors[oldName];
+    saveEntityColors();
+  }
   state.playersSnapshot = PLAYERS.slice();
   saveState();
   renderFase1();
@@ -4429,7 +4443,11 @@ function renderF1RosterAdmin() {
 
     el.innerHTML = `
       <div class="card" style="margin-bottom:1.25rem">
-        <div style="font-size:11px;font-weight:600;letter-spacing:0.07em;text-transform:uppercase;color:var(--muted);margin-bottom:0.75rem">Jugadores (${PLAYERS.length}) — tocá 📷 para agregar foto al podio</div>
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:0.5rem;margin-bottom:0.75rem;flex-wrap:wrap">
+          <div style="font-size:11px;font-weight:600;letter-spacing:0.07em;text-transform:uppercase;color:var(--muted)">Jugadores (${PLAYERS.length}) — tocá 📷 para agregar foto al podio</div>
+          <button onclick="resyncPlayerPhotos()" title="Reenviar todas las fotos a Firebase (celulares)" style="padding:0.35rem 0.6rem;border-radius:var(--radius);border:1px solid var(--border2);background:transparent;color:var(--muted);cursor:pointer;font-size:11px;white-space:nowrap">🔄 Reenviar fotos</button>
+        </div>
+        <div id="photos-sync-status" style="font-size:11px;color:var(--muted);margin-bottom:0.6rem"></div>
         ${rows}
         <div style="display:flex;gap:0.5rem;margin-top:0.75rem;padding-top:0.75rem;border-top:0.5px solid var(--border)">
           <input id="f1-player-input" type="text" placeholder="Nombre del nuevo jugador..." style="flex:1;padding:0.55rem 0.75rem;border-radius:var(--radius);border:1px solid var(--border2);background:var(--surface2);color:var(--text);font-size:13px" onkeydown="if(event.key==='Enter')addF1Player()">
@@ -4479,7 +4497,20 @@ function saveF2TeamName(idx) {
   if (!inp) return;
   const val = inp.value.trim();
   if (!val) { inp.value = TEAMS[idx]; return; }
+  const oldName = TEAMS[idx];
   TEAMS[idx] = val;
+  if (oldName !== val) {
+    if (_playerPhotos[oldName] && !_playerPhotos[val]) {
+      _playerPhotos[val] = _playerPhotos[oldName];
+      delete _playerPhotos[oldName];
+      savePlayerPhotos();
+    }
+    if (typeof _entityColors === 'object' && _entityColors[oldName] && !_entityColors[val]) {
+      _entityColors[val] = _entityColors[oldName];
+      delete _entityColors[oldName];
+      saveEntityColors();
+    }
+  }
   state.teamsSnapshot = TEAMS.slice();
   saveState();
   renderFase2();
@@ -8946,16 +8977,41 @@ let _playerPhotos = {};
 function loadPlayerPhotos() {
   try { _playerPhotos = JSON.parse(localStorage.getItem('ndj_photos') || '{}'); } catch(e) { _playerPhotos = {}; }
 }
+// Encadenamos las escrituras a Firebase en orden estricto: si se suben varias
+// fotos rápido, cada setDoc espera a que termine el anterior. Sin esto, dos
+// escrituras podían resolverse fuera de orden y la más "vieja" (con menos
+// fotos) terminaba pisando en la nube a la más nueva — el celular se quedaba
+// con fotos de menos aunque en la PC se vieran todas.
+let _photosWriteChain = Promise.resolve();
+function setPhotosSyncStatus(text, isError) {
+  const el = document.getElementById('photos-sync-status');
+  if (!el) return;
+  el.textContent = text || '';
+  el.style.color = isError ? 'var(--danger)' : 'var(--muted)';
+}
 function savePlayerPhotos() {
   try {
     const json = JSON.stringify(_playerPhotos);
     localStorage.setItem('ndj_photos', json);
     markLocalTs('ndj_photos_ts', Date.now());
     // Antes esto era solo local — las fotos nunca llegaban de la PC al celular.
-    if (window._fbReady && window._fbWrite) window._fbWrite('photos', json);
+    if (window._fbReady && window._fbWrite) {
+      setPhotosSyncStatus('Sincronizando fotos…', false);
+      _photosWriteChain = _photosWriteChain
+        .then(() => window._fbWrite('photos', json))
+        .then(() => setPhotosSyncStatus('✓ Fotos sincronizadas', false))
+        .catch(() => setPhotosSyncStatus('⚠️ No se pudieron sincronizar las fotos. Tocá "Reenviar fotos".', true));
+    } else {
+      setPhotosSyncStatus('⚠️ Sin conexión — la foto quedó solo en esta PC. Tocá "Reenviar fotos" cuando vuelva la conexión.', true);
+    }
   } catch(e) {}
 }
-function getPlayerPhoto(name) { return _playerPhotos[name] || null; }
+// Fuerza un reenvío completo del mapa de fotos actual a Firebase. Útil como
+// botón manual de "arreglalo ya" si alguna quedó desincronizada.
+function resyncPlayerPhotos() {
+  savePlayerPhotos();
+}
+function getPlayerPhoto(name) { return _playerPhotos[String(name || '').trim()] || _playerPhotos[name] || null; }
 
 // ── FOTO DEL ORGANIZADOR ("Una producción de…" en los créditos) ──
 const KEY_PRODUCER_PHOTO = 'ndj_producer_photo';
