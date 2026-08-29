@@ -355,7 +355,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
 /* ── Modos de letra (Guess Song visual) ── */
 .part-lyrics-wrap{display:flex;flex-direction:column;align-items:center;gap:1rem;width:100%;flex:1 1 auto;min-height:0;justify-content:center;position:relative}
 .part-lyrics{display:flex;flex-direction:column;gap:.5rem;width:min(88vw,880px);max-height:64vh;overflow:auto;padding:.5rem .25rem;text-align:center;scrollbar-width:thin}
-.part-lyric-line{font-size:clamp(1.05rem,2.7vw,2rem);font-weight:800;line-height:1.28;color:var(--text);opacity:.92;transition:opacity .45s cubic-bezier(.22,1,.36,1),color .45s,transform .45s;letter-spacing:-.01em}
+.part-lyric-line{font-size:clamp(1.05rem,2.7vw,2rem);font-weight:800;line-height:1.28;color:var(--text);opacity:.92;transition:opacity .45s cubic-bezier(.22,1,.36,1),color .45s,transform .45s;letter-spacing:-.01em;white-space:pre-wrap}
 .part-lyric-line.line-in{animation:revealIn .45s cubic-bezier(.22,1,.36,1)}
 .part-lyrics.karaoke .part-lyric-line{opacity:.3}
 .part-lyrics.karaoke .part-lyric-line.active{opacity:1;color:var(--accent);transform:scale(1.05);text-shadow:0 2px 24px rgba(200,240,96,.4)}
@@ -1916,7 +1916,7 @@ function toggleGridAuto(){
   }
   showToast(gridAutoReveal?'🔄 Grid: auto-destape ON':'✋ Grid: destape manual');
 }
-function lyricLinesOf(c){return (c&&c.lyrics?c.lyrics:'').split('\n').map(s=>s.trim()).filter(Boolean);}
+function lyricLinesOf(c){return (c&&c.lyrics?c.lyrics:'').split('\n').filter(s=>s.trim()!=='');}
 function syncLyricHintUI(){
   const c=currentCard();
   const row=document.getElementById('lyric-hint-row');
@@ -2295,16 +2295,20 @@ function parseLyricsInput(raw){
     if(off){offset=parseInt(off[1],10)/1000;continue;}
     const times=[];let m;timeTag.lastIndex=0;
     while((m=timeTag.exec(ln))!==null){times.push(m[1]*60+parseFloat(m[2].replace(':','.')));}
-    let text=ln.replace(timeTag,'').replace(/<\d{1,2}:\d{1,2}(?:[.:]\d{1,3})?>/g,'').trim();
-    text=text.replace(/^\[[a-zA-Z#][^\]]*\]\s*/,'').trim();   // metadata [ar:][ti:][by:]…
-    if(times.length){anyTime=true;for(const t of times){if(text)items.push({t,text});}}
-    else if(text){items.push({t:null,text});}
+    // Solo recortamos espacios cuando hubo que sacar tags de tiempo/metadata (para
+    // limpiar el espacio que dejan). Si la línea es texto plano, se respeta tal cual
+    // la escribió el usuario (incluidos espacios múltiples o al inicio/fin).
+    let text=ln;
+    if(times.length)text=text.replace(timeTag,'').replace(/<\d{1,2}:\d{1,2}(?:[.:]\d{1,3})?>/g,'').trim();
+    if(/^\[[a-zA-Z#][^\]]*\]\s*/.test(text))text=text.replace(/^\[[a-zA-Z#][^\]]*\]\s*/,'');   // metadata [ar:][ti:][by:]…
+    if(times.length){anyTime=true;for(const t of times){if(text.trim())items.push({t,text});}}
+    else if(text.trim()){items.push({t:null,text});}
   }
   if(anyTime){
     const timed=items.filter(o=>o.t!==null).map(o=>({t:Math.max(0,o.t+offset),text:o.text})).sort((a,b)=>a.t-b.t);
     return {lyrics:timed.map(o=>o.text).join('\n'),lyricTimes:timed.map(o=>+o.t.toFixed(2))};
   }
-  return {lyrics:items.map(o=>o.text).filter(Boolean).join('\n'),lyricTimes:null};
+  return {lyrics:items.map(o=>o.text).filter(o=>o.trim()!=='').join('\n'),lyricTimes:null};
 }
 function fmtLrc(sec){sec=Math.max(0,sec||0);const m=Math.floor(sec/60);const s=sec-m*60;return `${String(m).padStart(2,'0')}:${s.toFixed(2).padStart(5,'0')}`;}
 // ── Huecos estratégicos: *palabra* o *frase* marca qué tapar ──
@@ -2330,9 +2334,13 @@ function _blankLyricLine(line,key){
 }
 function songLyricsData(d){
   const mode=d.songMode||'audio';
-  if(mode==='audio')return null;
-  const lines=(d.lyrics||'').split('\n').map(s=>s.trim()).filter(Boolean);
+  const lines=(d.lyrics||'').split('\n').filter(s=>s.trim()!=='');
   if(!lines.length)return null;
+  if(mode==='audio'){
+    // Solo audio, pero si el conductor cargó letra igual la mostramos al reproducir.
+    const html=lines.map(l=>`<div class="part-lyric-line">${esc(stripMarks(l))}</div>`).join('');
+    return {html,tag:'🎵 Letra',karaoke:false,mode};
+  }
   const cur=(typeof d.lyricLine==='number')?d.lyricLine:0;
   let html='',tag='',karaoke=false;
   if(mode==='huecos'){
@@ -2356,7 +2364,7 @@ function scrollActiveLyric(){const box=document.getElementById('part-lyrics');if
 function updateLyricLines(d){
   const box=document.getElementById('part-lyrics');if(!box)return;
   const mode=d.songMode||'audio';
-  const lines=(d.lyrics||'').split('\n').map(s=>s.trim()).filter(Boolean);
+  const lines=(d.lyrics||'').split('\n').filter(s=>s.trim()!=='');
   const cur=(typeof d.lyricLine==='number')?d.lyricLine:0;
   if(mode==='karaoke'){
     box.querySelectorAll('.part-lyric-line').forEach((el,i)=>el.classList.toggle('active',i===cur));
