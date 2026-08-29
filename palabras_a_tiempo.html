@@ -543,8 +543,8 @@
     display: none; flex-direction: column; align-items: center; justify-content: center;
     gap: 1.1rem; overflow-y: auto;
     padding: max(1.5rem, env(safe-area-inset-top)) 1.25rem max(1.5rem, env(safe-area-inset-bottom));
-    background: radial-gradient(120% 90% at 50% 38%, rgba(255,95,95,0.18), rgba(0,0,0,0.9));
-    -webkit-backdrop-filter: blur(3px); backdrop-filter: blur(3px);
+    background: radial-gradient(120% 90% at 50% 38%, rgba(255,95,95,0.16), rgba(6,6,9,0.985) 65%);
+    -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px);
   }
   .var-overlay.open { display: flex; animation: varFadeIn 0.2s ease-out; }
   .var-overlay.closing { animation: varFadeOut 0.4s ease forwards; }
@@ -604,15 +604,16 @@
   .var-verdict {
     flex: 1; display: flex; flex-direction: column; align-items: center; gap: 0.3rem;
     padding: 1rem 0.5rem; border-radius: var(--radius);
-    border: 2px solid; background: var(--surface);
+    border: 2px solid; background: var(--surface2);
     cursor: pointer; font-family: inherit;
     transition: transform 0.1s, filter 0.12s;
+    box-shadow: 0 4px 18px rgba(0,0,0,0.35);
   }
   .var-verdict:active { transform: scale(0.96); }
-  .var-verdict.right { border-color: var(--success); }
-  .var-verdict.right:hover { background: rgba(78,203,126,0.08); }
-  .var-verdict.wrong { border-color: var(--red); }
-  .var-verdict.wrong:hover { background: rgba(255,95,95,0.08); }
+  .var-verdict.right { border-color: var(--success); background: linear-gradient(160deg, rgba(78,203,126,0.16), var(--surface2) 65%); }
+  .var-verdict.right:hover { background: linear-gradient(160deg, rgba(78,203,126,0.24), var(--surface2) 65%); }
+  .var-verdict.wrong { border-color: var(--red); background: linear-gradient(160deg, rgba(255,95,95,0.16), var(--surface2) 65%); }
+  .var-verdict.wrong:hover { background: linear-gradient(160deg, rgba(255,95,95,0.24), var(--surface2) 65%); }
   .vv-emoji { font-size: 1.8rem; line-height: 1; }
   .vv-main { font-size: 14px; font-weight: 800; letter-spacing: -0.01em; }
   .var-verdict.right .vv-main { color: var(--success); }
@@ -620,7 +621,7 @@
   .vv-sub { font-size: 11px; color: var(--muted); text-align: center; line-height: 1.3; }
   .var-cancel {
     padding: 0.75rem; border-radius: var(--radius);
-    border: 1px solid var(--border2); background: transparent;
+    border: 1px solid var(--border2); background: var(--surface2);
     color: var(--muted); font-size: 12px; font-weight: 600;
     cursor: pointer; font-family: inherit; text-align: center;
     transition: color 0.12s, border-color 0.12s;
@@ -1643,18 +1644,6 @@ function requestVAR(team) {
   if (!VarSwitch.enabled) return;   // VAR desactivado desde velada.html
   if (team !== 'a' && team !== 'b') return;
   if (varUses[team] <= 0) return;
-  playWhistle();
-  if (navigator.vibrate) navigator.vibrate([60, 40, 60, 40, 140]);
-  const pin = getStoredPin();
-  if (pin) {
-    openPinOverlay(team);
-  } else {
-    _doRequestVAR(team);
-  }
-}
-
-function _doRequestVAR(team) {
-  if (!VarSwitch.enabled) return;   // VAR desactivado desde velada.html
   _varTeam = team;
   const a = teamNames.a || 'Equipo 1';
   const b = teamNames.b || 'Equipo 2';
@@ -1665,8 +1654,24 @@ function _doRequestVAR(team) {
   ov.classList.remove('open', 'closing', 'reviewing');
   void ov.offsetWidth;
   ov.classList.add('open');
+  playWhistle();
+  if (navigator.vibrate) navigator.vibrate([60, 40, 60, 40, 140]);
   clearTimeout(_varTimer);
-  _varTimer = setTimeout(() => ov.classList.add('reviewing'), 1150);
+  // Primero se ve la animación completa; recién al terminar se pide el PIN (o se revela el veredicto)
+  _varTimer = setTimeout(() => {
+    const pin = getStoredPin();
+    if (pin) {
+      openPinOverlay(team);
+    } else {
+      revealVarVerdicts();
+    }
+  }, 1150);
+}
+
+function revealVarVerdicts() {
+  const ov = document.getElementById('var-overlay');
+  if (!ov || !ov.classList.contains('open')) return;
+  ov.classList.add('reviewing');
 }
 
 function varVerdict(result) {
@@ -2053,11 +2058,13 @@ function openPinConfig() {
 }
 
 function closePinOverlay() {
+  const wasVarRequest = !_pinConfigMode && !!_pinPendingTeam;
   document.getElementById('pin-overlay').classList.remove('open');
   _pinBuffer = '';
   _pinPendingTeam = null;
   _pinConfigMode = false;
   updatePinDots();
+  if (wasVarRequest) cancelVAR();
 }
 
 function updatePinDots() {
@@ -2097,11 +2104,10 @@ function checkPin() {
   const stored = getStoredPin();
   if (!stored || _pinBuffer === stored) {
     document.getElementById('pin-overlay').classList.remove('open');
-    const team = _pinPendingTeam;
     _pinBuffer = '';
     _pinPendingTeam = null;
     updatePinDots();
-    _doRequestVAR(team);
+    revealVarVerdicts();
   } else {
     for (let i = 0; i < 4; i++) {
       const dot = document.getElementById('pin-d-' + i);
