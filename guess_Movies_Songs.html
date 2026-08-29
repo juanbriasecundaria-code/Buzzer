@@ -357,8 +357,11 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
 .part-lyrics{display:flex;flex-direction:column;gap:.5rem;width:min(88vw,880px);max-height:64vh;overflow:auto;padding:.5rem .25rem;text-align:center;scrollbar-width:thin}
 .part-lyric-line{font-size:clamp(1.05rem,2.7vw,2rem);font-weight:800;line-height:1.28;color:var(--text);opacity:.92;transition:opacity .45s cubic-bezier(.22,1,.36,1),color .45s,transform .45s;letter-spacing:-.01em;white-space:pre-wrap}
 .part-lyric-line.line-in{animation:revealIn .45s cubic-bezier(.22,1,.36,1)}
-.part-lyrics.karaoke .part-lyric-line{opacity:.3}
-.part-lyrics.karaoke .part-lyric-line.active{opacity:1;color:var(--accent);transform:scale(1.05);text-shadow:0 2px 24px rgba(200,240,96,.4)}
+.part-lyrics.karaoke .part-lyric-line{opacity:.4}
+.part-lyrics.karaoke .part-lyric-line.active{opacity:1;transform:scale(1.05)}
+.klyr-wrap{position:relative;display:inline-block;max-width:100%}
+.klyr-base{color:var(--text)}
+.klyr-fill{position:absolute;left:0;top:0;width:100%;height:100%;color:var(--accent);text-shadow:0 2px 22px rgba(200,240,96,.5);clip-path:inset(0 100% 0 0);pointer-events:none;white-space:pre-wrap}
 .part-lyric-line.is-hidden{visibility:hidden}
 .part-lyric-gap{width:100%;height:.9em}
 .part-lyric-blank{display:inline-block;min-width:2.2em;border-bottom:3px solid var(--purple);margin:0 .12em;vertical-align:bottom;height:.9em;border-radius:2px}
@@ -1338,6 +1341,8 @@ function sendState(){
     songMode:cur?.type==='song'?(cur.songMode||'audio'):null,
     lyrics:cur?.type==='song'?(cur.lyrics||''):'',
     lyricLine:lyricLine,
+    lyricFrac:+lyricFrac.toFixed(3),
+    lyricRemain:+lyricRemain.toFixed(2),
     bonusShown:!!bonusShown,
     bonusQ:(bonusShown&&cur?.type==='movie')?(cur.bonusQ||null):null,
     bonusOptions:(bonusShown&&cur?.type==='movie')?(cur.bonusOptions||null):null,
@@ -1964,6 +1969,26 @@ function condAudioClock(){
   }
   return null;
 }
+// Reparte la duración total del audio entre las líneas de la letra.
+// Si hay tiempos LRC exactos, se usan tal cual (fin de línea = inicio de la próxima).
+// Si no, se reparte proporcionalmente según la cantidad de caracteres de cada línea
+// (una línea más larga "dura" más), usando solo la letra pegada y la duración del audio.
+function karaokeLineTimings(c,dur){
+  const lines=lyricLinesOf(c);
+  const n=lines.length;
+  if(!n)return[];
+  const start=c.startAt||0;
+  if(Array.isArray(c.lyricTimes)&&c.lyricTimes.length===n){
+    return c.lyricTimes.map((t,i)=>({start:t,end:i<n-1?c.lyricTimes[i+1]:((dur&&dur>t)?dur:t+4)}));
+  }
+  const weights=lines.map(l=>Math.max(3,l.replace(/\s+/g,'').length));
+  const totalW=weights.reduce((a,b)=>a+b,0)||1;
+  const span=Math.max(0,(dur||0)-start);
+  let acc=start;const out=[];
+  for(const w of weights){const d=span*(w/totalW);out.push({start:acc,end:acc+d});acc+=d;}
+  return out;
+}
+let lyricFrac=0,lyricRemain=0; // avance (0-1) y segundos restantes dentro de la línea activa de karaoke
 function karaokeActiveLine(){
   const c=currentCard();
   if(!c||c.type!=='song'||(c.songMode||'audio')!=='karaoke')return null;
@@ -1971,19 +1996,16 @@ function karaokeActiveLine(){
   if(!lines.length)return null;
   const clk=condAudioClock();
   if(!clk)return null;
-  const start=c.startAt||0;
-  // 1) Si la canción tiene tiempos por línea guardados, se usan (preciso).
-  if(Array.isArray(c.lyricTimes)&&c.lyricTimes.length){
-    let idx=0;
-    for(let i=0;i<lines.length;i++){const ts=c.lyricTimes[i];if(typeof ts==='number'&&clk.t>=ts)idx=i;}
-    return Math.min(idx,lines.length-1);
-  }
-  // 2) Si no, reparto parejo a lo largo de la duración (automático, sin carga).
-  if(clk.dur>start+1){
-    const frac=Math.max(0,(clk.t-start))/(clk.dur-start);
-    return Math.min(lines.length-1,Math.max(0,Math.floor(frac*lines.length)));
-  }
-  return null;
+  const timings=karaokeLineTimings(c,clk.dur);
+  if(!timings.length)return null;
+  let idx=0;
+  for(let i=0;i<timings.length;i++){if(clk.t>=timings[i].start)idx=i;}
+  idx=Math.min(idx,lines.length-1);
+  const seg=timings[idx];
+  const segDur=Math.max(0.05,seg.end-seg.start);
+  lyricFrac=Math.min(1,Math.max(0,(clk.t-seg.start)/segDur));
+  lyricRemain=Math.max(0,seg.end-clk.t);
+  return idx;
 }
 function startKaraokeSync(){
   const c=currentCard();
@@ -1992,7 +2014,10 @@ function startKaraokeSync(){
   _karaokeTimer=setInterval(()=>{
     const line=karaokeActiveLine();
     if(line===null)return;
-    if(line!==lyricLine){lyricLine=line;syncLyricHintUI();sendState();}
+    const changed=line!==lyricLine;
+    lyricLine=line;
+    if(changed)syncLyricHintUI();
+    sendState(); // reenvía siempre: además de la línea, viajan lyricFrac/lyricRemain para el relleno progresivo
   },350);
 }
 function stopKaraokeSync(){if(_karaokeTimer){clearInterval(_karaokeTimer);_karaokeTimer=null;}}
@@ -2276,7 +2301,8 @@ function renderParticipant(d){
     if((d.revealMode==='blur'||d.revealMode==='crop')&&d.revealProgress!==_pLastProg){updateMovieProgress(d);_pLastProg=d.revealProgress;}
     if(d.revealMode==='grid'&&JSON.stringify(d.gridRevealed)!==JSON.stringify(_pLastGrid)){updateGridTiles(d);_pLastGrid=d.gridRevealed?[...d.gridRevealed]:null;}
   }
-  else if((d.songMode==='progresiva'||d.songMode==='karaoke')&&d.lyricLine!==_pLastLyricLine){updateLyricLines(d);_pLastLyricLine=d.lyricLine;}
+  else if(d.songMode==='karaoke'){updateLyricLines(d);_pLastLyricLine=d.lyricLine;}
+  else if(d.songMode==='progresiva'&&d.lyricLine!==_pLastLyricLine){updateLyricLines(d);_pLastLyricLine=d.lyricLine;}
   const pm=document.getElementById('part-main');
   const pt=pm.querySelector('.part-timer');
   if(pt){pt.classList.toggle('show',d.timerActive||false);const tn=pt.querySelector('.part-timer-num');if(tn){tn.textContent=d.timerLeft;tn.classList.toggle('low',(d.timerLeft||0)<=5);}}
@@ -2379,7 +2405,10 @@ function songLyricsData(d){
     tag='📝 La letra va apareciendo';
   }else if(mode==='karaoke'){
     karaoke=true;
-    ({html}=buildLyricHtml(raw,Infinity,(l,idx)=>`<div class="part-lyric-line${idx===cur?' active':''}">${esc(stripMarks(l))}</div>`));
+    ({html}=buildLyricHtml(raw,Infinity,(l,idx)=>{
+      const txt=esc(stripMarks(l));
+      return `<div class="part-lyric-line${idx===cur?' active':''}" data-li="${idx}"><span class="klyr-wrap"><span class="klyr-base">${txt}</span><span class="klyr-fill">${txt}</span></span></div>`;
+    }));
     tag='🎤 Seguí la letra';
   }else{ // 'lyrics'
     ({html}=buildLyricHtml(raw,Infinity,l=>`<div class="part-lyric-line">${esc(stripMarks(l))}</div>`));
@@ -2388,6 +2417,20 @@ function songLyricsData(d){
   return {html,tag,karaoke,mode};
 }
 function scrollActiveLyric(){const box=document.getElementById('part-lyrics');if(!box)return;const t=box.querySelector('.part-lyric-line.active')||box.lastElementChild;if(t&&t.scrollIntoView){try{t.scrollIntoView({block:'center',behavior:'smooth'});}catch(e){t.scrollIntoView();}}}
+// Anima el relleno de color de la línea activa de karaoke: arranca desde el avance
+// ya conocido (lyricFrac) y transiciona en CSS hasta el 100% en lo que resta de línea
+// (lyricRemain), así el "colorcito" avanza fluido aunque el estado llegue cada ~350ms.
+function applyKaraokeFill(d){
+  const box=document.getElementById('part-lyrics');if(!box)return;
+  const fill=box.querySelector('.part-lyric-line.active .klyr-fill');if(!fill)return;
+  const frac=typeof d.lyricFrac==='number'?Math.min(1,Math.max(0,d.lyricFrac)):0;
+  const remain=typeof d.lyricRemain==='number'?Math.max(0.05,d.lyricRemain):3;
+  fill.style.transition='none';
+  fill.style.clipPath=`inset(0 ${((1-frac)*100).toFixed(2)}% 0 0)`;
+  void fill.offsetWidth; // fuerza reflow para que el siguiente cambio sí anime
+  fill.style.transition=`clip-path linear ${remain}s`;
+  fill.style.clipPath='inset(0 0% 0 0)';
+}
 function updateLyricLines(d){
   const box=document.getElementById('part-lyrics');if(!box)return;
   const mode=d.songMode||'audio';
@@ -2395,6 +2438,7 @@ function updateLyricLines(d){
   const cur=(typeof d.lyricLine==='number')?d.lyricLine:0;
   if(mode==='karaoke'){
     box.querySelectorAll('.part-lyric-line').forEach((el,i)=>el.classList.toggle('active',i===cur));
+    applyKaraokeFill(d);
     scrollActiveLyric();
   }else if(mode==='progresiva'){
     const have=box.querySelectorAll('.part-lyric-line').length;
@@ -2468,7 +2512,7 @@ function buildPartCard(d){
   let ansBanner='';
   if(d.phase==='playing_a'||d.phase==='playing_b'){const t=d.phase==='playing_a'?'a':'b';const n=t==='a'?(d.nameA||'Eq 1'):(d.nameB||'Eq 2');ansBanner=`<div class="part-answering show pa-${t}">🔔 Respondiendo: ${esc(n)}</div>`;}
   main.innerHTML=`<div class="part-meta">${tb}${num}</div>${ansBanner}${cHtml}<div class="part-timer"><div class="part-timer-num">${d.timerLeft||15}</div><div class="part-timer-label">segundos</div></div>`;
-  if(d.cardType==='song'&&(d.songMode==='karaoke'||d.songMode==='progresiva'))setTimeout(scrollActiveLyric,60);
+  if(d.cardType==='song'&&(d.songMode==='karaoke'||d.songMode==='progresiva')){setTimeout(scrollActiveLyric,60);if(d.songMode==='karaoke')setTimeout(()=>applyKaraokeFill(d),60);}
 }
 
 // ─── DECK EDITOR ─────────────────────────────────────────────────
