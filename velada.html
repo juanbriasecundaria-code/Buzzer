@@ -2956,7 +2956,7 @@ window.VarSwitch = (function () {
     <span class="section-title"><span class="dot-indicator fase1"></span>Clasificación individual</span>
     <span class="especial-badge">★ 1° clasifica</span>
   </div>
-  <div style="font-size:11px;color:var(--muted);margin-bottom:0.6rem;line-height:1.5">Esp. = Impostor · 🎯 = bonus previo (tocá para editar) · 🃏 = apuestas (tocá para editar)</div>
+  <div style="font-size:11px;color:var(--muted);margin-bottom:0.6rem;line-height:1.5">🕵️ IMP. = ronda especial Impostor (tocá para editar) · 🎯 = bonus previo (tocá para editar) · 🃏 = apuestas (tocá para editar)</div>
   <div class="card" style="padding:0">
     <div class="table-wrap">
       <table class="ranking" id="ranking-fase1">
@@ -2965,7 +2965,7 @@ window.VarSwitch = (function () {
             <th style="width:36px">#</th>
             <th>Jugador</th>
             <th>R1</th><th>R2</th><th>R3</th><th>R4</th><th>R5</th><th>R6</th>
-            <th title="Puntos especiales (Impostor)">Esp.</th>
+            <th title="Puntos de la ronda especial (Impostor) — tocá para editar" style="color:var(--danger)">🕵️ IMP.</th>
             <th title="Bonus previo (Kahoot u otras actividades)">🎯</th>
             <th title="Apuestas acertadas">🃏</th>
             <th title="Puntos manuales — tocá una celda para editar">⚖️</th>
@@ -5102,6 +5102,15 @@ function getPlayerPoints() {
     }
   });
 
+  // Override manual de los puntos de la ronda especial (Impostor) — se puede
+  // pisar a mano por jugador, igual que el resto de la clasificación de Fase 1.
+  const specialOverrideF1 = state.specialOverride || {};
+  PLAYERS.forEach((name, idx) => {
+    if (Object.prototype.hasOwnProperty.call(specialOverrideF1, idx)) {
+      pts[idx].special = specialOverrideF1[idx];
+    }
+  });
+
   // Bonus manual (Kahoot u otras actividades previas)
   const bonusManual = state.bonusManual || {};
   PLAYERS.forEach((name, idx) => {
@@ -5451,7 +5460,7 @@ function renderFase1() {
   if (theadRowF1) {
     const numRoundsF1 = F1_FIXTURE.reduce((m, x) => Math.max(m, x[0]), 0);
     const roundThs = Array.from({length: numRoundsF1}, (_, i) => `<th>R${i+1}</th>`).join('');
-    theadRowF1.innerHTML = `<th style="width:36px">#</th><th>Jugador</th>${roundThs}<th title="Puntos especiales (Impostor)">Esp.</th><th title="Bonus previo (Kahoot u otras actividades) — tocá para editar">🎯</th><th title="Apuestas acertadas — tocá para editar">🃏</th><th style="text-align:right">Total</th>`;
+    theadRowF1.innerHTML = `<th style="width:36px">#</th><th>Jugador</th>${roundThs}<th title="Puntos de la ronda especial (Impostor) — tocá para editar" style="color:var(--danger)">🕵️ IMP.</th><th title="Bonus previo (Kahoot u otras actividades) — tocá para editar">🎯</th><th title="Apuestas acertadas — tocá para editar">🃏</th><th style="text-align:right">Total</th>`;
   }
   const tbody = document.getElementById('tbody-fase1');
   tbody.innerHTML = sorted.map(({n,i,pts}, pos) => {
@@ -5471,9 +5480,10 @@ function renderFase1() {
       if (v > 0)       return `<td class="round-pts win${ov}"${click}>${v}</td>`;
       return `<td class="round-pts${ov}"${click}>${v}</td>`;
     }).join('');
+    const specialOv = Object.prototype.hasOwnProperty.call(state.specialOverride || {}, i) ? ' overridden' : '';
     const special = pts.special !== null
-      ? `<td class="round-pts bonus">${pts.special}</td>`
-      : `<td class="round-pts pending">—</td>`;
+      ? `<td class="round-pts bonus${specialOv}" onclick="editSpecialPtsF1(${i})" style="cursor:pointer" title="Puntos de la ronda especial (Impostor) — tocá para editar">${pts.special}</td>`
+      : `<td class="round-pts pending${specialOv}" onclick="editSpecialPtsF1(${i})" style="cursor:pointer" title="Tocá para cargar los puntos de la ronda especial (Impostor)">—</td>`;
     const bm = pts.bonusManual;
     const bmCell = bm
       ? `<td class="round-pts bonus overridden" onclick="editBonusManualPts('${nSafe}')" style="cursor:pointer" title="Bonus previo: +${bm} pts — tocá para editar">+${bm}</td>`
@@ -6386,6 +6396,38 @@ function editQldPts(teamIdx) {
   }
   saveState();
   renderFase2();
+}
+
+// Puntos de la ronda especial (columna 🕵️ IMP. de Fase 1): normalmente se
+// calculan solos a partir de las rondas de Impostor, pero se pueden pisar a mano.
+function editSpecialPtsF1(idx) {
+  state.specialOverride = state.specialOverride || {};
+  const playerName = PLAYERS[idx] || '';
+  const cur = state.specialOverride[idx];
+  const auto = (function(){
+    const hadOverride = Object.prototype.hasOwnProperty.call(state.specialOverride, idx);
+    delete state.specialOverride[idx];
+    const recalculated = getPlayerPoints();
+    if (hadOverride) state.specialOverride[idx] = cur;
+    return recalculated[idx].special || 0;
+  })();
+  const val = prompt(
+    `Puntos de la ronda especial (Impostor) para ${playerName}\n\n` +
+    `Valor calculado automáticamente: ${auto}\n\n` +
+    `Escribí un número para fijarlo a mano.\n` +
+    `Dejalo vacío para volver al valor automático.`,
+    (cur !== undefined && cur !== null) ? String(cur) : ''
+  );
+  if (val === null) return; // canceló
+  if (String(val).trim() === '') {
+    delete state.specialOverride[idx];
+  } else {
+    const num = parseFloat(val);
+    if (isNaN(num)) { showToast('⚠️', 'Poné un número válido', false); return; }
+    state.specialOverride[idx] = num;
+  }
+  saveState();
+  renderFase1();
 }
 
 // ── VENTANA DE APUESTAS ──────────────────────────────────────────────
