@@ -4886,6 +4886,7 @@ window._ndjState = localStorage.getItem('ndj_state') || '{}';
 function saveState() {
   const json = JSON.stringify(state);
   localStorage.setItem('ndj_state', json);
+  localStorage.setItem('ndj_state_ts', String(Date.now()));
   window._ndjState = json; // la TV lee esto por polling desde opener
   // Misma PC: mandar directo a la ventana TV si está abierta
   if (window._tvWin && !window._tvWin.closed) {
@@ -4893,8 +4894,18 @@ function saveState() {
   }
   // Backup BroadcastChannel
   if (window._bc) window._bc.postMessage({ key: 'ndj_state', data: json });
-  // Celular → TV: Firebase
+  // Celular → TV / PC → celular: Firebase
   if (window._fbReady) window._fbWrite('state', json);
+}
+
+// Helpers de "última escritura gana" para lo que se sincroniza contra Firebase
+// comparando marcas de tiempo (usado por state y fotos — ver más abajo).
+function localTs(key) {
+  const v = localStorage.getItem(key);
+  return v ? (parseInt(v, 10) || 0) : 0;
+}
+function markLocalTs(key, ts) {
+  try { localStorage.setItem(key, String(ts || Date.now())); } catch(e) {}
 }
 
 // ============================================================
@@ -4930,6 +4941,18 @@ function saveState() {
       try {
         const snap = await getDoc(doc(db, 'ndj', key));
         if (snap.exists()) return snap.data().data;
+      } catch(e) { console.warn('Firebase read error:', e); }
+      return null;
+    };
+    // Igual que _fbRead pero también devuelve el timestamp del documento —
+    // lo usa el sincronizador PC → celular para saber qué copia es más nueva.
+    window._fbReadMeta = async function(key) {
+      try {
+        const snap = await getDoc(doc(db, 'ndj', key));
+        if (snap.exists()) {
+          const d = snap.data();
+          return { data: d.data, ts: d.ts || 0 };
+        }
       } catch(e) { console.warn('Firebase read error:', e); }
       return null;
     };
@@ -8924,7 +8947,13 @@ function loadPlayerPhotos() {
   try { _playerPhotos = JSON.parse(localStorage.getItem('ndj_photos') || '{}'); } catch(e) { _playerPhotos = {}; }
 }
 function savePlayerPhotos() {
-  try { localStorage.setItem('ndj_photos', JSON.stringify(_playerPhotos)); } catch(e) {}
+  try {
+    const json = JSON.stringify(_playerPhotos);
+    localStorage.setItem('ndj_photos', json);
+    markLocalTs('ndj_photos_ts', Date.now());
+    // Antes esto era solo local — las fotos nunca llegaban de la PC al celular.
+    if (window._fbReady && window._fbWrite) window._fbWrite('photos', json);
+  } catch(e) {}
 }
 function getPlayerPhoto(name) { return _playerPhotos[name] || null; }
 
@@ -14391,6 +14420,82 @@ restoreImpGame();
 renderReglas();
 activateTab(state.lastTab || 'reglas');
 updateNavProgress();
+
+// ============================================================
+// SINCRONIZACIÓN PC → CELULAR (roster, puntajes, eliminaciones, fotos)
+// ============================================================
+// Antes, cada dispositivo solo empujaba su propio "state"/"photos" a Firebase
+// pero nunca los volvía a leer al abrir la página — por eso un celular que
+// nunca tocó nada localmente se quedaba para siempre con su localStorage vacío
+// (o viejo), aunque la PC ya hubiera cargado jugadores, fotos, resultados, etc.
+// Esto arregla eso: al abrir, y cada 8s mientras la pestaña siga abierta, se
+// compara el timestamp de Firebase contra el de la última escritura local y,
+// si lo de Firebase es más nuevo, se adopta acá y se vuelve a pintar todo.
+function applyPulledState(newStateJson) {
+  try {
+    const loaded = JSON.parse(newStateJson);
+    state = Object.assign({}, state, loaded);
+    if (!state.impostor || !Array.isArray(state.impostor.rounds)) state.impostor = { rounds: [] };
+  } catch(e) { return false; }
+  return true;
+}
+
+function reapplyStateAndRerender() {
+  restoreRosterAndFixtures();
+  restoreImpGame();
+  syncRulestoRuntime();
+  renderReglas();
+  const tabEl = document.querySelector('.nav-tab.active');
+  const tabName = tabEl ? tabEl.dataset.tab : (state.lastTab || 'reglas');
+  if (tabName === 'fase1') renderFase1();
+  else if (tabName === 'fase2') renderFase2();
+  else if (tabName === 'impostor') renderImpostor();
+  else if (tabName === 'final') renderFinal();
+  updateNavProgress();
+}
+
+(function syncStateAndPhotosFromCloud() {
+  let tries = 0;
+  function pull() {
+    if (!(window._fbReady && window._fbReadMeta)) {
+      if (tries++ > 20) return; // ~15s sin Firebase: probablemente offline, desistimos en silencio
+      setTimeout(pull, 700);
+      return;
+    }
+
+    window._fbReadMeta('state').then(remote => {
+      if (!remote || !remote.data) return;
+      if (remote.ts <= localTs('ndj_state_ts')) return; // lo local ya es igual o más nuevo
+      if (remote.data === localStorage.getItem('ndj_state')) {
+        markLocalTs('ndj_state_ts', remote.ts);
+        return;
+      }
+      localStorage.setItem('ndj_state', remote.data);
+      markLocalTs('ndj_state_ts', remote.ts);
+      if (applyPulledState(remote.data)) reapplyStateAndRerender();
+    }).catch(() => {});
+
+    window._fbReadMeta('photos').then(remote => {
+      if (!remote || !remote.data) return;
+      if (remote.ts <= localTs('ndj_photos_ts')) return;
+      if (remote.data === localStorage.getItem('ndj_photos')) {
+        markLocalTs('ndj_photos_ts', remote.ts);
+        return;
+      }
+      localStorage.setItem('ndj_photos', remote.data);
+      markLocalTs('ndj_photos_ts', remote.ts);
+      loadPlayerPhotos();
+      const tabEl = document.querySelector('.nav-tab.active');
+      const tabName = tabEl ? tabEl.dataset.tab : '';
+      if (tabName === 'fase1') { renderF1RosterAdmin(); renderFase1(); }
+      else if (tabName === 'fase2') { renderF2RosterAdmin(); renderFase2(); }
+      else if (tabName === 'impostor') { renderImpostor(); }
+      else if (tabName === 'final') { renderFinal(); }
+    }).catch(() => {});
+  }
+  setTimeout(pull, 900);
+  setInterval(pull, 8000);
+})();
 
 // Cargar palabras custom del impostor desde Firebase al arrancar
 // Esto asegura que las palabras sobrevivan actualizaciones del archivo HTML
