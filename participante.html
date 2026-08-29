@@ -443,11 +443,13 @@ function safeBlock(fn) { try { return fn() || ''; } catch (e) { console.warn('bl
 // ── APUESTAS ─────────────────────────────────────────────────
 // Se puede apostar en TODOS los duelos, incluido el propio.
 // Cada acierto = 1 pt. Pero si apostás a tu propio duelo y lo perdés,
-// se te borran todos los puntos que hayas ganado apostando.
+// se te borran los puntos que hayas ganado apostando EN ESA RONDA
+// (no afecta a lo ganado en otras rondas de apuestas).
 function myBetTally(myName) {
   const bets = latestState.bets || {};
   const myIdx = PLAYERS.indexOf(myName);
-  let hits = 0, misses = 0, blown = false, pending = 0;
+  const rounds = {}; // ronda -> { hits, misses, blown }
+  let pending = 0;
   Object.keys(bets).forEach(key => {
     const b = bets[key][myName];
     if (typeof b !== 'number') return;
@@ -455,11 +457,21 @@ function myBetTally(myName) {
     if (!res) { pending++; return; }
     if (res.winner === 'empate') return;
     const p = key.split('-').map(Number);
+    const round = p[0];
     const own = (p[1] === myIdx || p[2] === myIdx);
-    if (res.winner === b) hits++;
-    else { misses++; if (own) blown = true; }
+    if (!rounds[round]) rounds[round] = { hits: 0, misses: 0, blown: false };
+    if (res.winner === b) rounds[round].hits++;
+    else { rounds[round].misses++; if (own) rounds[round].blown = true; }
   });
-  return { hits: hits, misses: misses, blown: blown, pending: pending, net: blown ? 0 : hits };
+  let hits = 0, misses = 0, net = 0;
+  const blownRounds = [];
+  Object.keys(rounds).forEach(r => {
+    const rd = rounds[r];
+    hits += rd.hits;
+    misses += rd.misses;
+    if (rd.blown) blownRounds.push(Number(r)); else net += rd.hits;
+  });
+  return { hits: hits, misses: misses, blown: blownRounds.length > 0, blownRounds: blownRounds, pending: pending, net: net };
 }
 
 function renderBetCard(myName, myIdx) {
@@ -516,14 +528,15 @@ function renderBetCard(myName, myIdx) {
     ? `<div class="gh-b-window open">🔓 Apuestas abiertas · <b>Ronda ${bw.round}</b></div>`
     : `<div class="gh-b-window">🔒 Apuestas cerradas — esperá a que el conductor las abra</div>`;
 
+  const roundTxt = t.blownRounds.length === 1 ? ('la ronda ' + t.blownRounds[0]) : ('las rondas ' + t.blownRounds.join(', '));
   const resume = t.blown
-    ? `<div class="gh-b-summary blown">💥 Apostaste a tu propio duelo y lo perdiste: se te anularon ${t.hits} punto${t.hits === 1 ? '' : 's'}.</div>`
+    ? `<div class="gh-b-summary blown">💥 Apostaste a tu propio duelo y lo perdiste en ${roundTxt}: se te anularon los puntos de esa${t.blownRounds.length === 1 ? '' : 's'} ronda${t.blownRounds.length === 1 ? '' : 's'}. Puntos ganados: <b>+${t.net}</b>${t.pending ? ' · ' + t.pending + ' pendiente' + (t.pending === 1 ? '' : 's') : ''}</div>`
     : `<div class="gh-b-summary">Aciertos: <b>${t.hits}</b> · Puntos ganados: <b>+${t.net}</b>${t.pending ? ' · ' + t.pending + ' pendiente' + (t.pending === 1 ? '' : 's') : ''}</div>`;
 
   return `<div class="gh-bet-card">
     <div class="gh-bet-title">🃏 Apuestas</div>
     <div class="gh-bet-sub">Cada acierto suma <b>1 punto</b>.<br>
-      ⚠️ Podés apostar a tu propio duelo, pero si lo perdés <b>se te borran todos los puntos de apuestas</b>.</div>
+      ⚠️ Podés apostar a tu propio duelo, pero si lo perdés <b>se te borran los puntos de apuestas de esa ronda</b>.</div>
     ${banner}
     ${resume}
     <div class="gh-b-list">${rows || '<div class="gh-b-none" style="padding:0.6rem 0">Todavía no hay duelos cargados.</div>'}</div>
@@ -573,7 +586,8 @@ function wireBetCard(myName, myIdx) {
 function myBetTallyF2(myName) {
   const bets = latestState.betsF2 || {};
   const myTeamIdx = teamIndexForPlayer(myName);
-  let hits = 0, misses = 0, blown = false, pending = 0;
+  const rounds = {}; // ronda -> { hits, misses, blown }
+  let pending = 0;
   Object.keys(bets).forEach(key => {
     const b = bets[key][myName];
     if (typeof b !== 'number') return;
@@ -581,11 +595,21 @@ function myBetTallyF2(myName) {
     if (!res) { pending++; return; }
     if (res.winner === 'empate') return;
     const p = key.split('-').map(Number);
+    const round = p[0];
     const own = (p[1] === myTeamIdx || p[2] === myTeamIdx);
-    if (res.winner === b) hits++;
-    else { misses++; if (own) blown = true; }
+    if (!rounds[round]) rounds[round] = { hits: 0, misses: 0, blown: false };
+    if (res.winner === b) rounds[round].hits++;
+    else { rounds[round].misses++; if (own) rounds[round].blown = true; }
   });
-  return { hits: hits, misses: misses, blown: blown, pending: pending, net: blown ? 0 : hits };
+  let hits = 0, misses = 0, net = 0;
+  const blownRounds = [];
+  Object.keys(rounds).forEach(r => {
+    const rd = rounds[r];
+    hits += rd.hits;
+    misses += rd.misses;
+    if (rd.blown) blownRounds.push(Number(r)); else net += rd.hits;
+  });
+  return { hits: hits, misses: misses, blown: blownRounds.length > 0, blownRounds: blownRounds, pending: pending, net: net };
 }
 
 function renderBetCardF2(myName, myTeamIdx) {
@@ -642,14 +666,15 @@ function renderBetCardF2(myName, myTeamIdx) {
     ? `<div class="gh-b-window open">🔓 Apuestas abiertas · <b>Ronda ${bw.round}</b></div>`
     : `<div class="gh-b-window">🔒 Apuestas cerradas — esperá a que el conductor las abra</div>`;
 
+  const roundTxtF2 = t.blownRounds.length === 1 ? ('la ronda ' + t.blownRounds[0]) : ('las rondas ' + t.blownRounds.join(', '));
   const resume = t.blown
-    ? `<div class="gh-b-summary blown">💥 Apostaste al duelo de tu equipo y lo perdiste: se te anularon ${t.hits} punto${t.hits === 1 ? '' : 's'}.</div>`
+    ? `<div class="gh-b-summary blown">💥 Apostaste al duelo de tu equipo y lo perdiste en ${roundTxtF2}: se anularon los puntos de esa${t.blownRounds.length === 1 ? '' : 's'} ronda${t.blownRounds.length === 1 ? '' : 's'}. Puntos ganados para tu equipo: <b>+${t.net}</b>${t.pending ? ' · ' + t.pending + ' pendiente' + (t.pending === 1 ? '' : 's') : ''}</div>`
     : `<div class="gh-b-summary">Aciertos: <b>${t.hits}</b> · Puntos ganados para tu equipo: <b>+${t.net}</b>${t.pending ? ' · ' + t.pending + ' pendiente' + (t.pending === 1 ? '' : 's') : ''}</div>`;
 
   return `<div class="gh-bet-card">
     <div class="gh-bet-title">🃏 Apuestas · Fase 2</div>
     <div class="gh-bet-sub">Cada acierto suma <b>1 punto a tu equipo</b>.<br>
-      ⚠️ Podés apostar al duelo de tu propio equipo, pero si lo perdés <b>se le borran todos los puntos de apuestas a tu equipo</b>.</div>
+      ⚠️ Podés apostar al duelo de tu propio equipo, pero si lo perdés <b>se le anulan a tu equipo los puntos de apuestas de esa ronda</b>.</div>
     ${banner}
     ${resume}
     <div class="gh-b-list">${rows || '<div class="gh-b-none" style="padding:0.6rem 0">Todavía no hay duelos cargados.</div>'}</div>
