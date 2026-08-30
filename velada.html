@@ -3587,10 +3587,10 @@ function renderReglas() {
             para poder restaurarlo si algo falla a mitad del evento.
           </p>
           <div style="display:flex;gap:0.5rem;flex-wrap:wrap;margin-bottom:0.6rem">
-            <button class="btn" style="flex:1;min-width:150px;padding:0.65rem;font-size:12.5px" onclick="downloadNightBackup(true)">⬇️ Descargar la noche</button>
-            <button class="btn" style="flex:1;min-width:150px;padding:0.65rem;font-size:12.5px" onclick="downloadNightBackup(false)">⬇️ Solo puntajes (liviano)</button>
+            <button class="final-end-btn" style="flex:1;min-width:150px;padding:0.65rem;font-size:12.5px;border-color:rgba(96,180,240,0.6);color:var(--info);background:rgba(96,180,240,0.1)" onclick="downloadNightBackup(true)">⬇️ Descargar la noche</button>
+            <button class="final-end-btn" style="flex:1;min-width:150px;padding:0.65rem;font-size:12.5px;border-color:var(--silver);color:var(--silver);background:var(--silver-dim)" onclick="downloadNightBackup(false)">⬇️ Solo puntajes (liviano)</button>
           </div>
-          <button class="btn" style="width:100%;padding:0.65rem;font-size:12.5px" onclick="triggerRestoreFile()">⬆️ Restaurar desde archivo</button>
+          <button class="final-end-btn" style="width:100%;padding:0.65rem;font-size:12.5px;border-color:rgba(200,240,96,0.6);color:var(--accent);background:var(--accent-dim)" onclick="triggerRestoreFile()">⬆️ Restaurar desde archivo</button>
           <input type="file" id="restore-file-input" accept="application/json" style="display:none" onchange="handleRestoreFile(this)">
           <div style="font-size:10.5px;color:var(--muted);margin-top:0.6rem;line-height:1.5">
             "Solo puntajes" no incluye las fotos del muro ni las fotos de jugadores — pesa mucho menos y es lo que más vas a necesitar si hay que recuperarse rápido.
