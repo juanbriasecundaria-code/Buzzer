@@ -829,6 +829,16 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
         <div style="font-size:10.5px;color:var(--muted);margin-top:.25rem;line-height:1.5">Progresiva y Karaoke necesitan letra. Karaoke reproduce el audio.<br>🎤 <b>Sync perfecto:</b> pegá un <b>.lrc</b> (con <code>[mm:ss.xx]</code>) y el karaoke queda clavado, sin grabar nada.<br>✂️ <b>Cortar en:</b> si solo usás una parte de la canción (ej: hasta antes del título), poné ahí el segundo de corte — el audio se para solo ahí y el relleno de Karaoke se calcula sobre ESE tramo, no sobre la canción entera (más preciso).<br>▁ <b>Huecos:</b> marcá la palabra clave con <code>*asteriscos*</code> (ej: <code>Is this the *real life*</code>) y solo esa se tapa. Sin marcas, tapa al azar.</div>
         <button type="button" class="audio-file-btn" style="margin-top:.5rem;border-color:var(--purple);color:var(--purple)" onclick="openTapSync()">🎯 Sincronizar tocando (máxima precisión)</button>
       </div>
+      <div class="fc"><div class="form-label">🎯 Pregunta bonus (opcional — solo la ve el conductor)</div>
+        <input class="form-input" id="ns-bonusq" placeholder="Ej: ¿Quién canta esta canción?" maxlength="140">
+      </div>
+      <div class="fc" id="ns-bonus-opts">
+        <div class="form-label">Opciones (marcá la correcta con el círculo — se muestra en verde)</div>
+        <div class="bo-row"><input type="radio" name="ns-bonus-correct" id="ns-bonus-r0" value="0"><input class="form-input" id="ns-bonus-opt0" placeholder="Opción A" maxlength="80"></div>
+        <div class="bo-row"><input type="radio" name="ns-bonus-correct" id="ns-bonus-r1" value="1"><input class="form-input" id="ns-bonus-opt1" placeholder="Opción B" maxlength="80"></div>
+        <div class="bo-row"><input type="radio" name="ns-bonus-correct" id="ns-bonus-r2" value="2"><input class="form-input" id="ns-bonus-opt2" placeholder="Opción C (opcional)" maxlength="80"></div>
+        <div class="bo-row"><input type="radio" name="ns-bonus-correct" id="ns-bonus-r3" value="3"><input class="form-input" id="ns-bonus-opt3" placeholder="Opción D (opcional)" maxlength="80"></div>
+      </div>
       <div class="fl"><button class="add-submit" onclick="submitSong()">Guardar canción</button><button class="sheet-close" style="flex:0 0 auto;width:auto;padding:.75rem 1rem;font-size:13px" onclick="hideAddForms()">✕</button></div>
     </div>
     <div class="divider"></div>
@@ -1381,11 +1391,11 @@ function sendState(){
     lyricFrac:+lyricFrac.toFixed(3),
     lyricRemain:+lyricRemain.toFixed(2),
     bonusShown:!!bonusShown,
-    bonusQ:(bonusShown&&cur?.type==='movie')?(cur.bonusQ||null):null,
-    bonusOptions:(bonusShown&&cur?.type==='movie')?(cur.bonusOptions||null):null,
+    bonusQ:(bonusShown&&(cur?.type==='movie'||cur?.type==='song'))?(cur.bonusQ||null):null,
+    bonusOptions:(bonusShown&&(cur?.type==='movie'||cur?.type==='song'))?(cur.bonusOptions||null):null,
     bonusRevealed:!!bonusRevealed,
     // El índice correcto SOLO viaja una vez revelado: antes, ni Firebase ni el estado local lo exponen.
-    bonusCorrect:(bonusShown&&bonusRevealed&&cur?.type==='movie')?(cur.bonusCorrect??null):null,
+    bonusCorrect:(bonusShown&&bonusRevealed&&(cur?.type==='movie'||cur?.type==='song'))?(cur.bonusCorrect??null):null,
     bonusAwardTeam:bonusRevealed?bonusAwardTeam:null,
     cardKey:cur?.id??null,
     cardTitle:cur?.title||null,cardNum:order.length?cardIdx+1:0,totalCards:order.length};
@@ -1739,7 +1749,7 @@ function renderCondCard(){
   let smBadge=_emojiBadge||'';_emojiBadge='';
   if(c.type==='song'){const m=c.songMode||'audio';const lbl={audio:'🎵 Solo audio',lyrics:'📄 Solo letra',progresiva:'📝 Progresiva',huecos:'▁ Huecos',karaoke:'🎤 Karaoke'}[m]||m;smBadge=`<span class="num-badge" style="margin-left:.4rem">${lbl}</span>`;}
   let bonusHtml='';
-  if(c.type==='movie'&&c.bonusQ&&c.bonusQ.trim()&&c.bonusOptions&&c.bonusOptions.length){
+  if((c.type==='movie'||c.type==='song')&&c.bonusQ&&c.bonusQ.trim()&&c.bonusOptions&&c.bonusOptions.length){
     const optsHtml=c.bonusOptions.map((o,i)=>`<div class="cond-bonus-opt${i===c.bonusCorrect?' correct':''}">${String.fromCharCode(65+i)}. ${esc(o)}</div>`).join('');
     let actionsHtml;
     if(bonusRevealed){
@@ -1929,7 +1939,7 @@ function toggleBonusShown(){
 function bonusAnswer(team){
   if(bonusRevealed)return; // evita doble click durante la cuenta regresiva
   const c=currentCard();
-  if(!c||c.type!=='movie'||!c.bonusOptions||!c.bonusOptions.length)return;
+  if(!c||(c.type!=='movie'&&c.type!=='song')||!c.bonusOptions||!c.bonusOptions.length)return;
   if(team)adjScore(team,1);
   bonusRevealed=true;bonusAwardTeam=team||null;
   renderCondCard();
@@ -2391,7 +2401,7 @@ let _pboLastKey=null,_pboLastQ=null;
 function renderPartBonusOverlay(d){
   const ov=document.getElementById('part-bonus-ov');
   if(!ov)return;
-  const active=!!(d.bonusShown&&d.cardType==='movie'&&d.bonusQ&&d.bonusOptions&&d.bonusOptions.length);
+  const active=!!(d.bonusShown&&(d.cardType==='movie'||d.cardType==='song')&&d.bonusQ&&d.bonusOptions&&d.bonusOptions.length);
   if(!active){
     ov.classList.remove('show','revealed');
     _pboLastKey=null;_pboLastQ=null;
@@ -2695,7 +2705,7 @@ function editCard(i){
     (c.bonusOptions||[]).forEach((v,slot)=>{if(slot<4){document.getElementById('nm-bonus-opt'+slot).value=v;if(slot===c.bonusCorrect)document.getElementById('nm-bonus-r'+slot).checked=true;}});
     document.getElementById('add-movie-form').dataset.ei=i;
   }
-  else{showAddForm('song');document.getElementById('ns-title').value=c.title;if(c.audioData){setAudioSrc('file');_audioData=c.audioData;document.getElementById('audio-file-preview').textContent='✓ audio guardado';document.getElementById('ns-start-local').value=c.startAt||0;document.getElementById('ns-end-local').value=c.endAt||'';}else{setAudioSrc('yt');document.getElementById('ns-url').value=c.youtubeId?`https://youtu.be/${c.youtubeId}`:'';document.getElementById('ns-start').value=c.startAt||0;document.getElementById('ns-end').value=c.endAt||'';}(function(){const nl=document.getElementById('ns-lyrics');const tms=c.lyricTimes,lns=(c.lyrics||'').split('\n');if(Array.isArray(tms)&&tms.length===lns.length&&tms.length){nl.value=lns.map((l,i)=>`[${fmtLrc(tms[i])}]${l}`).join('\n');}else{nl.value=c.lyrics||'';}})();setSongMode(c.songMode||'audio');document.getElementById('add-song-form').dataset.ei=i;}
+  else{showAddForm('song');document.getElementById('ns-title').value=c.title;if(c.audioData){setAudioSrc('file');_audioData=c.audioData;document.getElementById('audio-file-preview').textContent='✓ audio guardado';document.getElementById('ns-start-local').value=c.startAt||0;document.getElementById('ns-end-local').value=c.endAt||'';}else{setAudioSrc('yt');document.getElementById('ns-url').value=c.youtubeId?`https://youtu.be/${c.youtubeId}`:'';document.getElementById('ns-start').value=c.startAt||0;document.getElementById('ns-end').value=c.endAt||'';}(function(){const nl=document.getElementById('ns-lyrics');const tms=c.lyricTimes,lns=(c.lyrics||'').split('\n');if(Array.isArray(tms)&&tms.length===lns.length&&tms.length){nl.value=lns.map((l,i)=>`[${fmtLrc(tms[i])}]${l}`).join('\n');}else{nl.value=c.lyrics||'';}})();setSongMode(c.songMode||'audio');document.getElementById('ns-bonusq').value=c.bonusQ||'';(c.bonusOptions||[]).forEach((v,slot)=>{if(slot<4){document.getElementById('ns-bonus-opt'+slot).value=v;if(slot===c.bonusCorrect)document.getElementById('ns-bonus-r'+slot).checked=true;}});document.getElementById('add-song-form').dataset.ei=i;}
   setTimeout(()=>{document.getElementById('deck-panel').scrollTop=0;},80);
 }
 function showAddForm(type){hideAddForms();document.getElementById(type==='movie'?'add-movie-form':'add-song-form').style.display='';if(type==='movie')setRevealMode(randomRevealMode());else setSongMode('audio');setTimeout(()=>document.getElementById('deck-panel').scrollTop=0,50);}
@@ -2732,7 +2742,7 @@ function randomizeSongModes(){
   sendState();
   showToast('🎲 '+n+' canción(es): modo al azar');
 }
-function hideAddForms(){['add-movie-form','add-song-form'].forEach(id=>{const f=document.getElementById(id);f.style.display='none';f.dataset.ei='';});document.getElementById('nm-title').value='';document.getElementById('nm-url').value='';document.getElementById('nm-bonusq').value='';[0,1,2,3].forEach(slot=>{document.getElementById('nm-bonus-opt'+slot).value='';document.getElementById('nm-bonus-r'+slot).checked=false;});document.getElementById('ns-title').value='';document.getElementById('ns-url').value='';document.getElementById('ns-start').value='';document.getElementById('ns-start-local').value='';_fileData=null;document.getElementById('file-preview').textContent='';document.getElementById('file-preview-thumb').style.display='none';document.getElementById('file-preview-img').src='';_audioData=null;document.getElementById('audio-file-preview').textContent='';setAudioSrc('yt');_frameFiles=[];document.getElementById('nm-frame-urls').value='';document.getElementById('frame-preview').textContent='';document.getElementById('frame-preview-thumbs').innerHTML='';document.getElementById('nm-emojis').value='';setEmojiProg(false);updateEmojiPreview();setImgKind('poster');setRevealMode('full');const nl=document.getElementById('ns-lyrics');if(nl)nl.value='';setSongMode('audio');}
+function hideAddForms(){['add-movie-form','add-song-form'].forEach(id=>{const f=document.getElementById(id);f.style.display='none';f.dataset.ei='';});document.getElementById('nm-title').value='';document.getElementById('nm-url').value='';document.getElementById('nm-bonusq').value='';[0,1,2,3].forEach(slot=>{document.getElementById('nm-bonus-opt'+slot).value='';document.getElementById('nm-bonus-r'+slot).checked=false;});document.getElementById('ns-title').value='';document.getElementById('ns-url').value='';document.getElementById('ns-start').value='';document.getElementById('ns-start-local').value='';document.getElementById('ns-bonusq').value='';[0,1,2,3].forEach(slot=>{document.getElementById('ns-bonus-opt'+slot).value='';document.getElementById('ns-bonus-r'+slot).checked=false;});_fileData=null;document.getElementById('file-preview').textContent='';document.getElementById('file-preview-thumb').style.display='none';document.getElementById('file-preview-img').src='';_audioData=null;document.getElementById('audio-file-preview').textContent='';setAudioSrc('yt');_frameFiles=[];document.getElementById('nm-frame-urls').value='';document.getElementById('frame-preview').textContent='';document.getElementById('frame-preview-thumbs').innerHTML='';document.getElementById('nm-emojis').value='';setEmojiProg(false);updateEmojiPreview();setImgKind('poster');setRevealMode('full');const nl=document.getElementById('ns-lyrics');if(nl)nl.value='';setSongMode('audio');}
 function setImgKind(k){
   _imgKind=k;
   ['poster','frame','emoji'].forEach(x=>{const b=document.getElementById('ik-'+x);if(b)b.classList.toggle('on',x===k);});
@@ -2794,7 +2804,7 @@ function submitMovie(){
 }
 function setAudioSrc(s){_audioSrc=s;document.getElementById('ast-yt').classList.toggle('on',s==='yt');document.getElementById('ast-file').classList.toggle('on',s==='file');document.getElementById('audio-yt-wrap').style.display=s==='yt'?'':'none';document.getElementById('audio-file-wrap').style.display=s==='file'?'':'none';}
 function handleAudioFile(input){const f=input.files[0];if(!f)return;const r=new FileReader();r.onload=e=>{_audioData=e.target.result;document.getElementById('audio-file-preview').textContent='✓ '+f.name;};r.readAsDataURL(f);input.value='';}
-function submitSong(){const t=document.getElementById('ns-title').value.trim();if(!t){showToast('Falta el título');return;}const ei=parseInt(document.getElementById('add-song-form').dataset.ei);let youtubeId='',startAt=0,audioData='',endAt=0;if(_audioSrc==='yt'){youtubeId=ytIdFromUrl(document.getElementById('ns-url').value.trim());startAt=parseInt(document.getElementById('ns-start').value)||0;endAt=parseInt(document.getElementById('ns-end').value)||0;}else{audioData=_audioData||'';startAt=parseInt(document.getElementById('ns-start-local').value)||0;endAt=parseInt(document.getElementById('ns-end-local').value)||0;}const _pl=parseLyricsInput(document.getElementById('ns-lyrics').value);const lyrics=_pl.lyrics;const lyricTimes=_pl.lyricTimes;const card={id:isNaN(ei)?nextId++:deck[ei].id,type:'song',title:t,youtubeId,startAt,endAt:(endAt>startAt?endAt:0),audioData,lyrics,lyricTimes:lyricTimes||null,songMode:_songMode||'audio'};if(!isNaN(ei))deck[ei]=card;else deck.push(card);saveDeck();if(order.length!==deck.length){order=deck.map((_,i)=>i);cardIdx=0;saveOrder();renderCondCard();updateCount();}renderDeckList();hideAddForms();const _msg=isNaN(ei)?'Canción agregada ✓':'Actualizada ✓';showToast(lyricTimes?`${_msg} · 🎤 ${lyricTimes.length} tiempos LRC`:_msg);}
+function submitSong(){const t=document.getElementById('ns-title').value.trim();if(!t){showToast('Falta el título');return;}const ei=parseInt(document.getElementById('add-song-form').dataset.ei);let youtubeId='',startAt=0,audioData='',endAt=0;if(_audioSrc==='yt'){youtubeId=ytIdFromUrl(document.getElementById('ns-url').value.trim());startAt=parseInt(document.getElementById('ns-start').value)||0;endAt=parseInt(document.getElementById('ns-end').value)||0;}else{audioData=_audioData||'';startAt=parseInt(document.getElementById('ns-start-local').value)||0;endAt=parseInt(document.getElementById('ns-end-local').value)||0;}const _pl=parseLyricsInput(document.getElementById('ns-lyrics').value);const lyrics=_pl.lyrics;const lyricTimes=_pl.lyricTimes;const bonusQ=document.getElementById('ns-bonusq').value.trim();const correctRadio=document.querySelector('input[name="ns-bonus-correct"]:checked');const correctSlot=correctRadio?parseInt(correctRadio.value):-1;let bonusOptions=[],bonusCorrect=-1;[0,1,2,3].forEach(slot=>{const v=document.getElementById('ns-bonus-opt'+slot).value.trim();if(v){if(slot===correctSlot)bonusCorrect=bonusOptions.length;bonusOptions.push(v);}});const card={id:isNaN(ei)?nextId++:deck[ei].id,type:'song',title:t,youtubeId,startAt,endAt:(endAt>startAt?endAt:0),audioData,lyrics,lyricTimes:lyricTimes||null,songMode:_songMode||'audio',bonusQ,bonusOptions,bonusCorrect};if(!isNaN(ei))deck[ei]=card;else deck.push(card);saveDeck();if(order.length!==deck.length){order=deck.map((_,i)=>i);cardIdx=0;saveOrder();renderCondCard();updateCount();}renderDeckList();hideAddForms();const _msg=isNaN(ei)?'Canción agregada ✓':'Actualizada ✓';showToast(lyricTimes?`${_msg} · 🎤 ${lyricTimes.length} tiempos LRC`:_msg);}
 function ytIdFromUrl(url){if(!url)return'';url=url.trim();const m=url.match(/(?:v=|youtu\.be\/|embed\/|shorts\/)([A-Za-z0-9_-]{11})/);return m?m[1]:(url.length===11?url:'');}
 
 // ─── NAME EDITOR ─────────────────────────────────────────────────
