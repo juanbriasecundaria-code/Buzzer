@@ -497,23 +497,88 @@ body.is-participant .cad-bg-scrim { display: block; }
   .gate-hint { font-size: 11px; color: var(--muted); line-height: 1.4; margin-top: 0.3rem; }
 
   /* ── VISTA PARTICIPANTES (TV) ── */
-  #participant-root { position: fixed; inset: 0; z-index: 80; display: none; flex-direction: column; align-items: center; justify-content: flex-start; gap: 0.9rem; overflow-y: auto; background: var(--bg);
-    padding: max(1.5rem, env(safe-area-inset-top)) 1.5rem max(1.5rem, env(safe-area-inset-bottom)); }
+  #participant-root {
+    position: fixed; inset: 0; z-index: 80; display: none; flex-direction: column; align-items: center; justify-content: flex-start; gap: 0.9rem; overflow-y: auto;
+    background:
+      radial-gradient(120% 55% at 50% -8%, rgba(200,240,96,0.11), transparent 55%),
+      radial-gradient(90% 45% at 50% 105%, rgba(245,200,66,0.07), transparent 60%),
+      var(--bg);
+    padding: max(1.5rem, env(safe-area-inset-top)) 1.5rem max(1.5rem, env(safe-area-inset-bottom));
+  }
   body.is-participant #participant-root { display: flex; }
   body.is-participant #main-screen { display: none; }
-  .p-wrap { width: 100%; max-width: 780px; display: flex; flex-direction: column; align-items: center; gap: 0.9rem; }
-  .p-wrap .round-score { max-width: 780px; }
-  .p-wrap .rs-name { font-size: 14px; } .p-wrap .rs-score { font-size: 2rem; } .p-wrap .pot-value { font-size: 2.4rem; }
-  .p-question { width: 100%; font-size: clamp(1.4rem, 4vw, 2.3rem); font-weight: 800; letter-spacing: -0.02em; line-height: 1.15; text-align: center; background: var(--surface2); border: 1.5px solid var(--border2); border-radius: var(--radius); padding: 1.1rem 1.3rem; }
-  .p-status { font-size: clamp(1rem, 2.6vw, 1.5rem); font-weight: 800; color: var(--gold); text-align: center; }
-  .p-status.red { color: var(--red); } .p-status.blue { color: var(--blue); }
-  .p-board { width: 100%; display: flex; flex-direction: column; gap: 0.5rem; }
-  .p-board .feud-slot { min-height: 62px; }
+  .p-wrap { width: 100%; max-width: 840px; display: flex; flex-direction: column; align-items: center; gap: 1.15rem; }
+
+  /* Marcador + pozo */
+  .p-wrap .round-score { max-width: 840px; gap: 0.9rem; align-items: stretch; }
+  .p-wrap .rs-team {
+    position: relative; overflow: hidden; padding: 0.95rem 0.7rem; border-radius: 18px;
+    background: linear-gradient(180deg, var(--surface2), var(--surface)); border: 1.5px solid var(--border2);
+    box-shadow: 0 10px 24px -14px rgba(0,0,0,0.7);
+  }
+  .p-wrap .rs-team::before { content: ''; position: absolute; top: 0; left: 12%; right: 12%; height: 3px; border-radius: 0 0 6px 6px; background: var(--border2); }
+  .p-wrap .rs-team.rs-a::before { background: linear-gradient(90deg, transparent, var(--blue), transparent); }
+  .p-wrap .rs-team.rs-b::before { background: linear-gradient(90deg, transparent, var(--gold), transparent); }
+  .p-wrap .rs-team.in-control { box-shadow: 0 0 0 2px currentColor inset, 0 8px 26px -10px currentColor; }
+  .p-wrap .rs-name { font-size: 14px; letter-spacing: 0.01em; }
+  .p-wrap .rs-score { font-size: 2.3rem; text-shadow: 0 2px 20px rgba(255,255,255,0.08); }
+  .p-wrap .pot-box {
+    flex: 0 0 130px; aspect-ratio: 1; border-radius: 50%; padding: 0; gap: 0.05rem; border: none;
+    background: radial-gradient(circle at 34% 28%, #fff3cf, var(--gold) 48%, #a87c22 100%);
+    box-shadow: 0 0 0 5px rgba(245,200,66,0.14), 0 10px 26px -8px rgba(245,200,66,0.55);
+  }
+  .p-wrap .pot-label { color: #4a3410; opacity: 0.8; }
+  .p-wrap .pot-value { color: #201406; font-size: 2.5rem; text-shadow: 0 1px 0 rgba(255,255,255,0.4); }
+  .p-wrap .pot-mult-badge { font-size: 9px; font-weight: 800; color: #4a3410; opacity: 0.85; }
+
+  /* Pregunta */
+  .p-question {
+    width: 100%; font-size: clamp(1.4rem, 4vw, 2.3rem); font-weight: 800; letter-spacing: -0.02em; line-height: 1.15; text-align: center;
+    background: linear-gradient(180deg, var(--surface2), var(--surface)); border: 1.5px solid var(--border2); border-radius: 20px;
+    padding: 1.3rem 1.6rem; position: relative; box-shadow: 0 14px 30px -18px rgba(0,0,0,0.8);
+  }
+  .p-question::before {
+    content: ''; position: absolute; left: 50%; top: 0; transform: translate(-50%, -50%); width: 68px; height: 4px; border-radius: 99px;
+    background: linear-gradient(90deg, var(--accent), var(--gold));
+  }
+
+  /* Estado / duelo */
+  .p-status {
+    font-size: clamp(1rem, 2.6vw, 1.5rem); font-weight: 800; color: var(--gold); text-align: center;
+    padding: 0.55rem 1.3rem; border-radius: 99px; background: var(--gold-dim); border: 1.5px solid rgba(245,200,66,0.35);
+    display: inline-flex; align-items: center; gap: 0.5rem;
+  }
+  .p-status.red { color: var(--red); background: var(--red-dim); border-color: rgba(255,95,95,0.35); }
+  .p-status.blue { color: var(--blue); background: var(--blue-dim); border-color: rgba(96,180,240,0.35); }
+
+  /* Tablero de respuestas */
+  .p-board { width: 100%; display: flex; flex-direction: column; gap: 0.65rem; }
+  .p-board .feud-slot {
+    min-height: 70px; border-radius: 17px; padding: 0.7rem 1.05rem; gap: 1rem;
+    background: linear-gradient(180deg, var(--surface2), var(--surface)); border: 1.5px solid var(--border2);
+    box-shadow: 0 8px 18px -14px rgba(0,0,0,0.8);
+  }
+  .p-board .feud-slot.revealed { box-shadow: 0 8px 22px -12px rgba(255,255,255,0.06); }
+  .p-board .slot-rank {
+    width: 44px; height: 44px; font-size: 18px;
+    background: linear-gradient(160deg, #eeffbb, var(--accent) 55%, #96c637);
+    box-shadow: 0 0 0 3px rgba(200,240,96,0.15), 0 6px 14px -5px rgba(200,240,96,0.55);
+  }
   .p-board .slot-text { font-size: clamp(1.05rem, 2.4vw, 1.45rem); }
-  .p-board .slot-pts { min-width: 56px; height: 46px; font-size: 23px; }
-  .p-board .slot-rank { width: 38px; height: 38px; font-size: 17px; }
+  .p-board .slot-pts { min-width: 62px; height: 50px; font-size: 24px; border-radius: 13px; }
   .p-board .slot-pts-hidden { color: var(--muted); }
-  .p-title { display: flex; flex-direction: column; align-items: center; line-height: 0.9; font-weight: 800; text-transform: uppercase; }
+  .slot-hidden-tiles { display: inline-flex; gap: 5px; }
+  .slot-hidden-tiles i {
+    display: block; width: 24px; height: 11px; border-radius: 4px; font-style: normal;
+    background: linear-gradient(90deg, var(--border2), var(--surface2), var(--border2)); background-size: 220% 100%;
+    animation: tileShimmer 1.9s ease-in-out infinite;
+  }
+  .slot-hidden-tiles i:nth-child(2) { animation-delay: 0.15s; }
+  .slot-hidden-tiles i:nth-child(3) { animation-delay: 0.3s; }
+  .slot-hidden-tiles i:nth-child(4) { animation-delay: 0.45s; }
+  @keyframes tileShimmer { 0%, 100% { background-position: 0% 50%; opacity: 0.55; } 50% { background-position: 100% 50%; opacity: 1; } }
+
+  .p-title { display: flex; flex-direction: column; align-items: center; line-height: 0.9; font-weight: 800; text-transform: uppercase; filter: drop-shadow(0 8px 24px rgba(200,240,96,0.16)); }
   .p-title .pt-1 { font-size: clamp(3rem, 14vw, 5rem); background: linear-gradient(105deg, var(--accent), #eaffa0 40%, var(--gold)); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
   .p-title .pt-2 { font-size: clamp(1.3rem, 6vw, 2rem); -webkit-text-fill-color: transparent; -webkit-text-stroke: 1.2px var(--gold); letter-spacing: 0.04em; }
   .p-wait-msg { font-size: clamp(1rem, 2.6vw, 1.4rem); color: var(--muted); margin-top: 1.2rem; font-weight: 700; }
@@ -2765,7 +2830,7 @@ function pSlots(r) {
   return r.ans.map((a, i) => {
     const rev = a.rev, owner = a.owner;
     const teamCls = rev ? (owner === 'a' ? ' team-a' : owner === 'b' ? ' team-b' : ' team-none') : '';
-    const body = rev ? `<span class="slot-text">${escapeHtml(a.t)}</span>` : `<span class="slot-text slot-hidden-dots">▦ ▦ ▦ ▦</span>`;
+    const body = rev ? `<span class="slot-text">${escapeHtml(a.t)}</span>` : `<span class="slot-hidden-tiles"><i></i><i></i><i></i><i></i></span>`;
     const pts = rev ? `<span class="slot-pts">${a.v}</span>` : `<span class="slot-pts slot-pts-hidden">?</span>`;
     return `<div class="feud-slot${rev ? ' revealed' : ''}${teamCls} locked"><span class="slot-rank">${i + 1}</span><span class="slot-body">${body}</span>${pts}</div>`;
   }).join('');
