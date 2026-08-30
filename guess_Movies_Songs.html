@@ -104,8 +104,13 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
     linear-gradient(to bottom, rgba(10,10,14,.7) 0%, transparent 18%, transparent 82%, rgba(10,10,14,.7) 100%);
 }
 .carousel-col{position:absolute;top:0;display:flex;flex-direction:column;gap:8px;will-change:transform}
-.carousel-poster{width:100%;border-radius:7px;object-fit:cover;flex-shrink:0;opacity:0;filter:saturate(.75) brightness(.9);transition:opacity .5s}
+.carousel-poster{width:100%;border-radius:7px;object-fit:cover;flex-shrink:0;opacity:0;filter:saturate(.75) brightness(.9);transition:opacity .5s;
+  /* La baldosa ya trae fondo propio: mientras carga (o si fallara) se ve un
+     bloque tenue en vez de un hueco vacío en el mosaico. */
+  background:linear-gradient(150deg,rgba(255,255,255,.055),rgba(255,255,255,.018) 55%,rgba(255,255,255,.045));
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.03)}
 .carousel-poster.loaded{opacity:.6}
+.carousel-poster.is-blank{opacity:.32}
 /* mini title inside mode-gate */
 .gate-title-mini{display:flex;flex-direction:column;align-items:center;gap:.5rem;margin-bottom:.25rem}
 .gtm-stack{display:flex;align-items:center;gap:clamp(10px,3vw,16px)}
@@ -2982,7 +2987,24 @@ function saveNames(){nameA=document.getElementById('ni-a').value.trim()||'Equipo
   const fallbackPool = shuffle([...FALLBACK_EXTRA, ...POSTERS]);
   let fallbackIdx = 0;
 
+  // ── Auto-reparación del mosaico ───────────────────────────────────
+  // Antes, si una URL fallaba se ocultaba la imagen y quedaba un hueco vacío
+  // de 150px en la columna. Ahora llevamos registro de los pósters que sí
+  // cargaron y reemplazamos al vuelo cualquiera que falle, así el mosaico
+  // queda siempre completo y sin demorar la aparición del fondo.
+  const workingPosters = [];
+  let workingIdx = 0;
+
+  function pickWorking(){
+    if(!workingPosters.length) return null;
+    return workingPosters[(workingIdx++) % workingPosters.length];
+  }
+
   function initCarousel(bg){
+    buildCarousel(bg, [...POSTERS, ...FALLBACK_EXTRA]);
+  }
+
+  function buildCarousel(bg, POSTERS){
     if(!bg) return;
 
     const POSTER_W = 100;
@@ -3030,19 +3052,31 @@ function saveNames(){nameA=document.getElementById('ni-a').value.trim()||'Equipo
           const img = document.createElement('img');
           img.className = 'carousel-poster';
           img.style.height = POSTER_H + 'px';
-          img.loading = 'lazy';
+          img.decoding = 'async';
+          // Si aun así alguna fallara, se muestra la baldosa de relleno en vez
+          // de ocultarse: el mosaico nunca queda con un agujero.
+          img.dataset.tries = '0';
           img.onerror = function(){
-            const nxt = fallbackPool[fallbackIdx % fallbackPool.length];
-            fallbackIdx++;
-            if(nxt === this.src.replace(BASE,'')) {
-              // misma imagen, saltear
-              fallbackIdx++;
+            const tries = parseInt(this.dataset.tries || '0', 10);
+            const alt = tries < 4 ? pickWorking() : null;
+            if(alt){
+              this.dataset.tries = String(tries + 1);
+              this.src = BASE + alt;   // se reemplaza por uno que sí carga
+            } else {
+              // Último recurso: baldosa tenue, nunca un hueco vacío
+              this.onerror = null;
+              this.removeAttribute('src');
+              this.classList.add('is-blank', 'loaded');
             }
-            this.onerror = function(){ this.style.visibility='hidden'; }; // si el fallback también falla
-            this.src = BASE + fallbackPool[fallbackIdx % fallbackPool.length];
-            fallbackIdx++;
           };
-          img.onload = function(){ this.classList.add('loaded'); };
+          img.onload = function(){
+            this.classList.add('loaded');
+            const p = this.getAttribute('src');
+            if(p){
+              const path = p.replace(BASE, '');
+              if(workingPosters.indexOf(path) === -1) workingPosters.push(path);
+            }
+          };
           img.src = BASE + colPosters[r];
           col.appendChild(img);
         }
