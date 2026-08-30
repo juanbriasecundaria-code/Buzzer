@@ -353,22 +353,26 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
 .song-reveal-icon{font-size:clamp(60px,10vw,140px);line-height:1}
 .song-reveal-title{font-size:clamp(1.6rem,5vw,3.5rem);font-weight:900;color:var(--gold);text-align:center;letter-spacing:-.02em;padding:0 1rem}
 /* ── Modos de letra (Guess Song visual) ── */
-.part-lyrics-wrap{display:flex;flex-direction:column;align-items:center;gap:1rem;width:100%;flex:1 1 auto;min-height:0;justify-content:center;position:relative}
-.part-lyrics{display:flex;flex-direction:column;gap:.5rem;width:min(88vw,880px);max-height:64vh;overflow:auto;padding:.5rem .25rem;text-align:center;scrollbar-width:thin}
-.part-lyric-line{font-size:clamp(1.05rem,2.7vw,2rem);font-weight:800;line-height:1.28;color:var(--text);opacity:.92;transition:opacity .45s cubic-bezier(.22,1,.36,1),color .45s,transform .45s;letter-spacing:-.01em;white-space:pre-wrap}
+.part-lyrics-wrap{display:flex;flex-direction:column;align-items:center;gap:1.1rem;width:100%;flex:1 1 auto;min-height:0;justify-content:center;position:relative}
+.part-lyrics{display:flex;flex-direction:column;gap:.65rem;width:min(88vw,880px);max-height:64vh;overflow-y:auto;overflow-x:hidden;padding:1rem .35rem;text-align:center;scrollbar-width:none;-ms-overflow-style:none;-webkit-mask-image:linear-gradient(to bottom,transparent 0,#000 10%,#000 90%,transparent 100%);mask-image:linear-gradient(to bottom,transparent 0,#000 10%,#000 90%,transparent 100%)}
+.part-lyrics::-webkit-scrollbar{width:0;height:0;background:transparent}
+.part-lyric-line{font-size:clamp(1.05rem,2.7vw,2rem);font-weight:800;line-height:1.3;color:var(--text);opacity:.92;transition:opacity .5s cubic-bezier(.22,1,.36,1),color .5s,font-size .35s cubic-bezier(.22,1,.36,1),text-shadow .35s;letter-spacing:-.01em;white-space:pre-wrap;padding:0 .4rem}
 .part-lyric-line.line-in{animation:revealIn .45s cubic-bezier(.22,1,.36,1)}
-.part-lyrics.karaoke .part-lyric-line{opacity:.4}
-.part-lyrics.karaoke .part-lyric-line.active{opacity:1;transform:scale(1.05)}
+.part-lyrics.karaoke .part-lyric-line{opacity:.3}
+.part-lyrics.karaoke .part-lyric-line.active{opacity:1;font-size:calc(clamp(1.05rem,2.7vw,2rem) * 1.08);text-shadow:0 0 22px rgba(200,240,96,.4)}
+.part-lyrics.karaoke .part-lyric-line.active+.part-lyric-line{opacity:.55}
+.part-lyrics.karaoke .part-lyric-line:has(+.part-lyric-line.active){opacity:.55}
 .klyr-wrap{position:relative;display:inline-block;max-width:100%}
 .klyr-base{color:var(--text)}
-.klyr-fill{position:absolute;left:0;top:0;width:100%;height:100%;color:var(--accent);text-shadow:0 2px 22px rgba(200,240,96,.5);clip-path:inset(0 100% 0 0);pointer-events:none;white-space:pre-wrap}
+.klyr-fill{position:absolute;left:0;top:0;width:100%;height:100%;color:var(--accent);text-shadow:0 2px 26px rgba(200,240,96,.65);clip-path:inset(0 100% 0 0);pointer-events:none;white-space:pre-wrap}
 .tapsync-line{padding:.35rem .5rem;border-radius:8px;font-size:13px;color:var(--muted);transition:background .2s,color .2s}
 .tapsync-line.cur{background:var(--purple-dim);color:var(--purple);font-weight:800}
 .tapsync-line.done{color:var(--accent)}
 .part-lyric-line.is-hidden{visibility:hidden}
 .part-lyric-gap{width:100%;height:.9em}
 .part-lyric-blank{display:inline-block;min-width:2.2em;border-bottom:3px solid var(--purple);margin:0 .12em;vertical-align:bottom;height:.9em;border-radius:2px}
-.part-lyrics-tag{font-size:clamp(11px,1.6vw,18px);font-weight:800;color:var(--muted);letter-spacing:.12em;text-transform:uppercase;display:flex;align-items:center;gap:.4rem}
+.part-lyrics-tag{font-size:clamp(11px,1.6vw,15px);font-weight:800;color:var(--accent);letter-spacing:.14em;text-transform:uppercase;display:inline-flex;align-items:center;gap:.5rem;padding:.55rem 1.2rem;border-radius:99px;background:rgba(200,240,96,.08);border:1px solid rgba(200,240,96,.25);box-shadow:0 0 26px rgba(200,240,96,.1);animation:tagPulse 2.4s ease-in-out infinite}
+@keyframes tagPulse{0%,100%{opacity:.82}50%{opacity:1}}
 .part-lyrics-yt-hidden{position:absolute;width:1px;height:1px;opacity:0;pointer-events:none;overflow:hidden;left:-9999px}
 .part-bonus-ov{position:fixed;inset:0;z-index:60;display:none;flex-direction:column;align-items:center;justify-content:center;gap:1.1rem;padding:2.2rem 1.4rem;background:rgba(8,8,12,.62);-webkit-backdrop-filter:blur(22px) saturate(1.1);backdrop-filter:blur(22px) saturate(1.1)}
 .part-bonus-ov.show{display:flex;animation:pboIn .35s cubic-bezier(.22,1,.36,1)}
@@ -1745,7 +1749,7 @@ function renderCondCard(){
   wrap.innerHTML=`<div class="cond-card-top">${tb}${nb}${smBadge}</div>${inner}<div class="cond-card-title">${esc(c.title)}</div>${bonusHtml}`;
   wrap.className='cond-card';
   if(c.id!==_lastGridCardId){gridRevealed=(c.type==='movie'&&c.revealMode==='grid')?Array(9).fill(false):[];_lastGridCardId=c.id;}
-  if(c.id!==_lastLyricCardId){lyricLine=0;_lastLyricCardId=c.id;stopKaraokeSync();}
+  if(c.id!==_lastLyricCardId){lyricLine=(c.type==='song'&&(c.songMode||'audio')==='karaoke')?-1:0;_lastLyricCardId=c.id;stopKaraokeSync();}
   if(c.id!==_lastFrameCardId){frameIdx=0;revealProgress=0;_lastFrameCardId=c.id;stopMovieAuto();}
   if(c.id!==_lastEmojiCardId){emojiStep=1;_lastEmojiCardId=c.id;}
   syncGridHintUI();
@@ -1760,10 +1764,10 @@ function renderCondCard(){
 }
 function doCondPlay(){const c=currentCard();if(!c||!c.youtubeId)return;condPlay(c);broadcast({type:'yt_play',youtubeId:c.youtubeId,startAt:c.startAt||0});maybeStartKaraokeSync();}
 function doCondStop(){condPause();broadcast({type:'yt_pause'});stopKaraokeSync();}
-function doCondRestart(){const c=currentCard();if(!c||!c.youtubeId)return;condRestart(c);broadcast({type:'yt_restart',youtubeId:c.youtubeId,startAt:c.startAt||0});lyricLine=0;maybeStartKaraokeSync();}
+function doCondRestart(){const c=currentCard();if(!c||!c.youtubeId)return;condRestart(c);broadcast({type:'yt_restart',youtubeId:c.youtubeId,startAt:c.startAt||0});lyricLine=((c.songMode||'audio')==='karaoke')?-1:0;maybeStartKaraokeSync();}
 function doCondPlayLocal(){const au=document.getElementById('local-audio-cond');if(au){au.play();broadcast({type:'local_play',startAt:currentCard()?.startAt||0});}maybeStartKaraokeSync();}
 function doCondStopLocal(){const au=document.getElementById('local-audio-cond');if(au){au.pause();}broadcast({type:'local_stop'});stopKaraokeSync();}
-function doCondRestartLocal(){const au=document.getElementById('local-audio-cond');if(au){au.currentTime=currentCard()?.startAt||0;au.play();}broadcast({type:'local_play',startAt:currentCard()?.startAt||0});lyricLine=0;maybeStartKaraokeSync();}
+function doCondRestartLocal(){const c=currentCard();const au=document.getElementById('local-audio-cond');if(au){au.currentTime=c?.startAt||0;au.play();}broadcast({type:'local_play',startAt:c?.startAt||0});lyricLine=(c&&(c.songMode||'audio')==='karaoke')?-1:0;maybeStartKaraokeSync();}
 // "Cortar en": si la carta tiene endAt, el audio local se para solo ahí (antes solo se guardaba, no hacía nada).
 function _bindLocalAudioEndAt(au,c){
   if(!au||au._endAtBound)return;au._endAtBound=true;
@@ -2032,6 +2036,12 @@ function karaokeActiveLine(){
   if(!clk)return null;
   const timings=karaokeLineTimings(c,clk.dur);
   if(!timings.length)return null;
+  if(clk.t<timings[0].start){
+    // Todavía no arrancó la letra (hay melodía/intro antes): no marcamos ninguna
+    // línea activa para que el resaltado verde no aparezca ni titile de más.
+    lyricFrac=0;lyricRemain=Math.max(0,timings[0].start-clk.t);
+    return -1;
+  }
   let idx=0;
   for(let i=0;i<timings.length;i++){if(clk.t>=timings[i].start)idx=i;}
   idx=Math.min(idx,lines.length-1);
