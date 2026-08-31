@@ -12536,7 +12536,10 @@ function openMotesRevealWindow() {
     document.getElementById('env-front-face').classList.add('env-hidden');
     document.getElementById('env-back-content').classList.remove('env-hidden');
     const btn = document.getElementById('next-btn');
-    btn.style.opacity = '1'; btn.style.pointerEvents = '';
+    // OJO: pointerEvents = '' NO alcanza acá — vuelve a heredar el
+    // "pointer-events:none" de la hoja de estilos base y el botón queda
+    // visible pero sin poder clickearse. Hay que forzar 'auto'.
+    btn.style.opacity = '1'; btn.style.pointerEvents = 'auto';
   }
 
   function nextMote() {
