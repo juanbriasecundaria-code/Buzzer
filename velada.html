@@ -10833,6 +10833,7 @@ const CREDITS_MUSIC = {
   crossfadeMs:  2600,  // crossfade real largo (2.6s) entre groove y mama-say — bien suave
 };
 const CREDITS_FAST_SPEED = 95; // px/seg si no hay música (más rápido que antes)
+const CREDITS_SPEED_FACTOR = 0.82; // <1 = créditos más lentos (ajustá acá la velocidad general)
 
 // --- MÚSICA DE LAS PRESENTACIONES ------------------------------------------
 // Igual que los créditos: poné tus MP3 al lado del HTML con estos nombres.
@@ -11177,9 +11178,9 @@ function rollCredits() {
     const win = Math.max(8, endAt - pos);            // segundos que quedan de groove
     // el groove guard se libera: a partir de acá el scroll define el final
     if (_grooveGuard) { clearInterval(_grooveGuard); _grooveGuard = null; }
-    startRoll(travel() / win);
+    startRoll((travel() / win) * CREDITS_SPEED_FACTOR);
   } else {
-    startRoll(CREDITS_FAST_SPEED);
+    startRoll(CREDITS_FAST_SPEED * CREDITS_SPEED_FACTOR);
   }
 }
 
