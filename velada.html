@@ -14416,12 +14416,18 @@ function tvShowRuleta(payload) {
     const extraSpins = 5;
     const rot = targetMod + 360 * extraSpins;
 
-    // Fuerza reflow para que el navegador registre transition:none antes
-    // de volver a habilitar la transición; si no, a veces "salta" directo
-    // al ángulo final sin animar.
-    void svg.offsetWidth;
-    svg.style.transition = 'transform ' + (TV_RULETA_SPIN_MS / 1000) + 's cubic-bezier(0.13,0.85,0.18,1)';
-    svg.style.transform = 'rotate(' + rot + 'deg)';
+    // Como todo esto pasa en el mismo instante (el giro llega por mensaje,
+    // no por un clic del usuario), el navegador puede agrupar el "volver a
+    // 0" y el "animar al resultado" en un solo frame y saltar directo al
+    // final sin mostrar el giro. Forzamos dos vueltas de rAF (más
+    // confiable que leer offsetWidth en un <svg>) para garantizar que el
+    // ángulo 0 se pinte antes de arrancar la animación.
+    requestAnimationFrame(function () {
+      requestAnimationFrame(function () {
+        svg.style.transition = 'transform ' + (TV_RULETA_SPIN_MS / 1000) + 's cubic-bezier(0.13,0.85,0.18,1)';
+        svg.style.transform = 'rotate(' + rot + 'deg)';
+      });
+    });
 
     setTimeout(function () {
       nameEl.textContent = String(roster[idx]).split(' ')[0];
