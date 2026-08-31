@@ -10456,7 +10456,7 @@ function renderFinal() {
     <div class="card" id="motes-card">
       <div style="font-size:15px;font-weight:600;margin-bottom:0.25rem"><span class="dot-indicator final"></span>Motes de la noche</div>
       <div style="font-size:12px;color:var(--muted);margin-bottom:1rem">Títulos ganados esta noche. Algunos son un honor. Otros, no tanto.</div>
-      <button id="motes-reveal-btn" onclick="startMotesReveal()" style="width:100%;padding:1rem;border-radius:var(--radius);border:1.5px dashed var(--gold);background:var(--gold-dim);color:var(--gold);cursor:pointer;font-size:14px;font-weight:700;letter-spacing:-0.01em;display:flex;align-items:center;justify-content:center;gap:0.5rem">
+      <button id="motes-reveal-btn" onclick="openMotesRevealWindow()" style="width:100%;padding:1rem;border-radius:var(--radius);border:1.5px dashed var(--gold);background:var(--gold-dim);color:var(--gold);cursor:pointer;font-size:14px;font-weight:700;letter-spacing:-0.01em;display:flex;align-items:center;justify-content:center;gap:0.5rem">
         ✉️ Revelar motes uno por uno
       </button>
       <div id="motes-list" style="display:none">${motes.map((m,i) => `
@@ -12228,6 +12228,209 @@ function finishMotesReveal() {
   if (btn)  btn.style.display = 'none';
   if (list) list.style.display = '';
   broadcastMote({ type: 'close' });
+}
+
+// ============================================================
+// REVELAR MOTES EN PESTAÑA APARTE (independiente del Modo TV)
+// ------------------------------------------------------------
+// El Modo TV depende de postMessage/BroadcastChannel (misma
+// compu/navegador) y esos canales no llegan a otro dispositivo,
+// así que el mote nunca aparecía ahí. Esta función abre una
+// pestaña nueva y autocontenida (con todos los motes ya adentro,
+// sin depender de sync en vivo) para revelar uno por uno en
+// pantalla completa, ideal para proyectar o mostrar en la TV.
+function openMotesRevealWindow() {
+  const motes = window._motesData || (typeof computeMotes === 'function' ? computeMotes() : []);
+  if (!motes || motes.length === 0) return;
+
+  const motesJson = JSON.stringify(motes);
+
+  const html = `<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>✉️ Motes de la noche — La Velada del Año</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700;900&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #0a0a0e;
+    --surface: #14141c;
+    --border2: rgba(255,255,255,0.14);
+    --text: #f0efe8;
+    --muted: #8a8a95;
+    --accent: #c8f060;
+    --gold: #f5c842;
+    --gold-dim: rgba(245,200,66,0.14);
+    --info: #60b4f0;
+    --danger: #ff5f5f;
+    --radius: 16px;
+    --font-body: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    --font-display: 'Space Grotesk', -apple-system, sans-serif;
+  }
+  html, body { width: 100%; height: 100%; }
+  body {
+    font-family: var(--font-body);
+    background: var(--bg);
+    color: var(--text);
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    text-align: center;
+    min-height: 100vh;
+    padding: 4vh 4vw;
+    position: relative;
+    overflow: hidden;
+  }
+  #fs-btn {
+    position: absolute; top: 1.5rem; right: 1.5rem;
+    background: var(--surface); border: 1.5px solid var(--border2); color: var(--muted);
+    font-size: clamp(12px,1.4vw,15px); font-weight: 700; padding: 0.6rem 1.1rem;
+    border-radius: var(--radius); cursor: pointer; letter-spacing: 0.03em;
+  }
+  #fs-btn:hover { border-color: var(--gold); color: var(--gold); }
+  #progress { position:absolute; top:1.5rem; left:1.5rem; font-size:clamp(12px,1.4vw,16px); font-weight:700; letter-spacing:.1em; text-transform:uppercase; color:var(--muted); }
+  #env-wrap { cursor:pointer; width:min(46vw,560px); height:min(32vw,380px); margin-bottom:3rem; }
+  #envelope { width:100%; height:100%; position:relative; }
+  .env-front, .env-back {
+    position:absolute; inset:0; border-radius: 24px;
+    display:flex; flex-direction:column; align-items:center; justify-content:center; gap:1.2rem;
+    transition: opacity .4s ease, transform .4s ease;
+  }
+  .env-front {
+    background: var(--surface); border: 2px solid var(--gold);
+    box-shadow: 0 0 60px rgba(245,200,66,0.22), inset 0 1px 0 rgba(255,255,255,0.06);
+    animation: pulse 2s ease-in-out infinite;
+  }
+  @keyframes pulse { 0%,100%{box-shadow:0 0 60px rgba(245,200,66,.22);} 50%{box-shadow:0 0 100px rgba(245,200,66,.5);} }
+  .env-icon { font-size: clamp(56px,7vw,88px); }
+  .env-label { font-family: var(--font-display); font-size: clamp(18px,2.4vw,28px); font-weight:800; letter-spacing:.06em; text-transform:uppercase; color: var(--gold); }
+  .env-hint { font-size: clamp(13px,1.6vw,17px); color: var(--muted); }
+  .env-back {
+    background: var(--surface); border: 2px solid var(--border2); padding: 2rem 2.5rem;
+    opacity:0; transform: scale(.9); pointer-events:none;
+  }
+  #envelope.flipped .env-front { opacity:0; transform:scale(.9); pointer-events:none; }
+  #envelope.flipped .env-back  { opacity:1; transform:scale(1); pointer-events:auto; }
+  .reveal-type { font-size: clamp(13px,1.6vw,17px); font-weight:800; letter-spacing:.14em; text-transform:uppercase; margin-bottom:.5rem; }
+  .reveal-type.honor { color: var(--gold); }
+  .reveal-type.shame { color: var(--danger); }
+  .reveal-type.neutral { color: var(--info); }
+  .reveal-type.impostor { color: var(--accent); }
+  .reveal-emoji { font-size: clamp(64px,8vw,100px); line-height:1; margin-bottom:.5rem; }
+  .reveal-title { font-family: var(--font-display); font-size: clamp(22px,3vw,36px); font-weight:800; letter-spacing:-.01em; margin-bottom:1rem; }
+  .reveal-player { font-family: var(--font-display); font-size: clamp(34px,5vw,58px); font-weight:900; color: var(--gold); margin-bottom:.6rem; }
+  .reveal-player.shame { color: var(--danger); }
+  .reveal-player.neutral { color: var(--info); }
+  .reveal-player.impostor { color: var(--accent); }
+  .reveal-reason { font-size: clamp(14px,1.8vw,19px); color: var(--muted); max-width: 640px; line-height:1.5; }
+  #next-btn {
+    padding: 1rem 3rem; border-radius: var(--radius); border: 2px solid var(--border2);
+    background: var(--surface); color: var(--text); font-size: clamp(15px,1.8vw,19px); font-weight:800;
+    cursor:pointer; opacity:0; pointer-events:none; transition: opacity .3s, border-color .15s, background .15s;
+  }
+  #next-btn:hover { border-color: var(--gold); background: var(--gold-dim); color: var(--gold); }
+  #next-btn.done { border-color: var(--gold); background: var(--gold-dim); color: var(--gold); }
+  #skip-btn {
+    position:absolute; bottom:1.5rem; right:1.5rem; background:none; border:none;
+    color: var(--muted); font-size: clamp(12px,1.4vw,15px); font-weight:700; cursor:pointer;
+    letter-spacing:.05em; text-transform:uppercase;
+  }
+  #skip-btn:hover { color: var(--text); }
+  #done-screen { display:none; flex-direction:column; align-items:center; gap:1rem; }
+  #done-screen .big { font-family: var(--font-display); font-size: clamp(28px,4vw,44px); font-weight:900; color: var(--gold); }
+</style>
+</head>
+<body>
+  <div id="progress"></div>
+  <button id="fs-btn" onclick="toggleFS()">⛶ Pantalla completa</button>
+  <button id="skip-btn" onclick="skipAll()">Saltar todo</button>
+
+  <div id="reveal-screen">
+    <div id="env-wrap" onclick="flipEnvelope()">
+      <div id="envelope">
+        <div class="env-front">
+          <div class="env-icon">✉️</div>
+          <div class="env-label">Mote de la noche</div>
+          <div class="env-hint">Tocá para revelar</div>
+        </div>
+        <div class="env-back" id="env-back-content"></div>
+      </div>
+    </div>
+    <button id="next-btn" onclick="nextMote()">Siguiente →</button>
+  </div>
+
+  <div id="done-screen">
+    <div class="big">✉️ Eso es todo</div>
+    <div style="color:var(--muted);font-size:clamp(14px,1.6vw,18px)">Ya se revelaron todos los motes de la noche.</div>
+  </div>
+
+<script>
+  const MOTES = ${motesJson};
+  let idx = 0;
+  let flipped = false;
+
+  const typeLabel = t => t === 'honor' ? '🏆 Honor' : t === 'shame' ? '😬 Vergüenza' : t === 'impostor' ? '🕵️ Impostor' : '🎲 Especial';
+
+  function renderMote() {
+    const m = MOTES[idx];
+    document.getElementById('progress').textContent = (idx+1) + ' de ' + MOTES.length;
+    document.getElementById('envelope').classList.remove('flipped');
+    flipped = false;
+    document.getElementById('env-back-content').innerHTML = \`
+      <div class="reveal-type \${m.type}">\${typeLabel(m.type)}</div>
+      <div class="reveal-emoji">\${m.emoji}</div>
+      <div class="reveal-title">\${m.title}</div>
+      <div class="reveal-player \${m.type}">\${m.player}</div>
+      <div class="reveal-reason">\${m.reason}</div>
+    \`;
+    const btn = document.getElementById('next-btn');
+    btn.style.opacity = '0'; btn.style.pointerEvents = 'none';
+    btn.textContent = (idx === MOTES.length - 1) ? '✓ Terminar' : 'Siguiente →';
+    btn.classList.toggle('done', idx === MOTES.length - 1);
+  }
+
+  function flipEnvelope() {
+    if (flipped) return;
+    flipped = true;
+    document.getElementById('envelope').classList.add('flipped');
+    setTimeout(() => {
+      const btn = document.getElementById('next-btn');
+      btn.style.opacity = '1'; btn.style.pointerEvents = '';
+    }, 480);
+  }
+
+  function nextMote() {
+    idx++;
+    if (idx >= MOTES.length) { showDone(); return; }
+    renderMote();
+  }
+
+  function skipAll() { showDone(); }
+
+  function showDone() {
+    document.getElementById('reveal-screen').style.display = 'none';
+    document.getElementById('skip-btn').style.display = 'none';
+    document.getElementById('done-screen').style.display = 'flex';
+  }
+
+  function toggleFS() {
+    if (!document.fullscreenElement) document.documentElement.requestFullscreen().catch(()=>{});
+    else document.exitFullscreen();
+  }
+
+  renderMote();
+<\/script>
+</body>
+</html>`;
+
+  const win = window.open('', '_blank');
+  if (!win) { alert('Permitir popups para abrir los motes en otra pestaña'); return; }
+  win.document.open();
+  win.document.write(html);
+  win.document.close();
+  try { win.focus(); } catch(e) {}
 }
 
 
