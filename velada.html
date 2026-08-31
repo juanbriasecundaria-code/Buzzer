@@ -7023,6 +7023,15 @@ function broadcastRuleta(payload) {
   }
   if (window._bc) window._bc.postMessage({ key: 'ndj_ruleta', data: payload });
 }
+// misma idea que broadcastRuleta, pero para el revelado de motes de la
+// noche: la TV muestra el mismo sobre difuminando/oscureciendo el resto
+// de la pantalla para que los participantes se concentren en el mote.
+function broadcastMote(payload) {
+  if (window._tvWin && !window._tvWin.closed) {
+    try { window._tvWin.postMessage({ type: 'ndj_mote', data: payload }, '*'); } catch(e) {}
+  }
+  if (window._bc) window._bc.postMessage({ key: 'ndj_mote', data: payload });
+}
 function spinRuleta() {
   if (_ruletaBusy) return;
   _ruletaBusy = true;
@@ -12175,6 +12184,12 @@ function showMoteOverlay(motes, idx) {
   `;
   document.body.appendChild(overlay);
   _moteFlipped = false;
+  // Manda a la TV el mismo mote, todavía como sobre cerrado (sin el
+  // contenido revelado) para que arranque en el mismo estado que acá.
+  broadcastMote({
+    type: 'show', idx, total: motes.length,
+    mote: { type: m.type, emoji: m.emoji, title: m.title, player: m.player, reason: m.reason }
+  });
 }
 
 function handleMoteEnvelopeClick() {
@@ -12192,6 +12207,7 @@ function handleMoteEnvelopeClick() {
   setTimeout(() => {
     if (btn) { btn.style.opacity = '1'; btn.style.pointerEvents = ''; }
   }, 480);
+  broadcastMote({ type: 'flip' });
 }
 
 function handleMoteNext() {
@@ -12211,6 +12227,7 @@ function finishMotesReveal() {
   const list = document.getElementById('motes-list');
   if (btn)  btn.style.display = 'none';
   if (list) list.style.display = '';
+  broadcastMote({ type: 'close' });
 }
 
 
@@ -12290,7 +12307,7 @@ function openTVMode() {
     --font-body: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
     --font-display: 'Space Grotesk', 'Sora', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   }
-  html, body { width: 100%; height: 100%; overflow: hidden; }
+  html, body { width: 100%; height: 100%; overflow-x: hidden; overflow-y: auto; }
   body {
     font-family: var(--font-body);
     background: var(--bg);
@@ -12298,7 +12315,13 @@ function openTVMode() {
     display: flex;
     flex-direction: column;
     align-items: center;
-    justify-content: center;
+    /* Antes centraba todo verticalmente con overflow:hidden — cuando el
+       contenido no entraba en una sola pantalla (p.ej. fase con 10+
+       jugadores listados) el recorte se comía parejo el borde superior,
+       incluyendo el título. Ahora arranca siempre desde arriba (el título
+       nunca se corta) y si el contenido no entra, se puede hacer scroll
+       en vez de perderlo. */
+    justify-content: flex-start;
     min-height: 100vh;
     padding: 2vw;
     padding-bottom: calc(2vw + clamp(32px,4vh,48px));
@@ -13092,6 +13115,78 @@ function openTVMode() {
   .tv-ruleta-card.bad  .rc-kind{ color:var(--danger); }
   .tv-ruleta-card .rc-name{ font-size:clamp(16px,2vw,25px); font-weight:800; margin-top:0.35em; }
   .tv-ruleta-card .rc-desc{ font-size:clamp(12px,1.25vw,16px); color:var(--muted); margin-top:0.4em; line-height:1.45; }
+
+  /* ── MOTES DE LA NOCHE en el TV ── */
+  /* Mismo truco que la ruleta: el fondo (radial-gradient oscuro + blur)
+     va en el propio overlay, así difumina/oscurece todo lo que está
+     detrás sin tener que tocar el resto del DOM. */
+  .tv-mote-overlay{
+    position:fixed; inset:0; z-index:9100; display:none;
+    align-items:center; justify-content:center; flex-direction:column;
+    text-align:center; padding:2vh 2vw;
+    background:radial-gradient(circle at 50% 40%, rgba(30,26,10,0.94), rgba(4,4,7,0.97));
+    backdrop-filter:blur(11px); -webkit-backdrop-filter:blur(11px);
+  }
+  .tv-mote-overlay.open{ display:flex; }
+  .tv-mote-progress{
+    font-size:clamp(12px,1.3vw,17px); font-weight:900; letter-spacing:0.28em;
+    text-transform:uppercase; color:var(--gold); opacity:0.85;
+    margin-bottom:clamp(16px,2.6vh,32px);
+  }
+  .tv-mote-envelope-wrap{
+    position:relative; width:min(30vw,420px); height:min(20vw,280px);
+    margin-bottom:clamp(20px,2.8vh,36px);
+  }
+  .tv-mote-envelope{ width:100%; height:100%; position:relative; }
+  .tv-mote-env-front, .tv-mote-env-back{
+    position:absolute; inset:0; border-radius:18px;
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    gap:clamp(6px,1vh,12px);
+    transition:opacity 0.4s ease, transform 0.4s ease;
+  }
+  .tv-mote-env-front{
+    background:#14141c; border:2px solid var(--gold);
+    box-shadow:0 0 50px rgba(245,200,66,0.22), inset 0 1px 0 rgba(255,255,255,0.06);
+    opacity:1; transform:scale(1); z-index:2;
+    animation:tvEnvPulse 2s ease-in-out infinite;
+  }
+  .tv-mote-env-front::before{
+    content:''; position:absolute; top:0; left:0; right:0; height:50%;
+    background:linear-gradient(160deg, rgba(245,200,66,0.14), transparent);
+    border-radius:18px 18px 0 0; clip-path:polygon(0 0,100% 0,50% 58%);
+    border-bottom:2px solid var(--gold);
+  }
+  .tv-mote-env-icon{ font-size:clamp(34px,4.2vw,64px); position:relative; z-index:1; }
+  .tv-mote-env-label{
+    font-size:clamp(13px,1.5vw,20px); font-weight:800; letter-spacing:0.1em;
+    text-transform:uppercase; color:var(--gold); position:relative; z-index:1;
+  }
+  .tv-mote-env-back{
+    background:#14141c; border:2px solid var(--border2);
+    padding:clamp(14px,2vw,28px); opacity:0; transform:scale(0.92);
+    z-index:1; pointer-events:none;
+  }
+  .tv-mote-envelope.flipped .tv-mote-env-front{ opacity:0; transform:scale(0.92); z-index:1; animation:none; }
+  .tv-mote-envelope.flipped .tv-mote-env-back{ opacity:1; transform:scale(1); z-index:2; }
+  .tv-mote-reveal-type{
+    font-size:clamp(11px,1.2vw,15px); font-weight:800; letter-spacing:0.14em;
+    text-transform:uppercase; margin-bottom:clamp(4px,0.8vh,10px);
+  }
+  .tv-mote-reveal-type.honor{ color:var(--gold); }
+  .tv-mote-reveal-type.shame{ color:var(--danger); }
+  .tv-mote-reveal-type.neutral{ color:var(--info); }
+  .tv-mote-reveal-type.impostor{ color:var(--accent); }
+  .tv-mote-reveal-emoji{ font-size:clamp(38px,4.6vw,68px); line-height:1; margin-bottom:clamp(4px,0.6vh,8px); }
+  .tv-mote-reveal-title{ font-size:clamp(15px,1.7vw,22px); font-weight:800; letter-spacing:-0.02em; margin-bottom:clamp(6px,1vh,12px); color:var(--text); }
+  .tv-mote-reveal-player{ font-size:clamp(22px,2.8vw,38px); font-weight:900; margin-bottom:clamp(3px,0.5vh,6px); color:var(--gold); }
+  .tv-mote-reveal-player.shame{ color:var(--danger); }
+  .tv-mote-reveal-player.neutral{ color:var(--info); }
+  .tv-mote-reveal-player.impostor{ color:var(--accent); }
+  .tv-mote-reveal-reason{ font-size:clamp(12px,1.2vw,16px); color:var(--muted); line-height:1.5; max-width:min(34vw,460px); }
+  @keyframes tvEnvPulse{
+    0%,100%{ box-shadow:0 0 40px rgba(245,200,66,0.2); }
+    50%{ box-shadow:0 0 70px rgba(245,200,66,0.45); }
+  }
 </style>
 </head>
 <body>
@@ -13231,6 +13326,20 @@ function openTVMode() {
     </div>
     <div class="tv-ruleta-result-name" id="tv-ruleta-result-name">&nbsp;</div>
     <div class="tv-ruleta-card" id="tv-ruleta-card"></div>
+  </div>
+</div>
+
+<!-- ── MOTES DE LA NOCHE (aparece cuando el conductor los revela) ── -->
+<div class="tv-mote-overlay" id="tv-mote-overlay">
+  <div class="tv-mote-progress" id="tv-mote-progress"></div>
+  <div class="tv-mote-envelope-wrap">
+    <div class="tv-mote-envelope" id="tv-mote-envelope">
+      <div class="tv-mote-env-front">
+        <div class="tv-mote-env-icon">✉️</div>
+        <div class="tv-mote-env-label">Mote de la noche</div>
+      </div>
+      <div class="tv-mote-env-back" id="tv-mote-env-back"></div>
+    </div>
   </div>
 </div>
 
@@ -14450,6 +14559,42 @@ function tvShowRuletaCard(cm) {
     + '<div class="rc-desc">' + (cm.desc || '') + '</div>';
 }
 
+// ── MOTES DE LA NOCHE en el TV ──────────────────────────────────────
+// Espeja el sobre del conductor (mismo sobre cerrado → volteo → cierre)
+// para que los participantes vean lo mismo en la pantalla grande, con
+// el resto de la pantalla difuminado/oscurecido para que se concentren
+// en el mote (el propio overlay trae el blur, ver CSS .tv-mote-overlay).
+function tvShowMote(payload) {
+  try {
+    const ov     = document.getElementById('tv-mote-overlay');
+    const env    = document.getElementById('tv-mote-envelope');
+    const progEl = document.getElementById('tv-mote-progress');
+    const backEl = document.getElementById('tv-mote-env-back');
+    if (!ov || !env || !backEl) return;
+    const m = payload.mote || {};
+    const typeLabel = m.type === 'honor' ? '🏆 Honor' : m.type === 'shame' ? '😬 Vergüenza' : m.type === 'impostor' ? '🕵️ Impostor' : '🎲 Especial';
+    if (progEl) progEl.textContent = (payload.idx + 1) + ' de ' + payload.total;
+    backEl.innerHTML =
+      '<div class="tv-mote-reveal-type ' + (m.type || '') + '">' + typeLabel + '</div>' +
+      '<div class="tv-mote-reveal-emoji">' + (m.emoji || '') + '</div>' +
+      '<div class="tv-mote-reveal-title">' + (m.title || '') + '</div>' +
+      '<div class="tv-mote-reveal-player ' + (m.type || '') + '">' + (m.player || '') + '</div>' +
+      '<div class="tv-mote-reveal-reason">' + (m.reason || '') + '</div>';
+    env.classList.remove('flipped');
+    ov.classList.add('open');
+  } catch (e) { console.warn('tvShowMote:', e); }
+}
+function tvFlipMote() {
+  const env = document.getElementById('tv-mote-envelope');
+  if (env) env.classList.add('flipped');
+}
+function tvCloseMoteOverlay() {
+  const ov  = document.getElementById('tv-mote-overlay');
+  const env = document.getElementById('tv-mote-envelope');
+  if (ov)  ov.classList.remove('open');
+  if (env) env.classList.remove('flipped');
+}
+
 // ── MURO DE FOTOS en el TV: rota una foto cada tanto ─────────────────
 // (variables declaradas más arriba, antes de la primera llamada a renderTV())
 function loadTVWall() {
@@ -14714,6 +14859,12 @@ function renderTicker(state, PLAYERS, TEAMS) {
       if (e.data.data && e.data.data.type === 'spin') tvShowRuleta(e.data.data);
       else if (e.data.data && e.data.data.type === 'close') tvRuletaReset();
     }
+    if (e.data && e.data.type === 'ndj_mote') {
+      const d = e.data.data;
+      if (d && d.type === 'show') tvShowMote(d);
+      else if (d && d.type === 'flip') tvFlipMote();
+      else if (d && d.type === 'close') tvCloseMoteOverlay();
+    }
   });
 
   // ── 0b. Pull desde window.opener (solo si el origin lo permite) ──
@@ -14764,6 +14915,12 @@ function renderTicker(state, PLAYERS, TEAMS) {
       if (e.data && e.data.key === 'ndj_ruleta') {
         if (e.data.data && e.data.data.type === 'spin') tvShowRuleta(e.data.data);
         else if (e.data.data && e.data.data.type === 'close') tvRuletaReset();
+      }
+      if (e.data && e.data.key === 'ndj_mote') {
+        const d = e.data.data;
+        if (d && d.type === 'show') tvShowMote(d);
+        else if (d && d.type === 'flip') tvFlipMote();
+        else if (d && d.type === 'close') tvCloseMoteOverlay();
       }
     };
   } catch(e) { console.warn('BroadcastChannel no disponible:', e); }
