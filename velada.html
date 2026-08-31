@@ -2253,8 +2253,8 @@
   .cr-line .cr-mini { color: var(--muted); font-size: 0.7em; }
   .cr-medal { flex-shrink: 0; }
   /* El 1° puesto del podio se destaca del 2°/3° (antes los tres pesaban igual) */
-  .cr-line.cr-first { font-size: 1.24em; font-weight: 700; color: var(--gold); margin: 0.5rem 0; }
-  .cr-line.cr-first .cr-medal { font-size: 1.5em; filter: drop-shadow(0 0 10px rgba(245,200,66,0.65)); }
+  .cr-line.cr-first { font-weight: 700; color: var(--gold); margin: 0.5rem 0; }
+  .cr-line.cr-first .cr-medal { font-size: 1.35em; filter: drop-shadow(0 0 10px rgba(245,200,66,0.65)); }
   .cr-line.cr-first .cr-mini { color: var(--gold); opacity: 0.75; }
   /* Avatares en el podio/elenco de créditos (dúo automático para equipos) */
   .cr-av { display: inline-flex; align-items: center; flex-shrink: 0; }
@@ -10894,20 +10894,23 @@ function renderFinal() {
 
 // --- MÚSICA DE LOS CRÉDITOS -------------------------------------------------
 // No se puede incluir el tema (copyright); poné tu propio MP3 al lado del HTML
-// con el nombre de abajo. Los créditos se ESTIRAN/COMPRIMEN para durar
-// exactamente el tramo (startAt → endAt) que elijas, terminando con la música.
+// con el nombre de abajo. Es "I Want You Back" (The Jackson 5), recortado a
+// 1m55s con fade out propio al final — un solo tramo continuo, sin outro
+// separado (no hay crossfade a una segunda canción).
 const CREDITS_MUSIC = {
   enabled: true,
-  src: 'cancion-creditos.mp3', // Wanna Be Startin' Somethin' — Michael Jackson
-  startAt: 1.3,    // saltea el silencio inicial; arranca con el groove icónico
-  endAt:   108,    // groove largo: ajustado para que el total (groove + outro) dé ~120s
+  src: 'cancion-creditos.mp3', // I Want You Back — The Jackson 5 (recortada a 1:55 con fade out)
+  startAt: 0,      // arranca desde el principio del recorte
+  endAt:   100,    // margen de seguridad antes del fade out propio del archivo,
+                   // por si los podios tardaran más de lo normal y hay que "vampear"
   volume:  0.85,
   fadeInMs:  2500, // entra suave en 2.5s
-  fadeOutMs: 3500, // fade out final (sobre el contador)
-  // ── Outro "mama-say" sobre el contador ──
-  outroAt:      339,   // 5:39 — arranca un toque antes para que el cruce caiga en plena frase
-  outroHoldMs:  13000, // cuánto suena el mama-say sobre el contador (~13s)
-  crossfadeMs:  2600,  // crossfade real largo (2.6s) entre groove y mama-say — bien suave
+  fadeOutMs: 3500, // fade out final (además del fade out que ya trae el propio archivo)
+  // Sin outro separado: el archivo ya termina con su propio fade out,
+  // así que no hace falta el crossfade a una segunda pista.
+  outroAt:      null,
+  outroHoldMs:  13000,
+  crossfadeMs:  2600,
 };
 // (Ya no se usan para calcular la velocidad del scroll — ver CREDITS_ROLL_SECONDS
 // más abajo — pero se dejan por si en algún momento se quiere volver al modo
@@ -10917,7 +10920,7 @@ const CREDITS_SPEED_FACTOR = 0.82;
 // Duración FIJA del scroll de créditos, siempre la misma sin importar cuánto
 // hayan tardado los podios (que no se tocan). Cambiá este número para ajustar
 // cuánto duran los créditos.
-const CREDITS_ROLL_SECONDS = 118; // 1m 58s exactos
+const CREDITS_ROLL_SECONDS = 93; // 1m 33s — ajustado para que la canción (1m55s) termine junto con el roll (22s de podios + 93s de roll ≈ 1m55s)
 
 // --- MÚSICA DE LAS PRESENTACIONES ------------------------------------------
 // Igual que los créditos: poné tus MP3 al lado del HTML con estos nombres.
