@@ -1022,8 +1022,11 @@ body.is-participant .cad-bg-scrim { display: block; }
       <button class="deck-add-btn" onclick="addBankQuestion()">Agregar pregunta</button>
     </div>
     <div class="deck-list" id="deck-list"></div>
-    <div class="deck-footer">
+    <input type="file" id="bank-import-input" accept="application/json,.json" style="display:none" onchange="importBankFile(event)">
+    <div class="deck-footer" style="flex-wrap:wrap">
       <button class="sheet-cancel deck-restore" onclick="restoreBank()">Restaurar originales</button>
+      <button class="sheet-cancel deck-restore" onclick="exportBank()">⬇️ Exportar JSON</button>
+      <button class="sheet-cancel deck-restore" onclick="document.getElementById('bank-import-input').click()">⬆️ Importar JSON</button>
       <button class="btn-primary deck-done" onclick="closeDeckEditor()">Listo</button>
     </div>
   </div>
@@ -2132,6 +2135,70 @@ function addBankQuestion() {
 function restoreBank() {
   if (!confirm('¿Restaurar las preguntas originales? Se pierden tus cambios y las agregadas.')) return;
   bank = DEFAULT_BANK.map(normBankItem); saveBank(); renderDeckList();
+}
+
+// ── EXPORTAR / IMPORTAR BANCO (JSON) ──
+function exportBank() {
+  try {
+    const data = JSON.stringify(bank, null, 2);
+    const blob = new Blob([data], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    const ts = new Date().toISOString().slice(0, 10);
+    a.href = url;
+    a.download = `100-argentinos-preguntas-${ts}.json`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  } catch (e) {
+    alert('No se pudo exportar el banco de preguntas.');
+  }
+}
+
+function importBankFile(event) {
+  const file = event.target.files && event.target.files[0];
+  event.target.value = ''; // permite reimportar el mismo archivo después
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    let arr;
+    try {
+      arr = JSON.parse(reader.result);
+      if (!Array.isArray(arr)) throw new Error('formato inválido');
+    } catch (e) {
+      alert('El archivo no es un JSON válido de preguntas.');
+      return;
+    }
+    let imported;
+    try {
+      imported = arr.map(normBankItem).filter(x => x.q && x.a.length);
+    } catch (e) {
+      alert('El archivo no tiene el formato esperado.');
+      return;
+    }
+    if (!imported.length) { alert('No se encontraron preguntas válidas en el archivo.'); return; }
+
+    const replace = confirm(
+      `Se encontraron ${imported.length} preguntas en el archivo.\n\n` +
+      `Aceptar = REEMPLAZAR todo el banco actual por el importado.\n` +
+      `Cancelar = AGREGAR solo las preguntas nuevas (sin borrar las que ya tenés).`
+    );
+    if (replace) {
+      bank = imported;
+    } else {
+      const have = new Set(bank.map(c => c.q));
+      let added = 0;
+      imported.forEach(item => {
+        if (!have.has(item.q)) { bank.push(item); have.add(item.q); added++; }
+      });
+      alert(`Se agregaron ${added} pregunta(s) nueva(s).`);
+    }
+    saveBank();
+    renderDeckList();
+  };
+  reader.onerror = () => alert('No se pudo leer el archivo.');
+  reader.readAsText(file, 'utf-8');
 }
 
 // ── SPLASH / RESET ──
