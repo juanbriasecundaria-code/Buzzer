@@ -140,8 +140,16 @@
     vertical-align: middle;
   }
   .ranking tr:last-child td { border-bottom: none; }
-  .ranking tr.classifica td { background: rgba(200,240,96,0.04); }
-  .ranking tr.classifica td:first-child { box-shadow: inset 2px 0 0 0 var(--accent); }
+  .ranking tr.classifica td { background: rgba(200,240,96,0.10); }
+  .ranking tr.classifica td:first-child { box-shadow: inset 3px 0 0 0 var(--accent); }
+  .classifica-tag {
+    display: inline-flex; align-items: center; gap: 3px; margin-left: 8px;
+    padding: 2px 8px; border-radius: 99px; font-size: 9.5px; font-weight: 800;
+    letter-spacing: 0.03em; text-transform: uppercase; white-space: nowrap;
+    background: var(--accent-dim); color: var(--accent); border: 1px solid rgba(200,240,96,0.45);
+  }
+  .classifica-tag.pending { background: var(--gold-dim); color: var(--gold); border-color: rgba(245,200,66,0.45); }
+  .ranking tr.classifica-pending td:first-child { box-shadow: inset 3px 0 0 0 var(--gold); }
 
   .pos-badge {
     width: 26px; height: 26px;
@@ -197,8 +205,9 @@
   .round-pts.bye { color: var(--muted); opacity: 0.5; font-size: 13px; }
 
   /* Fase 2 usa identidad celeste en vez de lima, para diferenciarse de Fase 1 */
-  #page-fase2 .ranking tr.classifica td { background: rgba(96,180,240,0.06); }
-  #page-fase2 .ranking tr.classifica td:first-child { box-shadow: inset 2px 0 0 0 var(--info); }
+  #page-fase2 .ranking tr.classifica td { background: rgba(96,180,240,0.10); }
+  #page-fase2 .ranking tr.classifica td:first-child { box-shadow: inset 3px 0 0 0 var(--info); }
+  #page-fase2 .classifica-tag { background: rgba(96,180,240,0.14); color: var(--info); border-color: rgba(96,180,240,0.45); }
   #page-fase2 .pos-badge.accent { background: rgba(96,180,240,0.12); color: var(--info); }
   #page-fase2 .total-pts { color: var(--info); }
   #page-fase2 .stat-num { color: var(--info); }
@@ -1880,6 +1889,19 @@
   .sd-result-text { font-size: 12px; color: var(--muted); margin-left: auto; }
   .sd-result-text.set { color: var(--success); }
 
+  /* Fase 2 Sudden Death usa identidad celeste, igual que el resto de esa fase */
+  #page-fase2 .sd-card { background: linear-gradient(135deg, rgba(96,180,240,0.08), rgba(255,95,95,0.06)); border-color: rgba(96,180,240,0.35); animation: sdPulseBlue 2.5s ease-in-out infinite; }
+  @keyframes sdPulseBlue {
+    0%,100% { box-shadow: 0 0 0 0 rgba(96,180,240,0); }
+    50%      { box-shadow: 0 0 18px 2px rgba(96,180,240,0.18); }
+  }
+  #page-fase2 .sd-title { color: var(--info); }
+  #page-fase2 .sd-player { border-color: rgba(96,180,240,0.25); background: rgba(96,180,240,0.06); }
+  #page-fase2 .sd-player-name { color: var(--info); }
+  #page-fase2 .sd-match-row { border-color: rgba(96,180,240,0.2); background: rgba(96,180,240,0.04); }
+  #page-fase2 .sd-match-row:hover { background: rgba(96,180,240,0.1); border-color: rgba(96,180,240,0.5); }
+  #page-fase2 .sd-game-badge { background: rgba(96,180,240,0.12); color: var(--info); }
+
   /* ============================================================
      OPTIMIZACIÓN MOBILE — solo CSS, no toca lógica.
      Va al final del bloque de estilos para ganar en cascada sobre las
@@ -3044,6 +3066,8 @@ window.VarSwitch = (function () {
       </table>
     </div>
   </div>
+
+  <div id="sudden-death-f2"></div>
 
   <div class="section-header" style="margin-top:1.5rem">
     <span class="section-title"><span class="dot-indicator fase2"></span>Fixture grupal</span>
@@ -5538,9 +5562,18 @@ function renderFase1() {
     theadRowF1.innerHTML = `<th style="width:36px">#</th><th>Jugador</th>${roundThs}<th title="Puntos de la ronda especial (Impostor) — tocá para editar" style="color:var(--danger)">🕵️ IMP.</th><th title="Bonus previo (Kahoot u otras actividades) — tocá para editar">🎯</th><th title="Apuestas acertadas — tocá para editar">🃏</th><th style="text-align:right">Total</th>`;
   }
   const tbody = document.getElementById('tbody-fase1');
+  const tieF1 = getSuddenDeathTie();
+  const sdWinnerIdxF1 = tieF1 ? getSuddenDeathWinnerIdx(tieF1, state.sd || {}, 'sd-') : null;
+  const tiePendingF1 = !!(tieF1 && sdWinnerIdxF1 == null);
+  const leaderIdxF1 = tiePendingF1 ? null : (tieF1 ? sdWinnerIdxF1 : sorted[0]?.i);
   tbody.innerHTML = sorted.map(({n,i,pts}, pos) => {
-    const badgeClass = pos === 0 ? 'gold' : pos === 1 ? 'accent' : '';
-    const rowClass = pos < 1 ? 'classifica' : '';
+    const isLeader = leaderIdxF1 != null && i === leaderIdxF1;
+    const isPendingTie = tiePendingF1 && (i === tieF1.idxA || i === tieF1.idxB);
+    const badgeClass = isLeader ? 'gold' : pos === 1 ? 'accent' : '';
+    const rowClass = isLeader ? 'classifica' : (isPendingTie ? 'classifica-pending' : '');
+    const classificaTag = isLeader
+      ? '<span class="classifica-tag">★ Clasifica</span>'
+      : (isPendingTie ? '<span class="classifica-tag pending">⚡ Definir en Sudden Death</span>' : '');
     const nSafe = n.replace(/'/g,"\\'");
     const rounds = pts.rounds.map((v, ri) => {
       const ov = cellIsOverridden('f1', n, ri) ? ' overridden' : '';
@@ -5571,7 +5604,7 @@ function renderFase1() {
         : `<td class="round-pts pending${betsOv ? ' overridden' : ''}" onclick="editBetsPts('${nSafe}')" style="cursor:pointer" title="Tocá para editar los puntos de apuestas">—</td>`;
     return `<tr class="${rowClass}">
       <td><div class="pos-badge ${badgeClass}">${pos+1}</div></td>
-      <td class="player-name">${playerAvatarHtml(n, i)}<span>${n}</span></td>
+      <td class="player-name">${playerAvatarHtml(n, i)}<span>${n}</span>${classificaTag}</td>
       ${rounds}
       ${special}
       ${bmCell}
@@ -5713,6 +5746,21 @@ function renderFixtureF1() {
 // State for SD matches stored in state.sd: { 'sd-0': {winner, bonus}, ... }
 // The SD fixture is a dynamic best-of-3 series between the tied top-2 players.
 // Keys use prefix 'sd-' + game index so they never collide with regular f1 keys.
+
+function getSuddenDeathWinnerIdx(tie, sdStore, prefix) {
+  // Devuelve el idx que ganó la serie de Sudden Death, o null si todavía no está definida.
+  if (!tie || !sdStore) return null;
+  let winsA = 0, winsB = 0;
+  for (let i = 0; i < 3; i++) {
+    const res = sdStore[prefix + i];
+    if (!res) continue;
+    if (res.winner === tie.idxA) winsA++;
+    else if (res.winner === tie.idxB) winsB++;
+    if (winsA >= 2) return tie.idxA;
+    if (winsB >= 2) return tie.idxB;
+  }
+  return null;
+}
 
 function getSuddenDeathTie() {
   // Returns null if no tie for 1st, else {idxA, idxB, nameA, nameB, pts}
@@ -5875,6 +5923,166 @@ function deleteSuddenDeathResult() {
   showToast('🗑', 'Resultado eliminado', false);
 }
 
+// ============================================================
+// SUDDEN DEATH — Fase 2 (mismo sistema que Fase 1, para equipos)
+// ============================================================
+// State for SD matches stored in state.sd2: { 'sd2-0': {winner, bonus}, ... }
+
+function getSuddenDeathTieF2() {
+  const f2Done = F2_FIXTURE.filter(([r,a,b]) => state.f2[r+'-'+a+'-'+b]).length;
+  if (f2Done < F2_FIXTURE.length) return null; // not all rounds done yet
+
+  const tpts = getTeamPoints();
+  const sorted = TEAMS.map((n,i) => ({n,i,pts:tpts[i]})).sort((a,b) => b.pts.total - a.pts.total);
+  if (sorted.length < 2) return null;
+  if (sorted[0].pts.total !== sorted[1].pts.total) return null;
+
+  return {
+    idxA:  sorted[0].i,
+    idxB:  sorted[1].i,
+    nameA: sorted[0].n,
+    nameB: sorted[1].n,
+    pts:   sorted[0].pts.total,
+  };
+}
+
+function renderSuddenDeathF2() {
+  const root = document.getElementById('sudden-death-f2');
+  if (!root) return;
+
+  const tie = getSuddenDeathTieF2();
+  if (!tie) { root.innerHTML = ''; return; }
+
+  if (!state.sd2) state.sd2 = {};
+
+  let winsA = 0, winsB = 0;
+  const sdGames = [];
+  const gamePool = [0,1,2,3,4,5]; // indices into GAMES_F2
+  for (let i = 0; i < 3; i++) {
+    const gameIdx = gamePool[i];
+    const key = 'sd2-' + i;
+    const res = state.sd2[key] || null;
+    sdGames.push({ gameIdx, key, res });
+    if (res) {
+      if (res.winner === tie.idxA) winsA++;
+      else if (res.winner === tie.idxB) winsB++;
+    }
+  }
+
+  const winner = winsA >= 2 ? tie.nameA : winsB >= 2 ? tie.nameB : null;
+
+  const matchesToShow = [];
+  let runningA = 0, runningB = 0;
+  for (const g of sdGames) {
+    matchesToShow.push(g);
+    if (g.res) {
+      if (g.res.winner === tie.idxA) runningA++;
+      else if (g.res.winner === tie.idxB) runningB++;
+    }
+    if (runningA >= 2 || runningB >= 2) break;
+  }
+
+  const matchesHtml = matchesToShow.map(({gameIdx, key, res}) => {
+    const game = GAMES_F2[gameIdx];
+    const [gbg, gcol] = GAME_COLORS_F2[gameIdx] || ['rgba(96,180,240,0.12)', 'var(--info)'];
+    let resultText = '', resultClass = '';
+    if (res) {
+      const wName = res.winner === tie.idxA ? tie.nameA : tie.nameB;
+      resultText = `⚡ ${wName.split('/')[0].trim()}${res.bonus ? ' +bonus' : ''}`;
+      resultClass = 'set';
+    }
+    return `<div class="sd-match-row ${res ? 'done' : ''}" onclick="openSuddenDeathModalF2('${key.replace(/'/g,"\\'")}','${game.replace(/'/g,"\\'")}','${tie.nameA.replace(/'/g,"\\'")}','${tie.nameB.replace(/'/g,"\\'")}',${tie.idxA},${tie.idxB})">
+      <span class="sd-game-badge" style="background:${gbg};color:${gcol}">⚡ ${game}</span>
+      <span style="font-size:13px;font-weight:500">${tie.nameA.split('/')[0].trim()} vs ${tie.nameB.split('/')[0].trim()}</span>
+      <span class="sd-result-text ${resultClass}">${res ? resultText : 'Cargar'}</span>
+    </div>`;
+  }).join('');
+
+  const scoreHtml = `<span style="font-size:22px;font-weight:800;color:var(--info)">${winsA}</span>
+    <span style="font-size:13px;color:var(--muted);margin:0 0.4rem">–</span>
+    <span style="font-size:22px;font-weight:800;color:var(--info)">${winsB}</span>`;
+
+  const winnerBanner = winner ? `<div style="margin-top:1rem;padding:0.875rem 1rem;border-radius:var(--radius);background:rgba(96,180,240,0.12);border:1px solid rgba(96,180,240,0.4);text-align:center;font-size:14px;font-weight:700;color:var(--info)">🏆 ${winner.split('/')[0].trim()} clasifica como 1° de Fase 2</div>` : '';
+
+  root.innerHTML = `
+    <div class="sd-card" style="margin-top:1.5rem">
+      <div class="sd-title">⚡ Sudden Death — Desempate</div>
+      <div class="sd-sub">Fase 2 terminó con empate en el 1° puesto (${tie.pts} pts). Se juega una serie al mejor de 3 con juegos distintos para definir qué equipo clasifica primero.</div>
+      <div class="sd-players">
+        <div class="sd-player">
+          <div class="sd-player-name">${tie.nameA.split('/')[0].trim()}</div>
+          <div class="sd-player-pts">${tie.pts} pts</div>
+        </div>
+        <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px">
+          <div style="display:flex;align-items:center">${scoreHtml}</div>
+          <div style="font-size:10px;color:var(--muted);letter-spacing:0.05em;text-transform:uppercase">serie</div>
+        </div>
+        <div class="sd-player">
+          <div class="sd-player-name">${tie.nameB.split('/')[0].trim()}</div>
+          <div class="sd-player-pts">${tie.pts} pts</div>
+        </div>
+      </div>
+      ${matchesHtml}
+      ${winnerBanner}
+    </div>
+  `;
+}
+
+function openSuddenDeathModalF2(sdKey, game, nameA, nameB, idxA, idxB) {
+  if (!state.sd2) state.sd2 = {};
+  const existing = state.sd2[sdKey] || null;
+
+  modalCtx = { phase: 'sd2', key: sdKey, game, nameA, nameB, idxA, idxB };
+  document.querySelector('.modal').classList.add('f2');
+
+  document.getElementById('modal-title').textContent = '⚡ ' + game;
+  document.getElementById('modal-sub').textContent = `Sudden Death · ${nameA.split('/')[0].trim()} vs ${nameB.split('/')[0].trim()}`;
+  document.getElementById('empate-btn').style.display = 'none';
+
+  const selA = existing && existing.winner === idxA;
+  const selB = existing && existing.winner === idxB;
+
+  document.getElementById('modal-players').innerHTML = `
+    <button class="modal-player-btn ${selA ? 'selected' : ''}" onclick="selectWinner(${idxA})" id="btn-a">${nameA.split('/')[0].trim()}<br><span style="font-size:11px;opacity:0.6">gana</span></button>
+    <button class="modal-player-btn ${selB ? 'selected' : ''}" onclick="selectWinner(${idxB})" id="btn-b">${nameB.split('/')[0].trim()}<br><span style="font-size:11px;opacity:0.6">gana</span></button>
+  `;
+
+  const bonusLabel = BONUS_F2[game] || 'Bonus';
+  document.getElementById('modal-bonus-rows').innerHTML = `
+    <div class="modal-bonus-row">
+      <span class="modal-bonus-label">Bonus: ${bonusLabel}</span>
+      <div class="toggle ${existing?.bonus ? 'on' : ''}" id="bonus-toggle" onclick="toggleBonus()"></div>
+    </div>
+  `;
+
+  const actions = document.querySelector('.modal-actions');
+  const existingDel = document.getElementById('delete-btn');
+  if (existingDel) existingDel.remove();
+  if (existing) {
+    const del = document.createElement('button');
+    del.id = 'delete-btn';
+    del.className = 'btn btn-danger';
+    del.style.flex = '0';
+    del.style.padding = '0.75rem 1rem';
+    del.textContent = '🗑';
+    del.onclick = deleteSuddenDeathResultF2;
+    actions.prepend(del);
+  }
+
+  modalCtx.winner = existing ? existing.winner : null;
+  modalCtx.bonus  = existing ? existing.bonus  : false;
+  document.getElementById('modal-bg').classList.add('open');
+}
+
+function deleteSuddenDeathResultF2() {
+  if (!state.sd2) return;
+  delete state.sd2[modalCtx.key];
+  saveState();
+  closeModal();
+  renderFase2();
+  showToast('🗑', 'Resultado eliminado', false);
+}
+
 function renderNextMatch(phase) {
   const el = document.getElementById('next-match-' + phase);
   if (!el) return;
@@ -5995,9 +6203,18 @@ function renderFase2() {
   }
 
   const tbody = document.getElementById('tbody-fase2');
+  const tieF2 = getSuddenDeathTieF2();
+  const sdWinnerIdxF2 = tieF2 ? getSuddenDeathWinnerIdx(tieF2, state.sd2 || {}, 'sd2-') : null;
+  const tiePendingF2 = !!(tieF2 && sdWinnerIdxF2 == null);
+  const leaderIdxF2 = tiePendingF2 ? null : (tieF2 ? sdWinnerIdxF2 : sorted[0]?.i);
   tbody.innerHTML = sorted.map(({n,i,pts}, pos) => {
-    const badgeClass = pos === 0 ? 'gold' : pos === 1 ? 'accent' : '';
-    const rowClass = pos < 1 ? 'classifica' : '';
+    const isLeader = leaderIdxF2 != null && i === leaderIdxF2;
+    const isPendingTie = tiePendingF2 && (i === tieF2.idxA || i === tieF2.idxB);
+    const badgeClass = isLeader ? 'gold' : pos === 1 ? 'accent' : '';
+    const rowClass = isLeader ? 'classifica' : (isPendingTie ? 'classifica-pending' : '');
+    const classificaTag = isLeader
+      ? '<span class="classifica-tag">★ Clasifica</span>'
+      : (isPendingTie ? '<span class="classifica-tag pending">⚡ Definir en Sudden Death</span>' : '');
     const nSafe = n.replace(/'/g,"\\'");
     const rounds = pts.rounds.map((v, ri) => {
       const ov = cellIsOverridden('f2', n, ri) ? ' overridden' : '';
@@ -6021,7 +6238,7 @@ function renderFase2() {
       : `<td class="round-pts pending${betsOvF2 ? ' overridden' : ''}" onclick="editBetsPtsF2('${nSafe}')" style="cursor:pointer" title="Tocá para editar los puntos de apuestas">—</td>`;
     return `<tr class="${rowClass}">
       <td><div class="pos-badge ${badgeClass}">${pos+1}</div></td>
-      <td class="player-name" style="font-size:12px">${playerAvatarHtml(n, i)}<span>${n}</span></td>
+      <td class="player-name" style="font-size:12px">${playerAvatarHtml(n, i)}<span>${n}</span>${classificaTag}</td>
       ${rounds}
       ${qldCell}
       ${betsCell}
@@ -6030,6 +6247,7 @@ function renderFase2() {
   }).join('');
 
   renderFixtureF2();
+  renderSuddenDeathF2();
   renderPodium('podium-fase2', sorted, 'f2');
 }
 
@@ -6210,7 +6428,7 @@ function saveResult() {
     return;
   }
 
-  // ── Sudden Death save ──────────────────────────────────────
+  // ── Sudden Death save (Fase 1) ──────────────────────────────
   if (modalCtx.phase === 'sd') {
     if (!state.sd) state.sd = {};
     state.sd[modalCtx.key] = { winner: modalCtx.winner, bonus: modalCtx.bonus };
@@ -6220,6 +6438,19 @@ function saveResult() {
     renderFase1();
     const wName = modalCtx.winner === modalCtx.idxA ? modalCtx.nameA : modalCtx.nameB;
     showToast('⚡', `SD: ${wName.split(' ')[0]} gana${modalCtx.bonus ? ' +bonus' : ''}`, false);
+    return;
+  }
+
+  // ── Sudden Death save (Fase 2) ──────────────────────────────
+  if (modalCtx.phase === 'sd2') {
+    if (!state.sd2) state.sd2 = {};
+    state.sd2[modalCtx.key] = { winner: modalCtx.winner, bonus: modalCtx.bonus };
+    saveState();
+    closeModal();
+    playSaveSound();
+    renderFase2();
+    const wName2 = modalCtx.winner === modalCtx.idxA ? modalCtx.nameA : modalCtx.nameB;
+    showToast('⚡', `SD: ${wName2.split('/')[0].trim()} gana${modalCtx.bonus ? ' +bonus' : ''}`, false);
     return;
   }
 
@@ -7227,6 +7458,7 @@ function resetEverything() {
       state.f1 = {};
       state.f2 = {};
       state.sd = {};
+      state.sd2 = {};
       // Historial de rondas del Impostor (no tocamos impGame: si hay una ronda
       // en curso, sigue en curso; solo se borran las rondas ya puntuadas)
       state.impostor = { rounds: [] };
