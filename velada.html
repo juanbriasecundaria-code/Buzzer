@@ -2293,6 +2293,12 @@
   @keyframes crFadeIn { to { opacity: 1; } }
   @keyframes crHintOut { to { opacity: 0; } }
 
+  /* Fondo decorativo fijo de los créditos: mismos íconos tenues del podio,
+     quedan quietos en pantalla mientras el texto pasa por encima */
+  .cr-bg-deco { position: fixed; inset: 0; z-index: 0; overflow: hidden; pointer-events: none; }
+  .cr-bg-deco span { position: absolute; line-height: 1; opacity: 0.06; filter: grayscale(0.15); }
+  .credits-roll { z-index: 1; }
+
   @media (prefers-reduced-motion: reduce) {
     .credits { overflow-y: auto; }
     .credits-close { animation: none; opacity: 1; }
@@ -10968,7 +10974,34 @@ function rollCredits() {
       + (TERCER_CONFIG.ganador ? `<div class="cr-role" style="margin-top:0.6rem">Ganador del 3er puesto</div><div class="cr-champ-av">${playerAvatarHtml(TERCER_CONFIG.ganador, 0)}</div><div class="cr-name champ" style="color:#cd7f32">🥉 ${esc(TERCER_CONFIG.ganador)}</div>` : '')
     : '';
 
+  // Fondo decorativo fijo: mismos íconos tenues de la ceremonia del podio,
+  // repartidos por toda la pantalla y quietos mientras corren los créditos.
+  const CREDITS_DECO_ICONS = [
+    { icon: '🎲', top: '5%',  left: '10%', size: 60, rot: -12 },
+    { icon: '🃏', top: '8%',  left: '82%', size: 54, rot: 10 },
+    { icon: '🎯', top: '20%', left: '4%',  size: 50, rot: 8 },
+    { icon: '🎤', top: '18%', left: '92%', size: 56, rot: -8 },
+    { icon: '⏰', top: '34%', left: '90%', size: 44, rot: -6 },
+    { icon: '🍻', top: '32%', left: '6%',  size: 44, rot: 6 },
+    { icon: '🎉', top: '46%', left: '14%', size: 38, rot: 14 },
+    { icon: '🕹️', top: '48%', left: '86%', size: 46, rot: 9 },
+    { icon: '🏆', top: '60%', left: '4%',  size: 48, rot: -9 },
+    { icon: '📸', top: '62%', left: '92%', size: 40, rot: 12 },
+    { icon: '🥂', top: '74%', left: '10%', size: 42, rot: -11 },
+    { icon: '🍿', top: '76%', left: '88%', size: 36, rot: -7 },
+    { icon: '🎊', top: '88%', left: '6%',  size: 38, rot: -14 },
+    { icon: '🎶', top: '90%', left: '82%', size: 34, rot: 5 },
+    { icon: '✨', top: '96%', left: '30%', size: 30, rot: 10 },
+    { icon: '🎈', top: '95%', left: '58%', size: 38, rot: -6 },
+  ];
+  const creditsDecoHtml = '<div class="cr-bg-deco" aria-hidden="true">'
+    + CREDITS_DECO_ICONS.map(d =>
+      `<span style="top:${d.top};left:${d.left};font-size:${d.size}px;transform:rotate(${d.rot}deg)">${d.icon}</span>`
+    ).join('')
+    + '</div>';
+
   const html = `
+    ${creditsDecoHtml}
     <div class="credits-roll" id="credits-roll">
       <div style="height:18vh"></div>
       <div class="cr-title">La Velada<br>del Año</div>
@@ -11699,6 +11732,16 @@ function podiumReveal(phaseKind, onContinue) {
     { icon: '🎤', top: '82%', left: '86%', size: 60, rot: -8 },
     { icon: '⏰', top: '44%', left: '4%',  size: 46, rot: -6 },
     { icon: '🍻', top: '46%', left: '92%', size: 46, rot: 6 },
+    { icon: '🎉', top: '4%',  left: '46%', size: 40, rot: 14 },
+    { icon: '🕹️', top: '26%', left: '6%',  size: 48, rot: 9 },
+    { icon: '🏆', top: '30%', left: '90%', size: 50, rot: -9 },
+    { icon: '📸', top: '62%', left: '4%',  size: 42, rot: 12 },
+    { icon: '🥂', top: '64%', left: '90%', size: 44, rot: -11 },
+    { icon: '🍿', top: '92%', left: '46%', size: 38, rot: -7 },
+    { icon: '🎊', top: '10%', left: '96%', size: 40, rot: -14 },
+    { icon: '🎶', top: '58%', left: '48%', size: 36, rot: 5 },
+    { icon: '✨', top: '92%', left: '20%', size: 32, rot: 10 },
+    { icon: '🎈', top: '90%', left: '70%', size: 40, rot: -6 },
   ];
   const decoHtml = DECO_ICONS.map(d =>
     `<span style="top:${d.top};left:${d.left};font-size:${d.size}px;transform:rotate(${d.rot}deg)">${d.icon}</span>`
