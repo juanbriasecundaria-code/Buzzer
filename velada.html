@@ -2808,6 +2808,20 @@ body.started .velada-bg-scrim { display: block; }
 .pr-block span { color: rgba(255,255,255,0.88); text-shadow: 0 1px 4px rgba(0,0,0,0.45); }
 .pr-caption { position: relative; z-index: 1; min-height: 1.6em; margin-top: 1.4rem; text-align: center;
   color: var(--text); letter-spacing: 0.18em; text-transform: uppercase; font-size: clamp(11px, 3vw, 14px); font-weight: 700; }
+/* Fondo decorativo: iconos de la noche, bien tenues, detrás del podio */
+.pr-bg-deco { position: absolute; inset: 0; z-index: 0; overflow: hidden; pointer-events: none; }
+.pr-bg-deco span { position: absolute; line-height: 1; opacity: 0.07; filter: grayscale(0.15); }
+/* Stats extra + dato random, aparecen recién cuando termina la revelación */
+.pr-stats { position: relative; z-index: 1; display: flex; flex-wrap: wrap; align-items: center;
+  justify-content: center; gap: 0.5rem 0.9rem; margin-top: 1.7rem; opacity: 0; transition: opacity 0.6s ease; }
+.pr-stats.show { opacity: 1; }
+.pr-stats span { font-size: clamp(11px, 2.8vw, 13px); color: var(--muted); font-weight: 600; white-space: nowrap; }
+.pr-stats span b { color: var(--text); font-weight: 800; }
+.pr-stats-dot { width: 3px; height: 3px; border-radius: 50%; background: var(--muted); opacity: 0.5; flex-shrink: 0; }
+.pr-fact { position: relative; z-index: 1; margin-top: 0.6rem; text-align: center; max-width: 480px;
+  font-size: clamp(11px, 2.6vw, 12.5px); color: var(--muted); font-style: italic;
+  opacity: 0; transition: opacity 0.6s ease 0.15s; }
+.pr-fact.show { opacity: 0.85; }
 .pr-cta { position: relative; z-index: 1; opacity: 0; pointer-events: none;
   color: var(--gold); background: var(--gold-dim); border: 1.5px dashed var(--gold); box-shadow: none; }
 .pr-cta.show { opacity: 1; pointer-events: auto; animation: cerFadeIn 0.6s ease forwards; }
@@ -11585,6 +11599,54 @@ function startCeremonyMusic() {
   else audio.addEventListener('loadedmetadata', begin, { once: true });
 }
 
+// ── STATS DE FASE (para el podio) ──────────────────────────────────
+// Recorre el mismo fixture/resultados que ya usan getPlayerPoints /
+// getTeamPoints, pero mirando victorias en secuencia para sacar la
+// racha más larga y el total de partidos jugados en la fase.
+function computePhaseStats(phaseKind) {
+  const isIndiv = phaseKind === 'individual';
+  const entities = isIndiv ? PLAYERS : TEAMS;
+  const fixture  = isIndiv ? F1_FIXTURE : F2_FIXTURE;
+  const results  = isIndiv ? state.f1 : state.f2;
+
+  const seq = entities.map(() => []);
+  let matchesPlayed = 0;
+  fixture.forEach(([r, a, b]) => {
+    const key = `${r}-${a}-${b}`;
+    const res = results[key];
+    if (!res) return;
+    matchesPlayed++;
+    if (res.winner === 'empate') {
+      seq[a].push({ r, res: 'D' }); seq[b].push({ r, res: 'D' });
+    } else {
+      const w = res.winner, l = w === a ? b : a;
+      seq[w].push({ r, res: 'W' }); seq[l].push({ r, res: 'L' });
+    }
+  });
+
+  const wins = entities.map(() => 0);
+  let bestStreak = 0, streakIdx = -1, bestWins = -1, mvpIdx = -1;
+  entities.forEach((name, i) => {
+    const ordered = seq[i].slice().sort((x, y) => x.r - y.r);
+    let cur = 0, max = 0, w = 0;
+    ordered.forEach(o => {
+      if (o.res === 'W') { cur++; w++; if (cur > max) max = cur; }
+      else cur = 0;
+    });
+    wins[i] = w;
+    if (max > bestStreak) { bestStreak = max; streakIdx = i; }
+    if (w > bestWins) { bestWins = w; mvpIdx = i; }
+  });
+
+  return {
+    matchesPlayed, wins,
+    streakName: streakIdx >= 0 ? entities[streakIdx] : null,
+    streakLen: bestStreak,
+    mvpName: mvpIdx >= 0 ? entities[mvpIdx] : null,
+    mvpWins: bestWins,
+  };
+}
+
 function podiumReveal(phaseKind, onContinue) {
   // compatibilidad: si lo llaman con un solo argumento (función), asumimos grupal
   if (typeof phaseKind === 'function') { onContinue = phaseKind; phaseKind = 'grupal'; }
@@ -11606,6 +11668,41 @@ function podiumReveal(phaseKind, onContinue) {
   }
   const top3 = sorted.slice(0, 3); // [1°, 2°, 3°]
   if (!top3.length) { if (onContinue) onContinue(); return; }
+
+  // Stats extra + dato random para no dejar el podio tan solo/vacío alrededor
+  let statsChipsHtml = '';
+  let factText = '';
+  try {
+    const ps = computePhaseStats(phaseKind === 'individual' ? 'individual' : 'grupal');
+    if (ps.matchesPlayed > 0) {
+      const chips = [];
+      chips.push(`🎮 <b>${ps.matchesPlayed}</b> partido${ps.matchesPlayed === 1 ? '' : 's'} jugado${ps.matchesPlayed === 1 ? '' : 's'}`);
+      if (ps.streakName && ps.streakLen >= 2) chips.push(`🔥 Racha más larga: <b>${_escC(ps.streakName)}</b> (${ps.streakLen})`);
+      if (ps.mvpName && ps.mvpWins > 0) chips.push(`⭐ MVP de la fase: <b>${_escC(ps.mvpName)}</b> (${ps.mvpWins}v)`);
+      statsChipsHtml = chips.map(c => `<span>${c}</span>`).join('<i class="pr-stats-dot"></i>');
+
+      const champEntry = top3[0];
+      const champWins = champEntry ? ps.wins[champEntry.i] : 0;
+      const facts = [];
+      if (champEntry && champWins > 0) facts.push(`${_escC(champEntry.n)} ganó ${champWins} de ${ps.matchesPlayed} partidos jugados.`);
+      if (ps.streakName && ps.streakLen >= 2) facts.push(`${_escC(ps.streakName)} llegó a encadenar ${ps.streakLen} victorias seguidas.`);
+      facts.push(`Se jugaron ${ps.matchesPlayed} partido${ps.matchesPlayed === 1 ? '' : 's'} en esta fase.`);
+      if (facts.length) factText = facts[Math.floor(Math.random() * facts.length)];
+    }
+  } catch (e) {}
+
+  // Fondo decorativo: mismos íconos de la portada, bien tenues, sin animación
+  const DECO_ICONS = [
+    { icon: '🎲', top: '6%',  left: '8%',  size: 64, rot: -12 },
+    { icon: '🃏', top: '14%', left: '86%', size: 58, rot: 10 },
+    { icon: '🎯', top: '78%', left: '10%', size: 56, rot: 8 },
+    { icon: '🎤', top: '82%', left: '86%', size: 60, rot: -8 },
+    { icon: '⏰', top: '44%', left: '4%',  size: 46, rot: -6 },
+    { icon: '🍻', top: '46%', left: '92%', size: 46, rot: 6 },
+  ];
+  const decoHtml = DECO_ICONS.map(d =>
+    `<span style="top:${d.top};left:${d.left};font-size:${d.size}px;transform:rotate(${d.rot}deg)">${d.icon}</span>`
+  ).join('');
 
   const reduce = _prefersReduce();
   const META = {
@@ -11632,11 +11729,14 @@ function podiumReveal(phaseKind, onContinue) {
 
   overlay.innerHTML =
     '<button class="ceremony-close" onclick="closeCeremony(\'podium-reveal\')">✕ Salir</button>'
+    + '<div class="pr-bg-deco" aria-hidden="true">' + decoHtml + '</div>'
     + '<div class="pr-eyebrow">' + eyebrow + '</div>'
     + '<div class="pr-stage"><div class="pr-row">'
     + slotFor(2) + slotFor(1) + slotFor(3)
     + '</div></div>'
-    + '<div class="pr-caption" id="pr-caption"></div>';
+    + '<div class="pr-caption" id="pr-caption"></div>'
+    + '<div class="pr-stats" id="pr-stats">' + statsChipsHtml + '</div>'
+    + (factText ? '<div class="pr-fact" id="pr-fact">' + factText + '</div>' : '');
   overlay.classList.remove('ceremony-out');
   overlay.classList.add('show');
   overlay.setAttribute('aria-hidden', 'false');
@@ -11659,9 +11759,15 @@ function podiumReveal(phaseKind, onContinue) {
 
   function finishPodium() {
     caption.textContent = '';
-    // AUTOMÁTICO: tras revelar el campeón, espera 5s y avanza solo (sin botón de "saltar")
+    // Recién ahora, con el campeón ya revelado, mostramos las stats y el
+    // dato random — así no compiten con la revelación ni la apuran.
+    const statsEl = overlay.querySelector('#pr-stats');
+    const factEl  = overlay.querySelector('#pr-fact');
+    if (statsEl) statsEl.classList.add('show');
+    if (factEl)  factEl.classList.add('show');
+    // AUTOMÁTICO: tras revelar el campeón, espera y avanza solo (sin botón de "saltar")
     if (_ceremonyTimer) clearTimeout(_ceremonyTimer);
-    _ceremonyTimer = setTimeout(advance, 5000);
+    _ceremonyTimer = setTimeout(advance, 6500);
   }
 
   function revealNext() {
