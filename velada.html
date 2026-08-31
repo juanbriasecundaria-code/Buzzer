@@ -1254,8 +1254,6 @@
   /* RELOAD BUTTON */
   #reload-btn { transition: color 0.15s, border-color 0.15s, background 0.15s; }
   #reload-btn:hover { color: var(--info) !important; border-color: var(--info) !important; background: rgba(96,180,240,0.12) !important; }
-  #reload-btn.spinning { animation: spinOnce 0.6s ease; }
-  @keyframes spinOnce { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
   .reload-btn-txt { display: none; }
   @media (min-width: 640px) { .reload-btn-txt { display: inline; } }
   /* CONFETTI */
@@ -12195,8 +12193,6 @@ function finishMotesReveal() {
 
 
 function hardReload() {
-  const btn = document.getElementById('reload-btn');
-  if (btn) btn.classList.add('spinning');
   // Unregister service workers if any
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.getRegistrations().then(regs => {
@@ -12207,12 +12203,10 @@ function hardReload() {
   if ('caches' in window) {
     caches.keys().then(keys => keys.forEach(k => caches.delete(k)));
   }
-  // Hard reload with cache-busting query param
-  setTimeout(() => {
-    const url = new URL(location.href);
-    url.searchParams.set('v', Date.now());
-    location.replace(url.toString());
-  }, 350);
+  // Hard reload with cache-busting query param, sin demora ni animación
+  const url = new URL(location.href);
+  url.searchParams.set('v', Date.now());
+  location.replace(url.toString());
 }
 
 function openTVMode() {
@@ -12249,6 +12243,9 @@ function openTVMode() {
 <meta http-equiv="Expires" content="0">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>📺 Podio en vivo — La Velada del Año</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700;900&display=swap" rel="stylesheet">
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   :root {
@@ -12268,10 +12265,12 @@ function openTVMode() {
     --danger: #ff5f5f;
     --radius: 12px;
     --radius-lg: 20px;
+    --font-body: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    --font-display: 'Space Grotesk', 'Sora', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   }
   html, body { width: 100%; height: 100%; overflow: hidden; }
   body {
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    font-family: var(--font-body);
     background: var(--bg);
     color: var(--text);
     display: flex;
@@ -12281,7 +12280,43 @@ function openTVMode() {
     min-height: 100vh;
     padding: 2vw;
     padding-bottom: calc(2vw + clamp(32px,4vh,48px));
+    position: relative;
   }
+
+  /* ── Resplandor de fondo detrás del podio (según fase activa) ── */
+  .tv-bg-glow {
+    position: fixed; inset: 0; z-index: -1; pointer-events: none;
+  }
+  body.phase-fase1 .tv-bg-glow {
+    background: radial-gradient(ellipse 60% 46% at 50% 38%, rgba(200,240,96,0.16), rgba(200,240,96,0.05) 55%, transparent 74%);
+  }
+  body.phase-fase2 .tv-bg-glow {
+    background: radial-gradient(ellipse 60% 46% at 50% 38%, rgba(96,180,240,0.16), rgba(96,180,240,0.05) 55%, transparent 74%);
+  }
+  body.phase-both .tv-bg-glow {
+    background:
+      radial-gradient(ellipse 44% 46% at 26% 38%, rgba(200,240,96,0.14), transparent 70%),
+      radial-gradient(ellipse 44% 46% at 74% 38%, rgba(96,180,240,0.14), transparent 70%);
+  }
+
+  /* ── Marca fija en la esquina (ancla visual en todos los estados) ── */
+  .tv-brand {
+    position: fixed;
+    top: clamp(10px, 2vh, 20px);
+    left: clamp(10px, 2vw, 24px);
+    z-index: 45;
+    display: flex; align-items: center; gap: 0.45em;
+    font-size: clamp(9px, 0.85vw, 12px);
+    font-weight: 700;
+    letter-spacing: 0.13em;
+    text-transform: uppercase;
+    color: var(--muted);
+    opacity: 0.65;
+    pointer-events: none;
+    white-space: nowrap;
+    text-shadow: 0 2px 10px rgba(0,0,0,0.7);
+  }
+  .tv-brand-mark { font-size: 1.25em; line-height: 1; opacity: 0.9; }
 
   /* Header */
   .tv-header {
@@ -12289,6 +12324,7 @@ function openTVMode() {
     margin-bottom: 3vh;
   }
   .tv-title {
+    font-family: var(--font-display);
     font-size: clamp(18px, 3.5vw, 42px);
     font-weight: 800;
     letter-spacing: -0.03em;
@@ -12346,6 +12382,17 @@ function openTVMode() {
     align-items: center;
     flex: 1;
     position: relative;
+  }
+  /* "Piso": sombra proyectada bajo cada bloque para dar profundidad */
+  .podium-slot::before {
+    content: '';
+    position: absolute;
+    bottom: -5px; left: 50%;
+    transform: translateX(-50%);
+    width: 64%; height: 16px;
+    background: radial-gradient(ellipse closest-side, rgba(0,0,0,0.55), rgba(0,0,0,0) 75%);
+    filter: blur(3px);
+    pointer-events: none;
   }
 
   /* Figure */
@@ -12449,7 +12496,7 @@ function openTVMode() {
   }
   .slot-2 .podium-block::after { background: linear-gradient(90deg,transparent,rgba(220,160,90,0.6),transparent); }
   .slot-2 .podium-block-num { color: rgba(255,255,255,0.6); }
-  .podium-block-num { position: relative; z-index: 1; text-shadow: 0 2px 6px rgba(0,0,0,0.4); }
+  .podium-block-num { position: relative; z-index: 1; text-shadow: 0 2px 6px rgba(0,0,0,0.4); font-family: var(--font-display); }
 
   /* Ranking list (positions 4+) */
   .tv-rank-list {
@@ -12510,10 +12557,25 @@ function openTVMode() {
 
   /* Divider */
   .tv-divider {
+    position: relative;
     width: 1px;
-    background: var(--border2);
+    background: linear-gradient(to bottom, transparent, var(--border2) 18%, var(--border2) 82%, transparent);
     align-self: stretch;
     margin: 0;
+  }
+  .tv-divider::before {
+    content: '🎮';
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    width: clamp(28px, 2.6vw, 38px);
+    height: clamp(28px, 2.6vw, 38px);
+    border-radius: 50%;
+    background: var(--bg);
+    border: 1.5px solid var(--border2);
+    display: flex; align-items: center; justify-content: center;
+    font-size: clamp(13px, 1.3vw, 18px);
+    box-shadow: 0 0 0 6px var(--bg), 0 4px 18px rgba(0,0,0,0.5);
   }
 
   /* Live dot */
@@ -12574,7 +12636,7 @@ function openTVMode() {
   .tv-idle.show { opacity: 1; transform: translate(-50%, -50%) scale(1); }
   .tv-idle-lbl { font-size: clamp(9px,0.9vw,13px); font-weight: 900; letter-spacing: 0.3em;
     text-transform: uppercase; color: var(--muted); margin-bottom: clamp(10px,1.6vh,22px); }
-  .tv-idle-big { font-size: clamp(46px,9vw,140px); font-weight: 900; line-height: 0.9;
+  .tv-idle-big { font-family: var(--font-display); font-size: clamp(46px,9vw,140px); font-weight: 900; line-height: 0.9;
     letter-spacing: -0.04em;
     background: linear-gradient(115deg, var(--accent), #eaffa0 45%, var(--gold));
     -webkit-background-clip: text; background-clip: text; color: transparent; -webkit-text-fill-color: transparent; }
@@ -12615,9 +12677,7 @@ function openTVMode() {
     right: clamp(10px,2vw,28px);
     bottom: calc(clamp(30px,4.4vh,56px) + clamp(56px,7vh,90px));
     width: clamp(140px,15vw,260px);
-    border-radius: 14px; overflow: hidden;
-    background: var(--surface); border: 1.5px solid var(--border2);
-    box-shadow: 0 10px 44px rgba(0,0,0,0.62);
+    overflow: hidden;
     opacity: 0; transform: translateY(16px) scale(0.96);
     transition: opacity 0.6s ease, transform 0.6s cubic-bezier(.2,1.1,.35,1);
     pointer-events: none;
@@ -12711,16 +12771,12 @@ function openTVMode() {
     position: fixed;
     top: clamp(10px, 2vh, 24px);
     right: clamp(10px, 2vw, 28px);
-    background: var(--surface);
-    border: 1.5px solid var(--border2);
-    border-radius: 16px;
     padding: clamp(8px,1.2vh,16px) clamp(10px,1.4vw,20px);
     display: flex;
     flex-direction: column;
     align-items: center;
     gap: clamp(4px,0.6vh,8px);
     min-width: clamp(110px,13vw,190px);
-    box-shadow: 0 4px 32px rgba(0,0,0,0.4);
     transition: border-color 0.3s, box-shadow 0.3s;
     z-index: 50;
   }
@@ -12864,11 +12920,27 @@ function openTVMode() {
     height: 100%;
     border-radius: 99px;
     transition: width 0.6s ease;
+    position: relative;
+    overflow: hidden;
+  }
+  .tv-estado-bar::after {
+    content: '';
+    position: absolute; top: 0; left: 0; height: 100%; width: 45%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.55), transparent);
+    transform: translateX(-130%);
+    animation: estadoBarShimmer 2.6s ease-in-out infinite;
+  }
+  @keyframes estadoBarShimmer {
+    0%   { transform: translateX(-130%); }
+    60%, 100% { transform: translateX(230%); }
   }
   .f1  .tv-estado-bar { background: var(--accent); }
   .imp .tv-estado-bar { background: var(--danger); }
   .f2  .tv-estado-bar { background: var(--info); }
   .qld .tv-estado-bar { background: var(--gold); }
+  @media (prefers-reduced-motion: reduce) {
+    .tv-estado-bar::after { animation: none; display: none; }
+  }
 
   .tv-estado-info {
     display: flex;
@@ -12903,22 +12975,35 @@ function openTVMode() {
   .tv-drag-reset{position:absolute;top:3px;left:6px;width:16px;height:16px;border-radius:50%;background:rgba(0,0,0,0.35);color:var(--muted);font-size:10px;line-height:16px;text-align:center;opacity:0;transition:opacity .2s,color .2s,background .2s;cursor:pointer;z-index:5}
   .tv-drag:hover .tv-drag-reset{opacity:0.7}
   .tv-drag-reset:hover{opacity:1!important;color:var(--text);background:rgba(0,0,0,0.6)}
-  .tv-guest-qr{position:fixed;bottom:clamp(10px,2vh,24px);left:clamp(10px,2vw,28px);z-index:50;background:var(--surface);border:1.5px solid var(--border2);border-radius:16px;padding:clamp(8px,1vh,12px);display:flex;flex-direction:column;align-items:center;gap:6px;box-shadow:0 4px 32px rgba(0,0,0,0.4)}
+  .tv-guest-qr{position:fixed;bottom:clamp(10px,2vh,24px);left:clamp(10px,2vw,28px);z-index:50;padding:clamp(8px,1vh,12px);display:flex;flex-direction:column;align-items:center;gap:6px}
   .tv-guest-qr-canvas{background:#fff;border-radius:8px;width:clamp(64px,7vw,110px);height:clamp(64px,7vw,110px);display:flex;align-items:center;justify-content:center;overflow:hidden}
   .tv-guest-qr-canvas img,.tv-guest-qr-canvas canvas{width:100%!important;height:100%!important}
   .tv-guest-qr-label{font-size:clamp(9px,0.8vw,12px);font-weight:700;color:var(--muted);text-align:center;letter-spacing:.02em;line-height:1.3;max-width:clamp(70px,8vw,130px)}
+
+  /* ── Chrome unificado para los widgets flotantes (QR, cronómetro, muro) ── */
+  .tv-chrome{
+    border-radius:18px;
+    background:linear-gradient(165deg, rgba(28,28,37,0.94), rgba(15,15,20,0.94));
+    border:1.5px solid rgba(200,240,96,0.24);
+    box-shadow:0 10px 40px rgba(0,0,0,0.55), 0 0 22px rgba(200,240,96,0.10);
+    backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px);
+  }
 </style>
 </head>
 <body>
 
+<!-- ── Resplandor de fondo + marca fija (presentes en todos los estados) ── -->
+<div class="tv-bg-glow" aria-hidden="true"></div>
+<div class="tv-brand" aria-hidden="true"><span class="tv-brand-mark">🎮</span>La Velada del Año</div>
+
 <!-- ── QR PARA INVITADOS (siempre visible) ── -->
-<div class="tv-guest-qr tv-drag" id="tv-guest-qr" title="Arrastrame">
+<div class="tv-guest-qr tv-drag tv-chrome" id="tv-guest-qr" title="Arrastrame">
   <div class="tv-guest-qr-canvas" id="tv-guest-qr-canvas"></div>
   <div class="tv-guest-qr-label">📱 Escaneá para<br>ver tu ranking</div>
 </div>
 
 <!-- ── CRONÓMETRO ── -->
-<div class="tv-timer tv-drag" id="tv-timer" title="Arrastrame">
+<div class="tv-timer tv-drag tv-chrome" id="tv-timer" title="Arrastrame">
   <div class="tv-timer-label">⏱ Cronómetro</div>
 
   <!-- Arc SVG -->
@@ -13011,7 +13096,7 @@ function openTVMode() {
 <div class="tv-logro" id="tv-logro"></div>
 
 <!-- ── MURO DE FOTOS ── -->
-<div class="tv-wall" id="tv-wall">
+<div class="tv-wall tv-chrome" id="tv-wall">
   <img id="tv-wall-img" alt="">
   <div class="tv-wall-tag" id="tv-wall-tag"></div>
 </div>
@@ -13259,6 +13344,7 @@ function tvAvatarHtml(name, idx, photos) {
   const f1El    = document.getElementById('tv-f1');
   const f2El    = document.getElementById('tv-f2');
   const divider = document.getElementById('tv-divider');
+  document.body.classList.add('phase-' + TV_PHASE);
   if (TV_PHASE === 'fase1') {
     f2El.style.display = 'none';
     divider.style.display = 'none';
