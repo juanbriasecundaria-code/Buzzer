@@ -10823,7 +10823,7 @@ const CREDITS_MUSIC = {
   enabled: true,
   src: 'cancion-creditos.mp3', // Wanna Be Startin' Somethin' — Michael Jackson
   startAt: 1.3,    // saltea el silencio inicial; arranca con el groove icónico
-  endAt:   100,    // groove largo: cubre los podios (~20s) + los créditos (~75s)
+  endAt:   108,    // groove largo: ajustado para que el total (groove + outro) dé ~120s
   volume:  0.85,
   fadeInMs:  2500, // entra suave en 2.5s
   fadeOutMs: 3500, // fade out final (sobre el contador)
@@ -10842,21 +10842,21 @@ const CREDITS_SPEED_FACTOR = 0.82; // <1 = créditos más lentos (ajustá acá l
 // la cantidad actual de PLAYERS/TEAMS): usá un MP3 de esa duración aprox.
 // para que la música termine justo cuando se revela el último nombre.
 const CEREMONY_MUSIC = {
-  players: {                              // "Presentar a los concursantes" (~36s con 11 jugadores)
+  players: {                              // "Presentar a los concursantes" (~36s con 11 jugadores) — Seven Nation Army
     enabled: true,
     src: 'musica-presentacion-jugadores.mp3',
     startAt: 0,       // segundo donde arranca (para saltear intros lentas)
     volume: 0.7,
-    fadeInMs: 300,
-    fadeOutMs: 1000,
+    fadeInMs: 0,      // el fade ya viene hecho en el mp3
+    fadeOutMs: 0,     // el fade ya viene hecho en el mp3
   },
-  teams: {                                // "Presentar a los equipos" (~18s con 5 equipos)
+  teams: {                                // "Presentar a los equipos" (~18s con 5 equipos) — Song 2 (Blur)
     enabled: true,
     src: 'musica-presentacion-equipos.mp3',
     startAt: 0,
     volume: 0.7,
-    fadeInMs: 600,   // más corto que en individuales: con 18s totales no sobra tiempo
-    fadeOutMs: 1300,
+    fadeInMs: 0,      // el fade ya viene hecho en el mp3
+    fadeOutMs: 0,     // el fade ya viene hecho en el mp3
   }
 };
 
@@ -11668,6 +11668,7 @@ function openPlayerCeremony() {
     finishBtn: 'Comenzar ▶',
     confetti: true,
     music: CEREMONY_MUSIC.players,
+    sfx: false, // sin efectos de golpe/campana: se escucha limpia la música de fondo
   });
 }
 
