@@ -2197,11 +2197,34 @@
   .credits.credits-out { animation: creditsFade 0.6s ease forwards; }
   @keyframes creditsFade { to { opacity: 0; } }
 
+  /* Contenedor con vignette: todo lo que corre (fondo deco + texto) vive
+     acá adentro para que el degradé de opacidad quede fijo a la pantalla
+     (no se mueve con el scroll) y el texto "aparece"/"desaparece" suave
+     en los bordes en vez de cortarse en seco. */
+  .credits-viewport {
+    position: absolute; inset: 0; overflow: hidden;
+    -webkit-mask-image: linear-gradient(to bottom, transparent 0%, black 9%, black 90%, transparent 100%);
+    mask-image: linear-gradient(to bottom, transparent 0%, black 9%, black 90%, transparent 100%);
+  }
   .credits-roll {
     position: absolute; left: 0; right: 0; top: 0;
     padding: 0 1.5rem 6rem; text-align: center; will-change: transform;
   }
-  .cr-block { margin-bottom: 0.2rem; }
+  /* Bloque animable: entra con fade + slide-up cuando aparece en pantalla
+     (ver IntersectionObserver en rollCredits/observeCreditsBlocks). */
+  .cr-block { margin-bottom: 0.2rem; opacity: 0; transform: translateY(26px); transition: opacity 0.7s ease, transform 0.7s ease; }
+  .cr-block.cr-in { opacity: 1; transform: translateY(0); }
+  @media (prefers-reduced-motion: reduce) {
+    .cr-block { opacity: 1; transform: none; transition: none; }
+  }
+  /* Marca de agua persistente en una esquina mientras corren los créditos */
+  .cr-watermark {
+    position: fixed; bottom: 1.1rem; left: 1.1rem; z-index: 1;
+    display: flex; align-items: center; gap: 0.4rem; pointer-events: none;
+    opacity: 0.34; color: var(--muted); font-size: 11px; font-weight: 700;
+    letter-spacing: 0.08em; text-transform: uppercase;
+  }
+  .cr-watermark span.cr-wm-icon { font-size: 15px; filter: grayscale(0.2); }
   .cr-title {
     font-size: clamp(2.4rem, 9vw, 5rem); font-weight: 800; letter-spacing: -0.02em;
     text-transform: uppercase; line-height: 0.95; margin-bottom: 0.3rem;
@@ -2213,6 +2236,14 @@
     font-size: clamp(11px, 3vw, 14px); padding-left: 0.42em; margin-bottom: 3.5rem; }
   .cr-role { color: var(--muted); letter-spacing: 0.32em; text-transform: uppercase;
     font-size: clamp(11px, 2.6vw, 13px); margin: 3rem 0 0.6rem; padding-left: 0.32em; }
+  /* Jerarquía de color por sección — mismos tonos que los dot-indicator de Reglas,
+     para que el ojo asocie cada bloque de créditos con su fase/categoría. */
+  .cr-role.role-fase1 { color: var(--accent); text-shadow: 0 0 10px rgba(200,240,96,0.35); }
+  .cr-role.role-fase2 { color: var(--info); text-shadow: 0 0 10px rgba(96,180,240,0.35); }
+  .cr-role.role-impostor { color: var(--danger); text-shadow: 0 0 10px rgba(255,95,95,0.35); }
+  .cr-role.role-quien { color: #c060e8; text-shadow: 0 0 10px rgba(192,96,232,0.35); }
+  .cr-role.role-games { color: #ff9d4d; text-shadow: 0 0 10px rgba(255,157,77,0.35); }
+  .cr-role.role-final { color: var(--gold); text-shadow: 0 0 10px rgba(245,200,66,0.4); }
   .cr-name { font-size: clamp(1.3rem, 5vw, 2rem); font-weight: 700; line-height: 1.3; }
   .cr-name.champ { color: var(--gold); font-size: clamp(1.7rem, 6.5vw, 2.8rem); }
   .cr-name .cr-pts { display: block; color: var(--muted); font-weight: 500;
@@ -2221,6 +2252,10 @@
     display: flex; align-items: center; justify-content: center; gap: 0.45rem; flex-wrap: wrap; }
   .cr-line .cr-mini { color: var(--muted); font-size: 0.7em; }
   .cr-medal { flex-shrink: 0; }
+  /* El 1° puesto del podio se destaca del 2°/3° (antes los tres pesaban igual) */
+  .cr-line.cr-first { font-size: 1.24em; font-weight: 700; color: var(--gold); margin: 0.5rem 0; }
+  .cr-line.cr-first .cr-medal { font-size: 1.5em; filter: drop-shadow(0 0 10px rgba(245,200,66,0.65)); }
+  .cr-line.cr-first .cr-mini { color: var(--gold); opacity: 0.75; }
   /* Avatares en el podio/elenco de créditos (dúo automático para equipos) */
   .cr-av { display: inline-flex; align-items: center; flex-shrink: 0; }
   .cr-av .player-avatar-img,
@@ -2247,12 +2282,17 @@
     gap: 0.5rem; max-width: 620px; margin: 0.8rem auto 0; padding: 0 0.5rem; }
   .cr-wall-cell { position: relative; border-radius: 10px; overflow: hidden;
     border: 1px solid var(--border2); box-shadow: 0 4px 18px rgba(0,0,0,0.4); }
+  /* Rotación leve (aplicada inline por celda) para dar aire "collage",
+     como la polaroid de Foto de la noche, en vez de grilla prolija */
   .cr-wall-cell img { width: 100%; aspect-ratio: 1/1; object-fit: cover; display: block; }
   .cr-wall-cell span { position: absolute; left: 0; right: 0; bottom: 0; padding: 12px 6px 4px;
     background: linear-gradient(to top, rgba(0,0,0,0.8), transparent);
     font-size: 9px; font-weight: 700; color: #fff; letter-spacing: 0.05em;
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .cr-games { font-size: clamp(1.05rem, 4vw, 1.4rem); line-height: 2.1; }
+  .cr-games { display: flex; flex-direction: column; align-items: center; gap: 0.55rem; }
+  .cr-game-item { font-size: clamp(1.05rem, 4vw, 1.4rem); line-height: 1.3;
+    display: flex; align-items: center; gap: 0.5rem; }
+  .cr-game-item .cr-game-icon { font-size: 1.15em; }
   .cr-mote { font-size: clamp(1rem, 3.8vw, 1.3rem); margin: 0.35rem 0; }
   .cr-mote b { color: var(--gold); font-weight: 700; }
   .cr-divider { width: 56px; height: 2px; background: var(--gold); opacity: 0.5;
@@ -2295,8 +2335,12 @@
 
   /* Fondo decorativo fijo de los créditos: mismos íconos tenues del podio,
      quedan quietos en pantalla mientras el texto pasa por encima */
-  .cr-bg-deco { position: fixed; inset: 0; z-index: 0; overflow: hidden; pointer-events: none; }
-  .cr-bg-deco span { position: absolute; line-height: 1; opacity: 0.06; filter: grayscale(0.15); }
+  /* Antes quedaba clavado (posición fija, sin transform). Ahora se anima con un
+     translateY leve en el mismo rAF del scroll (ver startRoll), más lento que
+     el texto, para dar sensación de profundidad sin competir con la lectura. */
+  .cr-bg-deco { position: fixed; inset: 0; z-index: 0; overflow: hidden; pointer-events: none;
+    will-change: transform; }
+  .cr-bg-deco span { position: absolute; line-height: 1; opacity: 0.09; filter: grayscale(0.15); }
   .credits-roll { z-index: 1; }
 
   @media (prefers-reduced-motion: reduce) {
@@ -10873,7 +10917,7 @@ const CREDITS_SPEED_FACTOR = 0.82;
 // Duración FIJA del scroll de créditos, siempre la misma sin importar cuánto
 // hayan tardado los podios (que no se tocan). Cambiá este número para ajustar
 // cuánto duran los créditos.
-const CREDITS_ROLL_SECONDS = 178; // 2m 58s exactos
+const CREDITS_ROLL_SECONDS = 118; // 1m 58s exactos
 
 // --- MÚSICA DE LAS PRESENTACIONES ------------------------------------------
 // Igual que los créditos: poné tus MP3 al lado del HTML con estos nombres.
@@ -10962,6 +11006,7 @@ let _creditsEndTimer = null;
 let _creditsAutoCloseTimer = null;
 let _rollStarted = false;
 let _grooveGuard = null;
+let _creditsBlockObserver = null;
 
 const fullName = (nick) => (typeof FULL_NAMES !== 'undefined' && FULL_NAMES[nick]) ? FULL_NAMES[nick] : nick;
 
@@ -11055,23 +11100,35 @@ function rollCredits() {
   const pName = (n) => esc(n);             // jugadores → tal cual los cargaste en la fase 1
   const tName = (n) => esc(n);             // equipos → tal cual
   const podium = (arr, nf) => arr.slice(0, 3)
-    .map((e, i) => `<div class="cr-line"><span class="cr-medal">${medal[i]}</span><span class="cr-av">${playerAvatarHtml(e.n, i)}</span>${nf(e.n)} <span class="cr-mini">· ${e.pts} pts</span></div>`).join('');
+    .map((e, i) => `<div class="cr-line${i === 0 ? ' cr-first' : ''}"><span class="cr-medal">${medal[i]}</span><span class="cr-av">${playerAvatarHtml(e.n, i)}</span>${nf(e.n)} <span class="cr-mini">· ${e.pts} pts</span></div>`).join('');
   const cast = (arr, nf) => arr.map((e, i) => `<div class="cr-line"><span class="cr-av">${playerAvatarHtml(e.n, i)}</span>${nf(e.n)}</div>`).join('');
 
-  // Todos los juegos: Fase 1 + Fase 2 + Impostor (deduplicados)
+  // Todos los juegos: Fase 1 + Fase 2 + Impostor + ¿Quién lo dijo? (deduplicados),
+  // cada uno con su ícono y su color de categoría (mismos tonos que Reglas).
+  const gameMeta = {};
+  if (typeof RULES_CONFIG !== 'undefined' && RULES_CONFIG) {
+    (RULES_CONFIG.f1 || []).forEach(g => { gameMeta[g.name] = { icon: g.icon || '🎲', color: 'var(--accent)' }; });
+    (RULES_CONFIG.f2 || []).forEach(g => { gameMeta[g.name] = { icon: g.icon || '🎲', color: 'var(--info)' }; });
+  }
+  gameMeta['Impostor'] = { icon: '🕵️', color: 'var(--danger)' };
+  gameMeta['¿Quién lo dijo?'] = { icon: '🗣️', color: '#c060e8' };
   const allGames = [];
   if (typeof GAMES_F1 !== 'undefined') allGames.push(...GAMES_F1);
   allGames.push('Impostor');
   if (typeof GAMES_F2 !== 'undefined') allGames.push(...GAMES_F2);
   allGames.push('¿Quién lo dijo?');
-  const games = [...new Set(allGames)].map(g => `<div>${esc(g)}</div>`).join('');
+  const games = [...new Set(allGames)].map(g => {
+    const meta = gameMeta[g] || { icon: '🎲', color: 'var(--text)' };
+    return `<div class="cr-game-item" style="color:${meta.color}"><span class="cr-game-icon">${meta.icon}</span>${esc(g)}</div>`;
+  }).join('');
 
   let motesHtml = '';
   try {
     const motes = (typeof computeMotes === 'function') ? computeMotes() : [];
     if (motes && motes.length) {
-      motesHtml = `<div class="cr-divider"></div><div class="cr-role">Menciones de la noche</div>`
+      motesHtml = `<div class="cr-divider"></div><div class="cr-role role-quien">Menciones de la noche</div>`
         + motes.map(m => `<div class="cr-mote">${m.emoji ? esc(m.emoji) + ' ' : ''}<b>${esc(m.title)}</b> — ${esc(m.player)}</div>`).join('');
+      motesHtml = `<div class="cr-block">${motesHtml}</div>`;
     }
   } catch (e) {}
 
@@ -11081,8 +11138,8 @@ function rollCredits() {
     const fnSrc = localStorage.getItem('ndj_foto_noche');
     const fnCap = localStorage.getItem('ndj_foto_noche_cap') || 'la noche';
     if (fnSrc) {
-      photoHtml = `<div class="cr-divider"></div><div class="cr-role">Foto de la noche</div>
-        <div class="cr-photo"><div class="cr-photo-frame"><img src="${fnSrc}" alt=""><div class="cr-photo-cap">${esc(fnCap)}</div></div></div>`;
+      photoHtml = `<div class="cr-block"><div class="cr-divider"></div><div class="cr-role role-final">Foto de la noche</div>
+        <div class="cr-photo"><div class="cr-photo-frame"><img src="${fnSrc}" alt=""><div class="cr-photo-cap">${esc(fnCap)}</div></div></div></div>`;
     }
   } catch (e) {}
 
@@ -11090,27 +11147,33 @@ function rollCredits() {
   let wallHtml = '';
   try {
     if (_wall && _wall.length) {
-      const cells = _wall.map(p =>
-        '<div class="cr-wall-cell"><img src="' + p.src + '" alt="">'
-        + (p.by ? '<span>' + esc(p.by) + '</span>' : '') + '</div>').join('');
-      wallHtml = '<div class="cr-divider"></div><div class="cr-role">La noche en fotos</div>'
-        + '<div class="cr-wall">' + cells + '</div>';
+      // Rotación leve y determinística por celda (aire "collage", no grilla prolija)
+      const cells = _wall.map((p, i) => {
+        const rot = (((i * 47) % 9) - 4) * 1.1; // ~ -4.4° a 4.4°
+        return '<div class="cr-wall-cell" style="transform:rotate(' + rot.toFixed(1) + 'deg)"><img src="' + p.src + '" alt="">'
+          + (p.by ? '<span>' + esc(p.by) + '</span>' : '') + '</div>';
+      }).join('');
+      wallHtml = '<div class="cr-block"><div class="cr-divider"></div><div class="cr-role role-final">La noche en fotos</div>'
+        + '<div class="cr-wall">' + cells + '</div></div>';
     }
   } catch (e) {}
 
   const finalGame = (FINAL_CONFIG && (FINAL_CONFIG.juego || FINAL_CONFIG.ganador))
-    ? `<div class="cr-divider"></div>`
-      + (FINAL_CONFIG.juego ? `<div class="cr-role">La gran final</div><div class="cr-name" style="color:var(--gold)">🏆 ${esc(FINAL_CONFIG.juego)}</div>` : '')
-      + (FINAL_CONFIG.ganador ? `<div class="cr-role" style="margin-top:0.6rem">Campeón de la gran final</div><div class="cr-champ-av">${playerAvatarHtml(FINAL_CONFIG.ganador, 0)}</div><div class="cr-name champ" style="color:var(--gold)">🏆 ${esc(FINAL_CONFIG.ganador)}</div>` : '')
+    ? `<div class="cr-block"><div class="cr-divider"></div>`
+      + (FINAL_CONFIG.juego ? `<div class="cr-role role-final">La gran final</div><div class="cr-name" style="color:var(--gold)">🏆 ${esc(FINAL_CONFIG.juego)}</div>` : '')
+      + (FINAL_CONFIG.ganador ? `<div class="cr-role role-final" style="margin-top:0.6rem">Campeón de la gran final</div><div class="cr-champ-av">${playerAvatarHtml(FINAL_CONFIG.ganador, 0)}</div><div class="cr-name champ" style="color:var(--gold)">🏆 ${esc(FINAL_CONFIG.ganador)}</div>` : '')
+      + `</div>`
     : '';
 
   const segundoGame = (typeof SEGUNDO_CONFIG !== 'undefined' && SEGUNDO_CONFIG && SEGUNDO_CONFIG.ganador)
-    ? `<div class="cr-role" style="margin-top:0.6rem">2do puesto</div><div class="cr-champ-av">${playerAvatarHtml(SEGUNDO_CONFIG.ganador, 0)}</div><div class="cr-name champ" style="color:var(--silver)">🥈 ${esc(SEGUNDO_CONFIG.ganador)}</div>`
+    ? `<div class="cr-block"><div class="cr-role role-final" style="margin-top:0.6rem">2do puesto</div><div class="cr-champ-av">${playerAvatarHtml(SEGUNDO_CONFIG.ganador, 0)}</div><div class="cr-name champ" style="color:var(--silver)">🥈 ${esc(SEGUNDO_CONFIG.ganador)}</div></div>`
     : '';
 
   const tercerGame = (typeof TERCER_CONFIG !== 'undefined' && TERCER_CONFIG && (TERCER_CONFIG.juego || TERCER_CONFIG.ganador))
-    ? (TERCER_CONFIG.juego ? `<div class="cr-role">Disputa por el 3er puesto</div><div class="cr-name" style="color:#cd7f32">🥉 ${esc(TERCER_CONFIG.juego)}</div>` : '')
-      + (TERCER_CONFIG.ganador ? `<div class="cr-role" style="margin-top:0.6rem">Ganador del 3er puesto</div><div class="cr-champ-av">${playerAvatarHtml(TERCER_CONFIG.ganador, 0)}</div><div class="cr-name champ" style="color:#cd7f32">🥉 ${esc(TERCER_CONFIG.ganador)}</div>` : '')
+    ? `<div class="cr-block">`
+      + (TERCER_CONFIG.juego ? `<div class="cr-role role-final">Disputa por el 3er puesto</div><div class="cr-name" style="color:#cd7f32">🥉 ${esc(TERCER_CONFIG.juego)}</div>` : '')
+      + (TERCER_CONFIG.ganador ? `<div class="cr-role role-final" style="margin-top:0.6rem">Ganador del 3er puesto</div><div class="cr-champ-av">${playerAvatarHtml(TERCER_CONFIG.ganador, 0)}</div><div class="cr-name champ" style="color:#cd7f32">🥉 ${esc(TERCER_CONFIG.ganador)}</div>` : '')
+      + `</div>`
     : '';
 
   // Fondo decorativo fijo: mismos íconos tenues de la ceremonia del podio,
@@ -11140,52 +11203,67 @@ function rollCredits() {
     + '</div>';
 
   const html = `
-    ${creditsDecoHtml}
-    <div class="credits-roll" id="credits-roll">
-      <div style="height:18vh"></div>
-      <div class="cr-title">La Velada<br>del Año</div>
-      <div class="cr-tag">Edición 2026</div>
+    <div class="credits-viewport">
+      ${creditsDecoHtml}
+      <div class="credits-roll" id="credits-roll">
+        <div style="height:18vh"></div>
+        <div class="cr-title">La Velada<br>del Año</div>
+        <div class="cr-tag">Edición 2026</div>
 
-      <div class="cr-role">Campeón · Fase Individual</div>
-      <div class="cr-champ-fig">${champP ? entityFigureHtml(champP.n, entityColor(champP.n, 0), 150, 'victory') : ''}</div>
-      <div class="cr-name champ">🏆 ${esc(champP ? champP.n : '—')}<span class="cr-pts">${champP ? champP.pts : 0} pts</span></div>
+        <div class="cr-block">
+          <div class="cr-role role-fase1">Campeón · Fase Individual</div>
+          <div class="cr-champ-fig">${champP ? entityFigureHtml(champP.n, entityColor(champP.n, 0), 150, 'victory') : ''}</div>
+          <div class="cr-name champ">🏆 ${esc(champP ? champP.n : '—')}<span class="cr-pts">${champP ? champP.pts : 0} pts</span></div>
+        </div>
 
-      <div class="cr-role">Campeón · Fase Grupal</div>
-      <div class="cr-champ-fig">${champT ? entityFigureHtml(champT.n, entityColor(champT.n, 0), 150, 'victory') : ''}</div>
-      <div class="cr-name champ">🏆 ${esc(champT ? champT.n : '—')}<span class="cr-pts">${champT ? champT.pts : 0} pts</span></div>
+        <div class="cr-block">
+          <div class="cr-role role-fase2">Campeón · Fase Grupal</div>
+          <div class="cr-champ-fig">${champT ? entityFigureHtml(champT.n, entityColor(champT.n, 0), 150, 'victory') : ''}</div>
+          <div class="cr-name champ">🏆 ${esc(champT ? champT.n : '—')}<span class="cr-pts">${champT ? champT.pts : 0} pts</span></div>
+        </div>
 
-      <div class="cr-divider"></div>
-      <div class="cr-role">Podio · Fase Individual</div>
-      ${podium(sortedP, pName)}
-      <div class="cr-role">Podio · Fase Grupal</div>
-      ${podium(sortedT, tName)}
+        <div class="cr-block">
+          <div class="cr-divider"></div>
+          <div class="cr-role role-fase1">Podio · Fase Individual</div>
+          ${podium(sortedP, pName)}
+          <div class="cr-role role-fase2">Podio · Fase Grupal</div>
+          ${podium(sortedT, tName)}
+        </div>
 
-      <div class="cr-divider"></div>
-      <div class="cr-role">El elenco</div>
-      ${cast(sortedP, (n)=>esc(elencoName(n)))}
-      <div class="cr-role">Los equipos</div>
-      ${cast(sortedT, tName)}
+        <div class="cr-block">
+          <div class="cr-divider"></div>
+          <div class="cr-role role-fase1">El elenco</div>
+          ${cast(sortedP, (n)=>esc(elencoName(n)))}
+          <div class="cr-role role-fase2">Los equipos</div>
+          ${cast(sortedT, tName)}
+        </div>
 
-      <div class="cr-divider"></div>
-      <div class="cr-role">Los juegos</div>
-      <div class="cr-games">${games}</div>
-      ${finalGame}
-      ${segundoGame}
-      ${tercerGame}
+        <div class="cr-block">
+          <div class="cr-divider"></div>
+          <div class="cr-role role-games">Los juegos</div>
+          <div class="cr-games">${games}</div>
+        </div>
+        ${finalGame}
+        ${segundoGame}
+        ${tercerGame}
 
-      ${motesHtml}
+        ${motesHtml}
 
-      ${photoHtml}
+        ${photoHtml}
 
-      ${wallHtml}
+        ${wallHtml}
 
-      <div class="cr-divider"></div>
-      <div class="cr-foot">Una producción de<br><div class="cr-producer-av">${producerAvatarHtml('Juan Cruz Bria')}</div><b style="color:var(--text);font-size:1.2em">Juan Cruz Bria</b><br><br>Gracias por venir 🎮</div>
-      <div class="cr-fin">FIN</div>
+        <div class="cr-block">
+          <div class="cr-divider"></div>
+          <div class="cr-foot">Una producción de<br><div class="cr-producer-av">${producerAvatarHtml('Juan Cruz Bria')}</div><b style="color:var(--text);font-size:1.2em">Juan Cruz Bria</b><br><br>Gracias por venir 🎮</div>
+          <div class="cr-fin">FIN</div>
+        </div>
+      </div>
     </div>
   `;
 
   overlay.innerHTML = html
+    + '<div class="cr-watermark" aria-hidden="true"><span class="cr-wm-icon">🎮</span>La Velada del Año</div>'
     + '<button class="credits-close" onclick="event.stopPropagation(); closeCredits()">✕ Salir</button>'
     + '<div class="credits-hint">tocá para pausar · Esc para salir</div>';
   overlay.classList.add('show');
@@ -11201,6 +11279,7 @@ function rollCredits() {
   overlay.onclick = () => { _creditsPaused = !_creditsPaused; };
   _creditsKeyHandler = (e) => { if (e.key === 'Escape') { e.preventDefault(); closeCredits(); } };
   document.addEventListener('keydown', _creditsKeyHandler);
+  observeCreditsBlocks();
 
   // Modo sin movimiento: créditos estáticos + contador al pie, música sin sync
   if (reduce) {
@@ -11224,16 +11303,42 @@ function rollCredits() {
   startRoll(travel() / CREDITS_ROLL_SECONDS);
 }
 
+// Entrada escalonada por bloque: cada .cr-block hace fade-in + slide-up
+// cuando entra en el viewport (en vez de aparecer todo pintado de una).
+function observeCreditsBlocks() {
+  if (_creditsBlockObserver) { _creditsBlockObserver.disconnect(); _creditsBlockObserver = null; }
+  const blocks = document.querySelectorAll('#credits .cr-block');
+  if (!blocks.length || typeof IntersectionObserver === 'undefined') return;
+  _creditsBlockObserver = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        entry.target.classList.add('cr-in');
+        _creditsBlockObserver.unobserve(entry.target);
+      }
+    });
+  }, { root: null, threshold: 0.08 });
+  blocks.forEach(b => _creditsBlockObserver.observe(b));
+}
+
 function startRoll(speed) {
   if (_rollStarted) return; _rollStarted = true;
   const roll = document.getElementById('credits-roll');
   if (!roll) return;
+  const bgDeco = document.querySelector('#credits .cr-bg-deco');
   let y = window.innerHeight, last = null;
+  const startY = y;
   function frame(ts) {
     if (last == null) last = ts;
     const dt = Math.min(0.05, (ts - last) / 1000); last = ts;
     if (!_creditsPaused) y -= speed * dt;
     roll.style.transform = `translateY(${y}px)`;
+    // Parallax lento del fondo decorativo: se mueve más despacio que el texto
+    // (antes quedaba completamente clavado), acotado para no irse de pantalla.
+    if (bgDeco) {
+      const traveled = startY - y;
+      const drift = Math.min(window.innerHeight * 0.55, traveled * 0.05);
+      bgDeco.style.transform = `translateY(${drift}px)`;
+    }
     if (y <= -(roll.offsetHeight + 40)) { creditsEnded(); return; }
     _creditsAF = requestAnimationFrame(frame);
   }
@@ -11310,6 +11415,7 @@ function creditsEnded() {
 function showCountdown() {
   const overlay = document.getElementById('credits');
   if (!overlay || !overlay.classList.contains('show')) return;
+  if (_creditsBlockObserver) { _creditsBlockObserver.disconnect(); _creditsBlockObserver = null; }
   overlay.innerHTML = `
     <div class="cd-wrap">
       <div class="cd-eyebrow">La próxima velada</div>
@@ -11328,6 +11434,7 @@ function closeCredits() {
   const overlay = document.getElementById('credits');
   if (!overlay) return;
   if (_creditsAF) { cancelAnimationFrame(_creditsAF); _creditsAF = null; }
+  if (_creditsBlockObserver) { _creditsBlockObserver.disconnect(); _creditsBlockObserver = null; }
   if (_creditsKeyHandler) { document.removeEventListener('keydown', _creditsKeyHandler); _creditsKeyHandler = null; }
   if (_countdownInterval) { clearInterval(_countdownInterval); _countdownInterval = null; }
   if (_creditsEndTimer) { clearTimeout(_creditsEndTimer); _creditsEndTimer = null; }
