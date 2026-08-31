@@ -3719,7 +3719,7 @@ function renderReglas() {
       <div class="card" style="margin-top:0.75rem">
         <div style="display:flex;gap:0.5rem">
           <input id="f1-station-input" type="text" placeholder="Nombre de la nueva estación..." style="flex:1;padding:0.55rem 0.75rem;border-radius:var(--radius);border:1px solid var(--border2);background:var(--surface2);color:var(--text);font-size:13px" onkeydown="if(event.key==='Enter')addStation('f1')">
-          <button class="btn" style="padding:0.55rem 1rem;white-space:nowrap;background:var(--accent-dim);border-color:var(--accent);color:var(--accent);font-weight:800" onclick="addStation('f1')">+ Estación</button>
+          <button class="btn" style="padding:0.55rem 1rem;white-space:nowrap" onclick="addStation('f1')">+ Estación</button>
         </div>
         <div style="font-size:11px;color:var(--muted);margin-top:0.5rem">Agregar o eliminar una estación rearma el fixture de Fase 1. La nueva estación se crea con valores por defecto, editables abajo.</div>
       </div>` : `
@@ -3756,7 +3756,7 @@ function renderReglas() {
       <div class="card" style="margin-top:0.75rem">
         <div style="display:flex;gap:0.5rem">
           <input id="f2-station-input" type="text" placeholder="Nombre de la nueva estación..." style="flex:1;padding:0.55rem 0.75rem;border-radius:var(--radius);border:1px solid var(--border2);background:var(--surface2);color:var(--text);font-size:13px" onkeydown="if(event.key==='Enter')addStation('f2')">
-          <button class="btn" style="padding:0.55rem 1rem;white-space:nowrap;background:var(--accent-dim);border-color:var(--accent);color:var(--accent);font-weight:800" onclick="addStation('f2')">+ Estación</button>
+          <button class="btn" style="padding:0.55rem 1rem;white-space:nowrap" onclick="addStation('f2')">+ Estación</button>
         </div>
         <div style="font-size:11px;color:var(--muted);margin-top:0.5rem">Agregar o eliminar una estación rearma el fixture de Fase 2. La nueva estación se crea con valores por defecto, editables abajo.</div>
       </div>` : `
@@ -3863,7 +3863,7 @@ function renderReglas() {
                 <input id="nc-delta" type="number" step="1" placeholder="±pts" value="1" style="width:80px;padding:0.55rem 0.5rem;border-radius:var(--radius);border:1px solid var(--border2);background:var(--surface2);color:var(--text);font-size:13px">
               </div>
               <div style="font-size:11px;color:var(--muted)">"Al toque" aplica los puntos ya mismo. "Roba"/"Dona" mueven puntos entre jugadores en el momento. Las otras tres quedan pendientes hasta que se cargue el próximo resultado de esa persona o equipo.</div>
-              <button class="btn" style="padding:0.6rem 1rem;background:var(--accent-dim);border-color:var(--accent);color:var(--accent);font-weight:800" onclick="addComodinCatalog()">+ Agregar comodín</button>
+              <button class="btn" style="padding:0.6rem 1rem" onclick="addComodinCatalog()">+ Agregar comodín</button>
             </div>
           </div>
           <div style="margin-top:0.75rem">
@@ -4473,7 +4473,7 @@ function renderF1RosterAdmin() {
         ${rows}
         <div style="display:flex;gap:0.5rem;margin-top:0.75rem;padding-top:0.75rem;border-top:0.5px solid var(--border)">
           <input id="f1-player-input" type="text" placeholder="Nombre del nuevo jugador..." style="flex:1;padding:0.55rem 0.75rem;border-radius:var(--radius);border:1px solid var(--border2);background:var(--surface2);color:var(--text);font-size:13px" onkeydown="if(event.key==='Enter')addF1Player()">
-          <button class="btn" style="padding:0.55rem 1rem;white-space:nowrap;background:var(--accent-dim);border-color:var(--accent);color:var(--accent);font-weight:800" onclick="addF1Player()">+ Jugador</button>
+          <button class="btn" style="padding:0.55rem 1rem;white-space:nowrap" onclick="addF1Player()">+ Jugador</button>
         </div>
         <div style="font-size:11px;color:var(--muted);margin-top:0.5rem">Agregar o eliminar un jugador rearma el fixture. Editar el nombre no lo toca.</div>
       </div>
@@ -4611,7 +4611,7 @@ function renderF2RosterAdmin() {
       ${rows}
       <div style="display:flex;gap:0.5rem;margin-top:0.75rem;padding-top:0.75rem;border-top:0.5px solid var(--border)">
         <input id="f2-new-team-input" type="text" placeholder="Nombre del equipo nuevo..." style="flex:1;padding:0.55rem 0.75rem;border-radius:var(--radius);border:1px solid var(--border2);background:var(--surface2);color:var(--text);font-size:13px" onkeydown="if(event.key==='Enter')addF2Team()">
-        <button class="btn" style="padding:0.55rem 1rem;white-space:nowrap;background:var(--accent-dim);border-color:var(--accent);color:var(--accent);font-weight:800" onclick="addF2Team()">+ Equipo</button>
+        <button class="btn" style="padding:0.55rem 1rem;white-space:nowrap" onclick="addF2Team()">+ Equipo</button>
       </div>
       <div style="font-size:11px;color:var(--muted);margin-top:0.5rem">Agregar o eliminar un equipo rearma el fixture. Editar el nombre no lo toca.</div>
     </div>
@@ -8361,7 +8361,7 @@ function renderImpSetup() {
       <div style="font-size:11px;font-weight:600;letter-spacing:0.07em;text-transform:uppercase;color:var(--muted);margin-bottom:0.75rem">Jugadores (se puede sumar invitados de último momento)</div>
       <div style="display:flex;gap:0.5rem;margin-bottom:0.75rem">
         <input id="imp-player-input" type="text" placeholder="Nombre del jugador..." style="flex:1;padding:0.6rem 0.75rem;border-radius:var(--radius);border:1px solid var(--border2);background:var(--surface2);color:var(--text);font-size:13px" onkeydown="if(event.key==='Enter')addImpPlayer()">
-        <button class="btn" style="padding:0.6rem 1rem;background:var(--accent-dim);border-color:var(--accent);color:var(--accent);font-weight:800" onclick="addImpPlayer()">Agregar</button>
+        <button class="btn" style="padding:0.6rem 1rem" onclick="addImpPlayer()">Agregar</button>
       </div>
       <div style="display:flex;flex-wrap:wrap;gap:0.5rem;margin-bottom:0.5rem">${playerHtml}</div>
       <div style="font-size:12px;color:var(--muted);margin-bottom:1.5rem">${impGame.players.length} jugadores (mínimo 3)</div>
@@ -8974,7 +8974,7 @@ function renderImpResult() {
       <button class="btn btn-primary" style="width:100%;padding:0.875rem;font-size:15px;margin-top:0.75rem" onclick="confirmVote()" ${acc!==null?'':'disabled'}>
         ✅ Confirmar elección
       </button>
-      <button class="btn btn-ghost" style="width:100%;margin-top:0.5rem;font-size:12px" onclick="finalizeImpGame('noDescubierto')">🏳️ Rendirse — el impostor gana</button>
+      <button class="btn" style="width:100%;margin-top:0.5rem;color:var(--muted);font-size:12px" onclick="finalizeImpGame('noDescubierto')">🏳️ Rendirse — el impostor gana</button>
     </div>
   `);
 }
@@ -9041,7 +9041,7 @@ function revealImpResult() {
         <div class="cover-title">¡Encontraron a un impostor!</div>
         <div style="display:flex;align-items:center;gap:0.5rem;margin-bottom:2rem">${impAvatar(accName, 32)}<div class="cover-sub" style="margin:0"><b>${accName}</b> era impostor. Todavía queda ${remaining.length === 1 ? '1 impostor más' : remaining.length + ' impostores más'} escondido${remaining.length>1?'s':''}.</div></div>
         <button class="btn btn-primary" style="padding:0.875rem 1.75rem;font-size:14px" onclick="document.querySelectorAll('.cover-overlay').forEach(e=>e.remove());impGame.accusedIdx=null;saveImpGame();goToVoting();">🎲 Nueva ruleta — seguir buscando</button>
-        <button class="btn btn-ghost" style="margin-top:0.6rem;font-size:12px" onclick="finalizeImpGame()">🏁 Terminar la ronda acá</button>
+        <button class="btn" style="margin-top:0.6rem;color:var(--muted);font-size:12px" onclick="finalizeImpGame()">🏁 Terminar la ronda acá</button>
       `;
       document.body.appendChild(cover);
     }
@@ -9083,7 +9083,7 @@ function revealImpResult() {
         <button class="btn btn-primary" style="padding:0.875rem 1.75rem;font-size:14px" onclick="document.querySelectorAll('.cover-overlay').forEach(e=>e.remove());impGame.accusedIdx=null;saveImpGame();goToVoting();">
           🎲 Nueva ruleta — seguir buscando
         </button>
-        <button class="btn btn-ghost" style="margin-top:0.6rem;font-size:12px" onclick="finalizeImpGame('noDescubierto')">
+        <button class="btn" style="margin-top:0.6rem;color:var(--muted);font-size:12px" onclick="finalizeImpGame('noDescubierto')">
           🏳️ Rendirse — el impostor gana
         </button>
       `;
