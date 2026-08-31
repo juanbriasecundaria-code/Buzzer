@@ -3652,6 +3652,13 @@ function renderReglas() {
           </div>
         </div>
 
+        <!-- ── SIMULACRO ── -->
+        <div class="card" style="border-color:rgba(200,240,96,0.3)">
+          <div class="control-panel-section-title" style="color:var(--accent)">🎲 Simulacro de la noche</div>
+          <p class="rules-intro" style="margin-bottom:1rem">Carga puntajes aleatorios en Fase 1, Fase 2, Impostor y ¿Quién lo dijo? para ver cómo quedarían las tablas, el podio y las pantallas antes del evento real. Pisa los resultados que ya estén cargados (no toca roster, fixtures ni reglas). Ideal para hacer pruebas.</p>
+          <button class="final-end-btn" style="width:100%;border-color:rgba(200,240,96,0.6);color:var(--accent);background:var(--accent-dim)" onclick="simulateVelada()">🎲 Simular velada</button>
+        </div>
+
         <!-- ── ADMIN ── -->
         <div class="card" style="border-color:rgba(255,95,95,0.3)">
           <div class="control-panel-section-title" style="color:var(--danger)">⚠️ Zona de administración</div>
@@ -7582,6 +7589,78 @@ function resetBets() {
       showToast('✓', 'Apuestas reiniciadas', false);
     },
     null
+  );
+}
+
+// Carga resultados aleatorios en Fase 1, Fase 2, Impostor y ¿Quién lo dijo?
+// para poder previsualizar tablas, podio y pantallas sin tener que jugar
+// todo de verdad. Pisa cualquier resultado ya cargado; no toca roster,
+// fixtures, estaciones ni reglas configuradas. Pensado solo para pruebas.
+function simulateVelada() {
+  showConfirmModal(
+    '¿Simular toda la velada?',
+    'Carga resultados aleatorios en Fase 1, Fase 2, Impostor y ¿Quién lo dijo? para ver cómo quedarían los rankings, el podio y las pantallas. Pisa cualquier resultado que ya esté cargado (el roster, los fixtures, las estaciones y las reglas quedan intactos). Pensado para probar la app antes del evento — no se puede deshacer. Si ya tenés datos reales cargados, te conviene descargar un backup antes (arriba, en "Backup de la noche").',
+    () => {
+      // ── Fase 1: un resultado random por cada partido del fixture ──
+      F1_FIXTURE.forEach(([r, a, b, g]) => {
+        const key = `${r}-${a}-${b}`;
+        const gCfg = (RULES_CONFIG && RULES_CONFIG.f1 && RULES_CONFIG.f1[g]) ? RULES_CONFIG.f1[g] : null;
+        const allowDraw = gCfg ? gCfg.allow_draw !== false : true;
+        let winner;
+        if (allowDraw && Math.random() < 0.12) winner = 'empate';
+        else winner = Math.random() < 0.5 ? a : b;
+        state.f1[key] = { winner, bonus: Math.random() < 0.4 };
+      });
+
+      // ── Fase 2: ídem, sobre los duelos de equipos ──
+      F2_FIXTURE.forEach(([r, a, b, g]) => {
+        const key = `${r}-${a}-${b}`;
+        const gCfg = (RULES_CONFIG && RULES_CONFIG.f2 && RULES_CONFIG.f2[g]) ? RULES_CONFIG.f2[g] : null;
+        const allowDraw = gCfg ? gCfg.allow_draw !== false : true;
+        let winner;
+        if (allowDraw && Math.random() < 0.12) winner = 'empate';
+        else winner = Math.random() < 0.5 ? a : b;
+        state.f2[key] = { winner, bonus: Math.random() < 0.4 };
+      });
+
+      // ── Impostor: unas rondas ficticias, mezclando jugadores al azar ──
+      const impWordsDemo = ['Simulacro', 'Prueba', 'Ensayo', 'Testeo', 'Ronda demo', 'Demo'];
+      const numImpRounds = Math.min(4, PLAYERS.length);
+      const simRounds = [];
+      for (let i = 0; i < numImpRounds; i++) {
+        const shuffled = [...PLAYERS].sort(() => Math.random() - 0.5);
+        const roundPlayers = shuffled.slice(0, Math.min(6, PLAYERS.length));
+        const impostorName = roundPlayers[Math.floor(Math.random() * roundPlayers.length)];
+        const discovered = Math.random() < 0.5;
+        const accusedName = discovered
+          ? impostorName
+          : (roundPlayers.find(n => n !== impostorName) || impostorName);
+        simRounds.push({
+          word: impWordsDemo[i % impWordsDemo.length],
+          impostorName,
+          mode: discovered ? 'descubierto' : 'noDescubierto',
+          accusedName,
+          players: roundPlayers,
+        });
+      }
+      state.impostor = { rounds: simRounds };
+
+      // ── ¿Quién lo dijo?: podio random por equipo (3 / 2 / 1 puntos) ──
+      const teamOrder = TEAMS.map((_, idx) => idx).sort(() => Math.random() - 0.5);
+      const qldPodiumPts = [3, 2, 1];
+      const qldOverrideSim = {};
+      teamOrder.forEach((idx, pos) => { qldOverrideSim[idx] = qldPodiumPts[pos] || 0; });
+      state.qldOverride = qldOverrideSim;
+
+      saveState();
+      closeModal();
+      renderReglas();
+      if (typeof renderFase1 === 'function') renderFase1();
+      if (typeof renderFase2 === 'function') renderFase2();
+      showToast('🎲', 'Velada simulada · Fase 1, Fase 2, Impostor y ¿Quién lo dijo? con datos random', true);
+    },
+    null,
+    'Simular'
   );
 }
 
