@@ -2723,9 +2723,42 @@ body.started .velada-bg-scrim { display: block; }
 .op-spotlights span:nth-child(1) { animation: spotA 7s ease-in-out infinite; }
 .op-spotlights span:nth-child(2) { animation: spotB 9s ease-in-out infinite; animation-delay: -2s; }
 .op-spotlights span:nth-child(3) { animation: spotC 8s ease-in-out infinite; animation-delay: -4s; }
+.op-spotlights span:nth-child(4) { animation: spotA 11s ease-in-out infinite reverse; animation-delay: -6s; opacity: 0.7; }
+.op-spotlights span:nth-child(5) { animation: spotC 6.5s ease-in-out infinite; animation-delay: -1.5s; opacity: 0.6; }
 @keyframes spotA { 0%,100% { transform: translateX(-160%) rotate(-16deg); } 50% { transform: translateX(-40%) rotate(12deg); } }
 @keyframes spotB { 0%,100% { transform: translateX(60%) rotate(18deg); }   50% { transform: translateX(-20%) rotate(-10deg); } }
 @keyframes spotC { 0%,100% { transform: translateX(-70%) rotate(6deg); }   50% { transform: translateX(90%) rotate(-14deg); } }
+
+/* Láseres finos que cruzan el escenario en diagonal, tipo boliche */
+.op-lasers { position: fixed; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; opacity: 0.55; mix-blend-mode: screen; }
+.op-lasers i {
+  position: absolute; top: 50%; left: 50%; width: 220vmax; height: 2px;
+  background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--team, var(--accent)) 85%, white 15%), transparent);
+  transform-origin: center; filter: blur(0.3px);
+}
+.op-lasers i:nth-child(1) { animation: laserSweep1 5.5s ease-in-out infinite; }
+.op-lasers i:nth-child(2) { animation: laserSweep2 6.5s ease-in-out infinite; animation-delay: -1.8s; }
+.op-lasers i:nth-child(3) { animation: laserSweep3 4.8s ease-in-out infinite; animation-delay: -3.1s; }
+@keyframes laserSweep1 { 0%,100% { transform: translate(-50%,-50%) rotate(18deg);  opacity: 0.15; } 50% { transform: translate(-50%,-50%) rotate(-22deg); opacity: 0.55; } }
+@keyframes laserSweep2 { 0%,100% { transform: translate(-50%,-50%) rotate(-35deg); opacity: 0.12; } 50% { transform: translate(-50%,-50%) rotate(10deg);  opacity: 0.45; } }
+@keyframes laserSweep3 { 0%,100% { transform: translate(-50%,-50%) rotate(55deg);  opacity: 0.1;  } 50% { transform: translate(-50%,-50%) rotate(80deg);  opacity: 0.4;  } }
+
+/* Pulso ambiente de fondo, como una luz de escenario que respira al ritmo de la fiesta */
+.op-glowpulse { position: fixed; inset: 0; z-index: 0; pointer-events: none;
+  background: radial-gradient(ellipse 70% 55% at 50% 40%, color-mix(in srgb, var(--team, var(--accent)) 22%, transparent), transparent 75%);
+  animation: opGlowPulse 2.6s ease-in-out infinite;
+}
+@keyframes opGlowPulse { 0%,100% { opacity: 0.35; transform: scale(1); } 50% { opacity: 0.75; transform: scale(1.06); } }
+
+/* Confeti de fondo, muy tenue y constante, cayendo despacio durante toda la presentación */
+.op-driftbits { position: fixed; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; opacity: 0.5; }
+.op-driftbits i {
+  position: absolute; top: -6%; width: 6px; height: 6px; border-radius: 2px;
+  background: color-mix(in srgb, var(--team, var(--accent)) 70%, white 20%);
+  box-shadow: 0 0 6px color-mix(in srgb, var(--team, var(--accent)) 60%, transparent);
+  animation: opDrift linear infinite;
+}
+@keyframes opDrift { 0% { transform: translateY(-10vh) rotate(0deg); } 100% { transform: translateY(110vh) rotate(360deg); } }
 
 /* Anillo de energía que estalla desde la tarjeta al revelarse */
 .op-burst {
@@ -2771,7 +2804,7 @@ body.started .velada-bg-scrim { display: block; }
 @keyframes opTitleShine { to { background-position: 220% center; } }
 
 @media (prefers-reduced-motion: reduce) {
-  .op-spotlights, .op-burst, .op-sparks { display: none; }
+  .op-spotlights, .op-burst, .op-sparks, .op-lasers, .op-glowpulse, .op-driftbits { display: none; }
   .op-playercard.visible:not(.past) { animation: none; }
   .op-outro .op-bigtitle { animation: none; }
 }
@@ -10861,9 +10894,12 @@ const CEREMONY_MUSIC = {
 };
 
 let _ceremonyAudio = null;
-function startCeremonyTrack(cfg) {
+// onDuration(segundos|null) se llama UNA vez apenas se conoce (o falla) la
+// duración real del mp3, para que quien la pidió pueda repartir las tarjetas
+// a lo largo de toda la canción en vez de usar un tiempo fijo "adivinado".
+function startCeremonyTrack(cfg, onDuration) {
   stopCeremonyTrack();
-  if (!cfg || !cfg.enabled || !cfg.src) return;
+  if (!cfg || !cfg.enabled || !cfg.src) { if (onDuration) onDuration(null); return; }
   try {
     const a = new Audio(cfg.src);
     a.preload = 'auto';
@@ -10873,9 +10909,16 @@ function startCeremonyTrack(cfg) {
     const fadeMs = (cfg.fadeInMs != null) ? cfg.fadeInMs : 1200;
     const stepMs = 70;
     const inc = target / Math.max(1, fadeMs / stepMs);
+    let reported = false;
+    const reportDuration = () => {
+      if (reported) return;
+      reported = true;
+      if (onDuration) onDuration((isFinite(a.duration) && a.duration > 0) ? a.duration : null);
+    };
     const begin = () => {
       try { a.currentTime = cfg.startAt || 0; } catch (e) {}
       a.play().catch(() => {});
+      reportDuration();
       const step = () => {
         if (_ceremonyAudio !== a) return;
         if (a.volume < target - inc) { try { a.volume = Math.min(target, a.volume + inc); } catch (e) {} setTimeout(step, stepMs); }
@@ -10885,8 +10928,8 @@ function startCeremonyTrack(cfg) {
     };
     if (a.readyState >= 1) begin();
     else a.addEventListener('loadedmetadata', begin, { once: true });
-    a.addEventListener('error', () => { _ceremonyAudio = null; }, { once: true });
-  } catch (e) { _ceremonyAudio = null; }
+    a.addEventListener('error', () => { _ceremonyAudio = null; reportDuration(); }, { once: true });
+  } catch (e) { _ceremonyAudio = null; if (onDuration) onDuration(null); }
 }
 function stopCeremonyTrack(fadeMs) {
   const a = _ceremonyAudio;
@@ -11412,23 +11455,62 @@ function _sparksHtml() {
   return out;
 }
 
+// Partículas de fondo, muy tenues, cayendo despacio durante toda la ceremonia
+// (puro adorno visual, no suenan ni interfieren con nada)
+function _driftBitsHtml() {
+  let out = '';
+  for (let i = 0; i < 18; i++) {
+    const left = (Math.random() * 100).toFixed(1);
+    const dur = (9 + Math.random() * 8).toFixed(1);
+    const delay = (Math.random() * -14).toFixed(1);
+    const scale = (0.6 + Math.random() * 0.9).toFixed(2);
+    out += '<i style="left:' + left + '%;transform:scale(' + scale + ');animation-duration:' + dur + 's;animation-delay:' + delay + 's"></i>';
+  }
+  return out;
+}
+
 function _runCeremony({ items, title, eyebrow, labelFn, colorFn, figFn, finishTitle, finishBtn, confetti, music, sfx }) {
   const overlay = document.getElementById('opening');
   if (!overlay || !items.length) return;
   _resumeAudio();
-  if (music) startCeremonyTrack(music);
   const reduce = _prefersReduce();
   const useSfx = sfx !== false; // por defecto suenan los efectos; pasá sfx:false para silenciarlos (ej: cuando hay música de fondo)
 
-  // Tiempos entre fases (ms): número → figura → nombre → pausa → siguiente
-  const T_FIG  = reduce ? 0   : 480;   // tras número, entra figura
-  const T_NAME = reduce ? 0   : 360;   // tras figura, entra nombre
-  const T_WAIT = reduce ? 800 : 2400;  // pausa con todo visible antes de auto-avanzar
+  // Tiempos entre fases (ms): número → figura → nombre → pausa → siguiente.
+  // Se reparten SIEMPRE en las mismas proporciones (14.8% / 11.1% / 74.1%,
+  // las de "3.24s por tarjeta" de siempre) pero sobre el tiempo real que le
+  // toca a cada tarjeta (cardMs), que a su vez sale de dividir la duración
+  // real del mp3 en partes iguales según items.length. Así, si mañana cambia
+  // la cantidad de jugadores/equipos o la canción, esto se recalcula solo.
+  const RATIO_FIG = 480 / 3240, RATIO_NAME = 360 / 3240;
+  const DEFAULT_CARD_MS = 3240; // fallback si no hay música o no se puede leer su duración
+  const MIN_CARD_MS = 900;      // piso para que la animación no quede ilegible con MUCHOS participantes
+  let T_FIG, T_NAME, T_WAIT;
+  function applyCardTiming(cardMs) {
+    const c = Math.max(MIN_CARD_MS, Math.round(cardMs) || DEFAULT_CARD_MS);
+    T_FIG  = reduce ? 0   : Math.round(c * RATIO_FIG);
+    T_NAME = reduce ? 0   : Math.round(c * RATIO_NAME);
+    T_WAIT = reduce ? 800 : Math.max(500, c - T_FIG - T_NAME);
+  }
+  applyCardTiming(DEFAULT_CARD_MS); // ritmo clásico hasta que (si hay música) sepamos la duración real
+
+  if (music) {
+    startCeremonyTrack(music, (durationSec) => {
+      if (durationSec == null) return; // sin música o no se pudo leer: se queda con el ritmo por defecto
+      const usableSec   = Math.max(0, durationSec - (music.startAt || 0));
+      const introDelayMs = reduce ? 200 : 1000; // el mismo delay del primer "advance" de más abajo
+      const cardMs = ((usableSec * 1000) - introDelayMs) / items.length;
+      applyCardTiming(cardMs);
+    });
+  }
 
   overlay.innerHTML =
     '<button class="ceremony-close" id="op-close-btn">✕ Salir</button>'
     + '<div class="op-stage" id="op-stage">'
-    + '  <div class="op-spotlights" aria-hidden="true"><span></span><span></span><span></span></div>'
+    + '  <div class="op-glowpulse" aria-hidden="true"></div>'
+    + '  <div class="op-spotlights" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span></div>'
+    + '  <div class="op-lasers" aria-hidden="true"><i></i><i></i><i></i></div>'
+    + '  <div class="op-driftbits" aria-hidden="true">' + _driftBitsHtml() + '</div>'
     + '  <div class="op-beam" id="op-beam-el"></div>'
     + '  <div class="op-rail" id="op-rail"></div>'
     + '  <div class="op-intro" id="op-intro-el">'
