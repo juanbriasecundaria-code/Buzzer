@@ -10838,22 +10838,25 @@ const CREDITS_SPEED_FACTOR = 0.82; // <1 = créditos más lentos (ajustá acá l
 // --- MÚSICA DE LAS PRESENTACIONES ------------------------------------------
 // Igual que los créditos: poné tus MP3 al lado del HTML con estos nombres.
 // Si el archivo no existe, la ceremonia funciona igual (solo sin música).
+// Cada presentación tiene su propia pista y su propia duración total (con
+// la cantidad actual de PLAYERS/TEAMS): usá un MP3 de esa duración aprox.
+// para que la música termine justo cuando se revela el último nombre.
 const CEREMONY_MUSIC = {
-  players: {                              // "Presentar a los concursantes"
+  players: {                              // "Presentar a los concursantes" (~36s con 11 jugadores)
     enabled: true,
     src: 'musica-presentacion-jugadores.mp3',
     startAt: 0,       // segundo donde arranca (para saltear intros lentas)
     volume: 0.7,
-    fadeInMs: 1200,
-    fadeOutMs: 2200,
+    fadeInMs: 300,
+    fadeOutMs: 1000,
   },
-  teams: {                                // "Presentar a los equipos"
+  teams: {                                // "Presentar a los equipos" (~18s con 5 equipos)
     enabled: true,
     src: 'musica-presentacion-equipos.mp3',
     startAt: 0,
     volume: 0.7,
-    fadeInMs: 1200,
-    fadeOutMs: 2200,
+    fadeInMs: 600,   // más corto que en individuales: con 18s totales no sobra tiempo
+    fadeOutMs: 1300,
   }
 };
 
@@ -11409,12 +11412,13 @@ function _sparksHtml() {
   return out;
 }
 
-function _runCeremony({ items, title, eyebrow, labelFn, colorFn, figFn, finishTitle, finishBtn, confetti, music }) {
+function _runCeremony({ items, title, eyebrow, labelFn, colorFn, figFn, finishTitle, finishBtn, confetti, music, sfx }) {
   const overlay = document.getElementById('opening');
   if (!overlay || !items.length) return;
   _resumeAudio();
   if (music) startCeremonyTrack(music);
   const reduce = _prefersReduce();
+  const useSfx = sfx !== false; // por defecto suenan los efectos; pasá sfx:false para silenciarlos (ej: cuando hay música de fondo)
 
   // Tiempos entre fases (ms): número → figura → nombre → pausa → siguiente
   const T_FIG  = reduce ? 0   : 480;   // tras número, entra figura
@@ -11521,7 +11525,7 @@ function _runCeremony({ items, title, eyebrow, labelFn, colorFn, figFn, finishTi
     cardEl.classList.add('visible');
     const burstEl = cardEl.querySelector('#op-burst-el');
     if (burstEl && !reduce) { burstEl.classList.remove('go'); void burstEl.offsetWidth; burstEl.classList.add('go'); }
-    if (!reduce) cerSndImpact();
+    if (!reduce && useSfx) cerSndImpact();
 
     // Fase 2: figura entra
     phaseTimers.push(setTimeout(function() {
@@ -11540,7 +11544,7 @@ function _runCeremony({ items, title, eyebrow, labelFn, colorFn, figFn, finishTi
       if (shineEl) { shineEl.classList.remove('sweep'); void shineEl.offsetWidth; shineEl.classList.add('sweep'); }
       const sparksEl = cardEl.querySelector('#op-sparks-el');
       if (sparksEl && !reduce) { sparksEl.classList.remove('go'); void sparksEl.offsetWidth; sparksEl.classList.add('go'); }
-      if (!reduce) cerSndShine();
+      if (!reduce && useSfx) cerSndShine();
       phase = 3;
       hint.style.opacity = '1';
       _openingTimer = setTimeout(advance, T_WAIT);
@@ -11593,7 +11597,7 @@ function _runCeremony({ items, title, eyebrow, labelFn, colorFn, figFn, finishTi
     const ctaBtn = stage.querySelector('#op-cta-btn');
     if (ctaBtn) ctaBtn.onclick = function(e) { e.stopPropagation(); closeCeremony('opening'); };
     prog.classList.add('done');
-    if (!reduce) cerSndFinale();
+    if (!reduce && useSfx) cerSndFinale();
     if (!reduce && confetti && typeof launchConfetti === 'function') launchConfetti('opening');
     // La música baja lentamente sobre el título de cierre
     if (music) stopCeremonyTrack(music.fadeOutMs != null ? music.fadeOutMs : 2200);
@@ -11643,6 +11647,7 @@ function openCeremony() {
     finishBtn: 'Entrar ▶',
     confetti: true,
     music: CEREMONY_MUSIC.teams,
+    sfx: false, // sin efectos de golpe/campana: se escucha limpia la música de fondo
   });
 }
 
