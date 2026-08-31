@@ -7011,6 +7011,17 @@ function closeRuleta() {
   const ov = document.getElementById('ruleta-overlay');
   if (ov) ov.classList.remove('open');
   _ruletaBusy = false;
+  broadcastRuleta({ type: 'close' });
+}
+// Le avisa a la ventana del TV (si está abierta) para que replique la
+// misma ruleta en pantalla grande. Solo mismo-PC (postMessage directo +
+// BroadcastChannel) — es un efecto visual efímero, no hace falta el
+// camino de Firebase que usan state/wall para sincronizar entre dispositivos.
+function broadcastRuleta(payload) {
+  if (window._tvWin && !window._tvWin.closed) {
+    try { window._tvWin.postMessage({ type: 'ndj_ruleta', data: payload }, '*'); } catch(e) {}
+  }
+  if (window._bc) window._bc.postMessage({ key: 'ndj_ruleta', data: payload });
 }
 function spinRuleta() {
   if (_ruletaBusy) return;
@@ -7031,6 +7042,17 @@ function spinRuleta() {
   const como   = COMODINES[Math.floor(Math.random() * COMODINES.length)];
   const seg = 360 / n;
   const mid = idx * seg + seg / 2;
+
+  // Mandamos ya mismo el ganador + comodín a la TV para que arranque su
+  // propia animación en simultáneo con la de acá (misma duración, mismo
+  // resultado — así no dependemos de un segundo mensaje más adelante).
+  broadcastRuleta({
+    type: 'spin',
+    phase: _ruletaPhase,
+    roster: ROSTER,
+    idx,
+    como: { emoji: como.emoji, kind: como.kind, name: como.name, desc: como.desc }
+  });
 
   // La aguja está fija arriba (ángulo 0). Rotamos la ruleta para que el
   // gajo elegido termine justo debajo de la aguja, sumando varias vueltas
@@ -12500,44 +12522,44 @@ function openTVMode() {
 
   /* Ranking list (positions 4+) */
   .tv-rank-list {
-    margin-top: 2vh;
+    margin-top: 1.4vh;
     width: 100%;
     display: flex;
     flex-direction: column;
-    gap: 0.6vh;
+    gap: 0.4vh;
   }
   .tv-rank-row {
     display: flex;
     align-items: center;
-    gap: 1vw;
-    padding: clamp(6px,0.8vh,14px) clamp(10px,1.2vw,20px);
+    gap: 0.8vw;
+    padding: clamp(4px,0.5vh,10px) clamp(8px,1vw,16px);
     border-radius: var(--radius);
     background: var(--surface);
     border: 0.5px solid var(--border2);
   }
   .tv-rank-pos {
-    font-size: clamp(12px, 1.6vw, 22px);
+    font-size: clamp(10px, 1.3vw, 18px);
     font-weight: 800;
     color: var(--muted);
-    min-width: clamp(20px,2vw,36px);
+    min-width: clamp(16px,1.6vw,28px);
     text-align: center;
   }
   .tv-rank-name {
     flex: 1;
-    font-size: clamp(13px, 1.8vw, 24px);
+    font-size: clamp(11px, 1.4vw, 19px);
     font-weight: 600;
     display: flex;
     align-items: center;
-    gap: clamp(6px,0.8vw,12px);
+    gap: clamp(5px,0.6vw,9px);
   }
   .tv-rank-avatar-img {
-    width: clamp(20px,2.4vw,34px); height: clamp(20px,2.4vw,34px);
+    width: clamp(16px,1.9vw,27px); height: clamp(16px,1.9vw,27px);
     border-radius: 50%; object-fit: cover; flex-shrink: 0; border: 1px solid var(--border2);
   }
   .tv-rank-avatar-fallback {
-    width: clamp(20px,2.4vw,34px); height: clamp(20px,2.4vw,34px);
+    width: clamp(16px,1.9vw,27px); height: clamp(16px,1.9vw,27px);
     border-radius: 50%; flex-shrink: 0; display: flex; align-items: center; justify-content: center;
-    font-size: clamp(10px,1.1vw,15px); font-weight: 700; color: var(--text); opacity: 0.85;
+    font-size: clamp(8px,0.9vw,12px); font-weight: 700; color: var(--text); opacity: 0.85;
   }
   /* Equipos de dos: avatares solapados en el ranking del TV */
   .tv-avatar-duo { display: inline-flex; align-items: center; flex-shrink: 0; }
@@ -12549,7 +12571,7 @@ function openTVMode() {
   .mii-duo-l { margin-right: -11%; z-index: 2; }
   .mii-duo-r { margin-left: -11%; z-index: 1; }
   .tv-rank-pts {
-    font-size: clamp(13px, 1.8vw, 24px);
+    font-size: clamp(11px, 1.4vw, 19px);
     font-weight: 800;
     color: var(--accent);
   }
@@ -12997,6 +13019,79 @@ function openTVMode() {
     box-shadow:0 10px 40px rgba(0,0,0,0.55), 0 0 22px rgba(200,240,96,0.10);
     backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px);
   }
+
+  /* ── RULETA DE COMODINES en el TV ── */
+  .tv-ruleta-overlay{
+    position:fixed; inset:0; z-index:9000; display:none;
+    align-items:center; justify-content:center;
+    background:radial-gradient(circle at 50% 40%, rgba(30,26,10,0.92), rgba(4,4,7,0.96));
+    backdrop-filter:blur(7px); -webkit-backdrop-filter:blur(7px);
+  }
+  .tv-ruleta-overlay.open{ display:flex; }
+  .tv-ruleta-box{
+    display:flex; flex-direction:column; align-items:center;
+    gap:clamp(10px,1.6vh,22px);
+  }
+  .tv-ruleta-eyebrow{
+    font-size:clamp(12px,1.3vw,17px); font-weight:900; letter-spacing:0.32em;
+    text-transform:uppercase; color:var(--gold);
+    text-shadow:0 0 18px rgba(245,200,66,0.5);
+  }
+  .tv-ruleta-wheel-area{
+    position:relative; width:min(42vw,58vh); aspect-ratio:1/1;
+  }
+  .tv-ruleta-pointer{
+    position:absolute; top:-3%; left:50%; transform:translateX(-50%); z-index:3;
+    width:0; height:0;
+    border-left:clamp(10px,1.1vw,18px) solid transparent;
+    border-right:clamp(10px,1.1vw,18px) solid transparent;
+    border-top:clamp(18px,1.9vw,30px) solid var(--gold);
+    filter:drop-shadow(0 3px 8px rgba(0,0,0,0.55));
+  }
+  .tv-ruleta-wheel-outer{
+    position:absolute; inset:0; border-radius:50%; padding:3%;
+    background:conic-gradient(from 0deg, var(--gold), #6b4e0e, var(--gold));
+    box-shadow:0 0 0 6px rgba(245,200,66,0.14), 0 22px 70px rgba(0,0,0,0.6);
+  }
+  .tv-ruleta-wheel-svg{
+    display:block; width:100%; height:100%; border-radius:50%;
+    transition:transform 3.7s cubic-bezier(0.13,0.85,0.18,1);
+    background:#0f0f14;
+  }
+  .tv-ruleta-hub{
+    position:absolute; top:50%; left:50%; width:15%; height:15%;
+    transform:translate(-50%,-50%); border-radius:50%; z-index:2;
+    background:radial-gradient(circle at 35% 30%, #2b2b38, #0c0c10);
+    box-shadow:0 0 0 3px rgba(245,200,66,0.4), inset 0 2px 8px rgba(0,0,0,0.6);
+    display:flex; align-items:center; justify-content:center;
+    font-size:clamp(18px,2.2vw,32px);
+  }
+  .tv-ruleta-result-name{
+    font-size:clamp(24px,3.4vw,48px); font-weight:900; color:var(--text);
+    opacity:0; transform:translateY(10px); transition:opacity .4s, transform .4s;
+    text-shadow:0 2px 14px rgba(0,0,0,0.5);
+  }
+  .tv-ruleta-result-name.show{ opacity:1; transform:none; }
+  .tv-ruleta-card{
+    opacity:0; transform:translateY(16px) scale(0.94); transition:opacity .4s, transform .4s;
+    border-radius:20px; border:1.5px solid var(--border2);
+    background:linear-gradient(165deg, rgba(28,28,37,0.96), rgba(14,14,19,0.96));
+    padding:clamp(14px,1.8vh,26px) clamp(22px,2.8vw,42px);
+    max-width:min(64vw,560px); text-align:center;
+    box-shadow:0 16px 50px rgba(0,0,0,0.5);
+  }
+  .tv-ruleta-card.show{ opacity:1; transform:none; }
+  .tv-ruleta-card.good{ border-color:var(--success); background:linear-gradient(165deg, rgba(78,203,126,0.14), rgba(14,14,19,0.96)); }
+  .tv-ruleta-card.bad{ border-color:var(--danger); background:linear-gradient(165deg, rgba(255,95,95,0.14), rgba(14,14,19,0.96)); }
+  .tv-ruleta-card .rc-emoji{ font-size:clamp(30px,3.6vw,50px); }
+  .tv-ruleta-card .rc-kind{
+    font-size:clamp(10px,1.1vw,14px); font-weight:800; letter-spacing:0.14em;
+    text-transform:uppercase; margin-top:0.3em; color:var(--muted);
+  }
+  .tv-ruleta-card.good .rc-kind{ color:var(--success); }
+  .tv-ruleta-card.bad  .rc-kind{ color:var(--danger); }
+  .tv-ruleta-card .rc-name{ font-size:clamp(16px,2vw,25px); font-weight:800; margin-top:0.35em; }
+  .tv-ruleta-card .rc-desc{ font-size:clamp(12px,1.25vw,16px); color:var(--muted); margin-top:0.4em; line-height:1.45; }
 </style>
 </head>
 <body>
@@ -13120,6 +13215,22 @@ function openTVMode() {
     <div class="tv-ticker-inner" id="tv-ticker-inner">
       <span class="tv-ticker-item" style="color:var(--muted);font-style:italic">Esperando resultados...</span>
     </div>
+  </div>
+</div>
+
+<!-- ── RULETA DE COMODINES (aparece cuando el conductor la gira) ── -->
+<div class="tv-ruleta-overlay" id="tv-ruleta-overlay">
+  <div class="tv-ruleta-box">
+    <div class="tv-ruleta-eyebrow">Ruleta de comodines</div>
+    <div class="tv-ruleta-wheel-area">
+      <div class="tv-ruleta-pointer"></div>
+      <div class="tv-ruleta-wheel-outer">
+        <svg id="tv-ruleta-wheel-svg" class="tv-ruleta-wheel-svg" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg"></svg>
+      </div>
+      <div class="tv-ruleta-hub">🎰</div>
+    </div>
+    <div class="tv-ruleta-result-name" id="tv-ruleta-result-name">&nbsp;</div>
+    <div class="tv-ruleta-card" id="tv-ruleta-card"></div>
   </div>
 </div>
 
@@ -14223,6 +14334,116 @@ function initDraggables() {
   setTimeout(go, 500);
 })();
 
+// ── RULETA DE COMODINES en el TV ─────────────────────────────────────
+// El conductor gira la ruleta desde su pantalla y acá se replica la misma
+// animación (mismo ganador, misma duración) para que los invitados vean
+// caer la aguja en vivo. Ojo: TODO lo que arma HTML/SVG acá abajo usa
+// concatenación con "+" y nunca comillas invertidas — este bloque entero
+// vive adentro del template literal gigante que arma la ventana del TV
+// (la variable "html" de openTVMode), así que una comilla invertida suelta
+// cerraría ese template en el lugar equivocado y rompería todo el script.
+let _tvRuletaBusy = false;
+const TV_RULETA_SPIN_MS = 3700;
+
+function tvBuildRuletaWheelSVG(names) {
+  const n = names.length;
+  const cx = 100, cy = 100, r = 96;
+  const seg = 360 / n;
+  const palette = ['#1b1b26', '#241a0c'];
+  const fontSize = n > 10 ? 8 : n > 7 ? 9 : n > 5 ? 10.5 : 12;
+  const textR = r * 0.62;
+  const pt = function (radius, angleDeg) {
+    const rad = angleDeg * Math.PI / 180;
+    return { x: cx + radius * Math.sin(rad), y: cy - radius * Math.cos(rad) };
+  };
+  const esc = function (s) {
+    return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  };
+  let paths = '', texts = '';
+  for (let i = 0; i < n; i++) {
+    const start = i * seg, end = (i + 1) * seg, mid = start + seg / 2;
+    const p1 = pt(r, start), p2 = pt(r, end);
+    const largeArc = (end - start) > 180 ? 1 : 0;
+    const fill = palette[i % palette.length];
+    paths += '<path d="M ' + cx + ' ' + cy + ' L ' + p1.x.toFixed(2) + ' ' + p1.y.toFixed(2)
+      + ' A ' + r + ' ' + r + ' 0 ' + largeArc + ' 1 ' + p2.x.toFixed(2) + ' ' + p2.y.toFixed(2)
+      + ' Z" fill="' + fill + '" stroke="rgba(245,200,66,0.35)" stroke-width="0.8"/>';
+    const tp = pt(textR, mid);
+    const short = esc(String(names[i]).split(' ')[0]);
+    texts += '<text x="' + tp.x.toFixed(2) + '" y="' + tp.y.toFixed(2) + '" transform="rotate(' + mid.toFixed(2)
+      + ' ' + tp.x.toFixed(2) + ' ' + tp.y.toFixed(2) + ')" text-anchor="middle" dominant-baseline="middle" '
+      + 'style="font-size:' + fontSize + 'px;font-weight:800;fill:#f0efe8;letter-spacing:0.2px">' + short + '</text>';
+  }
+  return '<circle cx="' + cx + '" cy="' + cy + '" r="' + r + '" fill="none" stroke="rgba(245,200,66,0.5)" stroke-width="1.5"/>'
+    + paths + texts;
+}
+
+function tvRuletaReset() {
+  const ov = document.getElementById('tv-ruleta-overlay');
+  const svg = document.getElementById('tv-ruleta-wheel-svg');
+  const nameEl = document.getElementById('tv-ruleta-result-name');
+  const cardEl = document.getElementById('tv-ruleta-card');
+  if (ov) ov.classList.remove('open');
+  if (svg) { svg.style.transition = 'none'; svg.style.transform = 'rotate(0deg)'; }
+  if (nameEl) { nameEl.classList.remove('show'); nameEl.innerHTML = '&nbsp;'; }
+  if (cardEl) { cardEl.className = 'tv-ruleta-card'; cardEl.innerHTML = ''; }
+  _tvRuletaBusy = false;
+}
+
+function tvShowRuleta(payload) {
+  try {
+    const roster = payload.roster || [];
+    const idx = payload.idx;
+    if (!roster.length || idx == null) return;
+    _tvRuletaBusy = true;
+    const ov = document.getElementById('tv-ruleta-overlay');
+    const svg = document.getElementById('tv-ruleta-wheel-svg');
+    const nameEl = document.getElementById('tv-ruleta-result-name');
+    const cardEl = document.getElementById('tv-ruleta-card');
+    if (!ov || !svg) return;
+
+    svg.style.transition = 'none';
+    svg.style.transform = 'rotate(0deg)';
+    svg.innerHTML = tvBuildRuletaWheelSVG(roster);
+    nameEl.classList.remove('show'); nameEl.innerHTML = '&nbsp;';
+    cardEl.className = 'tv-ruleta-card'; cardEl.innerHTML = '';
+    ov.classList.add('open');
+
+    const n = roster.length;
+    const seg = 360 / n;
+    const mid = idx * seg + seg / 2;
+    const targetMod = ((360 - mid) % 360 + 360) % 360;
+    const extraSpins = 5;
+    const rot = targetMod + 360 * extraSpins;
+
+    // Fuerza reflow para que el navegador registre transition:none antes
+    // de volver a habilitar la transición; si no, a veces "salta" directo
+    // al ángulo final sin animar.
+    void svg.offsetWidth;
+    svg.style.transition = 'transform ' + (TV_RULETA_SPIN_MS / 1000) + 's cubic-bezier(0.13,0.85,0.18,1)';
+    svg.style.transform = 'rotate(' + rot + 'deg)';
+
+    setTimeout(function () {
+      nameEl.textContent = String(roster[idx]).split(' ')[0];
+      nameEl.classList.add('show');
+      if (payload.como) {
+        setTimeout(function () { tvShowRuletaCard(payload.como); }, 550);
+      }
+    }, TV_RULETA_SPIN_MS);
+  } catch (e) { console.warn('tvShowRuleta:', e); }
+}
+
+function tvShowRuletaCard(cm) {
+  const cardEl = document.getElementById('tv-ruleta-card');
+  if (!cardEl) return;
+  const kindLabel = cm.kind === 'bueno' ? 'Comodín a favor' : 'Comodín en contra';
+  cardEl.className = 'tv-ruleta-card show ' + (cm.kind === 'bueno' ? 'good' : 'bad');
+  cardEl.innerHTML = '<div class="rc-emoji">' + (cm.emoji || '🎰') + '</div>'
+    + '<div class="rc-kind">' + kindLabel + '</div>'
+    + '<div class="rc-name">' + (cm.name || '') + '</div>'
+    + '<div class="rc-desc">' + (cm.desc || '') + '</div>';
+}
+
 // ── MURO DE FOTOS en el TV: rota una foto cada tanto ─────────────────
 // (variables declaradas más arriba, antes de la primera llamada a renderTV())
 function loadTVWall() {
@@ -14483,6 +14704,10 @@ function renderTicker(state, PLAYERS, TEAMS) {
       try { localStorage.setItem('ndj_miis', e.data.data); } catch(err) {}
       renderTV();
     }
+    if (e.data && e.data.type === 'ndj_ruleta') {
+      if (e.data.data && e.data.data.type === 'spin') tvShowRuleta(e.data.data);
+      else if (e.data.data && e.data.data.type === 'close') tvRuletaReset();
+    }
   });
 
   // ── 0b. Pull desde window.opener (solo si el origin lo permite) ──
@@ -14529,6 +14754,10 @@ function renderTicker(state, PLAYERS, TEAMS) {
       if (e.data && e.data.key === 'ndj_miis') {
         try { localStorage.setItem('ndj_miis', e.data.data); } catch(err) {}
         renderTV();
+      }
+      if (e.data && e.data.key === 'ndj_ruleta') {
+        if (e.data.data && e.data.data.type === 'spin') tvShowRuleta(e.data.data);
+        else if (e.data.data && e.data.data.type === 'close') tvRuletaReset();
       }
     };
   } catch(e) { console.warn('BroadcastChannel no disponible:', e); }
