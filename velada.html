@@ -12975,6 +12975,15 @@ function openTVMode() {
   .tv-drag-reset{position:absolute;top:3px;left:6px;width:16px;height:16px;border-radius:50%;background:rgba(0,0,0,0.35);color:var(--muted);font-size:10px;line-height:16px;text-align:center;opacity:0;transition:opacity .2s,color .2s,background .2s;cursor:pointer;z-index:5}
   .tv-drag:hover .tv-drag-reset{opacity:0.7}
   .tv-drag-reset:hover{opacity:1!important;color:var(--text);background:rgba(0,0,0,0.6)}
+
+  /* Agrandar / achicar QR y cronómetro */
+  .tv-resizable{transition:transform .15s ease;transform-origin:top left}
+  .tv-resizable.dragging{transition:none}
+  .tv-resize-controls{position:absolute;top:3px;right:6px;display:flex;gap:3px;opacity:0;transition:opacity .2s;z-index:5}
+  .tv-resizable:hover .tv-resize-controls{opacity:0.8}
+  .tv-resize-btn{width:16px;height:16px;border-radius:50%;background:rgba(0,0,0,0.35);color:var(--muted);font-size:12px;line-height:15px;text-align:center;cursor:pointer;user-select:none;transition:color .2s,background .2s}
+  .tv-resize-btn:hover{color:var(--text);background:rgba(0,0,0,0.6)}
+  .tv-drag.tv-resizable::after{display:none} /* el ✥ se solapaba con los botones de tamaño; el cursor ya avisa que se arrastra */
   .tv-guest-qr{position:fixed;bottom:clamp(10px,2vh,24px);left:clamp(10px,2vw,28px);z-index:50;padding:clamp(8px,1vh,12px);display:flex;flex-direction:column;align-items:center;gap:6px}
   .tv-guest-qr-canvas{background:#fff;border-radius:8px;width:clamp(64px,7vw,110px);height:clamp(64px,7vw,110px);display:flex;align-items:center;justify-content:center;overflow:hidden}
   .tv-guest-qr-canvas img,.tv-guest-qr-canvas canvas{width:100%!important;height:100%!important}
@@ -12997,13 +13006,13 @@ function openTVMode() {
 <div class="tv-brand" aria-hidden="true"><span class="tv-brand-mark">🎮</span>La Velada del Año</div>
 
 <!-- ── QR PARA INVITADOS (siempre visible) ── -->
-<div class="tv-guest-qr tv-drag tv-chrome" id="tv-guest-qr" title="Arrastrame">
+<div class="tv-guest-qr tv-drag tv-resizable tv-chrome" id="tv-guest-qr" title="Arrastrame">
   <div class="tv-guest-qr-canvas" id="tv-guest-qr-canvas"></div>
   <div class="tv-guest-qr-label">📱 Escaneá para<br>ver tu ranking</div>
 </div>
 
 <!-- ── CRONÓMETRO ── -->
-<div class="tv-timer tv-drag tv-chrome" id="tv-timer" title="Arrastrame">
+<div class="tv-timer tv-drag tv-resizable tv-chrome" id="tv-timer" title="Arrastrame">
   <div class="tv-timer-label">⏱ Cronómetro</div>
 
   <!-- Arc SVG -->
@@ -14035,18 +14044,28 @@ function startIdle() {
 }
 
 // ── ELEMENTOS ARRASTRABLES DEL TV (QR y cronómetro) ──────────────────
-// El conductor los acomoda donde le quede cómodo según cómo esté puesta la TV.
-// La posición queda guardada, así que sobrevive a recargas.
+// El conductor los acomoda donde le quede cómodo según cómo esté puesta la TV,
+// y puede agrandarlos o achicarlos con los botones +/- o la rueda del mouse.
+const TV_SCALE_MIN = 0.55, TV_SCALE_MAX = 2.0, TV_SCALE_STEP = 0.1;
+
 function initDraggables() {
   let saved = {};
   try { saved = JSON.parse(localStorage.getItem('ndj_tv_pos') || '{}'); } catch(e) { saved = {}; }
   const persist = () => { try { localStorage.setItem('ndj_tv_pos', JSON.stringify(saved)); } catch(e) {} };
 
-  // Reubica un widget a su posición original y limpia lo guardado.
-  // La usan tanto el doble-click como el botoncito "↺" de la esquina.
+  // Reubica un widget a su posición y tamaño original. La usan tanto el
+  // doble-click como el botoncito "↺" de la esquina.
   const resetPos = (el, id) => {
     el.style.left = ''; el.style.top = ''; el.style.right = ''; el.style.bottom = '';
+    el.style.transform = '';
     delete saved[id];
+    persist();
+  };
+
+  const applyScale = (el, id, s) => {
+    s = Math.max(TV_SCALE_MIN, Math.min(TV_SCALE_MAX, s));
+    el.style.transform = (s === 1) ? '' : ('scale(' + s.toFixed(2) + ')');
+    saved[id] = Object.assign({}, saved[id], { s: s });
     persist();
   };
 
@@ -14062,22 +14081,61 @@ function initDraggables() {
       el.style.right = 'auto';
       el.style.bottom = 'auto';
     }
+    // Restaurar tamaño guardado
+    if (p && typeof p.s === 'number' && p.s !== 1) {
+      el.style.transform = 'scale(' + p.s.toFixed(2) + ')';
+    }
+
+    const resizable = el.classList.contains('tv-resizable');
 
     // Pista visual del doble-click (antes no había ninguna: si alguien
     // lo arrastraba sin querer y no sabía del doble-click, quedaba mal
     // ubicado el resto de la noche). Botón discreto + tooltip.
     if (!el.title || el.title === 'Arrastrame') {
-      el.title = 'Arrastrame · doble-click para reubicar';
+      el.title = resizable
+        ? 'Arrastrame · rueda o +/- para el tamaño · doble-click para reubicar'
+        : 'Arrastrame · doble-click para reubicar';
     }
     if (!el.querySelector(':scope > .tv-drag-reset')) {
       const resetBtn = document.createElement('div');
       resetBtn.className = 'tv-drag-reset';
       resetBtn.textContent = '↺';
-      resetBtn.title = 'Volver a la posición original';
+      resetBtn.title = 'Volver a la posición y tamaño original';
       resetBtn.addEventListener('mousedown', ev => ev.stopPropagation());
       resetBtn.addEventListener('touchstart', ev => ev.stopPropagation(), { passive: true });
       resetBtn.addEventListener('click', ev => { ev.stopPropagation(); resetPos(el, id); });
       el.appendChild(resetBtn);
+    }
+
+    // Botones +/- para agrandar o achicar (solo QR y cronómetro)
+    if (resizable && !el.querySelector(':scope > .tv-resize-controls')) {
+      const wrap = document.createElement('div');
+      wrap.className = 'tv-resize-controls';
+      const mkBtn = (txt, lbl, delta) => {
+        const b = document.createElement('div');
+        b.className = 'tv-resize-btn';
+        b.textContent = txt;
+        b.title = lbl;
+        b.addEventListener('mousedown', ev => ev.stopPropagation());
+        b.addEventListener('touchstart', ev => ev.stopPropagation(), { passive: true });
+        b.addEventListener('click', ev => {
+          ev.stopPropagation();
+          const cur = (saved[id] && typeof saved[id].s === 'number') ? saved[id].s : 1;
+          applyScale(el, id, cur + delta);
+        });
+        return b;
+      };
+      wrap.appendChild(mkBtn('－', 'Achicar', -TV_SCALE_STEP));
+      wrap.appendChild(mkBtn('＋', 'Agrandar', TV_SCALE_STEP));
+      el.appendChild(wrap);
+
+      // Rueda del mouse sobre el widget: agranda/achica
+      el.addEventListener('wheel', ev => {
+        ev.preventDefault();
+        const cur = (saved[id] && typeof saved[id].s === 'number') ? saved[id].s : 1;
+        const delta = ev.deltaY < 0 ? TV_SCALE_STEP : -TV_SCALE_STEP;
+        applyScale(el, id, cur + delta);
+      }, { passive: false });
     }
 
     let sx = 0, sy = 0, ox = 0, oy = 0, moved = false;
@@ -14124,7 +14182,7 @@ function initDraggables() {
       document.removeEventListener('touchend', onUp);
       if (moved) {
         const r = el.getBoundingClientRect();
-        saved[id] = { x: Math.round(r.left), y: Math.round(r.top) };
+        saved[id] = Object.assign({}, saved[id], { x: Math.round(r.left), y: Math.round(r.top) });
         persist();
       }
     };
