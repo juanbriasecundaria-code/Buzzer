@@ -2229,6 +2229,19 @@
   /* Figura del campeón (abrazados si es equipo de dos) */
   .cr-champ-fig { display: flex; align-items: flex-end; justify-content: center; margin: 0.5rem 0 0.2rem;
     filter: drop-shadow(0 10px 22px rgba(0,0,0,0.55)); }
+  /* Foto de la noche (polaroid) en los créditos */
+  .cr-photo { display: flex; flex-direction: column; align-items: center; margin: 0.6rem auto 0; }
+  .cr-photo-frame {
+    background: #f7f3ea; padding: 9px 9px 34px 9px; border-radius: 3px;
+    transform: rotate(-1.4deg); box-shadow: 0 16px 36px rgba(0,0,0,0.45), 0 2px 8px rgba(0,0,0,0.35);
+    width: min(78vw, 340px); position: relative;
+  }
+  .cr-photo-frame img { width: 100%; aspect-ratio: 4/3; object-fit: cover; display: block; border-radius: 1px; }
+  .cr-photo-cap {
+    position: absolute; bottom: 8px; left: 0; right: 0; text-align: center;
+    font-family: Georgia, serif; font-size: 13px; color: #8a6d3d; font-style: italic;
+    padding: 0 8px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
   /* Muro de fotos en los créditos */
   .cr-wall { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
     gap: 0.5rem; max-width: 620px; margin: 0.8rem auto 0; padding: 0 0.5rem; }
@@ -10903,6 +10916,17 @@ function rollCredits() {
     }
   } catch (e) {}
 
+  // Foto de la noche: la polaroid grupal cargada en la pestaña Final
+  let photoHtml = '';
+  try {
+    const fnSrc = localStorage.getItem('ndj_foto_noche');
+    const fnCap = localStorage.getItem('ndj_foto_noche_cap') || 'la noche';
+    if (fnSrc) {
+      photoHtml = `<div class="cr-divider"></div><div class="cr-role">Foto de la noche</div>
+        <div class="cr-photo"><div class="cr-photo-frame"><img src="${fnSrc}" alt=""><div class="cr-photo-cap">${esc(fnCap)}</div></div></div>`;
+    }
+  } catch (e) {}
+
   // Muro de fotos: todas las de la noche, en grilla
   let wallHtml = '';
   try {
@@ -10964,6 +10988,8 @@ function rollCredits() {
       ${tercerGame}
 
       ${motesHtml}
+
+      ${photoHtml}
 
       ${wallHtml}
 
