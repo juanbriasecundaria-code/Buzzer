@@ -2778,7 +2778,7 @@ body.started .velada-bg-scrim { display: block; }
 
 /* ── PODIO FINAL animado ── */
 .pr-eyebrow { position: relative; z-index: 1; color: var(--gold); letter-spacing: 0.32em;
-  text-transform: uppercase; font-size: clamp(10px, 2.8vw, 13px); margin-bottom: 1.4rem; text-align: center;
+  text-transform: uppercase; font-size: clamp(12px, 3.2vw, 16px); margin-bottom: 1.4rem; text-align: center;
   opacity: 0; animation: cerFadeIn 0.8s ease 0.2s forwards; }
 .pr-stage { position: relative; z-index: 1; width: 100%; max-width: 540px; }
 .pr-row { display: flex; align-items: flex-end; justify-content: center; gap: clamp(6px, 2vw, 14px); }
@@ -2799,11 +2799,11 @@ body.started .velada-bg-scrim { display: block; }
 .pr-crown { position: absolute; top: -16px; left: 50%; transform: translateX(-50%);
   font-size: 22px; animation: prCrown 2s ease-in-out infinite; z-index: 2; }
 @keyframes prCrown { 0%,100% { transform: translateX(-50%) translateY(0) rotate(-5deg); } 50% { transform: translateX(-50%) translateY(-4px) rotate(5deg); } }
-.pr-medal { font-size: clamp(18px, 5vw, 26px); line-height: 1; margin-top: 2px; }
-.pr-name { font-size: clamp(11px, 2.8vw, 14px); font-weight: 800; text-align: center; line-height: 1.15;
+.pr-medal { font-size: clamp(20px, 5.5vw, 30px); line-height: 1; margin-top: 2px; }
+.pr-name { font-size: clamp(13px, 3.4vw, 17px); font-weight: 800; text-align: center; line-height: 1.15;
   margin: 4px 2px 1px; max-width: 14ch; }
 .pr-place-1 .pr-name { color: var(--gold); }
-.pr-pts { font-size: clamp(10px, 2.4vw, 12px); color: var(--muted); margin-bottom: 6px; }
+.pr-pts { font-size: clamp(12px, 2.8vw, 14px); color: var(--muted); margin-bottom: 6px; }
 .pr-block { width: 100%; height: var(--h, 60px); border-radius: 8px 8px 0 0;
   display: flex; align-items: center; justify-content: center;
   font-size: clamp(15px, 4vw, 20px); font-weight: 900; position: relative; overflow: hidden;
@@ -2813,21 +2813,27 @@ body.started .velada-bg-scrim { display: block; }
   box-shadow: 0 -3px 20px color-mix(in srgb, var(--accent-team) 35%, transparent), inset 0 1px 0 rgba(255,255,255,0.22); }
 .pr-block span { color: rgba(255,255,255,0.88); text-shadow: 0 1px 4px rgba(0,0,0,0.45); }
 .pr-caption { position: relative; z-index: 1; min-height: 1.6em; margin-top: 1.4rem; text-align: center;
-  color: var(--text); letter-spacing: 0.18em; text-transform: uppercase; font-size: clamp(11px, 3vw, 14px); font-weight: 700; }
+  color: var(--text); letter-spacing: 0.18em; text-transform: uppercase; font-size: clamp(13px, 3.4vw, 16px); font-weight: 700; }
 /* Fondo decorativo: iconos de la noche, bien tenues, detrás del podio */
 .pr-bg-deco { position: absolute; inset: 0; z-index: 0; overflow: hidden; pointer-events: none; }
 .pr-bg-deco span { position: absolute; line-height: 1; opacity: 0.07; filter: grayscale(0.15); }
-/* Stats extra + dato random, aparecen recién cuando termina la revelación */
-.pr-stats { position: relative; z-index: 1; display: flex; flex-wrap: wrap; align-items: center;
-  justify-content: center; gap: 0.5rem 0.9rem; margin-top: 1.7rem; opacity: 0; transition: opacity 0.6s ease; }
+/* Stats extra, aparecen recién cuando termina la revelación — tarjetas para no dejar el podio vacío alrededor */
+.pr-stats { position: relative; z-index: 1; display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(108px, 1fr)); gap: 0.7rem;
+  width: 100%; max-width: 560px; margin: 1.9rem auto 0; opacity: 0; transition: opacity 0.6s ease; }
 .pr-stats.show { opacity: 1; }
-.pr-stats span { font-size: clamp(11px, 2.8vw, 13px); color: var(--muted); font-weight: 600; white-space: nowrap; }
-.pr-stats span b { color: var(--text); font-weight: 800; }
-.pr-stats-dot { width: 3px; height: 3px; border-radius: 50%; background: var(--muted); opacity: 0.5; flex-shrink: 0; }
-.pr-fact { position: relative; z-index: 1; margin-top: 0.6rem; text-align: center; max-width: 480px;
-  font-size: clamp(11px, 2.6vw, 12.5px); color: var(--muted); font-style: italic;
+.pr-stat-card { display: flex; flex-direction: column; align-items: center; text-align: center;
+  gap: 0.25rem; padding: 0.9rem 0.6rem; border-radius: 14px;
+  background: rgba(255,255,255,0.045); border: 1px solid rgba(255,255,255,0.09); }
+.pr-stat-icon { font-size: clamp(18px, 4.4vw, 22px); line-height: 1; }
+.pr-stat-value { font-size: clamp(15px, 4vw, 19px); font-weight: 800; color: var(--text); line-height: 1.15;
+  overflow-wrap: anywhere; }
+.pr-stat-label { font-size: clamp(10.5px, 2.6vw, 12px); color: var(--muted); font-weight: 600;
+  text-transform: uppercase; letter-spacing: 0.03em; line-height: 1.25; }
+.pr-fact { position: relative; z-index: 1; margin-top: 1rem; text-align: center; max-width: 480px;
+  font-size: clamp(13px, 3vw, 15px); color: var(--muted); font-style: italic;
   opacity: 0; transition: opacity 0.6s ease 0.15s; }
-.pr-fact.show { opacity: 0.85; }
+.pr-fact.show { opacity: 0.9; }
 .pr-cta { position: relative; z-index: 1; opacity: 0; pointer-events: none;
   color: var(--gold); background: var(--gold-dim); border: 1.5px dashed var(--gold); box-shadow: none; }
 .pr-cta.show { opacity: 1; pointer-events: auto; animation: cerFadeIn 0.6s ease forwards; }
@@ -11722,13 +11728,14 @@ function computePhaseStats(phaseKind) {
   const results  = isIndiv ? state.f1 : state.f2;
 
   const seq = entities.map(() => []);
-  let matchesPlayed = 0;
+  let matchesPlayed = 0, draws = 0;
   fixture.forEach(([r, a, b]) => {
     const key = `${r}-${a}-${b}`;
     const res = results[key];
     if (!res) return;
     matchesPlayed++;
     if (res.winner === 'empate') {
+      draws++;
       seq[a].push({ r, res: 'D' }); seq[b].push({ r, res: 'D' });
     } else {
       const w = res.winner, l = w === a ? b : a;
@@ -11751,7 +11758,7 @@ function computePhaseStats(phaseKind) {
   });
 
   return {
-    matchesPlayed, wins,
+    matchesPlayed, draws, wins,
     streakName: streakIdx >= 0 ? entities[streakIdx] : null,
     streakLen: bestStreak,
     mvpName: mvpIdx >= 0 ? entities[mvpIdx] : null,
@@ -11787,17 +11794,30 @@ function podiumReveal(phaseKind, onContinue) {
   try {
     const ps = computePhaseStats(phaseKind === 'individual' ? 'individual' : 'grupal');
     if (ps.matchesPlayed > 0) {
-      const chips = [];
-      chips.push(`🎮 <b>${ps.matchesPlayed}</b> partido${ps.matchesPlayed === 1 ? '' : 's'} jugado${ps.matchesPlayed === 1 ? '' : 's'}`);
-      if (ps.streakName && ps.streakLen >= 2) chips.push(`🔥 Racha más larga: <b>${_escC(ps.streakName)}</b> (${ps.streakLen})`);
-      if (ps.mvpName && ps.mvpWins > 0) chips.push(`⭐ MVP de la fase: <b>${_escC(ps.mvpName)}</b> (${ps.mvpWins}v)`);
-      statsChipsHtml = chips.map(c => `<span>${c}</span>`).join('<i class="pr-stats-dot"></i>');
+      const cards = [];
+      cards.push({ icon: '🎮', value: ps.matchesPlayed, label: `partido${ps.matchesPlayed === 1 ? '' : 's'} jugado${ps.matchesPlayed === 1 ? '' : 's'}` });
+      if (top3.length >= 2) {
+        const gap = top3[0].pts - top3[1].pts;
+        if (gap > 0) cards.push({ icon: '📈', value: `+${gap}`, label: `ventaja del 1° sobre el 2°` });
+      }
+      if (ps.streakName && ps.streakLen >= 2) cards.push({ icon: '🔥', value: `${ps.streakLen} seguidas`, label: `racha de ${_escC(ps.streakName)}` });
+      if (ps.mvpName && ps.mvpWins > 0) cards.push({ icon: '⭐', value: `${ps.mvpWins} victorias`, label: `MVP: ${_escC(ps.mvpName)}` });
+      if (ps.draws > 0) cards.push({ icon: '🤝', value: ps.draws, label: `empate${ps.draws === 1 ? '' : 's'} en la fase` });
+      const totalPts = sorted.reduce((s, e) => s + (e.pts || 0), 0);
+      if (totalPts > 0) cards.push({ icon: '🧮', value: totalPts, label: 'puntos repartidos' });
+
+      statsChipsHtml = cards.map(c =>
+        `<div class="pr-stat-card"><span class="pr-stat-icon">${c.icon}</span>`
+        + `<span class="pr-stat-value">${c.value}</span>`
+        + `<span class="pr-stat-label">${c.label}</span></div>`
+      ).join('');
 
       const champEntry = top3[0];
       const champWins = champEntry ? ps.wins[champEntry.i] : 0;
       const facts = [];
       if (champEntry && champWins > 0) facts.push(`${_escC(champEntry.n)} ganó ${champWins} de ${ps.matchesPlayed} partidos jugados.`);
       if (ps.streakName && ps.streakLen >= 2) facts.push(`${_escC(ps.streakName)} llegó a encadenar ${ps.streakLen} victorias seguidas.`);
+      if (ps.draws > 0) facts.push(`Hubo ${ps.draws} empate${ps.draws === 1 ? '' : 's'} en esta fase.`);
       facts.push(`Se jugaron ${ps.matchesPlayed} partido${ps.matchesPlayed === 1 ? '' : 's'} en esta fase.`);
       if (facts.length) factText = facts[Math.floor(Math.random() * facts.length)];
     }
