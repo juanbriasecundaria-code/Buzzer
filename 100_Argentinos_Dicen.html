@@ -498,7 +498,7 @@ body.is-participant .cad-bg-scrim { display: block; }
 
   /* ── VISTA PARTICIPANTES (TV) ── */
   #participant-root {
-    position: fixed; inset: 0; z-index: 80; display: none; flex-direction: column; align-items: center; justify-content: center; gap: 0.9rem; overflow: hidden;
+    position: fixed; inset: 0; z-index: 80; display: none; flex-direction: column; align-items: center; justify-content: flex-start; gap: 0.9rem; overflow: hidden;
     background:
       radial-gradient(120% 55% at 50% -8%, rgba(200,240,96,0.11), transparent 55%),
       radial-gradient(90% 45% at 50% 105%, rgba(245,200,66,0.07), transparent 60%),
@@ -2933,20 +2933,17 @@ function fitParticipantBoard() {
   const root = document.getElementById('participant-root');
   const wrap = document.getElementById('p-wrap');
   if (!root || !wrap || !document.body.classList.contains('is-participant')) return;
-  wrap.style.transform = 'none';
-  // Doble rAF para asegurar que el layout ya se recalculó con el HTML nuevo
-  requestAnimationFrame(() => {
-    requestAnimationFrame(() => {
-      const availH = root.clientHeight;
-      const contentH = wrap.scrollHeight;
-      if (contentH > availH && availH > 0) {
-        const scale = Math.max(0.55, availH / contentH);
-        wrap.style.transform = `scale(${scale})`;
-      } else {
-        wrap.style.transform = 'none';
-      }
-    });
-  });
+  // transform no afecta scrollHeight/clientHeight, así que se puede medir y
+  // aplicar en el mismo tick, sin resetear antes ni esperar rAFs: eso evitaba
+  // que actualizaciones seguidas (frecuentes) pisaran el cálculo antes de aplicarse.
+  const availH = root.clientHeight;
+  const contentH = wrap.scrollHeight;
+  if (contentH > availH && availH > 0) {
+    const scale = Math.max(0.55, availH / contentH);
+    wrap.style.transform = `scale(${scale})`;
+  } else {
+    wrap.style.transform = 'none';
+  }
 }
 window.addEventListener('resize', fitParticipantBoard);
 window.addEventListener('orientationchange', fitParticipantBoard);
