@@ -305,9 +305,9 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
 .part-meta{display:flex;align-items:center;gap:.5rem}
 .type-badge-sm{font-size:clamp(11px,1.4vw,16px);font-weight:800;letter-spacing:.12em;text-transform:uppercase;padding:5px 16px;border-radius:99px}
 .part-num{font-size:clamp(10px,1.2vw,15px);font-weight:700;color:var(--muted);opacity:.6}
-.part-poster-wrap{display:flex;align-items:center;justify-content:center;width:100%;flex:1 1 auto;min-height:0;position:relative}
-.part-poster{height:72vh;max-height:72vh;max-width:90vw;width:auto;object-fit:contain;border-radius:14px;box-shadow:0 16px 100px rgba(0,0,0,.9),0 0 0 1px rgba(255,255,255,.08);display:block}
-.part-poster-inner{position:relative;display:inline-flex;border-radius:14px}
+.part-poster-wrap{display:flex;align-items:center;justify-content:center;width:100%;flex:1 1 0;min-height:0;position:relative;height:100%}
+.part-poster{height:100%;max-height:100%;max-width:90vw;width:auto;object-fit:contain;border-radius:14px;box-shadow:0 16px 100px rgba(0,0,0,.9),0 0 0 1px rgba(255,255,255,.08);display:block}
+.part-poster-inner{position:relative;display:inline-flex;align-items:center;justify-content:center;height:100%;max-height:100%;border-radius:14px}
 .cond-emojis{padding:1.5rem 1rem .75rem;text-align:center;font-size:34px;line-height:1.45;letter-spacing:.12em;word-break:break-word;background:rgba(0,0,0,.2)}
 .cond-emojis .em-hidden{opacity:.18}
 .cond-emojis-ph{padding:2rem 1rem;text-align:center;font-size:13px;color:var(--muted)}
@@ -318,16 +318,16 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
 .part-emojis-reveal{font-size:clamp(22px,4.5vw,44px);font-weight:900;color:var(--accent);text-align:center;padding:.5rem 1rem;animation:revealIn .45s ease}
 .part-poster-ph{width:min(40vw,340px);height:min(58vh,480px);border-radius:14px;background:var(--surface2);border:2px dashed var(--border2);display:flex;align-items:center;justify-content:center;font-size:80px}
 /* Frame (landscape) sizing — más grande que el póster */
-.part-poster.is-frame{height:auto;width:min(92vw,1000px);max-width:92vw;aspect-ratio:16/9;object-fit:cover;max-height:62vh}
+.part-poster.is-frame{height:auto;width:min(92vw,1000px);max-width:92vw;aspect-ratio:16/9;object-fit:cover;max-height:100%}
 /* Crop reveal mode: zoomed random crop hasta revelar */
-.part-poster.crop-mode{object-fit:cover;height:62vh;max-height:62vh;width:min(78vw,640px);transform:scale(1.55);transition:transform .55s linear}
+.part-poster.crop-mode{object-fit:cover;height:100%;max-height:100%;width:min(78vw,640px);transform:scale(1.55);transition:transform .55s linear}
 /* Blur reveal mode: arranca borrosa y se va enfocando sola */
 .part-poster.blur-mode{filter:blur(22px);transition:filter .55s linear}
 /* Para frames (ya son 16:9): si la ventana de recorte también fuera 16:9 no recortaría nada,
    por eso usamos una ventana más angosta y SIN aspect-ratio fijo para que sí corte la escena */
-.part-poster.crop-mode.is-frame{height:46vh;max-height:46vh;width:min(58vw,460px);aspect-ratio:auto;transform:scale(1.35)}
-.part-poster.crop-mode.crop-revealed{object-fit:contain;transform:scale(1);width:auto;height:72vh;max-height:72vh}
-.part-poster.crop-mode.is-frame.crop-revealed{height:auto;width:min(92vw,1000px);max-height:62vh;aspect-ratio:16/9;transform:scale(1)}
+.part-poster.crop-mode.is-frame{height:65%;max-height:65%;width:min(58vw,460px);aspect-ratio:auto;transform:scale(1.35)}
+.part-poster.crop-mode.crop-revealed{object-fit:contain;transform:scale(1);width:auto;height:100%;max-height:100%}
+.part-poster.crop-mode.is-frame.crop-revealed{height:auto;width:min(92vw,1000px);max-height:100%;aspect-ratio:16/9;transform:scale(1)}
 /* Grid reveal mode: 3x3 cuadros que se destapan de a uno */
 .grid-overlay{position:absolute;inset:0;display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(3,1fr);border-radius:14px;overflow:hidden;z-index:4}
 .grid-tile{background:linear-gradient(150deg,var(--surface2),var(--surface));border:1px solid rgba(0,0,0,.45);opacity:1;transition:opacity .55s cubic-bezier(.22,1,.36,1)}
@@ -2437,19 +2437,18 @@ function renderPartBonusOverlay(d){
 function fitParticipantMain(){
   const main=document.getElementById('part-main');
   if(!main||!document.getElementById('participant').classList.contains('active'))return;
-  main.style.transform='none';
-  requestAnimationFrame(()=>{
-    requestAnimationFrame(()=>{
-      const availH=main.clientHeight;
-      const contentH=main.scrollHeight;
-      if(contentH>availH&&availH>0){
-        const scale=Math.max(0.55,availH/contentH);
-        main.style.transform=`scale(${scale})`;
-      }else{
-        main.style.transform='none';
-      }
-    });
-  });
+  // transform no afecta scrollHeight/clientHeight: se puede medir y aplicar en
+  // el mismo tick, sin resetear antes ni esperar rAFs (eso hacía que
+  // actualizaciones seguidas, como el timer cada segundo, pisaran el cálculo
+  // antes de que llegara a aplicarse).
+  const availH=main.clientHeight;
+  const contentH=main.scrollHeight;
+  if(contentH>availH&&availH>0){
+    const scale=Math.max(0.55,availH/contentH);
+    main.style.transform=`scale(${scale})`;
+  }else{
+    main.style.transform='none';
+  }
 }
 window.addEventListener('resize',fitParticipantMain);
 window.addEventListener('orientationchange',fitParticipantMain);
