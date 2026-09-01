@@ -286,7 +286,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
 .sm-btn-muted{color:var(--muted)}
 
 /* PARTICIPANT */
-#participant{display:none;min-height:100dvh;flex-direction:column;position:relative;overflow:hidden}
+#participant{display:none;position:fixed;inset:0;flex-direction:column;overflow:hidden}
 #participant.active{display:flex}
 .theater-bg{position:absolute;inset:0;z-index:0;background:radial-gradient(ellipse 80% 55% at 50% 35%,rgba(192,96,232,.07) 0%,transparent 65%);pointer-events:none}
 .part-sb{display:flex;align-items:stretch;gap:.5rem;padding:.65rem 1rem;background:rgba(10,10,14,.8);border-bottom:1px solid var(--border2);flex-shrink:0;position:relative;z-index:10;backdrop-filter:blur(12px)}
@@ -301,7 +301,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
 .part-sb-vs{font-size:clamp(11px,1.5vw,18px);color:var(--muted);font-weight:600}
 .part-bonus{display:none;font-size:clamp(9px,1.2vw,15px);font-weight:800;color:var(--accent);background:var(--accent-dim);border:1px solid var(--accent);border-radius:6px;padding:3px 10px;text-align:center;white-space:nowrap}
 .part-bonus.show{display:block}
-.part-main{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1rem;padding:1.25rem 1rem;position:relative;z-index:1;min-height:0;width:100%}
+.part-main{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1rem;padding:1.25rem 1rem;position:relative;z-index:1;min-height:0;width:100%;transform-origin:center center;will-change:transform}
 .part-meta{display:flex;align-items:center;gap:.5rem}
 .type-badge-sm{font-size:clamp(11px,1.4vw,16px);font-weight:800;letter-spacing:.12em;text-transform:uppercase;padding:5px 16px;border-radius:99px}
 .part-num{font-size:clamp(10px,1.2vw,15px);font-weight:700;color:var(--muted);opacity:.6}
@@ -2430,6 +2430,30 @@ function renderPartBonusOverlay(d){
     document.getElementById('pbo-status').textContent='El conductor marca quién acertó…';
   }
 }
+// ── AUTOESCALADO DE LA PANTALLA DE PARTICIPANTES (evita scroll en TVs grandes) ──
+// Se dispara después de cada actualización de #part-main (incluida la aparición
+// del timer), y si el contenido no entra en el espacio disponible debajo del
+// marcador, lo escala hacia abajo para que todo quede visible sin scrollear.
+function fitParticipantMain(){
+  const main=document.getElementById('part-main');
+  if(!main||!document.getElementById('participant').classList.contains('active'))return;
+  main.style.transform='none';
+  requestAnimationFrame(()=>{
+    requestAnimationFrame(()=>{
+      const availH=main.clientHeight;
+      const contentH=main.scrollHeight;
+      if(contentH>availH&&availH>0){
+        const scale=Math.max(0.55,availH/contentH);
+        main.style.transform=`scale(${scale})`;
+      }else{
+        main.style.transform='none';
+      }
+    });
+  });
+}
+window.addEventListener('resize',fitParticipantMain);
+window.addEventListener('orientationchange',fitParticipantMain);
+
 function renderParticipant(d){
   document.getElementById('p-na').textContent=d.nameA||'Equipo 1';
   document.getElementById('p-nb').textContent=d.nameB||'Equipo 2';
@@ -2440,11 +2464,11 @@ function renderParticipant(d){
   const pb=document.getElementById('p-bonus');
   if(diff>=5&&w){pb.textContent='🏆 Bonus: '+(w==='a'?(d.nameA||'Eq 1'):(d.nameB||'Eq 2'));pb.classList.add('show');}else pb.classList.remove('show');
   renderPartBonusOverlay(d);
-  if(!d.cardType){document.getElementById('part-main').innerHTML='<div class="part-idle"><div class="part-idle-icon">🎬</div><div class="part-idle-text">Esperando al conductor…</div></div>';_pLastType=null;_pLastId=null;_pLastPhase=null;_pLastKey=null;_pLastLyricLine=null;_pLastProg=null;_pLastImg=null;_pLastEmojiStep=null;return;}
+  if(!d.cardType){document.getElementById('part-main').innerHTML='<div class="part-idle"><div class="part-idle-icon">🎬</div><div class="part-idle-text">Esperando al conductor…</div></div>';_pLastType=null;_pLastId=null;_pLastPhase=null;_pLastKey=null;_pLastLyricLine=null;_pLastProg=null;_pLastImg=null;_pLastEmojiStep=null;fitParticipantMain();return;}
   // Si el conductor aún no reveló la carta, mostrar pantalla de espera
   if(!d.revealed){
     document.getElementById('part-main').innerHTML='<div class="part-idle"><div class="part-idle-icon" style="animation:auPulse 2s ease-in-out infinite">🎬</div><div class="part-idle-text" style="font-size:18px;font-weight:900;color:var(--text)">¡Listos!</div><div class="part-idle-text" style="margin-top:.35rem">Esperando que el conductor muestre la carta…</div></div>';
-    _pLastType=null;_pLastId=null;_pLastPhase=null;_pLastKey=null;_pLastLyricLine=null;_pLastProg=null;_pLastImg=null;_pLastEmojiStep=null;return;
+    _pLastType=null;_pLastId=null;_pLastPhase=null;_pLastKey=null;_pLastLyricLine=null;_pLastProg=null;_pLastImg=null;_pLastEmojiStep=null;fitParticipantMain();return;
   }
   const cc=d.cardType!==_pLastType||(d.cardKey??null)!==_pLastKey;
   const pc=d.phase!==_pLastPhase;
@@ -2461,6 +2485,7 @@ function renderParticipant(d){
   const pt=pm.querySelector('.part-timer');
   if(pt){pt.classList.toggle('show',d.timerActive||false);const tn=pt.querySelector('.part-timer-num');if(tn){tn.textContent=d.timerLeft;tn.classList.toggle('low',(d.timerLeft||0)<=5);}}
   if(d.cardType==='song'&&d.youtubeId&&!audioUnlocked)document.getElementById('audio-unlock').classList.remove('hidden');
+  fitParticipantMain();
 }
 // ── Modos de letra: helpers de render en pantalla del jugador ──
 function _lyrHash(str){let h=2166136261>>>0;for(let i=0;i<str.length;i++){h^=str.charCodeAt(i);h=Math.imul(h,16777619);}return h>>>0;}
