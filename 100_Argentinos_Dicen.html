@@ -498,7 +498,7 @@ body.is-participant .cad-bg-scrim { display: block; }
 
   /* ── VISTA PARTICIPANTES (TV) ── */
   #participant-root {
-    position: fixed; inset: 0; z-index: 80; display: none; flex-direction: column; align-items: center; justify-content: flex-start; gap: 0.9rem; overflow-y: auto;
+    position: fixed; inset: 0; z-index: 80; display: none; flex-direction: column; align-items: center; justify-content: center; gap: 0.9rem; overflow: hidden;
     background:
       radial-gradient(120% 55% at 50% -8%, rgba(200,240,96,0.11), transparent 55%),
       radial-gradient(90% 45% at 50% 105%, rgba(245,200,66,0.07), transparent 60%),
@@ -507,7 +507,7 @@ body.is-participant .cad-bg-scrim { display: block; }
   }
   body.is-participant #participant-root { display: flex; }
   body.is-participant #main-screen { display: none; }
-  .p-wrap { width: 100%; max-width: 840px; display: flex; flex-direction: column; align-items: center; gap: 1.15rem; }
+  .p-wrap { width: 100%; max-width: 840px; display: flex; flex-direction: column; align-items: center; gap: 1.15rem; transform-origin: top center; will-change: transform; }
 
   /* Marcador + pozo */
   .p-wrap .round-score { max-width: 840px; gap: 0.9rem; align-items: stretch; }
@@ -2928,9 +2928,33 @@ function pStrikes(r) {
   return `<div class="strikes-row"><span class="strikes-label">Strikes</span><div class="strikes">${x}</div></div>`;
 }
 
+// ── AUTOESCALADO DE LA PANTALLA DE PARTICIPANTES (evita scroll en TVs grandes) ──
+function fitParticipantBoard() {
+  const root = document.getElementById('participant-root');
+  const wrap = document.getElementById('p-wrap');
+  if (!root || !wrap || !document.body.classList.contains('is-participant')) return;
+  wrap.style.transform = 'none';
+  // Doble rAF para asegurar que el layout ya se recalculó con el HTML nuevo
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      const availH = root.clientHeight;
+      const contentH = wrap.scrollHeight;
+      if (contentH > availH && availH > 0) {
+        const scale = Math.max(0.55, availH / contentH);
+        wrap.style.transform = `scale(${scale})`;
+      } else {
+        wrap.style.transform = 'none';
+      }
+    });
+  });
+}
+window.addEventListener('resize', fitParticipantBoard);
+window.addEventListener('orientationchange', fitParticipantBoard);
+
 function renderParticipant(snap, prev) {
   const wrap = document.getElementById('p-wrap');
   if (!wrap) return;
+  const setHtml = (html) => { wrap.innerHTML = html; fitParticipantBoard(); };
 
   // Sincronizar datos locales para nombres/puntajes
   if (snap) { if (snap.names) teamNames = snap.names; if (snap.score) score = snap.score; if (snap.target != null) targetScore = snap.target; }
@@ -2953,82 +2977,82 @@ function renderParticipant(snap, prev) {
 
   // ── Render según pantalla ──
   if (!snap || snap.screen === 'main') {
-    wrap.innerHTML = `
+    setHtml(`
       <h1 class="p-title"><span class="pt-1">100</span><span class="pt-2">Argentinos Dicen</span></h1>
       ${snap ? pScoreRow(snap, null) : ''}
-      <div class="p-wait-msg">Esperando la próxima pregunta…</div>`;
+      <div class="p-wait-msg">Esperando la próxima pregunta…</div>`);
     return;
   }
 
   if (snap.screen === 'win') {
-    wrap.innerHTML = `
+    setHtml(`
       <div class="win-trophy" style="margin-top:1.5rem">🏆</div>
       <div class="win-eyebrow">Ganador del match</div>
       <div class="win-name">${escapeHtml(pName(snap, snap.win.team))}</div>
-      <div class="p-sub">ganó ${snap.score[snap.win.team]} rondas</div>`;
+      <div class="p-sub">ganó ${snap.score[snap.win.team]} rondas</div>`);
     return;
   }
 
   if (snap.screen === 'fm') {
     const f = snap.fm;
-    if (!f) { wrap.innerHTML = `<div class="p-wait-msg">Dinero Rápido…</div>`; return; }
-    if (f.stage === 'setup') { wrap.innerHTML = `<div class="p-title" style="margin-top:1rem"><span class="pt-2">⚡ Dinero Rápido</span></div><div class="p-wait-msg">Preparando la ronda final…</div>`; return; }
-    if (f.stage === 'between') { wrap.innerHTML = `<div class="p-sub" style="margin-top:1.5rem">${escapeHtml(pName(snap, f.team))}</div><div class="p-big win">${f.p1}</div><div class="p-sub">va la segunda respuesta</div>`; return; }
+    if (!f) { setHtml(`<div class="p-wait-msg">Dinero Rápido…</div>`); return; }
+    if (f.stage === 'setup') { setHtml(`<div class="p-title" style="margin-top:1rem"><span class="pt-2">⚡ Dinero Rápido</span></div><div class="p-wait-msg">Preparando la ronda final…</div>`); return; }
+    if (f.stage === 'between') { setHtml(`<div class="p-sub" style="margin-top:1.5rem">${escapeHtml(pName(snap, f.team))}</div><div class="p-big win">${f.p1}</div><div class="p-sub">va la segunda respuesta</div>`); return; }
     if (f.stage === 'halftime') {
       const first = f.order ? f.order[0] : f.team;
       const ft = first === 'a' ? (f.ra || 0) : (f.rb || 0);
       const nxt = f.order ? f.order[1] : other(first);
-      wrap.innerHTML = `<div class="p-sub" style="margin-top:1.5rem">${escapeHtml(pName(snap, first))} terminó</div><div class="p-big win">${ft}</div><div class="p-sub">ahora juega ${escapeHtml(pName(snap, nxt))}</div>`;
+      setHtml(`<div class="p-sub" style="margin-top:1.5rem">${escapeHtml(pName(snap, first))} terminó</div><div class="p-big win">${ft}</div><div class="p-sub">ahora juega ${escapeHtml(pName(snap, nxt))}</div>`);
       return;
     }
     if (f.stage === 'final') {
       const ta = f.ra || 0, tb = f.rb || 0;
       let w = null; if (ta > tb) w = 'a'; else if (tb > ta) w = 'b';
-      wrap.innerHTML = `
+      setHtml(`
         <div class="p-sub" style="margin-top:1rem">⚡ Dinero Rápido</div>
         <div style="display:flex;gap:1.6rem;justify-content:center;align-items:flex-end;margin-top:0.5rem">
           <div><div class="p-sub">${escapeHtml(pName(snap,'a'))}</div><div class="p-big ${w === 'a' ? 'win' : ''}">${ta}</div></div>
           <div><div class="p-sub">${escapeHtml(pName(snap,'b'))}</div><div class="p-big ${w === 'b' ? 'win' : ''}">${tb}</div></div>
         </div>
-        <div class="p-status ${w ? '' : 'red'}" style="margin-top:0.6rem">${w ? '🏆 Gana ' + escapeHtml(pName(snap, w)) + ' · +1 punto' : 'Empate — sin punto extra'}</div>`;
+        <div class="p-status ${w ? '' : 'red'}" style="margin-top:0.6rem">${w ? '🏆 Gana ' + escapeHtml(pName(snap, w)) + ' · +1 punto' : 'Empate — sin punto extra'}</div>`);
       return;
     }
     // p1_oral / p2_oral
     if (f.stage === 'p1_oral' || f.stage === 'p2_oral') {
       const isP2 = f.stage === 'p2_oral';
       const tSecs = Math.ceil(f.timeLeft || 0);
-      wrap.innerHTML = `
+      setHtml(`
         <div class="p-sub" style="margin-top:0.4rem">${escapeHtml(pName(snap, f.team))} · Jugador ${isP2 ? 2 : 1}</div>
         <div class="p-timer${tSecs <= 5 ? ' low' : ''}">${tSecs}s</div>
         <div class="p-sub" style="color:var(--muted)">Pregunta ${f.idx + 1} de ${f.qN}</div>
         <div class="p-question" style="margin-top:0.4rem">${escapeHtml(f.q)}</div>
-        <div class="p-status" style="margin-top:0.4rem;color:var(--blue)">🎤 Respondé en voz alta</div>`;
+        <div class="p-status" style="margin-top:0.4rem;color:var(--blue)">🎤 Respondé en voz alta</div>`);
       return;
     }
     // p1_verify / p2_verify
     if (f.stage === 'p1_verify' || f.stage === 'p2_verify') {
       const isP2 = f.stage === 'p2_verify';
-      wrap.innerHTML = `
+      setHtml(`
         <div class="p-sub" style="margin-top:0.4rem">${escapeHtml(pName(snap, f.team))} · Jugador ${isP2 ? 2 : 1}</div>
         <div class="p-sub" style="color:var(--muted)">Verificando pregunta ${f.idx + 1} de ${f.qN}</div>
         <div class="p-question" style="margin-top:0.6rem">${escapeHtml(f.q)}</div>
-        <div class="p-status" style="margin-top:0.6rem;color:var(--gold)">🔍 Revisando respuesta…</div>`;
+        <div class="p-status" style="margin-top:0.6rem;color:var(--gold)">🔍 Revisando respuesta…</div>`);
       return;
     }
-    wrap.innerHTML = `<div class="p-wait-msg">Dinero Rápido…</div>`;
+    setHtml(`<div class="p-wait-msg">Dinero Rápido…</div>`);
     return;
   }
 
   // ── round ──
   const r = snap.round;
-  if (!r) { wrap.innerHTML = `<div class="p-wait-msg">Esperando…</div>`; return; }
+  if (!r) { setHtml(`<div class="p-wait-msg">Esperando…</div>`); return; }
   const st = pStatus(snap, r);
-  wrap.innerHTML = `
+  setHtml(`
     ${pScoreRow(snap, r)}
     <div class="p-question">${escapeHtml(r.q)}</div>
     <div class="p-status ${st.cls}">${st.txt}</div>
     <div class="p-board">${pSlots(r)}</div>
-    ${pStrikes(r)}`;
+    ${pStrikes(r)}`);
 }
 
 // ── PORTÓN ──
