@@ -3120,6 +3120,7 @@ window.VarSwitch = (function () {
             <th title="Puntos de la ronda especial (Impostor) — tocá para editar" style="color:var(--danger)">🕵️ IMP.</th>
             <th title="Bonus previo (Kahoot u otras actividades)">🎯</th>
             <th title="Apuestas acertadas">🃏</th>
+            <th title="Puntos manuales — tocá una celda para editar">⚖️</th>
             <th style="text-align:right">Total</th>
           </tr>
         </thead>
@@ -3301,6 +3302,7 @@ function loadRulesConfig() {
             _applyRulesParsed(parsed);
             // Actualizar localStorage con lo que vino de Firebase
             localStorage.setItem('ndj_rules', data);
+            console.log('Reglas cargadas desde Firebase ✓');
           } catch(e) { console.warn('Error al parsear reglas de Firebase:', e); }
         }
       });
@@ -4072,9 +4074,9 @@ try { VarSwitch.onChange(renderVarToggle); } catch (e) {}
 
 // ============================================================
 const PLAYERS = [
-  'Risu','Totti','Thiago','Valentín',
-  'Laza','Lara','Martin','Cori',
-  'Flor','Tomás'
+  'Risu','Totti','Thiago','Mica',
+  'Valentín','Laza','Lara','Martin',
+  'Cori','Flor','Tomás'
 ];
 
 const TEAMS = [
@@ -4563,7 +4565,7 @@ function renderF1RosterAdmin() {
     const rows = PLAYERS.map((p, i) => {
       const photo = getPlayerPhoto(p);
       const photoBtn = photo
-        ? `<button onclick="removePlayerPhoto('${p.replace(/'/g,"\\'")}');renderF1RosterAdmin();renderFase1();" title="Quitar foto" style="padding:0.45rem 0.5rem;border-radius:var(--radius);border:1px solid var(--border2);background:var(--surface2);cursor:pointer;font-size:11px;line-height:1;display:flex;align-items:center;gap:3px;color:var(--muted)"><img src="${photo}" alt="" style="width:20px;height:20px;border-radius:50%;object-fit:cover"> ✕</button>`
+        ? `<button onclick="removePlayerPhoto('${p.replace(/'/g,"\\'")}');renderF1RosterAdmin();renderFase1();" title="Quitar foto" style="padding:0.45rem 0.5rem;border-radius:var(--radius);border:1px solid var(--border2);background:var(--surface2);cursor:pointer;font-size:11px;line-height:1;display:flex;align-items:center;gap:3px;color:var(--muted)"><img src="${photo}" style="width:20px;height:20px;border-radius:50%;object-fit:cover"> ✕</button>`
         : `<button onclick="triggerPhotoUpload('${p.replace(/'/g,"\\'")}','f1');" title="Agregar foto" style="padding:0.45rem 0.5rem;border-radius:var(--radius);border:1px dashed var(--border2);background:transparent;cursor:pointer;font-size:13px;line-height:1;color:var(--muted)" title="Subir foto">📷</button>`;
       const f1Color = getEntityColor(p);
       const f1ColorBtn = `<button onclick="openColorPicker('${p.replace(/'/g,"\\'")}','f1',this)" title="Cambiar color" style="padding:0.45rem 0.5rem;border-radius:var(--radius);border:1px solid var(--border2);background:${f1Color||'var(--surface2)'};cursor:pointer;font-size:13px;line-height:1;min-width:30px;box-shadow:${f1Color?'0 0 8px '+f1Color+'66':'none'}">🎨</button>`;
@@ -4703,7 +4705,7 @@ function renderF2RosterAdmin() {
       const ph = getPlayerPhoto(m) || (members.length <= 1 ? getPlayerPhoto(t) : null);
       const short = m.split(' ')[0];
       return ph
-        ? `<button onclick="removePlayerPhoto('${esc(m)}');renderF2RosterAdmin();renderFase2();" title="Quitar foto de ${short}" style="padding:0.35rem 0.4rem;border-radius:var(--radius);border:1px solid var(--border2);background:var(--surface2);cursor:pointer;font-size:10px;line-height:1;display:flex;align-items:center;gap:2px;color:var(--muted)"><img src="${ph}" alt="" style="width:20px;height:20px;border-radius:50%;object-fit:cover"> ✕</button>`
+        ? `<button onclick="removePlayerPhoto('${esc(m)}');renderF2RosterAdmin();renderFase2();" title="Quitar foto de ${short}" style="padding:0.35rem 0.4rem;border-radius:var(--radius);border:1px solid var(--border2);background:var(--surface2);cursor:pointer;font-size:10px;line-height:1;display:flex;align-items:center;gap:2px;color:var(--muted)"><img src="${ph}" style="width:20px;height:20px;border-radius:50%;object-fit:cover"> ✕</button>`
         : `<button onclick="triggerPhotoUpload('${esc(m)}','f2');" title="Agregar foto de ${short}" style="padding:0.35rem 0.45rem;border-radius:var(--radius);border:1px dashed var(--border2);background:transparent;cursor:pointer;font-size:11px;line-height:1;color:var(--muted);white-space:nowrap">📷<span style="font-size:9px;opacity:0.8"> ${short}</span></button>`;
     }).join('');
     const photoBtn = `<span style="display:flex;gap:3px;flex-shrink:0">${photoBtns}</span>`;
@@ -5058,16 +5060,6 @@ window._bc = (() => { try { return new BroadcastChannel('ndj_sync'); } catch(e) 
 window._ndjState = localStorage.getItem('ndj_state') || '{}';
 
 function saveState() {
-  // El roster viaja siempre con el estado: velada.html es la fuente de verdad y
-  // el resto de las pantallas (index, participante, ¿Quién lo dijo?) se
-  // actualizan solas al agregar o sacar jugadores o equipos.
-  state.playersSnapshot = PLAYERS.slice();
-  state.teamsSnapshot   = TEAMS.slice();
-  state.rosterTs        = Date.now();
-  // Los equipos también se republican al canal que leen el HUB y ¿Quién lo dijo?
-  if (typeof window._pushQldTeams === 'function') {
-    try { window._pushQldTeams(); } catch (e) {}
-  }
   const json = JSON.stringify(state);
   localStorage.setItem('ndj_state', json);
   localStorage.setItem('ndj_state_ts', String(Date.now()));
@@ -5141,6 +5133,7 @@ function markLocalTs(key, ts) {
       return null;
     };
     window._fbReady = true;
+    console.log('Firebase listo ✓');
   `;
   document.head.appendChild(script);
 })();
@@ -5191,8 +5184,6 @@ function markLocalTs(key, ts) {
         }catch(e){ console.warn('No se pudo publicar los equipos a QLD', e); }
       }
       pushQldTeams();
-      // Queda accesible para volver a publicar cuando se edita el roster
-      window._pushQldTeams = pushQldTeams;
 
       // Leemos el resultado ya finalizado de la ronda (1°/2°/3° puesto → 3/2/1 pts)
       qldDb.ref('velada/qld/result').on('value', snap => {
@@ -5214,6 +5205,7 @@ function markLocalTs(key, ts) {
           try{ renderFinal(); }catch(e){}
         }
       });
+      console.log('QLD Firebase listo ✓');
     }catch(e){ console.warn('QLD Firebase init error', e); }
   }).catch(e => console.warn('No se pudo cargar el SDK RTDB', e));
 })();
@@ -5401,10 +5393,16 @@ function getPlayerPoints() {
     });
   });
 
-
+  // Ajustes manuales cargados a mano durante la noche
+  const adjF1 = (state.adjust && state.adjust.f1) || [];
+  PLAYERS.forEach((name, idx) => {
+    let d = 0;
+    adjF1.forEach(a => { if (a.name === name) d += (Number(a.pts) || 0); });
+    if (d) pts[idx].adjust = d;
+  });
 
   pts.forEach(p => {
-    p.total = p.rounds.reduce((s,v) => s + (typeof v === 'number' ? v : 0), 0) + (p.special || 0) + (p.bonusManual || 0) + (p.vsJC || 0) + (p.comodin || 0) + (p.bets || 0);
+    p.total = p.rounds.reduce((s,v) => s + (typeof v === 'number' ? v : 0), 0) + (p.special || 0) + (p.bonusManual || 0) + (p.vsJC || 0) + (p.comodin || 0) + (p.bets || 0) + (p.adjust || 0);
   });
   return pts;
 }
@@ -5537,10 +5535,16 @@ function getTeamPoints() {
     });
   });
 
-
+  // Ajustes manuales cargados a mano durante la noche
+  const adjF2 = (state.adjust && state.adjust.f2) || [];
+  TEAMS.forEach((name, idx) => {
+    let d = 0;
+    adjF2.forEach(a => { if (a.name === name) d += (Number(a.pts) || 0); });
+    if (d) pts[idx].adjust = d;
+  });
 
   pts.forEach(p => {
-    p.total = p.rounds.reduce((s,v) => s + (typeof v === 'number' ? v : 0), 0) + (p.qld || 0) + (p.betsF2 || 0) + (p.comodin || 0);
+    p.total = p.rounds.reduce((s,v) => s + (typeof v === 'number' ? v : 0), 0) + (p.qld || 0) + (p.betsF2 || 0) + (p.comodin || 0) + (p.adjust || 0);
   });
   return pts;
 }
@@ -7367,7 +7371,7 @@ function renderWallPanel() {
   if (!el) return;
   const thumbs = _wall.slice().reverse().map(p =>
     '<div style="position:relative;flex:0 0 auto">'
-    + '<img src="' + p.src + '" alt="Foto del muro" style="width:74px;height:74px;object-fit:cover;border-radius:10px;border:1px solid var(--border2)">'
+    + '<img src="' + p.src + '" style="width:74px;height:74px;object-fit:cover;border-radius:10px;border:1px solid var(--border2)">'
     + '<button onclick="removeWallPhoto(\'' + p.id + '\')" title="Borrar" style="position:absolute;top:-6px;right:-6px;width:20px;height:20px;border-radius:50%;border:1px solid var(--border2);background:var(--surface);color:var(--danger);cursor:pointer;font-size:11px;line-height:1;padding:0">✕</button>'
     + (p.by ? '<div style="font-size:9px;color:var(--muted);text-align:center;margin-top:2px;max-width:74px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + p.by + '</div>' : '')
     + '</div>').join('');
@@ -7623,6 +7627,7 @@ function resetEverything() {
       state.betWindow = { open: false, round: 0 };
       state.betWindowF2 = { open: false, round: 0 };
       state.qldOverride = {};
+      state.adjust = { f1: [], f2: [] };
       state.lastTab = 'reglas';
       saveState();
       // Ver comentario en resetBets(): las apuestas de los invitados también
@@ -13363,6 +13368,59 @@ function openTVMode() {
     margin-top: clamp(6px,1vh,14px); letter-spacing: 0.02em; }
   .tv-idle-sub { font-size: clamp(11px,1.2vw,19px); color: var(--muted); margin-top: clamp(4px,0.7vh,10px); font-weight: 600; }
 
+  /* ── EVOLUCIÓN (gráfico de la noche) ── */
+  .tv-evo {
+    position: fixed; z-index: 58;
+    left: 50%; top: 50%; transform: translate(-50%, -50%) scale(0.94);
+    width: min(90vw, 640px);
+    max-height: 88vh; overflow: hidden;
+    padding: clamp(16px,2.2vh,28px) clamp(18px,2.4vw,32px);
+    background: rgba(10,10,14,0.95); backdrop-filter: blur(10px);
+    border: 1.5px solid var(--border2); border-radius: 24px;
+    box-shadow: 0 20px 80px rgba(0,0,0,0.7);
+    opacity: 0; pointer-events: none;
+    transition: opacity 0.7s ease, transform 0.7s cubic-bezier(.2,1.1,.35,1);
+  }
+  .tv-evo.show { opacity: 1; transform: translate(-50%, -50%) scale(1); pointer-events: auto; }
+  .tv-evo-head {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: clamp(8px,1.4vh,16px);
+  }
+  .tv-evo-title { font-size: clamp(9px,0.9vw,13px); font-weight: 900; letter-spacing: 0.25em;
+    text-transform: uppercase; color: var(--muted); }
+  .tv-evo-toggle { display: flex; gap: 6px; }
+  .tv-evo-toggle button {
+    font-size: clamp(9px,0.85vw,12px); font-weight: 800; letter-spacing: 0.03em;
+    padding: 5px 11px; border-radius: 999px; border: 1px solid var(--border2);
+    background: transparent; color: var(--muted); cursor: pointer;
+    transition: background 0.2s, color 0.2s, border-color 0.2s;
+  }
+  .tv-evo-toggle button.active {
+    background: var(--accent); color: #0a0a0e; border-color: var(--accent);
+  }
+  .tv-evo-chart-wrap { width: 100%; }
+  .tv-evo-chart-wrap svg { display: block; width: 100%; height: auto; }
+  .tv-evo-empty { text-align: center; color: var(--muted); font-weight: 600;
+    font-size: clamp(12px,1.4vw,16px); padding: clamp(20px,4vh,40px) 0; }
+  .tv-evo-list {
+    margin-top: clamp(10px,1.6vh,18px);
+    display: flex; flex-direction: column; gap: clamp(4px,0.7vh,8px);
+    max-height: 30vh; overflow-y: auto;
+  }
+  .tv-evo-row {
+    display: flex; align-items: center; gap: clamp(8px,1vw,14px);
+    padding: clamp(5px,0.7vh,9px) clamp(10px,1.2vw,16px);
+    border-radius: var(--radius);
+    background: var(--surface);
+    border: 1.5px solid var(--border2);
+  }
+  .tv-evo-pos { font-size: clamp(10px,1.1vw,14px); font-weight: 800; color: var(--muted);
+    min-width: clamp(20px,2vw,28px); }
+  .tv-evo-name { flex: 1; display: flex; align-items: center; gap: clamp(6px,0.8vw,10px);
+    font-size: clamp(12px,1.3vw,16px); font-weight: 700; }
+  .tv-evo-sub { font-size: clamp(9px,1vw,12px); color: var(--muted); font-weight: 600; margin-top: 1px; }
+  .tv-evo-pts { font-size: clamp(12px,1.4vw,17px); font-weight: 900; }
+
   /* ── LOGRO DESBLOQUEADO ── */
   .tv-logro {
     position: fixed; z-index: 70;
@@ -13964,6 +14022,7 @@ function openTVMode() {
 
 <!-- ── MIENTRAS TANTO ── -->
 <div class="tv-idle" id="tv-idle"></div>
+<div class="tv-evo" id="tv-evo"></div>
 
 <!-- ── LOGRO DESBLOQUEADO ── -->
 <div class="tv-logro" id="tv-logro"></div>
@@ -14365,6 +14424,7 @@ function getPoints(type, state, PLAYERS, TEAMS) {
           const own=(pp[1]===i||pp[2]===i);
           if(bets[k][who]===res.winner) bw[i]=(bw[i]||0)+1; else if(own) bb[i]=true; }); });
       Object.keys(bw).forEach(i=>{ if(!bb[i]) pts[i].total+=bw[i]; });
+      (((state.adjust||{}).f1)||[]).forEach(a=>{ const i=PLAYERS.indexOf(a.name); if(i>=0) pts[i].total+=Number(a.pts)||0; });
       const vs=state.vsJC||{};
       PLAYERS.forEach((n,i)=>{ if(typeof vs[n]==='number') pts[i].total+=vs[n]; });
     }catch(e){}
@@ -14386,9 +14446,243 @@ function getPoints(type, state, PLAYERS, TEAMS) {
       const qld=(state.qldTeamPoints)||{};
       Object.keys(qld).forEach(k=>{ const i=parseInt(k,10); if(pts[i]) pts[i].total+=Number(qld[k])||0; });
       (state.comodinesF2||[]).forEach(c=>{ if(c.status==='done'){const i=TEAMS.indexOf(c.player); if(i>=0) pts[i].total+=Number(c.delta)||0;} });
+      (((state.adjust||{}).f2)||[]).forEach(a=>{ const i=TEAMS.indexOf(a.name); if(i>=0) pts[i].total+=Number(a.pts)||0; });
     }catch(e){}
     return pts;
   }
+}
+
+// ── EVOLUCIÓN DE LA NOCHE — curva acumulada duelo a duelo ──────────────
+// Reconstruye, en el orden del fixture (proxy razonable del orden real de
+// juego), cómo fue subiendo el total de cada jugador/equipo. Los extras que
+// no tienen un duelo asociado (bonus manual, comodines, apuestas, Impostor,
+// ¿Quién lo dijo?, ajustes) se suman como un último escalón, para que el
+// total final coincida siempre con el de getPoints().
+function buildEvoSeries(mode, state, PLAYERS, TEAMS) {
+  const RC = getTVRules();
+  const short = n => String(n || '').split('/')[0].trim().split(' ')[0];
+
+  // Mapa jugador → índice de su equipo (equipos son "Nombre / Nombre")
+  const teamOfPlayer = {};
+  TEAMS.forEach((t, ti) => { String(t || '').split('/').forEach(p => { teamOfPlayer[p.trim()] = ti; }); });
+
+  // idxA/idxB: índices originales del fixture (contra los que se compara res.winner).
+  // nameA/nameB: nombres a usar como claves del delta devuelto (pueden ser
+  // distintos de PLAYERS/TEAMS, p.ej. cuando en modo 'total' se reparte un
+  // resultado de equipo entre sus integrantes).
+  function f1MatchDelta(idxA, idxB, nameA, nameB, res, g) {
+    const gCfg = (RC && g !== undefined && RC.f1 && RC.f1[g]) ? RC.f1[g] : null;
+    const winPts = gCfg ? gCfg.pts_win : 3, bonusPts = gCfg ? gCfg.pts_bonus : 1, drawPts = gCfg ? gCfg.pts_draw : 1;
+    const d = {};
+    if (res.winner === 'empate') { d[nameA] = drawPts; d[nameB] = drawPts; }
+    else { const wIsA = (res.winner === idxA); d[wIsA ? nameA : nameB] = winPts + (res.bonus ? bonusPts : 0); d[wIsA ? nameB : nameA] = 0; }
+    return d;
+  }
+  function f2MatchDelta(idxA, idxB, nameA, nameB, res, g) {
+    const gCfg = (RC && g !== undefined && RC.f2 && RC.f2[g]) ? RC.f2[g] : null;
+    const winPts = gCfg ? gCfg.pts_win : 3, bonusPts = gCfg ? gCfg.pts_bonus : 1, drawPts = gCfg ? gCfg.pts_draw : 1;
+    const d = {};
+    if (res.winner === 'empate') { d[nameA] = drawPts; d[nameB] = drawPts; }
+    else { const wIsA = (res.winner === idxA); d[wIsA ? nameA : nameB] = winPts + (res.bonus ? bonusPts : 0); d[wIsA ? nameB : nameA] = 0; }
+    return d;
+  }
+  function f1Extras() {
+    const ex = {}; PLAYERS.forEach(n => ex[n] = 0);
+    const impNoPts = (RC && RC.impostor) ? RC.impostor.pts_noDescubierto : 4;
+    const impDesPts = (RC && RC.impostor) ? RC.impostor.pts_descubierto : 2;
+    try {
+      if (state.impostor && Array.isArray(state.impostor.rounds)) {
+        state.impostor.rounds.forEach(rd => {
+          if (rd.mode === 'noDescubierto' && ex[rd.impostorName] !== undefined) ex[rd.impostorName] += impNoPts;
+          else if (rd.mode === 'descubierto' && ex[rd.accusedName] !== undefined) ex[rd.accusedName] += impDesPts;
+        });
+      }
+      const bm = state.bonusManual || {};
+      PLAYERS.forEach(n => { if (bm[n] && bm[n].pts) ex[n] += Number(bm[n].pts) || 0; });
+      (state.comodines || []).forEach(c => { if (c.status === 'done' && ex[c.player] !== undefined) ex[c.player] += Number(c.delta) || 0; });
+      const bets = state.bets || {}, bw = {}, bb = {};
+      Object.keys(bets).forEach(k => {
+        const res = state.f1[k]; if (!res || res.winner === 'empate') return;
+        const pp = k.split('-').map(Number);
+        Object.keys(bets[k]).forEach(who => {
+          const own = (PLAYERS[pp[1]] === who || PLAYERS[pp[2]] === who);
+          if (bets[k][who] === res.winner) bw[who] = (bw[who] || 0) + 1; else if (own) bb[who] = true;
+        });
+      });
+      Object.keys(bw).forEach(who => { if (!bb[who] && ex[who] !== undefined) ex[who] += bw[who]; });
+      (((state.adjust || {}).f1) || []).forEach(a => { if (ex[a.name] !== undefined) ex[a.name] += Number(a.pts) || 0; });
+      const vs = state.vsJC || {};
+      PLAYERS.forEach(n => { if (typeof vs[n] === 'number') ex[n] += vs[n]; });
+    } catch (e) {}
+    return ex;
+  }
+  function f2Extras() {
+    const ex = {}; TEAMS.forEach(n => ex[n] = 0);
+    try {
+      const qld = state.qldTeamPoints || {};
+      Object.keys(qld).forEach(k => { const t = TEAMS[parseInt(k, 10)]; if (t !== undefined && ex[t] !== undefined) ex[t] += Number(qld[k]) || 0; });
+      (state.comodinesF2 || []).forEach(c => { if (c.status === 'done' && ex[c.player] !== undefined) ex[c.player] += Number(c.delta) || 0; });
+      (((state.adjust || {}).f2) || []).forEach(a => { if (ex[a.name] !== undefined) ex[a.name] += Number(a.pts) || 0; });
+    } catch (e) {}
+    return ex;
+  }
+
+  // Construye pasos [{run:{nombre:total}}] a partir de un fixture + resolver de deltas
+  function buildSteps(fixture, stateBucket, names, deltaFn) {
+    const run = {}; names.forEach(n => run[n] = 0);
+    const steps = [];
+    fixture.forEach(([r, a, b, g]) => {
+      const res = stateBucket[r + '-' + a + '-' + b];
+      if (!res) return;
+      const d = deltaFn(a, b, names[a], names[b], res, g);
+      Object.keys(d).forEach(n => { if (run[n] !== undefined) run[n] += d[n]; });
+      steps.push(Object.assign({}, run));
+    });
+    return steps;
+  }
+
+  let names, steps, extras, wins = {}, played = {};
+
+  if (mode === 'f2') {
+    names = TEAMS.slice();
+    steps = buildSteps(F2_FIXTURE, state.f2, names, f2MatchDelta);
+    extras = f2Extras();
+    F2_FIXTURE.forEach(([r, a, b]) => { const res = state.f2[r + '-' + a + '-' + b]; if (!res) return;
+      [names[a], names[b]].forEach(n => played[n] = (played[n] || 0) + 1);
+      if (res.winner !== 'empate') { const w = names[res.winner]; wins[w] = (wins[w] || 0) + 1; } });
+  } else if (mode === 'total') {
+    names = PLAYERS.slice();
+    // Combina F1 (por jugador) + F2 (por equipo, repartido a sus integrantes), en orden de ronda.
+    const combined = [];
+    F1_FIXTURE.forEach(m => combined.push({ type: 'f1', r: m[0], m: m }));
+    F2_FIXTURE.forEach(m => combined.push({ type: 'f2', r: m[0], m: m }));
+    combined.sort((x, y) => x.r - y.r || (x.type === y.type ? 0 : (x.type === 'f1' ? -1 : 1)));
+    const run = {}; names.forEach(n => run[n] = 0);
+    steps = [];
+    combined.forEach(({ type, m }) => {
+      const [r, a, b, g] = m;
+      if (type === 'f1') {
+        const res = state.f1[r + '-' + a + '-' + b]; if (!res) return;
+        const d = f1MatchDelta(a, b, names[a], names[b], res, g);
+        Object.keys(d).forEach(n => { if (run[n] !== undefined) run[n] += d[n]; });
+        [names[a], names[b]].forEach(n => played[n] = (played[n] || 0) + 1);
+        if (res.winner !== 'empate') { const w = names[res.winner]; wins[w] = (wins[w] || 0) + 1; }
+      } else {
+        const res = state.f2[r + '-' + a + '-' + b]; if (!res) return;
+        const teamA = TEAMS[a], teamB = TEAMS[b];
+        const d = f2MatchDelta(a, b, teamA, teamB, res, g);
+        Object.keys(d).forEach(teamName => {
+          String(teamName).split('/').forEach(p => { const pn = p.trim(); if (run[pn] !== undefined) run[pn] += d[teamName]; });
+        });
+      }
+      steps.push(Object.assign({}, run));
+    });
+    const exF1 = f1Extras(), exF2 = f2Extras();
+    extras = {}; names.forEach(n => extras[n] = (exF1[n] || 0) + (teamOfPlayer[n] !== undefined ? (exF2[TEAMS[teamOfPlayer[n]]] || 0) : 0));
+  } else {
+    names = PLAYERS.slice();
+    steps = buildSteps(F1_FIXTURE, state.f1, names, f1MatchDelta);
+    extras = f1Extras();
+    F1_FIXTURE.forEach(([r, a, b]) => { const res = state.f1[r + '-' + a + '-' + b]; if (!res) return;
+      [names[a], names[b]].forEach(n => played[n] = (played[n] || 0) + 1);
+      if (res.winner !== 'empate') { const w = names[res.winner]; wins[w] = (wins[w] || 0) + 1; } });
+  }
+
+  // Punto final: sumar extras (bonus, comodines, impostor, etc.)
+  const lastRun = steps.length ? Object.assign({}, steps[steps.length - 1]) : (() => { const z = {}; names.forEach(n => z[n] = 0); return z; })();
+  const hasExtras = Object.values(extras).some(v => v);
+  if (hasExtras) {
+    names.forEach(n => lastRun[n] = (lastRun[n] || 0) + (extras[n] || 0));
+    steps.push(lastRun);
+  }
+
+  const finalTotals = steps.length ? steps[steps.length - 1] : lastRun;
+  const series = names.map((n, i) => ({
+    name: n,
+    idx: i,
+    color: tvEntityColor(n, i),
+    points: [0].concat(steps.map(s => s[n] || 0)),
+    total: finalTotals[n] || 0,
+    wins: wins[n] || 0,
+    played: played[n] || 0
+  })).filter(s => s.points.some(p => p > 0) || s.total > 0);
+
+  series.sort((a, b) => b.total - a.total);
+  return { series: series, steps: steps.length, mode: mode };
+}
+
+function evoModeLabel(mode) {
+  return mode === 'f2' ? 'Fase Grupal' : (mode === 'total' ? 'Total de la noche' : 'Fase Individual');
+}
+
+function renderEvoSVG(series, maxSteps) {
+  const W = 600, H = 260, padL = 8, padR = 8, padT = 10, padB = 10;
+  const maxY = Math.max(1, ...series.map(s => Math.max(...s.points)));
+  const n = maxSteps + 1; // incluye el punto inicial en 0
+  const x = i => padL + (n > 1 ? (i / (n - 1)) * (W - padL - padR) : 0);
+  const y = v => H - padB - (v / maxY) * (H - padT - padB);
+
+  let grid = '';
+  [0, 0.25, 0.5, 0.75, 1].forEach(f => {
+    const gy = padT + f * (H - padT - padB);
+    grid += '<line x1="' + padL + '" y1="' + gy + '" x2="' + (W - padR) + '" y2="' + gy + '" stroke="var(--border2)" stroke-width="1" stroke-dasharray="3,4" opacity="0.6"/>';
+  });
+
+  let lines = '';
+  series.forEach(s => {
+    const pts = s.points.slice(0, n);
+    while (pts.length < n) pts.push(pts[pts.length - 1] || 0);
+    const d = pts.map((v, i) => (i === 0 ? 'M' : 'L') + x(i).toFixed(1) + ',' + y(v).toFixed(1)).join(' ');
+    const last = pts[pts.length - 1];
+    lines += '<path d="' + d + '" fill="none" stroke="' + s.color + '" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" opacity="0.95"/>';
+    lines += '<circle cx="' + x(n - 1).toFixed(1) + '" cy="' + y(last).toFixed(1) + '" r="4.5" fill="' + s.color + '"/>';
+  });
+
+  return '<svg viewBox="0 0 ' + W + ' ' + H + '" preserveAspectRatio="none">' + grid + lines + '</svg>';
+}
+
+function renderEvoChart() {
+  const box = document.getElementById('tv-evo');
+  if (!box) return;
+  const st = window._tvLastState;
+  if (!st) return;
+  const PLAYERS = window._tvLastPlayers || [], TEAMS = window._tvLastTeams || [];
+  const mode = getEvoMode();
+  const data = buildEvoSeries(mode, st, PLAYERS, TEAMS);
+
+  const toggleHtml = '<div class="tv-evo-toggle">'
+    + ['f1', 'f2', 'total'].map(m => '<button data-mode="' + m + '" class="' + (m === mode ? 'active' : '') + '">'
+      + (m === 'f1' ? 'Individual' : m === 'f2' ? 'Grupal' : 'Total') + '</button>').join('')
+    + '</div>';
+
+  let body;
+  if (!data.series.length || data.steps === 0) {
+    body = '<div class="tv-evo-empty">Todavía no hay resultados cargados en esta fase 🎲</div>';
+  } else {
+    const chart = renderEvoSVG(data.series, data.steps);
+    const list = data.series.map((s, i) => {
+      const av = tvAvatarHtml(s.name, s.idx, window._tvLastPhotos || {});
+      return '<div class="tv-evo-row" style="border-color:' + s.color + '">'
+        + '<span class="tv-evo-pos">#' + (i + 1) + '</span>'
+        + '<span class="tv-evo-name">' + av + '<span><div>' + s.name.replace('/', ' & ') + '</div>'
+        + (mode !== 'total' ? '<div class="tv-evo-sub">' + s.wins + ' de ' + s.played + ' ganados</div>' : '') + '</span></span>'
+        + '<span class="tv-evo-pts" style="color:' + s.color + '">' + s.total + ' pts</span>'
+        + '</div>';
+    }).join('');
+    body = '<div class="tv-evo-chart-wrap">' + chart + '</div><div class="tv-evo-list">' + list + '</div>';
+  }
+
+  box.innerHTML = '<div class="tv-evo-head"><div class="tv-evo-title">📈 Evolución — ' + evoModeLabel(mode) + '</div>' + toggleHtml + '</div>' + body;
+  box.querySelectorAll('.tv-evo-toggle button').forEach(btn => {
+    btn.addEventListener('click', ev => { ev.stopPropagation(); setEvoMode(btn.dataset.mode); renderEvoChart(); });
+  });
+}
+
+function getEvoMode() {
+  try { return localStorage.getItem('ndj_evo_mode') || 'f1'; } catch (e) { return 'f1'; }
+}
+function setEvoMode(m) {
+  try { localStorage.setItem('ndj_evo_mode', m); } catch (e) {}
 }
 
 const COLORS=['#a0b4c8','#f5c842','#cd7f32'];
@@ -14469,6 +14763,7 @@ function renderTV() {
   window._tvLastState   = state;
   window._tvLastPlayers = PLAYERS;
   window._tvLastTeams   = TEAMS;
+  window._tvLastPhotos  = photos;
   // Cambió algo real → cortamos el modo "mientras tanto" y buscamos logros nuevos
   try {
     const sig = JSON.stringify([state.f1, state.f2, (state.impostor || {}).rounds, state.comodines, state.comodinesF2]);
@@ -14477,6 +14772,8 @@ function renderTV() {
       _idleLastChange = Date.now();
       const ib = document.getElementById('tv-idle');
       if (ib) ib.classList.remove('show');
+      const evb = document.getElementById('tv-evo');
+      if (evb) evb.classList.remove('show');
       _idleOn = false;
     }
   } catch(e) {}
@@ -14914,17 +15211,34 @@ function buildIdleFacts(state, PLAYERS, TEAMS) {
   return facts;
 }
 
+// Cada tick de "mientras tanto" alterna entre un dato curioso (tv-idle) y el
+// gráfico de evolución de la noche (tv-evo), para no repetir siempre lo mismo.
 function showIdleFact() {
   const box = document.getElementById('tv-idle');
-  if (!box) return;
+  const evoBox = document.getElementById('tv-evo');
+  if (!box || !evoBox) return;
   const st = window._tvLastState;
   if (!st) return;
   const facts = buildIdleFacts(st, window._tvLastPlayers || [], window._tvLastTeams || []);
+
+  _idleIdx++;
+  const showEvo = (_idleIdx % 2 === 1);
+
+  if (showEvo) {
+    box.classList.remove('show');
+    evoBox.classList.remove('show');
+    setTimeout(() => {
+      renderEvoChart();
+      evoBox.classList.add('show');
+    }, 500);
+    return;
+  }
+
+  evoBox.classList.remove('show');
   if (!facts.length) { box.classList.remove('show'); return; }
   box.classList.remove('show');
   setTimeout(() => {
-    _idleIdx = (_idleIdx + 1) % facts.length;
-    const f = facts[_idleIdx];
+    const f = facts[Math.floor(_idleIdx / 2) % facts.length];
     box.innerHTML =
       '<div class="tv-idle-lbl">Mientras tanto\u2026</div>'
       + '<div class="tv-idle-big">' + f.big + '</div>'
@@ -14935,10 +15249,11 @@ function showIdleFact() {
 }
 function idleTick() {
   const box = document.getElementById('tv-idle');
+  const evoBox = document.getElementById('tv-evo');
   if (!box) return;
   const idle = (Date.now() - _idleLastChange) > IDLE_AFTER_MS;
   if (idle) { _idleOn = true; showIdleFact(); }
-  else if (_idleOn) { _idleOn = false; box.classList.remove('show'); }
+  else if (_idleOn) { _idleOn = false; box.classList.remove('show'); if (evoBox) evoBox.classList.remove('show'); }
 }
 function startIdle() {
   if (_idleTimer) clearInterval(_idleTimer);
@@ -16050,6 +16365,7 @@ function reapplyStateAndRerender() {
       if (document.querySelector('.nav-tab[data-tab="impostor"]')?.classList.contains('active')) {
         renderImpostor();
       }
+      console.log('Palabras del impostor cargadas desde Firebase ✓');
     } catch(e) { console.warn('Error al fusionar palabras de Firebase:', e); }
   }
 
