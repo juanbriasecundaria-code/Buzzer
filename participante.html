@@ -59,12 +59,86 @@
       var(--bg);
     background-attachment: fixed;
     color: var(--text);
-    min-height: 100dvh;
+    height: 100dvh;
     font-size: 14px;
     line-height: 1.5;
-    padding: env(safe-area-inset-top) env(safe-area-inset-right) calc(env(safe-area-inset-bottom) + 1.5rem) env(safe-area-inset-left);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
   }
-  #app { max-width: 560px; margin: 0 auto; padding: 1.25rem 1rem 0; }
+
+  /* ── layout raíz: paneles (Yo / En vivo) + barra de pestañas ── */
+  #panels { flex: 1; min-height: 0; position: relative; }
+  .panel { position: absolute; inset: 0; overflow-y: auto; -webkit-overflow-scrolling: touch; padding: env(safe-area-inset-top) env(safe-area-inset-right) 0 env(safe-area-inset-left); }
+  .panel.hidden { display: none; }
+  #app, #vivo-app { max-width: 560px; margin: 0 auto; padding: 1.25rem 1rem 1.75rem; }
+
+  .tabbar {
+    display: flex; flex-shrink: 0; border-top: 1px solid var(--border2);
+    background: rgba(15,15,22,0.92); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  .tabbar.hidden { display: none; }
+  .tab-btn {
+    flex: 1; background: none; border: none; color: var(--muted); cursor: pointer;
+    display: flex; flex-direction: column; align-items: center; gap: 0.2rem;
+    padding: 0.6rem 0 0.5rem; font-family: var(--font-head); font-size: 11px; font-weight: 700;
+    letter-spacing: 0.03em; transition: color .15s;
+  }
+  .tab-btn .tab-ic { font-size: 19px; }
+  .tab-btn.active { color: var(--accent); }
+  .tab-btn.active .tab-ic { filter: drop-shadow(0 0 8px var(--accent-glow)); }
+
+  /* ── selector de fase (En vivo) ── */
+  .gh-seg { display: flex; background: var(--surface2); border: 1px solid var(--border2); border-radius: 12px; padding: 3px; margin-bottom: 1rem; }
+  .gh-seg-btn { flex: 1; background: none; border: none; color: var(--muted); font-family: var(--font-head); font-size: 12.5px; font-weight: 700; padding: 0.55rem 0.4rem; border-radius: 9px; cursor: pointer; transition: background .15s, color .15s; }
+  .gh-seg-btn.active { background: var(--accent-dim); color: var(--accent); }
+  .gh-seg-btn.active.f2 { background: var(--info-dim); color: var(--info); }
+
+  /* ── relator: cartel fijo con novedades automáticas ── */
+  .gh-relator {
+    display: flex; align-items: center; gap: 0.55rem;
+    background: linear-gradient(180deg, var(--surface), var(--bg-2));
+    border: 1px solid var(--border2); border-radius: var(--radius-lg);
+    padding: 0.75rem 0.95rem; margin-bottom: 1rem; min-height: 44px;
+    font-size: 12.5px; font-weight: 600; color: var(--text);
+    position: relative; overflow: hidden;
+  }
+  .gh-relator::before { content:''; position:absolute; top:0; left:0; right:0; height:2px; background: linear-gradient(90deg, transparent, var(--gold), transparent); opacity:.8; }
+  .gh-relator-emoji { font-size: 17px; flex-shrink: 0; }
+  .gh-relator-txt { flex: 1; transition: opacity .35s var(--ease); }
+  .gh-relator-txt.fade { opacity: 0; }
+  .gh-relator-txt b { color: var(--gold); }
+  .gh-relator-empty { color: var(--muted); font-style: italic; }
+
+  /* ── podio vertical (En vivo) ── */
+  .gh-podium { display: flex; flex-direction: column; gap: 0.5rem; margin-bottom: 0.9rem; }
+  .gh-pod-row { display: flex; align-items: center; gap: 0.7rem; padding: 0.65rem 0.8rem; border-radius: 12px; background: var(--surface2); border: 1px solid var(--border); }
+  .gh-pod-row.p1 { border-color: rgba(245,200,66,0.45); background: var(--gold-dim); }
+  .gh-pod-row.p2 { border-color: rgba(160,180,200,0.4); background: var(--silver-dim); }
+  .gh-pod-row.p3 { border-color: rgba(205,127,50,0.4); background: var(--bronze-dim); }
+  .gh-pod-medal { font-size: 20px; width: 26px; text-align: center; flex-shrink: 0; }
+  .gh-pod-name { flex: 1; min-width: 0; font-family: var(--font-head); font-size: 14.5px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: flex; align-items: center; gap: 0.55rem; }
+  .gh-pod-pts { font-family: var(--font-display); font-weight: 800; font-size: 16px; color: var(--accent); font-variant-numeric: tabular-nums; }
+  .card.f2 .gh-pod-pts { color: var(--info); }
+
+  /* ── barra de progreso de duelos jugados ── */
+  .gh-progress-label { display: flex; justify-content: space-between; font-size: 11.5px; color: var(--muted); margin-bottom: 0.4rem; }
+  .gh-progress-label b { color: var(--text); }
+  .gh-progress-bar { height: 8px; border-radius: 99px; background: var(--surface2); border: 1px solid var(--border); overflow: hidden; }
+  .gh-progress-fill { height: 100%; border-radius: 99px; background: linear-gradient(90deg, var(--accent), #9fe066); transition: width .4s var(--ease); }
+  .card.f2 .gh-progress-fill { background: linear-gradient(90deg, var(--info), #7fc4f5); }
+
+  /* ── logros (En vivo) ── */
+  .gh-logro-row { display: flex; align-items: flex-start; gap: 0.65rem; padding: 0.6rem 0.7rem; border-radius: 10px; background: var(--surface2); border: 1px solid var(--border); margin-bottom: 0.5rem; }
+  .gh-logro-row:last-child { margin-bottom: 0; }
+  .gh-logro-emoji { font-size: 20px; flex-shrink: 0; line-height: 1.3; }
+  .gh-logro-text { display: flex; flex-direction: column; gap: 0.2rem; min-width: 0; }
+  .gh-logro-title { font-family: var(--font-head); font-size: 13px; font-weight: 700; color: var(--gold); }
+  .gh-logro-who { font-size: 12px; font-weight: 700; color: var(--text); }
+  .gh-logro-desc { font-size: 11px; color: var(--muted); }
+
+  #vivo-app .gh-empty, #vivo-app .gh-loading { text-align: center; }
 
   button:focus-visible, a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
@@ -264,7 +338,20 @@
 </head>
 <body>
 <a class="gh-back-link" href="index.html">← Hub</a>
-<div id="app"><div class="gh-loading">Cargando…</div></div>
+
+<div id="panels">
+  <div id="panel-yo" class="panel">
+    <div id="app"><div class="gh-loading">Cargando…</div></div>
+  </div>
+  <div id="panel-vivo" class="panel hidden">
+    <div id="vivo-app"><div class="gh-loading">Cargando…</div></div>
+  </div>
+</div>
+
+<div class="tabbar hidden" id="tabbar">
+  <button class="tab-btn active" id="tab-yo" data-tab="yo"><span class="tab-ic">👤</span>Yo</button>
+  <button class="tab-btn" id="tab-vivo" data-tab="vivo"><span class="tab-ic">📊</span>En vivo</button>
+</div>
 
 <script type="module">
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
@@ -525,6 +612,7 @@ function renderSelection() {
   app.querySelectorAll('.gh-sel-btn').forEach(btn => {
     btn.addEventListener('click', () => {
       localStorage.setItem('ndj_guest_who', btn.dataset.p);
+      switchTab('yo');
       render();
     });
   });
@@ -1097,11 +1185,313 @@ function pickAndUploadPhotos(myName) {
   inp.click();
 }
 
+// ── Pestañas (Yo / En vivo) ──────────────────────────────────
+function switchTab(tab) {
+  document.getElementById('panel-yo').classList.toggle('hidden', tab !== 'yo');
+  document.getElementById('panel-vivo').classList.toggle('hidden', tab !== 'vivo');
+  document.getElementById('tab-yo').classList.toggle('active', tab === 'yo');
+  document.getElementById('tab-vivo').classList.toggle('active', tab === 'vivo');
+}
+document.getElementById('tab-yo').addEventListener('click', () => switchTab('yo'));
+document.getElementById('tab-vivo').addEventListener('click', () => switchTab('vivo'));
+
+function shortName(n, isF1) { return isF1 ? String(n).split(' ')[0] : String(n).split('/')[0].trim().split(' ')[0]; }
+
+// ── EN VIVO: relator, resultados y logros (misma lógica del modo TV,
+// reutilizando el mismo estado y las mismas funciones que la pestaña "Yo") ──
+let evPhase = 'f1';
+
+function detectLogros() {
+  const found = [];
+  const add = (id, emoji, title, who, desc) => found.push({ id, emoji, title, who, desc });
+  const state = latestState;
+
+  const f1Seq = [];
+  F1_FIXTURE.forEach(m => {
+    const k = m[0] + '-' + m[1] + '-' + m[2];
+    const res = (state.f1 || {})[k];
+    if (res) f1Seq.push({ key: k, a: m[1], b: m[2], res });
+  });
+
+  if (f1Seq.length) {
+    const first = f1Seq.find(x => x.res.winner !== 'empate');
+    if (first) { const w = PLAYERS[first.res.winner]; if (w) add('primera-sangre', '💥', 'Primera Sangre', w, 'Ganó el primer duelo de la noche'); }
+  }
+  const streaks = {};
+  f1Seq.forEach(x => {
+    if (x.res.winner === 'empate') { streaks[PLAYERS[x.a]] = 0; streaks[PLAYERS[x.b]] = 0; return; }
+    const w = PLAYERS[x.res.winner], l = PLAYERS[x.res.winner === x.a ? x.b : x.a];
+    streaks[w] = (streaks[w] || 0) + 1; streaks[l] = 0;
+    if (streaks[w] === 2) add('doblete-' + w, '⚡', 'Doblete', w, 'Dos victorias al hilo');
+    if (streaks[w] === 3) add('triplete-' + w, '🔥', 'Triplete', w, 'Tres victorias seguidas');
+    if (streaks[w] === 4) add('imparable-' + w, '🚀', 'Imparable', w, 'Cuatro victorias sin perder');
+    if (x.res.bonus) add('bonus-' + x.key, '⭐', 'Con Estilo', w, 'Ganó con bonus incluido');
+  });
+  try {
+    const pts = getPoints('f1');
+    if (pts.length) {
+      const sorted = PLAYERS.map((n, i) => ({ n, t: pts[i] ? pts[i].total : 0 })).sort((a, b) => a.t - b.t);
+      const lastName = sorted.length ? sorted[0].n : null;
+      const lastWin = f1Seq.slice().reverse().find(x => x.res.winner !== 'empate' && PLAYERS[x.res.winner] === lastName);
+      if (lastName && lastWin) add('superviviente-' + lastWin.key, '🧟', 'Superviviente', lastName, 'Ganó estando último en la tabla');
+    }
+  } catch (e) {}
+  try {
+    (((state.impostor || {}).rounds) || []).forEach((rd, i) => {
+      if (!rd || !rd.impostorName) return;
+      if (rd.mode === 'noDescubierto') add('villano-' + i, '😈', 'El Villano', rd.impostorName, 'Fue impostor y nadie lo descubrió');
+      else add('cazador-' + i, '🔍', 'Cazado', rd.impostorName, 'Lo descubrieron como impostor');
+    });
+  } catch (e) {}
+  try {
+    const f2Seq = [];
+    F2_FIXTURE.forEach(m => { const k = m[0] + '-' + m[1] + '-' + m[2]; if ((state.f2 || {})[k]) f2Seq.push({ key: k, a: m[1], b: m[2], res: state.f2[k] }); });
+    const tstreaks = {};
+    f2Seq.forEach(x => {
+      if (x.res.winner === 'empate') { tstreaks[TEAMS[x.a]] = 0; tstreaks[TEAMS[x.b]] = 0; return; }
+      const w = TEAMS[x.res.winner], l = TEAMS[x.res.winner === x.a ? x.b : x.a];
+      tstreaks[w] = (tstreaks[w] || 0) + 1; tstreaks[l] = 0;
+      if (tstreaks[w] === 2) add('duo-doblete-' + w, '🤝', 'Dupla Encendida', w, 'Dos victorias seguidas en equipo');
+      if (tstreaks[w] === 3) add('duo-triplete-' + w, '🏆', 'Dupla Imparable', w, 'Tres victorias al hilo');
+    });
+  } catch (e) {}
+  try {
+    (state.comodines || []).forEach(c => {
+      if (c.status !== 'done') return;
+      if (c.key === 'robo') add('ladron-' + c.id, '🥷', 'Ladrón', c.player, c.note || 'Le robó un punto a otro');
+      if (c.key === 'peaje') add('peaje-' + c.id, '💸', 'Mala Racha', c.player, 'La ruleta le sacó un punto');
+    });
+    (state.comodinesF2 || []).forEach(c => {
+      if (c.status !== 'done') return;
+      if (c.key === 'robo') add('ladron-eq-' + c.id, '🥷', 'Ladrón', c.player, c.note || 'Le robó un punto a otro equipo');
+      if (c.key === 'peaje') add('peaje-eq-' + c.id, '💸', 'Mala Racha', c.player, 'La ruleta le sacó un punto');
+    });
+  } catch (e) {}
+  return found;
+}
+
+function buildRelatorLines() {
+  const out = [];
+  const push = (id, emoji, html) => out.push({ id, emoji, html });
+  const state = latestState;
+  let ppts = [], tpts = [];
+  try { ppts = getPoints('f1'); } catch (e) {}
+  try { tpts = getPoints('f2'); } catch (e) {}
+
+  if (ppts.length) {
+    const sortedP = PLAYERS.map((n, i) => ({ n, t: ppts[i] ? ppts[i].total : 0 })).sort((a, b) => b.t - a.t);
+    if (sortedP.length >= 2 && sortedP[0].t > 0) {
+      const gap = sortedP[0].t - sortedP[1].t;
+      if (gap === 0) push('tie-f1-' + sortedP[0].t, '⚖️', '<b>' + shortName(sortedP[0].n, true) + '</b> y <b>' + shortName(sortedP[1].n, true) + '</b> empatados en la punta con ' + sortedP[0].t);
+      else if (gap >= 5) push('lead-f1-' + sortedP[0].n + '-' + gap, '👑', '<b>' + shortName(sortedP[0].n, true) + '</b> se escapa: ' + gap + ' puntos de ventaja');
+      else push('close-f1-' + sortedP[0].n + '-' + gap, '🎯', '<b>' + shortName(sortedP[0].n, true) + '</b> puntero por ' + gap + ' — ' + shortName(sortedP[1].n, true) + ' lo persigue');
+    }
+  }
+  if (tpts.length && TEAMS.length) {
+    const sortedT = TEAMS.map((n, i) => ({ n, t: tpts[i] ? tpts[i].total : 0 })).sort((a, b) => b.t - a.t);
+    if (sortedT.length && sortedT[0].t > 0) {
+      push('lead-f2-' + sortedT[0].n + '-' + sortedT[0].t, '🏆', '<b>' + sortedT[0].n + '</b> manda en la Fase Grupal con ' + sortedT[0].t + ' puntos');
+      if (sortedT.length >= 2 && sortedT[0].t - sortedT[1].t <= 1) push('close-f2-' + sortedT[1].n, '🔥', '<b>' + sortedT[1].n + '</b> a un suspiro de la punta');
+    }
+  }
+  try {
+    const f1Done = F1_FIXTURE.filter(m => (state.f1 || {})[m[0] + '-' + m[1] + '-' + m[2]]).length;
+    const f2Done = F2_FIXTURE.filter(m => (state.f2 || {})[m[0] + '-' + m[1] + '-' + m[2]]).length;
+    if (f1Done && f1Done === F1_FIXTURE.length) push('f1-done', '✅', 'Fase Individual completa — se viene el Impostor');
+    else if (f1Done && F1_FIXTURE.length - f1Done <= 2) push('f1-almost-' + f1Done, '⏳', 'Quedan ' + (F1_FIXTURE.length - f1Done) + ' duelos para cerrar la Fase Individual');
+    if (f2Done && f2Done === F2_FIXTURE.length) push('f2-done', '✅', 'Fase Grupal completa — a la gran final');
+    else if (f2Done && F2_FIXTURE.length - f2Done <= 2) push('f2-almost-' + f2Done, '⏳', 'Quedan ' + (F2_FIXTURE.length - f2Done) + ' duelos de Fase Grupal');
+  } catch (e) {}
+  try {
+    const rounds = ((state.impostor || {}).rounds) || [];
+    if (rounds.length) {
+      const last = rounds[rounds.length - 1];
+      if (last && last.impostorName) push('imp-' + rounds.length, last.mode === 'noDescubierto' ? '🕵️' : '🎭',
+        last.mode === 'noDescubierto' ? '<b>' + shortName(last.impostorName, true) + '</b> fue impostor y nadie se dio cuenta' : 'Descubrieron a <b>' + shortName(last.impostorName, true) + '</b> como impostor');
+    }
+  } catch (e) {}
+  try {
+    const comos = (state.comodines || []).filter(c => c.status === 'done');
+    if (comos.length) { const last = comos[comos.length - 1]; const d = last.delta || 0; push('como-' + last.id, d >= 0 ? '🍀' : '💀', '<b>' + shortName(last.player, true) + '</b>: ' + (last.note || 'comodín aplicado') + ' (' + (d > 0 ? '+' : '') + d + ')'); }
+    const comosF2 = (state.comodinesF2 || []).filter(c => c.status === 'done');
+    if (comosF2.length) { const last = comosF2[comosF2.length - 1]; const d = last.delta || 0; push('como-eq-' + last.id, d >= 0 ? '🍀' : '💀', '<b>' + last.player + '</b>: ' + (last.note || 'comodín aplicado') + ' (' + (d > 0 ? '+' : '') + d + ')'); }
+  } catch (e) {}
+  return out;
+}
+
+let _relatorSeen = {};
+let _relatorTimer = null;
+function tickRelator() {
+  const txt = document.getElementById('gh-relator-txt');
+  if (!txt) return;
+  const lines = buildRelatorLines();
+  if (!lines.length) { txt.classList.remove('fade'); txt.innerHTML = '<span class="gh-relator-empty">Todavía no hay novedades para contar…</span>'; return; }
+  const fresh = lines.filter(l => !_relatorSeen[l.id]);
+  const pool = fresh.length ? fresh : lines;
+  const pick = pool[Math.floor(Math.random() * pool.length)];
+  _relatorSeen[pick.id] = true;
+  const keys = Object.keys(_relatorSeen);
+  if (keys.length > 60) keys.slice(0, 30).forEach(k => delete _relatorSeen[k]);
+  txt.classList.add('fade');
+  setTimeout(() => {
+    txt.innerHTML = pick.html;
+    const emojiEl = document.getElementById('gh-relator-emoji');
+    if (emojiEl) emojiEl.textContent = pick.emoji;
+    txt.classList.remove('fade');
+  }, 350);
+}
+
+// Resultados: junta los duelos jugados de ambas fases. Si un duelo no
+// aparece en la fixture (porque cambió el roster), no se inventa un
+// nombre de juego con "?": directamente se omite ese dato.
+function buildResultsFeed() {
+  const items = [];
+  const state = latestState;
+  Object.entries(state.f1 || {}).forEach(([k, res]) => {
+    const [r, a, b] = k.split('-').map(Number);
+    const match = F1_FIXTURE.find(m => m[0] === r && m[1] === a && m[2] === b);
+    items.push({ f2: false, r, a, b, res, game: match ? gameNameF1(match[3]) : null });
+  });
+  Object.entries(state.f2 || {}).forEach(([k, res]) => {
+    const [r, a, b] = k.split('-').map(Number);
+    const match = F2_FIXTURE.find(m => m[0] === r && m[1] === a && m[2] === b);
+    items.push({ f2: true, r, a, b, res, game: match ? gameNameF2(match[3]) : null });
+  });
+  return items.reverse();
+}
+
+function renderVivo() {
+  const root = document.getElementById('vivo-app');
+  if (!root) return;
+  const isF1 = evPhase === 'f1';
+  const entities = isF1 ? PLAYERS : TEAMS;
+  const fixture = isF1 ? F1_FIXTURE : F2_FIXTURE;
+  const list = ranked(evPhase);
+  const done = fixture.filter(m => (isF1 ? (latestState.f1 || {}) : (latestState.f2 || {}))[m[0] + '-' + m[1] + '-' + m[2]]).length;
+  const pct = fixture.length ? Math.round((done / fixture.length) * 100) : 0;
+
+  const top3 = list.slice(0, 3);
+  const rest = list.slice(3);
+  const podHtml = top3.map((e, i) => {
+    const medal = i === 0 ? '🥇' : i === 1 ? '🥈' : '🥉';
+    return `<div class="gh-pod-row p${i + 1}">
+      <span class="gh-pod-medal">${medal}</span>
+      <span class="gh-pod-name">${avatarHtml(e.n, 30)}<span>${escapeHtml(isF1 ? shortName(e.n, true) : e.n)}</span></span>
+      <span class="gh-pod-pts">${e.total}</span>
+    </div>`;
+  }).join('');
+
+  const restHtml = rest.map((e, i) => `
+    <tr><td class="pos">${ordinal(i + 4)}</td>
+    <td><span class="ranking-name">${avatarHtml(e.n, 22)}<span>${escapeHtml(isF1 ? shortName(e.n, true) : e.n)}</span></span></td>
+    <td class="pts">${e.total}</td></tr>`).join('');
+
+  // Cada fila de resultado usa las mismas clases que "Próximo/Último resultado"
+  // en la pestaña Yo, para que el texto nunca quede pegado ni descuadrado.
+  const resultsFeed = buildResultsFeed();
+  const resultsHtml = resultsFeed.length ? resultsFeed.map(it => {
+    const ents = it.f2 ? TEAMS : PLAYERS;
+    const nameA = shortName(ents[it.a] || '?', !it.f2);
+    const nameB = shortName(ents[it.b] || '?', !it.f2);
+    const tagParts = ['R' + it.r];
+    if (it.game) tagParts.push(it.game);
+    if (it.f2) tagParts.push('Fase 2');
+    const tag = escapeHtml(tagParts.join(' · '));
+    if (it.res.winner === 'empate') {
+      return `<div class="gh-match"><span class="gh-match-icon">🤝</span><div class="gh-match-text"><span class="gh-match-tag">${tag}</span>${escapeHtml(nameA)} vs ${escapeHtml(nameB)} — empate</div></div>`;
+    }
+    const winner = shortName(ents[it.res.winner] || '?', !it.f2);
+    const loser = it.res.winner === it.a ? nameB : nameA;
+    return `<div class="gh-match"><span class="gh-match-icon">⚡</span><div class="gh-match-text"><span class="gh-match-tag">${tag}</span><b>${escapeHtml(winner)}</b> venció a ${escapeHtml(loser)}${it.res.bonus ? ' · +bonus' : ''}</div></div>`;
+  }).join('') : `<div class="gh-empty">Todavía no hay resultados cargados.</div>`;
+
+  const logros = detectLogros().reverse();
+  const logrosHtml = logros.length ? logros.slice(0, 25).map(l => `
+    <div class="gh-logro-row"><span class="gh-logro-emoji">${l.emoji}</span>
+      <div class="gh-logro-text"><span class="gh-logro-title">${escapeHtml(l.title)}</span><span class="gh-logro-who">${escapeHtml(l.who)}</span><span class="gh-logro-desc">${escapeHtml(l.desc)}</span></div>
+    </div>`).join('') : `<div class="gh-empty">Todavía no se desbloqueó nada.</div>`;
+
+  const updatedTxt = lastUpdate ? lastUpdate.toLocaleTimeString('es-AR') : '—';
+
+  root.innerHTML = `
+    <div class="gh-header">
+      <div class="gh-eyebrow">🎮 La Velada del Año</div>
+      <div class="gh-title">En vivo</div>
+    </div>
+
+    <div class="gh-relator"><span class="gh-relator-emoji" id="gh-relator-emoji">📣</span><span class="gh-relator-txt" id="gh-relator-txt">Cargando novedades…</span></div>
+
+    <div class="gh-seg">
+      <button class="gh-seg-btn ${isF1 ? 'active' : ''}" data-phase="f1">Fase 1 · Individual</button>
+      <button class="gh-seg-btn f2 ${!isF1 ? 'active' : ''}" data-phase="f2">Fase 2 · Equipos</button>
+    </div>
+
+    <div class="card ${isF1 ? '' : 'f2'}">
+      <div class="card-head"><span class="card-label ${isF1 ? 'accent-label' : ''}">Podio</span></div>
+      <div class="gh-podium">${podHtml || `<div class="gh-empty">Todavía no hay resultados.</div>`}</div>
+      <div class="gh-progress-label"><span>Duelos jugados</span><b>${done}/${fixture.length}</b></div>
+      <div class="gh-progress-bar"><div class="gh-progress-fill" style="width:${pct}%"></div></div>
+      ${rest.length ? `
+      <details class="gh-toggle-wrap" data-acc-key="vivo-rank-${evPhase}"${accOpen('vivo-rank-' + evPhase, false) ? ' open' : ''}>
+        <summary class="gh-toggle">
+          <span class="card-label">Ver tabla completa</span><span class="gh-toggle-arrow">▶</span>
+        </summary>
+        <table class="ranking"><tbody>${restHtml}</tbody></table>
+      </details>` : ''}
+    </div>
+
+    <details class="gh-acc" data-acc-key="vivo-results"${accOpen('vivo-results', false) ? ' open' : ''}>
+      <summary class="gh-acc-summary">
+        <span class="gh-acc-summary-left">
+          <span class="gh-acc-icon">📰</span>
+          <span class="gh-acc-title-wrap"><span class="gh-acc-title">Resultados</span><span class="gh-acc-hint">Últimos duelos jugados</span></span>
+        </span>
+        <span class="gh-acc-summary-right"><span class="gh-acc-chevron">▶</span></span>
+      </summary>
+      <div class="gh-acc-body"><div class="gh-b-list">${resultsHtml}</div></div>
+    </details>
+
+    <details class="gh-acc" data-acc-key="vivo-logros"${accOpen('vivo-logros', false) ? ' open' : ''}>
+      <summary class="gh-acc-summary">
+        <span class="gh-acc-summary-left">
+          <span class="gh-acc-icon">🏅</span>
+          <span class="gh-acc-title-wrap"><span class="gh-acc-title">Logros</span><span class="gh-acc-hint">${logros.length} desbloqueados</span></span>
+        </span>
+        <span class="gh-acc-summary-right"><span class="gh-acc-chevron">▶</span></span>
+      </summary>
+      <div class="gh-acc-body">${logrosHtml}</div>
+    </details>
+
+    <div class="gh-footer"><span class="gh-dot"></span>En vivo · actualizado ${updatedTxt}</div>
+  `;
+
+  root.querySelectorAll('.gh-seg-btn').forEach(btn => {
+    btn.addEventListener('click', () => { evPhase = btn.dataset.phase; renderVivo(); });
+  });
+  wireAccordions();
+}
+
+let _relatorTimerStarted = false;
+function startRelator() {
+  if (_relatorTimerStarted) return;
+  _relatorTimerStarted = true;
+  tickRelator();
+  _relatorTimer = setInterval(tickRelator, 6500);
+}
+
 function render() {
   if (!ready) { document.getElementById('app').innerHTML = '<div class="gh-loading">Cargando…</div>'; return; }
   const who = localStorage.getItem('ndj_guest_who');
-  if (who && PLAYERS.includes(who)) renderDashboard(who);
-  else renderSelection();
+  const tabbar = document.getElementById('tabbar');
+  if (who && PLAYERS.includes(who)) {
+    tabbar.classList.remove('hidden');
+    renderDashboard(who);
+    renderVivo();
+    startRelator();
+  } else {
+    tabbar.classList.add('hidden');
+    renderSelection();
+  }
 }
 
 // ── Firebase: solo lectura, en vivo ──────────────────────────
