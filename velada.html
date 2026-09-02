@@ -6593,7 +6593,7 @@ function saveResult() {
     prev: store[modalCtx.key] ? { ...store[modalCtx.key] } : null,
     next: { winner: modalCtx.winner, bonus: modalCtx.bonus },
   };
-  store[modalCtx.key] = { winner: modalCtx.winner, bonus: modalCtx.bonus };
+  store[modalCtx.key] = { winner: modalCtx.winner, bonus: modalCtx.bonus, t: Date.now() };
   const comoMsgs = resolvePendingComodines(modalCtx.phase, modalCtx.key, modalCtx.winner, modalCtx.bonus);
   saveState();
   closeModal();
@@ -14560,14 +14560,32 @@ function buildEvoSeries(mode, state, PLAYERS, TEAMS) {
     return ex;
   }
 
+  // Orden real de juego: si el resultado tiene timestamp (guardado desde
+  // que existe este gráfico), se ordena por hora real. Los resultados
+  // viejos o los de "Simular velada" no tienen timestamp, así que quedan
+  // en su orden de fixture — y siempre van antes que los que sí lo tienen,
+  // asumiendo que ya estaban jugados cuando se empezó a trackear la hora.
+  function sortByPlayOrder(entries) {
+    return entries.slice().sort((x, y) => {
+      if (x.t != null && y.t != null) return x.t - y.t;
+      if (x.t != null && y.t == null) return 1;
+      if (x.t == null && y.t != null) return -1;
+      return x.fixtureIdx - y.fixtureIdx;
+    });
+  }
+
   // Construye pasos [{run:{nombre:total}}] a partir de un fixture + resolver de deltas
   function buildSteps(fixture, stateBucket, names, deltaFn) {
-    const run = {}; names.forEach(n => run[n] = 0);
-    const steps = [];
-    fixture.forEach(([r, a, b, g]) => {
+    const entries = [];
+    fixture.forEach(([r, a, b, g], fixtureIdx) => {
       const res = stateBucket[r + '-' + a + '-' + b];
       if (!res) return;
-      const d = deltaFn(a, b, names[a], names[b], res, g);
+      entries.push({ a, b, g, res, fixtureIdx, t: (typeof res.t === 'number' ? res.t : null) });
+    });
+    const run = {}; names.forEach(n => run[n] = 0);
+    const steps = [];
+    sortByPlayOrder(entries).forEach(e => {
+      const d = deltaFn(e.a, e.b, names[e.a], names[e.b], e.res, e.g);
       Object.keys(d).forEach(n => { if (run[n] !== undefined) run[n] += d[n]; });
       steps.push(Object.assign({}, run));
     });
@@ -14585,25 +14603,33 @@ function buildEvoSeries(mode, state, PLAYERS, TEAMS) {
       if (res.winner !== 'empate') { const w = names[res.winner]; wins[w] = (wins[w] || 0) + 1; } });
   } else if (mode === 'total') {
     names = PLAYERS.slice();
-    // Combina F1 (por jugador) + F2 (por equipo, repartido a sus integrantes), en orden de ronda.
+    // Combina F1 (por jugador) + F2 (por equipo, repartido a sus integrantes).
+    // Orden base (respaldo, sin timestamp): por ronda, F1 antes que F2 en la
+    // misma ronda. Si hay timestamps reales, se reordena por hora exacta.
     const combined = [];
     F1_FIXTURE.forEach(m => combined.push({ type: 'f1', r: m[0], m: m }));
     F2_FIXTURE.forEach(m => combined.push({ type: 'f2', r: m[0], m: m }));
     combined.sort((x, y) => x.r - y.r || (x.type === y.type ? 0 : (x.type === 'f1' ? -1 : 1)));
+
+    const entries = [];
+    combined.forEach(({ type, m }, fixtureIdx) => {
+      const [r, a, b, g] = m;
+      const res = (type === 'f1' ? state.f1 : state.f2)[r + '-' + a + '-' + b];
+      if (!res) return;
+      entries.push({ type, a, b, g, res, fixtureIdx, t: (typeof res.t === 'number' ? res.t : null) });
+    });
+
     const run = {}; names.forEach(n => run[n] = 0);
     steps = [];
-    combined.forEach(({ type, m }) => {
-      const [r, a, b, g] = m;
-      if (type === 'f1') {
-        const res = state.f1[r + '-' + a + '-' + b]; if (!res) return;
-        const d = f1MatchDelta(a, b, names[a], names[b], res, g);
+    sortByPlayOrder(entries).forEach(e => {
+      if (e.type === 'f1') {
+        const d = f1MatchDelta(e.a, e.b, names[e.a], names[e.b], e.res, e.g);
         Object.keys(d).forEach(n => { if (run[n] !== undefined) run[n] += d[n]; });
-        [names[a], names[b]].forEach(n => played[n] = (played[n] || 0) + 1);
-        if (res.winner !== 'empate') { const w = names[res.winner]; wins[w] = (wins[w] || 0) + 1; }
+        [names[e.a], names[e.b]].forEach(n => played[n] = (played[n] || 0) + 1);
+        if (e.res.winner !== 'empate') { const w = names[e.res.winner]; wins[w] = (wins[w] || 0) + 1; }
       } else {
-        const res = state.f2[r + '-' + a + '-' + b]; if (!res) return;
-        const teamA = TEAMS[a], teamB = TEAMS[b];
-        const d = f2MatchDelta(a, b, teamA, teamB, res, g);
+        const teamA = TEAMS[e.a], teamB = TEAMS[e.b];
+        const d = f2MatchDelta(e.a, e.b, teamA, teamB, e.res, e.g);
         Object.keys(d).forEach(teamName => {
           String(teamName).split('/').forEach(p => { const pn = p.trim(); if (run[pn] !== undefined) run[pn] += d[teamName]; });
         });
