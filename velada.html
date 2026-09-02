@@ -1681,6 +1681,15 @@
   }
   .champ-manual-toggle:hover { color: var(--text); }
 
+  /* Preview de foto para el campeón escrito a mano (individual) */
+  .champ-manual-preview {
+    display: none; align-items: center; gap: 0.5rem;
+    margin-top: 0.5rem; font-size: 12px; color: var(--muted); font-weight: 600;
+  }
+  .champ-manual-preview.show { display: flex; }
+  .champ-manual-preview .player-avatar-img,
+  .champ-manual-preview .player-avatar-fallback { width: 26px; height: 26px; font-size: 11px; }
+
   /* Avatar circular del campeón de la gran final / 3er puesto en los créditos */
   .cr-champ-av { display: flex; justify-content: center; margin: 0.4rem 0 0.1rem; }
   .cr-champ-av .player-avatar-img,
@@ -9623,9 +9632,13 @@ function escHtmlName(s) {
     .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
 
-// Todas las entidades que pueden haber llegado a la final: jugadores individuales + equipos de dos
+// Entidades que se pueden elegir como campeones: solo equipos de 2+
+// integrantes (duplas). Los jugadores sueltos no se listan como chips —
+// si alguien ganó individualmente, se carga a mano en el campo de texto
+// de abajo. Las fotos de cada integrante (si ya están cargadas) se arman
+// solas vía entityPhotos/playerAvatarHtml.
 function championCandidates() {
-  return [...PLAYERS, ...TEAMS];
+  return TEAMS.filter(name => entityMembers(name).length > 1);
 }
 
 // Selector visual (con foto) para elegir el campeón de la gran final / 3er puesto.
@@ -9651,6 +9664,22 @@ function pickChampeon(inputId, btnEl) {
   const wrap = btnEl.parentElement;
   if (wrap) Array.from(wrap.children).forEach(c => c.classList.remove('selected'));
   btnEl.classList.add('selected');
+  updateChampManualPreview(inputId);
+}
+
+// Preview de foto para cuando se escribe (o pega) un nombre a mano en el campo
+// libre: si coincide con un jugador ya cargado y ese jugador tiene foto, se
+// muestra al toque para confirmar que va a salir bien en los créditos.
+function updateChampManualPreview(inputId) {
+  const input = document.getElementById(inputId);
+  const box = document.getElementById('preview-' + inputId);
+  if (!input || !box) return;
+  const typed = (input.value || '').trim();
+  if (!typed) { box.classList.remove('show'); box.innerHTML = ''; return; }
+  const match = PLAYERS.find(p => p.trim().toLowerCase() === typed.toLowerCase());
+  if (!match) { box.classList.remove('show'); box.innerHTML = ''; return; }
+  box.innerHTML = playerAvatarHtml(match, PLAYERS.indexOf(match)) + '<span>Con foto de ' + escHtmlName(match) + '</span>';
+  box.classList.add('show');
 }
 
 // Popover de selección de color
@@ -10837,17 +10866,20 @@ function renderFinal() {
       <div class="final-edit-field">
         <label class="final-edit-label">🏆 Campeón de la gran final</label>
         ${champPickerHtml('campeon-final-input', FINAL_CONFIG && FINAL_CONFIG.ganador)}
-        <input class="final-edit-input" id="campeon-final-input" style="margin-top:0.4rem" placeholder="…o escribí un nombre a mano (ej: equipo nuevo)" value="${(FINAL_CONFIG && FINAL_CONFIG.ganador ? FINAL_CONFIG.ganador : '').replace(/"/g,'&quot;')}">
+        <input class="final-edit-input" id="campeon-final-input" style="margin-top:0.4rem" placeholder="…o escribí un nombre a mano (ej: equipo nuevo)" value="${(FINAL_CONFIG && FINAL_CONFIG.ganador ? FINAL_CONFIG.ganador : '').replace(/"/g,'&quot;')}" oninput="updateChampManualPreview('campeon-final-input')">
+        <div class="champ-manual-preview" id="preview-campeon-final-input"></div>
       </div>
       <div class="final-edit-field">
         <label class="final-edit-label">🥈 2do puesto</label>
         ${champPickerHtml('campeon-segundo-input', typeof SEGUNDO_CONFIG!=='undefined' && SEGUNDO_CONFIG && SEGUNDO_CONFIG.ganador)}
-        <input class="final-edit-input" id="campeon-segundo-input" style="margin-top:0.4rem" placeholder="…o escribí un nombre a mano (ej: equipo nuevo)" value="${(typeof SEGUNDO_CONFIG!=='undefined' && SEGUNDO_CONFIG && SEGUNDO_CONFIG.ganador ? SEGUNDO_CONFIG.ganador : '').replace(/"/g,'&quot;')}">
+        <input class="final-edit-input" id="campeon-segundo-input" style="margin-top:0.4rem" placeholder="…o escribí un nombre a mano (ej: equipo nuevo)" value="${(typeof SEGUNDO_CONFIG!=='undefined' && SEGUNDO_CONFIG && SEGUNDO_CONFIG.ganador ? SEGUNDO_CONFIG.ganador : '').replace(/"/g,'&quot;')}" oninput="updateChampManualPreview('campeon-segundo-input')">
+        <div class="champ-manual-preview" id="preview-campeon-segundo-input"></div>
       </div>
       <div class="final-edit-field">
         <label class="final-edit-label">🥉 Ganador del 3er puesto</label>
         ${champPickerHtml('campeon-tercer-input', typeof TERCER_CONFIG!=='undefined' && TERCER_CONFIG && TERCER_CONFIG.ganador)}
-        <input class="final-edit-input" id="campeon-tercer-input" style="margin-top:0.4rem" placeholder="…o escribí un nombre a mano (ej: equipo nuevo)" value="${(typeof TERCER_CONFIG!=='undefined' && TERCER_CONFIG && TERCER_CONFIG.ganador ? TERCER_CONFIG.ganador : '').replace(/"/g,'&quot;')}">
+        <input class="final-edit-input" id="campeon-tercer-input" style="margin-top:0.4rem" placeholder="…o escribí un nombre a mano (ej: equipo nuevo)" value="${(typeof TERCER_CONFIG!=='undefined' && TERCER_CONFIG && TERCER_CONFIG.ganador ? TERCER_CONFIG.ganador : '').replace(/"/g,'&quot;')}" oninput="updateChampManualPreview('campeon-tercer-input')">
+        <div class="champ-manual-preview" id="preview-campeon-tercer-input"></div>
       </div>
       <button class="final-edit-save" onclick="saveCampeones()">Guardar campeones</button>
     </div>
@@ -10864,6 +10896,7 @@ function renderFinal() {
     </div>
 
   `;
+    ['campeon-final-input', 'campeon-segundo-input', 'campeon-tercer-input'].forEach(updateChampManualPreview);
   }
 
   // El botón de cierre vive en su propio contenedor, ubicado en el HTML
