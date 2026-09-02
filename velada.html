@@ -3120,7 +3120,6 @@ window.VarSwitch = (function () {
             <th title="Puntos de la ronda especial (Impostor) — tocá para editar" style="color:var(--danger)">🕵️ IMP.</th>
             <th title="Bonus previo (Kahoot u otras actividades)">🎯</th>
             <th title="Apuestas acertadas">🃏</th>
-            <th title="Puntos manuales — tocá una celda para editar">⚖️</th>
             <th style="text-align:right">Total</th>
           </tr>
         </thead>
@@ -3302,7 +3301,6 @@ function loadRulesConfig() {
             _applyRulesParsed(parsed);
             // Actualizar localStorage con lo que vino de Firebase
             localStorage.setItem('ndj_rules', data);
-            console.log('Reglas cargadas desde Firebase ✓');
           } catch(e) { console.warn('Error al parsear reglas de Firebase:', e); }
         }
       });
@@ -4074,9 +4072,9 @@ try { VarSwitch.onChange(renderVarToggle); } catch (e) {}
 
 // ============================================================
 const PLAYERS = [
-  'Risu','Totti','Thiago','Mica',
-  'Valentín','Laza','Lara','Martin',
-  'Cori','Flor','Tomás'
+  'Risu','Totti','Thiago','Valentín',
+  'Laza','Lara','Martin','Cori',
+  'Flor','Tomás'
 ];
 
 const TEAMS = [
@@ -4565,7 +4563,7 @@ function renderF1RosterAdmin() {
     const rows = PLAYERS.map((p, i) => {
       const photo = getPlayerPhoto(p);
       const photoBtn = photo
-        ? `<button onclick="removePlayerPhoto('${p.replace(/'/g,"\\'")}');renderF1RosterAdmin();renderFase1();" title="Quitar foto" style="padding:0.45rem 0.5rem;border-radius:var(--radius);border:1px solid var(--border2);background:var(--surface2);cursor:pointer;font-size:11px;line-height:1;display:flex;align-items:center;gap:3px;color:var(--muted)"><img src="${photo}" style="width:20px;height:20px;border-radius:50%;object-fit:cover"> ✕</button>`
+        ? `<button onclick="removePlayerPhoto('${p.replace(/'/g,"\\'")}');renderF1RosterAdmin();renderFase1();" title="Quitar foto" style="padding:0.45rem 0.5rem;border-radius:var(--radius);border:1px solid var(--border2);background:var(--surface2);cursor:pointer;font-size:11px;line-height:1;display:flex;align-items:center;gap:3px;color:var(--muted)"><img src="${photo}" alt="" style="width:20px;height:20px;border-radius:50%;object-fit:cover"> ✕</button>`
         : `<button onclick="triggerPhotoUpload('${p.replace(/'/g,"\\'")}','f1');" title="Agregar foto" style="padding:0.45rem 0.5rem;border-radius:var(--radius);border:1px dashed var(--border2);background:transparent;cursor:pointer;font-size:13px;line-height:1;color:var(--muted)" title="Subir foto">📷</button>`;
       const f1Color = getEntityColor(p);
       const f1ColorBtn = `<button onclick="openColorPicker('${p.replace(/'/g,"\\'")}','f1',this)" title="Cambiar color" style="padding:0.45rem 0.5rem;border-radius:var(--radius);border:1px solid var(--border2);background:${f1Color||'var(--surface2)'};cursor:pointer;font-size:13px;line-height:1;min-width:30px;box-shadow:${f1Color?'0 0 8px '+f1Color+'66':'none'}">🎨</button>`;
@@ -4705,7 +4703,7 @@ function renderF2RosterAdmin() {
       const ph = getPlayerPhoto(m) || (members.length <= 1 ? getPlayerPhoto(t) : null);
       const short = m.split(' ')[0];
       return ph
-        ? `<button onclick="removePlayerPhoto('${esc(m)}');renderF2RosterAdmin();renderFase2();" title="Quitar foto de ${short}" style="padding:0.35rem 0.4rem;border-radius:var(--radius);border:1px solid var(--border2);background:var(--surface2);cursor:pointer;font-size:10px;line-height:1;display:flex;align-items:center;gap:2px;color:var(--muted)"><img src="${ph}" style="width:20px;height:20px;border-radius:50%;object-fit:cover"> ✕</button>`
+        ? `<button onclick="removePlayerPhoto('${esc(m)}');renderF2RosterAdmin();renderFase2();" title="Quitar foto de ${short}" style="padding:0.35rem 0.4rem;border-radius:var(--radius);border:1px solid var(--border2);background:var(--surface2);cursor:pointer;font-size:10px;line-height:1;display:flex;align-items:center;gap:2px;color:var(--muted)"><img src="${ph}" alt="" style="width:20px;height:20px;border-radius:50%;object-fit:cover"> ✕</button>`
         : `<button onclick="triggerPhotoUpload('${esc(m)}','f2');" title="Agregar foto de ${short}" style="padding:0.35rem 0.45rem;border-radius:var(--radius);border:1px dashed var(--border2);background:transparent;cursor:pointer;font-size:11px;line-height:1;color:var(--muted);white-space:nowrap">📷<span style="font-size:9px;opacity:0.8"> ${short}</span></button>`;
     }).join('');
     const photoBtn = `<span style="display:flex;gap:3px;flex-shrink:0">${photoBtns}</span>`;
@@ -5060,6 +5058,16 @@ window._bc = (() => { try { return new BroadcastChannel('ndj_sync'); } catch(e) 
 window._ndjState = localStorage.getItem('ndj_state') || '{}';
 
 function saveState() {
+  // El roster viaja siempre con el estado: velada.html es la fuente de verdad y
+  // el resto de las pantallas (index, participante, ¿Quién lo dijo?) se
+  // actualizan solas al agregar o sacar jugadores o equipos.
+  state.playersSnapshot = PLAYERS.slice();
+  state.teamsSnapshot   = TEAMS.slice();
+  state.rosterTs        = Date.now();
+  // Los equipos también se republican al canal que leen el HUB y ¿Quién lo dijo?
+  if (typeof window._pushQldTeams === 'function') {
+    try { window._pushQldTeams(); } catch (e) {}
+  }
   const json = JSON.stringify(state);
   localStorage.setItem('ndj_state', json);
   localStorage.setItem('ndj_state_ts', String(Date.now()));
@@ -5133,7 +5141,6 @@ function markLocalTs(key, ts) {
       return null;
     };
     window._fbReady = true;
-    console.log('Firebase listo ✓');
   `;
   document.head.appendChild(script);
 })();
@@ -5184,6 +5191,8 @@ function markLocalTs(key, ts) {
         }catch(e){ console.warn('No se pudo publicar los equipos a QLD', e); }
       }
       pushQldTeams();
+      // Queda accesible para volver a publicar cuando se edita el roster
+      window._pushQldTeams = pushQldTeams;
 
       // Leemos el resultado ya finalizado de la ronda (1°/2°/3° puesto → 3/2/1 pts)
       qldDb.ref('velada/qld/result').on('value', snap => {
@@ -5205,7 +5214,6 @@ function markLocalTs(key, ts) {
           try{ renderFinal(); }catch(e){}
         }
       });
-      console.log('QLD Firebase listo ✓');
     }catch(e){ console.warn('QLD Firebase init error', e); }
   }).catch(e => console.warn('No se pudo cargar el SDK RTDB', e));
 })();
@@ -5393,16 +5401,10 @@ function getPlayerPoints() {
     });
   });
 
-  // Ajustes manuales cargados a mano durante la noche
-  const adjF1 = (state.adjust && state.adjust.f1) || [];
-  PLAYERS.forEach((name, idx) => {
-    let d = 0;
-    adjF1.forEach(a => { if (a.name === name) d += (Number(a.pts) || 0); });
-    if (d) pts[idx].adjust = d;
-  });
+
 
   pts.forEach(p => {
-    p.total = p.rounds.reduce((s,v) => s + (typeof v === 'number' ? v : 0), 0) + (p.special || 0) + (p.bonusManual || 0) + (p.vsJC || 0) + (p.comodin || 0) + (p.bets || 0) + (p.adjust || 0);
+    p.total = p.rounds.reduce((s,v) => s + (typeof v === 'number' ? v : 0), 0) + (p.special || 0) + (p.bonusManual || 0) + (p.vsJC || 0) + (p.comodin || 0) + (p.bets || 0);
   });
   return pts;
 }
@@ -5535,16 +5537,10 @@ function getTeamPoints() {
     });
   });
 
-  // Ajustes manuales cargados a mano durante la noche
-  const adjF2 = (state.adjust && state.adjust.f2) || [];
-  TEAMS.forEach((name, idx) => {
-    let d = 0;
-    adjF2.forEach(a => { if (a.name === name) d += (Number(a.pts) || 0); });
-    if (d) pts[idx].adjust = d;
-  });
+
 
   pts.forEach(p => {
-    p.total = p.rounds.reduce((s,v) => s + (typeof v === 'number' ? v : 0), 0) + (p.qld || 0) + (p.betsF2 || 0) + (p.comodin || 0) + (p.adjust || 0);
+    p.total = p.rounds.reduce((s,v) => s + (typeof v === 'number' ? v : 0), 0) + (p.qld || 0) + (p.betsF2 || 0) + (p.comodin || 0);
   });
   return pts;
 }
@@ -7371,7 +7367,7 @@ function renderWallPanel() {
   if (!el) return;
   const thumbs = _wall.slice().reverse().map(p =>
     '<div style="position:relative;flex:0 0 auto">'
-    + '<img src="' + p.src + '" style="width:74px;height:74px;object-fit:cover;border-radius:10px;border:1px solid var(--border2)">'
+    + '<img src="' + p.src + '" alt="Foto del muro" style="width:74px;height:74px;object-fit:cover;border-radius:10px;border:1px solid var(--border2)">'
     + '<button onclick="removeWallPhoto(\'' + p.id + '\')" title="Borrar" style="position:absolute;top:-6px;right:-6px;width:20px;height:20px;border-radius:50%;border:1px solid var(--border2);background:var(--surface);color:var(--danger);cursor:pointer;font-size:11px;line-height:1;padding:0">✕</button>'
     + (p.by ? '<div style="font-size:9px;color:var(--muted);text-align:center;margin-top:2px;max-width:74px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + p.by + '</div>' : '')
     + '</div>').join('');
@@ -7627,7 +7623,6 @@ function resetEverything() {
       state.betWindow = { open: false, round: 0 };
       state.betWindowF2 = { open: false, round: 0 };
       state.qldOverride = {};
-      state.adjust = { f1: [], f2: [] };
       state.lastTab = 'reglas';
       saveState();
       // Ver comentario en resetBets(): las apuestas de los invitados también
@@ -14370,7 +14365,6 @@ function getPoints(type, state, PLAYERS, TEAMS) {
           const own=(pp[1]===i||pp[2]===i);
           if(bets[k][who]===res.winner) bw[i]=(bw[i]||0)+1; else if(own) bb[i]=true; }); });
       Object.keys(bw).forEach(i=>{ if(!bb[i]) pts[i].total+=bw[i]; });
-      (((state.adjust||{}).f1)||[]).forEach(a=>{ const i=PLAYERS.indexOf(a.name); if(i>=0) pts[i].total+=Number(a.pts)||0; });
       const vs=state.vsJC||{};
       PLAYERS.forEach((n,i)=>{ if(typeof vs[n]==='number') pts[i].total+=vs[n]; });
     }catch(e){}
@@ -14392,7 +14386,6 @@ function getPoints(type, state, PLAYERS, TEAMS) {
       const qld=(state.qldTeamPoints)||{};
       Object.keys(qld).forEach(k=>{ const i=parseInt(k,10); if(pts[i]) pts[i].total+=Number(qld[k])||0; });
       (state.comodinesF2||[]).forEach(c=>{ if(c.status==='done'){const i=TEAMS.indexOf(c.player); if(i>=0) pts[i].total+=Number(c.delta)||0;} });
-      (((state.adjust||{}).f2)||[]).forEach(a=>{ const i=TEAMS.indexOf(a.name); if(i>=0) pts[i].total+=Number(a.pts)||0; });
     }catch(e){}
     return pts;
   }
@@ -16057,7 +16050,6 @@ function reapplyStateAndRerender() {
       if (document.querySelector('.nav-tab[data-tab="impostor"]')?.classList.contains('active')) {
         renderImpostor();
       }
-      console.log('Palabras del impostor cargadas desde Firebase ✓');
     } catch(e) { console.warn('Error al fusionar palabras de Firebase:', e); }
   }
 
