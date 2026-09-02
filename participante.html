@@ -374,15 +374,48 @@ function getPoints(type) {
       if (pts[l]) pts[l].losses++;
     }
   });
-  if (type === 'f1' && latestState.impostor && Array.isArray(latestState.impostor.rounds)) {
-    const impNoPts = (RC && RC.impostor) ? RC.impostor.pts_noDescubierto : 4;
-    const impDesPts = (RC && RC.impostor) ? RC.impostor.pts_descubierto : 2;
-    latestState.impostor.rounds.forEach(rd => {
-      const idx = PLAYERS.indexOf(rd.impostorName);
-      if (idx < 0) return;
-      if (rd.mode === 'noDescubierto') pts[idx].total += impNoPts;
-      else if (rd.mode === 'descubierto') { const vi = PLAYERS.indexOf(rd.accusedName); if (vi >= 0) pts[vi].total += impDesPts; }
-    });
+  if (type === 'f1') {
+    if (latestState.impostor && Array.isArray(latestState.impostor.rounds)) {
+      const impNoPts = (RC && RC.impostor) ? RC.impostor.pts_noDescubierto : 4;
+      const impDesPts = (RC && RC.impostor) ? RC.impostor.pts_descubierto : 2;
+      latestState.impostor.rounds.forEach(rd => {
+        const idx = PLAYERS.indexOf(rd.impostorName);
+        if (idx < 0) return;
+        if (rd.mode === 'noDescubierto') pts[idx].total += impNoPts;
+        else if (rd.mode === 'descubierto') { const vi = PLAYERS.indexOf(rd.accusedName); if (vi >= 0) pts[vi].total += impDesPts; }
+      });
+    }
+    // Extras (igual que en el TV): comodines, bonus manual, apuestas acertadas, ajustes manuales y vs. JC
+    try {
+      const bm = latestState.bonusManual || {};
+      PLAYERS.forEach((n, i) => { if (bm[n] && bm[n].pts) pts[i].total += Number(bm[n].pts) || 0; });
+      (latestState.comodines || []).forEach(c => { if (c.status === 'done') { const i = PLAYERS.indexOf(c.player); if (i >= 0) pts[i].total += Number(c.delta) || 0; } });
+      const bets = latestState.bets || {};
+      const bw = {}, bb = {};
+      Object.keys(bets).forEach(k => {
+        const res = latestState.f1[k];
+        if (!res || res.winner === 'empate') return;
+        const pp = k.split('-').map(Number);
+        Object.keys(bets[k]).forEach(who => {
+          const i = PLAYERS.indexOf(who);
+          if (i < 0) return;
+          const own = (pp[1] === i || pp[2] === i);
+          if (bets[k][who] === res.winner) bw[i] = (bw[i] || 0) + 1; else if (own) bb[i] = true;
+        });
+      });
+      Object.keys(bw).forEach(i => { if (!bb[i]) pts[i].total += bw[i]; });
+      (((latestState.adjust || {}).f1) || []).forEach(a => { const i = PLAYERS.indexOf(a.name); if (i >= 0) pts[i].total += Number(a.pts) || 0; });
+      const vs = latestState.vsJC || {};
+      PLAYERS.forEach((n, i) => { if (typeof vs[n] === 'number') pts[i].total += vs[n]; });
+    } catch (e) {}
+  } else {
+    // Extras (igual que en el TV): ronda "¿Quién lo dijo?", comodines de equipo y ajustes manuales
+    try {
+      const qld = latestState.qldTeamPoints || {};
+      Object.keys(qld).forEach(k => { const i = parseInt(k, 10); if (pts[i]) pts[i].total += Number(qld[k]) || 0; });
+      (latestState.comodinesF2 || []).forEach(c => { if (c.status === 'done') { const i = TEAMS.indexOf(c.player); if (i >= 0) pts[i].total += Number(c.delta) || 0; } });
+      (((latestState.adjust || {}).f2) || []).forEach(a => { const i = TEAMS.indexOf(a.name); if (i >= 0) pts[i].total += Number(a.pts) || 0; });
+    } catch (e) {}
   }
   return pts;
 }
