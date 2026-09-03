@@ -11992,7 +11992,7 @@ function _runGrandFinale() {
   podiumReveal('individual', () => {
     podiumReveal('grupal', () => {
       try { showWrapped(() => rollCredits()); }
-      catch (e) { rollCredits(); }
+      catch (e) { console.error('[Wrapped] fallo general, salteando a créditos:', e); rollCredits(); }
     });
   });
 }
@@ -12179,7 +12179,7 @@ function buildWrapped() {
       emoji: '🎬', color: '#f5c842', title: 'Así fue la noche',
       stat: totalPartidos, desc: `duelo${totalPartidos === 1 ? '' : 's'} jugado${totalPartidos === 1 ? '' : 's'} entre las dos fases`
     });
-  } catch (e) {}
+  } catch (e) { console.warn('[Wrapped] fallo en "Así fue la noche":', e); }
 
   try {
     const comeback = findBiggestComeback();
@@ -12188,7 +12188,7 @@ function buildWrapped() {
       stat: `+${comeback.gain}`, name: escHtml(comeback.name),
       desc: `Llegó a estar ${ordinalWord(comeback.worstRank)} y terminó ${ordinalWord(comeback.finalRank)}`
     });
-  } catch (e) {}
+  } catch (e) { console.warn('[Wrapped] fallo en "remontada":', e); }
 
   try {
     const bestStreak = (statsGrupal.streakLen > statsIndiv.streakLen) ? statsGrupal : statsIndiv;
@@ -12197,7 +12197,7 @@ function buildWrapped() {
       stat: bestStreak.streakLen, name: escHtml(bestStreak.streakName),
       desc: `victoria${bestStreak.streakLen === 1 ? '' : 's'} seguida${bestStreak.streakLen === 1 ? '' : 's'}`
     });
-  } catch (e) {}
+  } catch (e) { console.warn('[Wrapped] fallo en "racha más larga":', e); }
 
   try {
     const closest = findClosestMatch();
@@ -12206,7 +12206,7 @@ function buildWrapped() {
       stat: closest.diff === 0 ? 'Empate' : closest.diff, name: `${escHtml(closest.nameA)} vs ${escHtml(closest.nameB)}`,
       desc: closest.diff === 0 ? 'Llegaron empatados en puntos a ese duelo' : `punto${closest.diff === 1 ? '' : 's'} de diferencia al llegar a ese duelo`
     });
-  } catch (e) {}
+  } catch (e) { console.warn('[Wrapped] fallo en "duelo más parejo":', e); }
 
   try {
     const fastest = findFastestTurnaround();
@@ -12215,7 +12215,7 @@ function buildWrapped() {
       stat: fastest.gapMin < 1 ? '<1 min' : `${Math.round(fastest.gapMin)} min`,
       desc: 'tardó en cargarse desde el resultado anterior'
     });
-  } catch (e) {}
+  } catch (e) { console.warn('[Wrapped] fallo en "resultado más rápido":', e); }
 
   try {
     const comodinesCount = ((state.comodines || []).filter(c => c.status === 'done' && c.delta)).length
@@ -12224,7 +12224,7 @@ function buildWrapped() {
       emoji: '🎰', color: '#ff6ec7', title: 'Comodines que cambiaron el rumbo',
       stat: comodinesCount, desc: `comodín${comodinesCount === 1 ? '' : 'es'} de la ruleta sumaron o restaron puntos durante la noche`
     });
-  } catch (e) {}
+  } catch (e) { console.warn('[Wrapped] fallo en "comodines":', e); }
 
   screens.push({ emoji: '🎉', color: '#f5c842', title: '¡Gracias por jugar!', desc: 'Ahora sí... ¡los créditos!' });
 
