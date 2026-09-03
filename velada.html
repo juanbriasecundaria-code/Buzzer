@@ -2423,6 +2423,19 @@ body.started .velada-bg-scrim { display: block; }
   opacity: 0; animation: cerFadeIn 0.6s ease 1.6s forwards;
 }
 @keyframes cerFadeIn { to { opacity: 1; } }
+/* Botón "descargar imagen" del podio final — mismo estilo que el de salir,
+   pero del lado izquierdo, para mandar el resultado directo al grupo sin
+   sacarle foto a la tele. Solo aparece cuando ya se reveló el campeón. */
+.pr-shot-btn {
+  position: fixed; top: 1rem; left: 1rem; z-index: 9600;
+  background: rgba(200,240,96,0.12); border: 1px solid rgba(200,240,96,0.35); color: var(--accent);
+  border-radius: 99px; padding: 0.5rem 1rem; cursor: pointer; font-size: 13px; font-weight: 700;
+  display: none; align-items: center; gap: 6px;
+  opacity: 0; transition: opacity 0.4s ease, transform 0.15s ease;
+}
+.pr-shot-btn.show { display: inline-flex; opacity: 1; }
+.pr-shot-btn:active { transform: scale(0.96); }
+.pr-shot-btn.busy { opacity: 0.6; pointer-events: none; }
 
 /* ── APERTURA: presentación de equipos ── */
 #opening::before {
@@ -9644,12 +9657,23 @@ function championCandidates() {
 // Selector visual (con foto) para elegir el campeón de la gran final / 3er puesto.
 // inputId = id del <input> oculto/de texto donde se guarda el nombre elegido.
 function champPickerHtml(inputId, selected) {
-  const cands = championCandidates();
+  let cands = championCandidates();
   if (!cands.length) return `<div class="champ-picker-none">Todavía no hay jugadores cargados.</div>`;
-  const btns = cands.map((name, i) => {
+  // Orden por puntaje actual (de mayor a menor) — el candidato más lógico
+  // aparece primero, sobre todo útil con roster grande.
+  try {
+    const ptsArr = getPoints('f2', state, PLAYERS, TEAMS);
+    cands = cands.slice().sort((a, b) => {
+      const pa = ptsArr[TEAMS.indexOf(a)] ? ptsArr[TEAMS.indexOf(a)].total : 0;
+      const pb = ptsArr[TEAMS.indexOf(b)] ? ptsArr[TEAMS.indexOf(b)].total : 0;
+      return pb - pa;
+    });
+  } catch (e) {}
+  const btns = cands.map((name) => {
     const sel = (selected && selected.trim() === name.trim()) ? ' selected' : '';
+    const colorIdx = TEAMS.indexOf(name); // índice real (no el de orden por puntaje) para que el color no salte
     return `<button type="button" class="champ-pick${sel}" data-name="${escHtmlName(name)}" onclick="pickChampeon('${inputId}', this)">
-      <span class="champ-pick-av">${playerAvatarHtml(name, i)}</span>
+      <span class="champ-pick-av">${playerAvatarHtml(name, colorIdx)}</span>
       <span class="champ-pick-name">${escHtmlName(name)}</span>
     </button>`;
   }).join('');
@@ -11577,6 +11601,61 @@ function closeCeremony(id) {
   }, 500);
 }
 
+// ── CAPTURA PARA EL GRUPO ────────────────────────────────────────────
+// Carga html2canvas una sola vez (bajo demanda) para poder convertir el
+// podio final a una imagen y mandarla directo al grupo de WhatsApp, sin
+// tener que sacarle una foto a la tele.
+let _html2canvasPromise = null;
+function ensureHtml2Canvas() {
+  if (window.html2canvas) return Promise.resolve();
+  if (_html2canvasPromise) return _html2canvasPromise;
+  _html2canvasPromise = new Promise((resolve, reject) => {
+    const s = document.createElement('script');
+    s.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js';
+    s.onload = () => resolve();
+    s.onerror = () => { _html2canvasPromise = null; reject(new Error('No se pudo cargar html2canvas')); };
+    document.head.appendChild(s);
+  });
+  return _html2canvasPromise;
+}
+
+// Convierte el overlay del podio final a una imagen y la descarga. Oculta
+// los botones flotantes (salir / descargar) mientras captura, para que no
+// salgan en la foto.
+function downloadPodiumImage(btnEl) {
+  const overlay = document.getElementById('podium-reveal');
+  if (!overlay) return;
+  if (btnEl) { btnEl.classList.add('busy'); btnEl.textContent = '⏳ Generando...'; }
+  const closeBtn = overlay.querySelector('.ceremony-close');
+  const toHide = [closeBtn, btnEl].filter(Boolean);
+  toHide.forEach(el => { el.style.visibility = 'hidden'; });
+  ensureHtml2Canvas().then(() => {
+    return window.html2canvas(overlay, {
+      backgroundColor: '#07070b',
+      useCORS: true,
+      scale: Math.min(2, window.devicePixelRatio || 1.5),
+    });
+  }).then(canvas => {
+    canvas.toBlob(blob => {
+      if (!blob) throw new Error('No se pudo generar la imagen');
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'la-velada-del-anio-podio.png';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 4000);
+    }, 'image/png');
+  }).catch(err => {
+    console.warn('No se pudo generar la imagen del podio:', err);
+    alert('No se pudo generar la imagen. Probá de nuevo, o sacale una foto a la pantalla.');
+  }).finally(() => {
+    toHide.forEach(el => { el.style.visibility = ''; });
+    if (btnEl) { btnEl.classList.remove('busy'); btnEl.textContent = '📸 Descargar imagen'; }
+  });
+}
+
 // ── CEREMONIA GENÉRICA v3: reveal en 3 fases por item ──
 // Genera las chispas que estallan al revelar el nombre (posiciones al azar en abanico)
 function _sparksHtml() {
@@ -12097,6 +12176,7 @@ function podiumReveal(phaseKind, onContinue) {
 
   overlay.innerHTML =
     '<button class="ceremony-close" onclick="closeCeremony(\'podium-reveal\')">✕ Salir</button>'
+    + '<button class="pr-shot-btn" id="pr-shot-btn">📸 Descargar imagen</button>'
     + '<div class="pr-bg-deco" aria-hidden="true">' + decoHtml + '</div>'
     + '<div class="pr-eyebrow">' + eyebrow + '</div>'
     + '<div class="pr-stage"><div class="pr-row">'
@@ -12131,8 +12211,13 @@ function podiumReveal(phaseKind, onContinue) {
     // dato random — así no compiten con la revelación ni la apuran.
     const statsEl = overlay.querySelector('#pr-stats');
     const factEl  = overlay.querySelector('#pr-fact');
+    const shotBtn = overlay.querySelector('#pr-shot-btn');
     if (statsEl) statsEl.classList.add('show');
     if (factEl)  factEl.classList.add('show');
+    if (shotBtn) {
+      shotBtn.classList.add('show');
+      shotBtn.onclick = (ev) => { ev.stopPropagation(); downloadPodiumImage(shotBtn); };
+    }
     // AUTOMÁTICO: tras revelar el campeón, espera y avanza solo (sin botón de "saltar")
     if (_ceremonyTimer) clearTimeout(_ceremonyTimer);
     _ceremonyTimer = setTimeout(advance, 6500);
@@ -13431,6 +13516,13 @@ function openTVMode() {
   .tv-evo-toggle button.active {
     background: var(--accent); color: #0a0a0e; border-color: var(--accent);
   }
+  .tv-evo-toggle2 { margin-bottom: clamp(8px,1.4vh,14px); }
+  .tv-evo-leaderfacts {
+    font-size: clamp(10px,1.1vw,13px); font-weight: 700; color: var(--gold);
+    background: rgba(245,200,66,0.08); border: 1px solid rgba(245,200,66,0.25);
+    border-radius: var(--radius); padding: clamp(6px,0.9vh,10px) clamp(10px,1.2vw,14px);
+    margin-bottom: clamp(8px,1.4vh,14px); text-align: center;
+  }
   .tv-evo-chart-wrap { width: 100%; }
   .tv-evo-chart-wrap svg { display: block; width: 100%; height: auto; }
   .tv-evo-empty { text-align: center; color: var(--muted); font-weight: 600;
@@ -14674,12 +14766,62 @@ function evoModeLabel(mode) {
   return mode === 'f2' ? 'Fase Grupal' : (mode === 'total' ? 'Total de la noche' : 'Fase Individual');
 }
 
-function renderEvoSVG(series, maxSteps) {
+// Extiende los puntos de cada serie a exactamente n pasos (repitiendo el
+// último valor si una serie tiene menos pasos que el máximo), y arma una
+// matriz [serieIdx][paso] lista para comparar entre jugadores/equipos.
+function evoPointsMatrix(series, n) {
+  return series.map(s => {
+    const pts = s.points.slice(0, n);
+    while (pts.length < n) pts.push(pts[pts.length - 1] || 0);
+    return pts;
+  });
+}
+
+// Para cada paso, calcula el ranking (1° = más puntos) de cada serie. Empates
+// se desempatan de forma estable por el índice ya ordenado por total final,
+// así las líneas del bump chart no tiemblan sin motivo entre pasos iguales.
+function evoRanksMatrix(matrix, n, count) {
+  const ranks = matrix.map(() => new Array(n).fill(1));
+  for (let j = 0; j < n; j++) {
+    const order = matrix.map((_, i) => i).sort((a, b) => {
+      const diff = matrix[b][j] - matrix[a][j];
+      return diff !== 0 ? diff : (a - b);
+    });
+    order.forEach((i, rank) => { ranks[i][j] = rank + 1; });
+  }
+  return ranks;
+}
+
+// ── CAMBIOS DE LÍDER — cuenta cuántas veces cambió el 1er puesto en la
+// noche, recorriendo los mismos pasos de buildEvoSeries pero ordenando por
+// posición (no por puntos) en cada paso. Distinto de "duelo más parejo": acá
+// importa el trono (quién manda en cada momento), no un cruce puntual. Un
+// empate en la punta no cuenta como cambio (es ambiguo) ni resetea al líder
+// vigente.
+function countLeaderChanges(series, maxSteps) {
+  const n = maxSteps + 1;
+  if (!series.length || n < 2) return 0;
+  const matrix = evoPointsMatrix(series, n);
+  let changes = 0, prevLeader = null;
+  for (let j = 0; j < n; j++) {
+    let maxVal = -Infinity, leaders = [];
+    matrix.forEach((row, i) => {
+      if (row[j] > maxVal) { maxVal = row[j]; leaders = [i]; }
+      else if (row[j] === maxVal) leaders.push(i);
+    });
+    if (maxVal <= 0) continue; // todavía nadie tiene puntos
+    if (leaders.length === 1) {
+      if (prevLeader !== null && leaders[0] !== prevLeader) changes++;
+      prevLeader = leaders[0];
+    }
+  }
+  return changes;
+}
+
+function renderEvoSVG(series, maxSteps, viewMode) {
   const W = 600, H = 260, padL = 8, padR = 8, padT = 10, padB = 10;
-  const maxY = Math.max(1, ...series.map(s => Math.max(...s.points)));
   const n = maxSteps + 1; // incluye el punto inicial en 0
   const x = i => padL + (n > 1 ? (i / (n - 1)) * (W - padL - padR) : 0);
-  const y = v => H - padB - (v / maxY) * (H - padT - padB);
 
   let grid = '';
   [0, 0.25, 0.5, 0.75, 1].forEach(f => {
@@ -14688,14 +14830,33 @@ function renderEvoSVG(series, maxSteps) {
   });
 
   let lines = '';
-  series.forEach(s => {
-    const pts = s.points.slice(0, n);
-    while (pts.length < n) pts.push(pts[pts.length - 1] || 0);
-    const d = pts.map((v, i) => (i === 0 ? 'M' : 'L') + x(i).toFixed(1) + ',' + y(v).toFixed(1)).join(' ');
-    const last = pts[pts.length - 1];
-    lines += '<path d="' + d + '" fill="none" stroke="' + s.color + '" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" opacity="0.95"/>';
-    lines += '<circle cx="' + x(n - 1).toFixed(1) + '" cy="' + y(last).toFixed(1) + '" r="4.5" fill="' + s.color + '"/>';
-  });
+  if (viewMode === 'pos') {
+    // Bump chart: eje Y = ranking (1° arriba del todo) en vez de puntos
+    // absolutos — con 6+ jugadores las curvas de puntos se apretujan, pero
+    // el orden relativo se lee mejor así.
+    const count = series.length;
+    const matrix = evoPointsMatrix(series, n);
+    const ranks = evoRanksMatrix(matrix, n, count);
+    const y = r => count > 1 ? padT + ((r - 1) / (count - 1)) * (H - padT - padB) : (padT + (H - padT - padB) / 2);
+    series.forEach((s, i) => {
+      const rs = ranks[i];
+      const d = rs.map((r, j) => (j === 0 ? 'M' : 'L') + x(j).toFixed(1) + ',' + y(r).toFixed(1)).join(' ');
+      const lastR = rs[rs.length - 1];
+      lines += '<path d="' + d + '" fill="none" stroke="' + s.color + '" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" opacity="0.95"/>';
+      lines += '<circle cx="' + x(n - 1).toFixed(1) + '" cy="' + y(lastR).toFixed(1) + '" r="4.5" fill="' + s.color + '"/>';
+    });
+  } else {
+    const maxY = Math.max(1, ...series.map(s => Math.max(...s.points)));
+    const y = v => H - padB - (v / maxY) * (H - padT - padB);
+    series.forEach(s => {
+      const pts = s.points.slice(0, n);
+      while (pts.length < n) pts.push(pts[pts.length - 1] || 0);
+      const d = pts.map((v, i) => (i === 0 ? 'M' : 'L') + x(i).toFixed(1) + ',' + y(v).toFixed(1)).join(' ');
+      const last = pts[pts.length - 1];
+      lines += '<path d="' + d + '" fill="none" stroke="' + s.color + '" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" opacity="0.95"/>';
+      lines += '<circle cx="' + x(n - 1).toFixed(1) + '" cy="' + y(last).toFixed(1) + '" r="4.5" fill="' + s.color + '"/>';
+    });
+  }
 
   return '<svg viewBox="0 0 ' + W + ' ' + H + '" preserveAspectRatio="none">' + grid + lines + '</svg>';
 }
@@ -14707,18 +14868,27 @@ function renderEvoChart() {
   if (!st) return;
   const PLAYERS = window._tvLastPlayers || [], TEAMS = window._tvLastTeams || [];
   const mode = getEvoMode();
+  const view = getEvoView();
   const data = buildEvoSeries(mode, st, PLAYERS, TEAMS);
 
   const toggleHtml = '<div class="tv-evo-toggle">'
     + ['f1', 'f2', 'total'].map(m => '<button data-mode="' + m + '" class="' + (m === mode ? 'active' : '') + '">'
       + (m === 'f1' ? 'Individual' : m === 'f2' ? 'Grupal' : 'Total') + '</button>').join('')
     + '</div>';
+  const viewToggleHtml = '<div class="tv-evo-toggle tv-evo-toggle2">'
+    + ['pts', 'pos'].map(v => '<button data-view="' + v + '" class="' + (v === view ? 'active' : '') + '">'
+      + (v === 'pts' ? '📈 Puntos' : '🪜 Posición') + '</button>').join('')
+    + '</div>';
 
   let body;
   if (!data.series.length || data.steps === 0) {
     body = '<div class="tv-evo-empty">Todavía no hay resultados cargados en esta fase 🎲</div>';
   } else {
-    const chart = renderEvoSVG(data.series, data.steps);
+    const chart = renderEvoSVG(data.series, data.steps, view);
+    const leaderChanges = countLeaderChanges(data.series, data.steps);
+    const leaderHtml = leaderChanges > 0
+      ? '<div class="tv-evo-leaderfacts">👑 El 1er puesto cambió de manos ' + leaderChanges + ' ' + (leaderChanges === 1 ? 'vez' : 'veces') + ' esta noche</div>'
+      : '';
     const list = data.series.map((s, i) => {
       const av = tvAvatarHtml(s.name, s.idx, window._tvLastPhotos || {});
       return '<div class="tv-evo-row" style="border-color:' + s.color + '">'
@@ -14728,12 +14898,15 @@ function renderEvoChart() {
         + '<span class="tv-evo-pts" style="color:' + s.color + '">' + s.total + ' pts</span>'
         + '</div>';
     }).join('');
-    body = '<div class="tv-evo-chart-wrap">' + chart + '</div><div class="tv-evo-list">' + list + '</div>';
+    body = leaderHtml + '<div class="tv-evo-chart-wrap">' + chart + '</div><div class="tv-evo-list">' + list + '</div>';
   }
 
-  box.innerHTML = '<div class="tv-evo-head"><div class="tv-evo-title">📈 Evolución — ' + evoModeLabel(mode) + '</div>' + toggleHtml + '</div>' + body;
-  box.querySelectorAll('.tv-evo-toggle button').forEach(btn => {
+  box.innerHTML = '<div class="tv-evo-head"><div class="tv-evo-title">📈 Evolución — ' + evoModeLabel(mode) + '</div>' + toggleHtml + '</div>' + viewToggleHtml + body;
+  box.querySelectorAll('.tv-evo-toggle:not(.tv-evo-toggle2) button').forEach(btn => {
     btn.addEventListener('click', ev => { ev.stopPropagation(); setEvoMode(btn.dataset.mode); renderEvoChart(); });
+  });
+  box.querySelectorAll('.tv-evo-toggle2 button').forEach(btn => {
+    btn.addEventListener('click', ev => { ev.stopPropagation(); setEvoView(btn.dataset.view); renderEvoChart(); });
   });
 }
 
@@ -14742,6 +14915,12 @@ function getEvoMode() {
 }
 function setEvoMode(m) {
   try { localStorage.setItem('ndj_evo_mode', m); } catch (e) {}
+}
+function getEvoView() {
+  try { return localStorage.getItem('ndj_evo_view') || 'pts'; } catch (e) { return 'pts'; }
+}
+function setEvoView(v) {
+  try { localStorage.setItem('ndj_evo_view', v); } catch (e) {}
 }
 
 const COLORS=['#a0b4c8','#f5c842','#cd7f32'];
