@@ -2311,6 +2311,34 @@
   .cr-game-item .cr-game-icon { font-size: 1.15em; }
   .cr-mote { font-size: clamp(1rem, 3.8vw, 1.3rem); margin: 0.35rem 0; }
   .cr-mote b { color: var(--gold); font-weight: 700; }
+
+  /* Números de la noche: grilla de tarjetas (mismos tonos que las stats del podio) */
+  .cr-stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: 0.7rem; max-width: 460px; margin: 1rem auto 0; padding: 0 0.4rem; }
+  .cr-stat-card { display: flex; flex-direction: column; align-items: center; gap: 0.2rem;
+    padding: 0.9rem 0.6rem; border-radius: 14px; border: 1px solid var(--border2);
+    background: rgba(255,255,255,0.03); }
+  .cr-stat-icon { font-size: clamp(1.5rem, 6vw, 2rem); line-height: 1; }
+  .cr-stat-value { font-size: clamp(1.6rem, 7vw, 2.4rem); font-weight: 900; color: var(--gold);
+    line-height: 1; text-shadow: 0 0 18px rgba(245,200,66,0.35); }
+  .cr-stat-label { font-size: clamp(10px, 2.6vw, 12px); font-weight: 600; color: var(--muted);
+    letter-spacing: 0.02em; text-align: center; }
+
+  /* El Impostor: marcador descubierto vs. zafó */
+  .cr-mini-line { color: var(--muted); font-size: clamp(0.85rem, 3vw, 1.05rem); font-weight: 500; margin-top: 0.2rem; }
+  .cr-imp-tally { display: flex; align-items: center; justify-content: center; gap: clamp(1rem, 6vw, 2.4rem);
+    margin-top: 1.1rem; }
+  .cr-imp-side { display: flex; flex-direction: column; align-items: center; gap: 0.15rem; }
+  .cr-imp-num { font-size: clamp(2.2rem, 10vw, 3.4rem); font-weight: 900; line-height: 1;
+    text-shadow: 0 0 22px currentColor; }
+  .cr-imp-cap { font-size: clamp(11px, 3vw, 13px); font-weight: 600; color: var(--muted);
+    letter-spacing: 0.04em; text-transform: uppercase; }
+  .cr-imp-vs { font-size: clamp(0.9rem, 3.4vw, 1.15rem); font-weight: 700; color: var(--muted);
+    opacity: 0.7; letter-spacing: 0.08em; }
+
+  /* Fecha y duración del evento: línea documental, tenue */
+  .cr-timing { color: var(--muted); font-size: clamp(0.95rem, 3.4vw, 1.2rem); font-weight: 600;
+    letter-spacing: 0.02em; line-height: 1.5; }
   .cr-divider { width: 56px; height: 2px; background: var(--gold); opacity: 0.5;
     margin: 3.2rem auto; border-radius: 2px; }
   .cr-foot { color: var(--muted); font-size: clamp(12px, 3vw, 14px); line-height: 1.9; margin-top: 1rem; }
@@ -11265,6 +11293,89 @@ function startCountdownTicker(target) {
   _countdownInterval = setInterval(render, 1000);
 }
 
+// ── DATOS EXTRA PARA LOS CRÉDITOS ───────────────────────────────────────
+// Tres placas nuevas al final de la noche: "Números de la noche" (totales),
+// "El Impostor" (quién fue impostor más veces, descubierto vs. zafó) y la
+// fecha + duración real del evento. Todo sale de datos que ya existen.
+
+// Totales de la noche: partidos, puntos repartidos, empates, comodines usados,
+// rondas de Impostor. Se apoya en computePhaseStats (F1+F2) y en el estado.
+function computeNightNumbers() {
+  let partidos = 0, empates = 0, puntos = 0;
+  try {
+    const si = computePhaseStats('individual');
+    const sg = computePhaseStats('grupal');
+    partidos = (si.matchesPlayed || 0) + (sg.matchesPlayed || 0);
+    empates  = (si.draws || 0) + (sg.draws || 0);
+  } catch (e) {}
+  try {
+    const ppts = (typeof getPlayerPoints === 'function') ? getPlayerPoints() : [];
+    const tpts = (typeof getTeamPoints === 'function') ? getTeamPoints() : [];
+    puntos = ppts.reduce((s, p) => s + (p.total || 0), 0) + tpts.reduce((s, p) => s + (p.total || 0), 0);
+  } catch (e) {}
+  const comodines = ((state.comodines || []).filter(c => c.status === 'done' && c.delta).length)
+    + ((state.comodinesF2 || []).filter(c => c.status === 'done' && c.delta).length);
+  const impRondas = ((state.impostor && state.impostor.rounds) || []).length;
+  return { partidos, empates, puntos, comodines, impRondas };
+}
+
+// Resumen del Impostor: quién fue impostor más veces y cuántas veces se lo
+// descubrió vs. cuántas zafó (sobre state.impostor.rounds, todos los modos).
+function computeImpostorSummary() {
+  const rounds = (state.impostor && state.impostor.rounds) || [];
+  if (!rounds.length) return null;
+  const timesImpostor = {}; // nombre => veces que fue impostor
+  let caught = 0, escaped = 0, total = 0;
+  rounds.forEach(rd => {
+    if (rd.mode === 'doble') {
+      const imps = rd.impostorNames || [];
+      const caughtNames = rd.caughtNames || [];
+      const escapedNames = rd.escapedNames || imps.filter(n => !caughtNames.includes(n));
+      imps.forEach(n => { timesImpostor[n] = (timesImpostor[n] || 0) + 1; });
+      caught += caughtNames.length;
+      escaped += escapedNames.length;
+      total += imps.length;
+    } else if (rd.impostorName) {
+      timesImpostor[rd.impostorName] = (timesImpostor[rd.impostorName] || 0) + 1;
+      total += 1;
+      if (rd.mode === 'descubierto') caught += 1; else escaped += 1;
+    }
+  });
+  // El que más veces fue impostor (desempate: el primero que aparece)
+  let topName = null, topCount = 0;
+  Object.keys(timesImpostor).forEach(n => { if (timesImpostor[n] > topCount) { topCount = timesImpostor[n]; topName = n; } });
+  return { rounds: rounds.length, caught, escaped, total, topName, topCount };
+}
+
+// Fecha y duración real del evento a partir de los timestamps (res.t) de todos
+// los resultados de la noche: del primero al último cargado.
+function computeEventTiming() {
+  const ts = [];
+  try {
+    Object.values(state.f1 || {}).forEach(r => { if (r && typeof r.t === 'number') ts.push(r.t); });
+    Object.values(state.f2 || {}).forEach(r => { if (r && typeof r.t === 'number') ts.push(r.t); });
+    ((state.impostor && state.impostor.rounds) || []).forEach(rd => { if (rd && typeof rd.t === 'number') ts.push(rd.t); });
+    (state.comodines || []).forEach(c => { if (c && typeof c.ts === 'number') ts.push(c.ts); });
+    (state.comodinesF2 || []).forEach(c => { if (c && typeof c.ts === 'number') ts.push(c.ts); });
+    (_wall || []).forEach(p => { if (p && typeof p.ts === 'number') ts.push(p.ts); });
+  } catch (e) {}
+  if (!ts.length) return null;
+  const first = Math.min(...ts), last = Math.max(...ts);
+  const durMs = Math.max(0, last - first);
+  const totalMin = Math.round(durMs / 60000);
+  const h = Math.floor(totalMin / 60), m = totalMin % 60;
+  let durText = '';
+  if (h > 0) durText = `${h}h ${String(m).padStart(2, '0')}min`;
+  else if (m > 0) durText = `${m}min`;
+  // Fecha del evento: la del último resultado (por si arrancó pasada medianoche)
+  let dateText = '';
+  try {
+    const d = new Date(last);
+    dateText = d.toLocaleDateString('es-AR', { day: 'numeric', month: 'long', year: 'numeric' });
+  } catch (e) {}
+  return { durText, dateText, durMin: totalMin };
+}
+
 function rollCredits() {
   const overlay = document.getElementById('credits');
   if (!overlay) return;
@@ -11363,6 +11474,60 @@ function rollCredits() {
       + `</div>`
     : '';
 
+  // ── Números de la noche (placa "by the numbers") ──
+  let numbersHtml = '';
+  try {
+    const nn = computeNightNumbers();
+    const cards = [];
+    if (nn.partidos > 0)  cards.push({ icon: '🎮', value: nn.partidos, label: `partido${nn.partidos === 1 ? '' : 's'} jugado${nn.partidos === 1 ? '' : 's'}` });
+    if (nn.puntos > 0)    cards.push({ icon: '🧮', value: nn.puntos, label: 'puntos repartidos' });
+    if (nn.empates > 0)   cards.push({ icon: '🤝', value: nn.empates, label: `empate${nn.empates === 1 ? '' : 's'}` });
+    if (nn.comodines > 0) cards.push({ icon: '🎰', value: nn.comodines, label: `comodín${nn.comodines === 1 ? '' : 'es'} usado${nn.comodines === 1 ? '' : 's'}` });
+    if (nn.impRondas > 0) cards.push({ icon: '🕵️', value: nn.impRondas, label: `ronda${nn.impRondas === 1 ? '' : 's'} de Impostor` });
+    if (cards.length) {
+      numbersHtml = `<div class="cr-block"><div class="cr-divider"></div>`
+        + `<div class="cr-role role-games">Los números de la noche</div>`
+        + `<div class="cr-stat-grid">`
+        + cards.map(c => `<div class="cr-stat-card"><div class="cr-stat-icon">${c.icon}</div>`
+            + `<div class="cr-stat-value">${esc(String(c.value))}</div>`
+            + `<div class="cr-stat-label">${esc(c.label)}</div></div>`).join('')
+        + `</div></div>`;
+    }
+  } catch (e) {}
+
+  // ── El Impostor (quién fue impostor más veces · descubierto vs. zafó) ──
+  let impostorHtml = '';
+  try {
+    const imp = computeImpostorSummary();
+    if (imp && imp.total > 0) {
+      let inner = `<div class="cr-block"><div class="cr-divider"></div>`
+        + `<div class="cr-role role-impostor">El Impostor</div>`;
+      if (imp.topName) {
+        inner += `<div class="cr-name" style="color:var(--danger)">🕵️ ${esc(imp.topName)}</div>`
+          + `<div class="cr-mini-line">fue impostor ${imp.topCount} ${imp.topCount === 1 ? 'vez' : 'veces'}</div>`;
+      }
+      inner += `<div class="cr-imp-tally">`
+        + `<div class="cr-imp-side"><div class="cr-imp-num" style="color:var(--accent)">${imp.caught}</div><div class="cr-imp-cap">descubierto${imp.caught === 1 ? '' : 's'}</div></div>`
+        + `<div class="cr-imp-vs">vs</div>`
+        + `<div class="cr-imp-side"><div class="cr-imp-num" style="color:var(--danger)">${imp.escaped}</div><div class="cr-imp-cap">${imp.escaped === 1 ? 'zafó' : 'zafaron'}</div></div>`
+        + `</div></div>`;
+      impostorHtml = inner;
+    }
+  } catch (e) {}
+
+  // ── Fecha y duración real del evento (toque documental) ──
+  let timingHtml = '';
+  try {
+    const et = computeEventTiming();
+    if (et && (et.durText || et.dateText)) {
+      const parts = [];
+      if (et.durText)  parts.push(`La velada duró ${esc(et.durText)}`);
+      if (et.dateText) parts.push(esc(et.dateText));
+      timingHtml = `<div class="cr-block"><div class="cr-divider"></div>`
+        + `<div class="cr-timing">🎬 ${parts.join(' · ')}</div></div>`;
+    }
+  } catch (e) {}
+
   // Fondo decorativo fijo: mismos íconos tenues de la ceremonia del podio,
   // repartidos por toda la pantalla y quietos mientras corren los créditos.
   const CREDITS_DECO_ICONS = [
@@ -11430,6 +11595,8 @@ function rollCredits() {
           <div class="cr-role role-games">Los juegos</div>
           <div class="cr-games">${games}</div>
         </div>
+        ${numbersHtml}
+        ${impostorHtml}
         ${finalGame}
         ${segundoGame}
         ${tercerGame}
@@ -11439,6 +11606,8 @@ function rollCredits() {
         ${photoHtml}
 
         ${wallHtml}
+
+        ${timingHtml}
 
         <div class="cr-block">
           <div class="cr-divider"></div>
