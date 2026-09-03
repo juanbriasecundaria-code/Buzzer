@@ -2883,24 +2883,49 @@ body.started .velada-bg-scrim { display: block; }
 }
 
 /* ── RESUMEN "WRAPPED" (antes de los créditos) ── */
-#wrapped-screen { flex-direction: column; align-items: center; justify-content: center; gap: 0.6rem; text-align: center; padding: 2rem 1.5rem; }
-.wrapped-dots { display: flex; gap: 6px; margin-bottom: clamp(1.2rem, 4vh, 2.4rem); }
-.wrapped-dot { width: 7px; height: 7px; border-radius: 50%; background: rgba(255,255,255,0.18); transition: background 0.3s; }
-.wrapped-dot.active { background: var(--accent); box-shadow: 0 0 10px var(--accent); }
-.wrapped-dot.done { background: rgba(200,240,96,0.45); }
-.wrapped-eyebrow { color: var(--gold); letter-spacing: 0.28em; text-transform: uppercase;
-  font-size: clamp(11px, 2.4vw, 14px); margin-bottom: clamp(1rem, 3vh, 1.8rem); opacity: 0.9; }
-.wrapped-emoji { font-size: clamp(48px, 10vw, 84px); margin-bottom: 0.6rem;
+#wrapped-screen { flex-direction: column; align-items: center; justify-content: center; gap: 0.6rem;
+  text-align: center; padding: 2rem 1.5rem; position: relative; overflow: hidden; }
+
+/* Mismo fondo decorativo (tenue, sin animación) que el podio y los créditos,
+   para que las tres pantallas de cierre se sientan parte de la misma secuencia. */
+.wrapped-bg-deco { position: absolute; inset: 0; z-index: 0; overflow: hidden; pointer-events: none; }
+.wrapped-bg-deco span { position: absolute; line-height: 1; opacity: 0.07; filter: grayscale(0.15); }
+.wrapped-glow { position: absolute; top: 50%; left: 50%; width: min(70vw, 520px); height: min(70vw, 520px);
+  transform: translate(-50%, -55%); border-radius: 50%; z-index: 0; pointer-events: none;
+  background: radial-gradient(circle, var(--wr-accent, var(--accent)) 0%, transparent 68%);
+  opacity: 0.16; filter: blur(10px); transition: background 0.4s ease; }
+
+/* Barra de progreso tipo "stories" (Instagram/Spotify Wrapped) en vez de puntitos sueltos */
+.wrapped-progress { position: relative; z-index: 1; display: flex; gap: 5px; width: min(90%, 420px);
+  margin-bottom: clamp(1.4rem, 4.5vh, 2.6rem); }
+.wrapped-progress-seg { flex: 1; height: 3px; border-radius: 99px; background: rgba(255,255,255,0.18); overflow: hidden; }
+.wrapped-progress-fill { height: 100%; width: 0%; background: var(--wr-accent, var(--accent)); border-radius: 99px; }
+.wrapped-progress-seg.done .wrapped-progress-fill { width: 100%; }
+.wrapped-progress-seg.active .wrapped-progress-fill { animation: wrappedFill 4.8s linear forwards; }
+@keyframes wrappedFill { from { width: 0%; } to { width: 100%; } }
+
+.wrapped-eyebrow { position: relative; z-index: 1; color: var(--wr-accent, var(--gold)); letter-spacing: 0.28em; text-transform: uppercase;
+  font-size: clamp(11px, 2.4vw, 14px); margin-bottom: clamp(1rem, 3vh, 1.8rem); opacity: 0.95; transition: color 0.4s ease; }
+.wrapped-emoji { position: relative; z-index: 1; font-size: clamp(48px, 10vw, 80px); margin-bottom: 0.5rem;
   animation: wrappedPop 0.5s cubic-bezier(.2,1.4,.4,1) both; }
-.wrapped-title { font-size: clamp(20px, 4.5vw, 34px); font-weight: 800; margin-bottom: 0.5rem;
-  animation: wrappedRise 0.5s ease 0.1s both; }
-.wrapped-name { font-size: clamp(24px, 5.5vw, 42px); font-weight: 900; color: var(--accent);
-  margin-bottom: 0.7rem; animation: wrappedRise 0.5s ease 0.18s both; }
-.wrapped-desc { color: var(--muted); font-size: clamp(14px, 2.6vw, 18px); font-weight: 600; max-width: 520px;
-  animation: wrappedRise 0.5s ease 0.24s both; }
+.wrapped-title { position: relative; z-index: 1; font-size: clamp(19px, 4.2vw, 30px); font-weight: 800; margin-bottom: 0.3rem;
+  animation: wrappedRise 0.5s ease 0.08s both; }
+.wrapped-stat { position: relative; z-index: 1; font-family: inherit; font-size: clamp(46px, 11vw, 90px); font-weight: 900;
+  line-height: 1; color: var(--wr-accent, var(--accent)); margin: 0.3rem 0 0.5rem;
+  text-shadow: 0 0 40px var(--wr-accent, var(--accent)); animation: wrappedPop 0.55s cubic-bezier(.2,1.4,.4,1) 0.05s both; }
+.wrapped-name { position: relative; z-index: 1; font-size: clamp(22px, 5vw, 38px); font-weight: 900; color: var(--wr-accent, var(--accent));
+  margin-bottom: 0.6rem; animation: wrappedRise 0.5s ease 0.16s both; }
+.wrapped-desc { position: relative; z-index: 1; color: var(--muted); font-size: clamp(14px, 2.6vw, 18px); font-weight: 600; max-width: 520px;
+  animation: wrappedRise 0.5s ease 0.22s both; }
+.wrapped-hint { position: absolute; z-index: 1; bottom: clamp(1.2rem, 4vh, 2.4rem); left: 0; right: 0;
+  text-align: center; color: var(--muted); font-size: 11.5px; letter-spacing: 0.05em; opacity: 0;
+  animation: wrappedRise 0.5s ease 1s both; }
 @keyframes wrappedPop { from { opacity: 0; transform: scale(0.5); } to { opacity: 1; transform: scale(1); } }
 @keyframes wrappedRise { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: translateY(0); } }
-@media (prefers-reduced-motion: reduce) { .wrapped-emoji, .wrapped-title, .wrapped-name, .wrapped-desc { animation: none; } }
+@media (prefers-reduced-motion: reduce) {
+  .wrapped-emoji, .wrapped-title, .wrapped-stat, .wrapped-name, .wrapped-desc, .wrapped-hint { animation: none; opacity: 1; }
+  .wrapped-progress-seg.active .wrapped-progress-fill { animation: none; width: 100%; }
+}
 
 /* ── PODIO FINAL animado ── */
 .pr-eyebrow { position: relative; z-index: 1; color: var(--gold); letter-spacing: 0.32em;
@@ -2976,7 +3001,7 @@ body.started .velada-bg-scrim { display: block; }
 }
 
 </style>
-<style>.hub-link{position:fixed;top:max(0.75rem,env(safe-area-inset-top));left:max(0.75rem,env(safe-area-inset-left));z-index:99999;font-size:11px;font-weight:700;color:rgba(240,239,232,0.7);background:rgba(10,10,14,0.6);border:1px solid rgba(255,255,255,0.1);border-radius:99px;padding:0.38rem 0.85rem;text-decoration:none;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);letter-spacing:0.04em;transition:color 0.15s,border-color 0.15s;white-space:nowrap}.hub-link:hover{color:#f0efe8;border-color:rgba(255,255,255,0.25)}</style></head>
+<style>.hub-link{position:fixed;top:max(0.75rem,env(safe-area-inset-top));left:max(0.75rem,env(safe-area-inset-left));z-index:99999;font-size:11px;font-weight:700;color:rgba(240,239,232,0.7);background:rgba(10,10,14,0.6);border:1px solid rgba(255,255,255,0.1);border-radius:99px;padding:0.38rem 0.85rem;text-decoration:none;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);letter-spacing:0.04em;transition:color 0.15s,border-color 0.15s;white-space:nowrap}.hub-link:hover{color:#f0efe8;border-color:rgba(255,255,255,0.25)}body:has(.ceremony.show) .hub-link{display:none}</style></head>
 <body>
 <script>window.VAR_SWITCH_MANUAL = true;</script>
 <!-- ══════════════════════════════════════════════════════════════════
@@ -11665,6 +11690,13 @@ function ensureHtml2Canvas() {
 // Convierte el overlay del podio final a una imagen y la descarga. Oculta
 // los botones flotantes (salir / descargar) mientras captura, para que no
 // salgan en la foto.
+//
+// Los avatares "Mii" se dibujan como SVG con la foto recortada en círculo
+// vía <clipPath> — un patrón que el método de captura "clásico" de
+// html2canvas (recrear todo a mano en un <canvas>) no siempre soporta bien.
+// Por eso probamos primero con foreignObjectRendering (deja que el propio
+// navegador dibuje ese SVG nativamente) y, si el navegador no lo permite,
+// caemos al método clásico como respaldo.
 function downloadPodiumImage(btnEl) {
   const overlay = document.getElementById('podium-reveal');
   if (!overlay) return;
@@ -11672,15 +11704,23 @@ function downloadPodiumImage(btnEl) {
   const closeBtn = overlay.querySelector('.ceremony-close');
   const toHide = [closeBtn, btnEl].filter(Boolean);
   toHide.forEach(el => { el.style.visibility = 'hidden'; });
-  ensureHtml2Canvas().then(() => {
-    return window.html2canvas(overlay, {
-      backgroundColor: '#07070b',
-      useCORS: true,
-      scale: Math.min(2, window.devicePixelRatio || 1.5),
-    });
-  }).then(canvas => {
-    canvas.toBlob(blob => {
-      if (!blob) throw new Error('No se pudo generar la imagen');
+
+  const baseOpts = {
+    backgroundColor: '#07070b',
+    useCORS: true,
+    scale: Math.min(2, window.devicePixelRatio || 1.5),
+  };
+
+  ensureHtml2Canvas()
+    .then(() => window.html2canvas(overlay, Object.assign({ foreignObjectRendering: true }, baseOpts))
+      .catch(() => window.html2canvas(overlay, Object.assign({ foreignObjectRendering: false }, baseOpts))))
+    .then(canvas => new Promise((resolve, reject) => {
+      canvas.toBlob(blob => {
+        if (!blob) reject(new Error('el navegador devolvió un canvas vacío'));
+        else resolve(blob);
+      }, 'image/png');
+    }))
+    .then(blob => {
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
@@ -11689,14 +11729,16 @@ function downloadPodiumImage(btnEl) {
       a.click();
       a.remove();
       setTimeout(() => URL.revokeObjectURL(url), 4000);
-    }, 'image/png');
-  }).catch(err => {
-    console.warn('No se pudo generar la imagen del podio:', err);
-    alert('No se pudo generar la imagen. Probá de nuevo, o sacale una foto a la pantalla.');
-  }).finally(() => {
-    toHide.forEach(el => { el.style.visibility = ''; });
-    if (btnEl) { btnEl.classList.remove('busy'); btnEl.textContent = '📸 Descargar imagen'; }
-  });
+    })
+    .catch(err => {
+      console.warn('No se pudo generar la imagen del podio:', err);
+      const detalle = (err && err.message) ? err.message : 'error desconocido';
+      alert('No se pudo generar la imagen (' + detalle + '). Probá de nuevo, o sacale una foto a la pantalla.');
+    })
+    .finally(() => {
+      toHide.forEach(el => { el.style.visibility = ''; });
+      if (btnEl) { btnEl.classList.remove('busy'); btnEl.textContent = '📸 Descargar imagen'; }
+    });
 }
 
 // ── CEREMONIA GENÉRICA v3: reveal en 3 fases por item ──
@@ -12200,57 +12242,92 @@ function findBiggestComeback() {
 function ordinalWord(n) { return n + '°'; }
 function escHtml(s) { return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
 
-// Arma las 4-5 pantallas del resumen "Wrapped", 100% en base a datos que ya
+// Arma las pantallas del resumen "Wrapped", 100% en base a datos que ya
 // existen (getPoints, computePhaseStats, timestamps) — solo se empaquetan
-// distinto.
+// distinto. Arranca y cierra con una pantalla "bisagra" (intro/outro) para
+// que se sienta un resumen armado, no una lista de datos sueltos.
 function buildWrapped() {
   const screens = [];
+  const statsIndiv = computePhaseStats('individual');
+  const statsGrupal = computePhaseStats('grupal');
+  const totalPartidos = (statsIndiv.matchesPlayed || 0) + (statsGrupal.matchesPlayed || 0);
+
+  screens.push({
+    emoji: '🎬', color: '#f5c842', title: 'Así fue la noche',
+    stat: totalPartidos, desc: `duelo${totalPartidos === 1 ? '' : 's'} jugado${totalPartidos === 1 ? '' : 's'} entre las dos fases`
+  });
+
   const comeback = findBiggestComeback();
   if (comeback) screens.push({
-    emoji: '📈', title: 'La remontada de la noche', name: escHtml(comeback.name),
+    emoji: '📈', color: '#60b4f0', title: 'La remontada de la noche',
+    stat: `+${comeback.gain}`, name: escHtml(comeback.name),
     desc: `Llegó a estar ${ordinalWord(comeback.worstRank)} y terminó ${ordinalWord(comeback.finalRank)}`
   });
 
-  const statsIndiv = computePhaseStats('individual');
-  const statsGrupal = computePhaseStats('grupal');
   const bestStreak = (statsGrupal.streakLen > statsIndiv.streakLen) ? statsGrupal : statsIndiv;
   if (bestStreak.streakLen >= 2) screens.push({
-    emoji: '🔥', title: 'La racha más larga', name: escHtml(bestStreak.streakName),
-    desc: `${bestStreak.streakLen} victorias seguidas`
+    emoji: '🔥', color: '#ff8a3d', title: 'La racha más larga',
+    stat: bestStreak.streakLen, name: escHtml(bestStreak.streakName),
+    desc: `victoria${bestStreak.streakLen === 1 ? '' : 's'} seguida${bestStreak.streakLen === 1 ? '' : 's'}`
   });
 
   const closest = findClosestMatch();
   if (closest) screens.push({
-    emoji: '⚖️', title: 'El duelo más parejo', name: `${escHtml(closest.nameA)} vs ${escHtml(closest.nameB)}`,
-    desc: closest.diff === 0 ? 'Llegaron empatados en puntos a ese duelo' : `Llegaron con ${closest.diff} punto${closest.diff === 1 ? '' : 's'} de diferencia`
+    emoji: '⚖️', color: '#c084fc', title: 'El duelo más parejo',
+    stat: closest.diff === 0 ? 'Empate' : closest.diff, name: `${escHtml(closest.nameA)} vs ${escHtml(closest.nameB)}`,
+    desc: closest.diff === 0 ? 'Llegaron empatados en puntos a ese duelo' : `punto${closest.diff === 1 ? '' : 's'} de diferencia al llegar a ese duelo`
   });
 
   const fastest = findFastestTurnaround();
   if (fastest && fastest.gapMin < 5) screens.push({
-    emoji: '⚡', title: 'El resultado más rápido de la noche',
-    desc: `Se cargó a ${fastest.gapMin < 1 ? 'menos de un minuto' : Math.round(fastest.gapMin) + ' minutos'} del anterior`
+    emoji: '⚡', color: '#c8f060', title: 'El resultado más rápido de la noche',
+    stat: fastest.gapMin < 1 ? '<1 min' : `${Math.round(fastest.gapMin)} min`,
+    desc: 'tardó en cargarse desde el resultado anterior'
   });
 
   const comodinesCount = ((state.comodines || []).filter(c => c.status === 'done' && c.delta)).length
     + ((state.comodinesF2 || []).filter(c => c.status === 'done' && c.delta)).length;
   if (comodinesCount > 0) screens.push({
-    emoji: '🎰', title: 'Comodines que cambiaron el rumbo',
-    desc: `${comodinesCount} comodín${comodinesCount === 1 ? '' : 'es'} de la ruleta sumaron o restaron puntos durante la noche`
+    emoji: '🎰', color: '#ff6ec7', title: 'Comodines que cambiaron el rumbo',
+    stat: comodinesCount, desc: `comodín${comodinesCount === 1 ? '' : 'es'} de la ruleta sumaron o restaron puntos durante la noche`
   });
+
+  screens.push({ emoji: '🎉', color: '#f5c842', title: '¡Gracias por jugar!', desc: 'Ahora sí... ¡los créditos!' });
 
   return screens;
 }
 
+// Fondo decorativo: mismos íconos (tenues, sin animación) que el podio y los
+// créditos, para que las tres pantallas de cierre se sientan la misma pieza.
+const WRAPPED_DECO_ICONS = [
+  { icon: '📊', top: '8%',  left: '10%', size: 54, rot: -10 },
+  { icon: '🎲', top: '16%', left: '88%', size: 50, rot: 12 },
+  { icon: '🏆', top: '80%', left: '8%',  size: 52, rot: 8 },
+  { icon: '✨', top: '84%', left: '88%', size: 40, rot: -8 },
+  { icon: '🔥', top: '46%', left: '4%',  size: 40, rot: -6 },
+  { icon: '⚡', top: '48%', left: '94%', size: 40, rot: 6 },
+  { icon: '🎯', top: '6%',  left: '48%', size: 36, rot: 10 },
+  { icon: '🎰', top: '28%', left: '6%',  size: 38, rot: 9 },
+  { icon: '🃏', top: '30%', left: '92%', size: 40, rot: -9 },
+  { icon: '🎉', top: '92%', left: '48%', size: 36, rot: -7 },
+];
+
 function renderWrappedSlide(box, screen, idx, total) {
-  const dots = Array.from({ length: total }, (_, j) =>
-    `<span class="wrapped-dot ${j === idx ? 'active' : ''} ${j < idx ? 'done' : ''}"></span>`).join('');
+  const segs = Array.from({ length: total }, (_, j) =>
+    `<div class="wrapped-progress-seg ${j === idx ? 'active' : ''} ${j < idx ? 'done' : ''}"><div class="wrapped-progress-fill"></div></div>`).join('');
+  box.style.setProperty('--wr-accent', screen.color || 'var(--accent)');
   box.innerHTML = `
-    <div class="wrapped-dots">${dots}</div>
+    <div class="wrapped-bg-deco" aria-hidden="true">${WRAPPED_DECO_ICONS.map(d =>
+      `<span style="top:${d.top};left:${d.left};font-size:${d.size}px;transform:rotate(${d.rot}deg)">${d.icon}</span>`).join('')}</div>
+    <div class="wrapped-glow"></div>
+    <div class="wrapped-progress">${segs}</div>
     <div class="wrapped-eyebrow">📊 Resumen de la noche</div>
     <div class="wrapped-emoji">${screen.emoji}</div>
     <div class="wrapped-title">${screen.title}</div>
+    ${screen.stat != null ? `<div class="wrapped-stat">${screen.stat}</div>` : ''}
     ${screen.name ? `<div class="wrapped-name">${screen.name}</div>` : ''}
     <div class="wrapped-desc">${screen.desc}</div>
+    <div class="wrapped-hint">Tocá la pantalla para seguir</div>
   `;
 }
 
