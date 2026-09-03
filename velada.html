@@ -12269,15 +12269,24 @@ function renderWrappedSlide(box, screen, idx, total) {
 // tocar la pantalla avanza a la siguiente) y llama a onDone al terminar.
 function showWrapped(onDone) {
   const screens = buildWrapped();
+  console.log('[Wrapped] buildWrapped devolvió', screens.length, 'pantallas:', screens.map(s => s.title));
   const box = document.getElementById('wrapped-screen');
   if (!box || !screens.length) { onDone(); return; }
+  // Cerrar el podio al instante (mismo criterio que rollCredits): no confiamos
+  // en el orden del DOM/z-index para que Wrapped quede "encima", lo ocultamos
+  // a mano así no hay forma de que quede tapado ni de que se vea el podio de fondo.
+  const _pod = document.getElementById('podium-reveal');
+  if (_pod) { _pod.classList.remove('show', 'ceremony-out'); _pod.innerHTML = ''; _pod.setAttribute('aria-hidden', 'true'); }
   box.classList.add('show');
+  box.setAttribute('aria-hidden', 'false');
   let i = 0, timer = null;
   const finish = () => {
     clearTimeout(timer);
     box.classList.remove('show');
+    box.setAttribute('aria-hidden', 'true');
     box.onclick = null;
     box.innerHTML = '';
+    console.log('[Wrapped] terminó, paso a créditos');
     onDone();
   };
   const advance = () => {
