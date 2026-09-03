@@ -268,6 +268,9 @@
 
   /* ── Certificado individual ── */
   .gh-cert-card { background: linear-gradient(135deg, var(--gold-dim), var(--surface) 60%); border: 1px solid rgba(245,200,66,0.3); border-radius: var(--radius-lg); padding: 1.05rem 1.15rem; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.9rem; position: relative; overflow: hidden; }
+  .gh-cert-card.team { background: linear-gradient(135deg, var(--info-dim), var(--surface) 60%); border-color: rgba(96,180,240,0.32); }
+  .gh-cert-card.team::before { background: linear-gradient(90deg, transparent, var(--info), transparent) !important; }
+  .gh-cert-card.team .gh-cert-btn { border-color: var(--info); background: var(--info-dim); color: var(--info); }
   .gh-cert-card::before { content:''; position:absolute; top:0; left:0; right:0; height:2px; background: linear-gradient(90deg, transparent, var(--gold), transparent); opacity:.9; }
   .gh-cert-card-emoji { font-size: 28px; line-height: 1; flex-shrink: 0; }
   .gh-cert-card-text { flex: 1; min-width: 0; }
@@ -669,6 +672,76 @@ function computeCertStats(myName, myIdx) {
   };
 }
 
+// Igual que computeCertStats, pero para la dupla en la Fase Grupal (F2).
+// Mismo criterio de racha/némesis/mejor juego, solo que a nivel equipo.
+function computeCertStatsF2(teamIdx) {
+  const seq = []; // duelos de este equipo, en orden de ronda
+  F2_FIXTURE.forEach(([r, a, b, g]) => {
+    if (a !== teamIdx && b !== teamIdx) return;
+    const key = r + '-' + a + '-' + b;
+    const res = (latestState.f2 || {})[key];
+    if (!res) return;
+    const oppIdx = a === teamIdx ? b : a;
+    seq.push({ r, oppIdx, g, res });
+  });
+  seq.sort((x, y) => x.r - y.r);
+
+  let curStreak = 0, bestStreak = 0;
+  seq.forEach(m => {
+    if (m.res.winner === teamIdx) { curStreak++; if (curStreak > bestStreak) bestStreak = curStreak; }
+    else curStreak = 0;
+  });
+
+  const vsRival = {}; // oppIdx -> { wins, losses, draws }
+  seq.forEach(m => {
+    const v = vsRival[m.oppIdx] || (vsRival[m.oppIdx] = { wins: 0, losses: 0, draws: 0 });
+    if (m.res.winner === 'empate') v.draws++;
+    else if (m.res.winner === teamIdx) v.wins++;
+    else v.losses++;
+  });
+  let nemesisIdx = -1, nemesisRec = null;
+  Object.keys(vsRival).forEach(k => {
+    const idx = Number(k), v = vsRival[k];
+    if (v.losses <= 0) return;
+    if (!nemesisRec || v.losses > nemesisRec.losses) { nemesisIdx = idx; nemesisRec = v; }
+  });
+
+  const byGame = {}; // g -> { wins, losses, draws }
+  seq.forEach(m => {
+    const v = byGame[m.g] || (byGame[m.g] = { wins: 0, losses: 0, draws: 0 });
+    if (m.res.winner === 'empate') v.draws++;
+    else if (m.res.winner === teamIdx) v.wins++;
+    else v.losses++;
+  });
+  let bestGameIdx = -1, bestGameRec = null, bestGameScore = -Infinity;
+  Object.keys(byGame).forEach(k => {
+    const idx = Number(k), v = byGame[k];
+    if (v.wins <= 0) return;
+    const score = (v.wins - v.losses) * 10 + v.wins;
+    if (score > bestGameScore) { bestGameScore = score; bestGameIdx = idx; bestGameRec = v; }
+  });
+
+  const list = ranked('f2');
+  const posIdx = list.findIndex(e => e.i === teamIdx);
+  const mine = list[posIdx];
+
+  return {
+    total: mine ? mine.total : 0,
+    wins: mine ? mine.wins : 0,
+    losses: mine ? mine.losses : 0,
+    position: posIdx + 1,
+    outOf: list.length,
+    played: seq.length,
+    bestStreak,
+    nemesisName: nemesisIdx >= 0 ? TEAMS[nemesisIdx] : null,
+    nemesisLosses: nemesisRec ? nemesisRec.losses : 0,
+    nemesisPlayed: nemesisRec ? (nemesisRec.wins + nemesisRec.losses + nemesisRec.draws) : 0,
+    bestGameName: bestGameIdx >= 0 ? gameNameF2(bestGameIdx) : null,
+    bestGameWins: bestGameRec ? bestGameRec.wins : 0,
+    bestGamePlayed: bestGameRec ? (bestGameRec.wins + bestGameRec.losses + bestGameRec.draws) : 0,
+  };
+}
+
 function escapeHtml(s) { return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 
 // ── MODAL DEL CERTIFICADO ────────────────────────────────────────────
@@ -703,6 +776,34 @@ function certCardHtml(myName, myIdx, s) {
   </div>`;
 }
 
+// Igual que certCardHtml, pero para la dupla de la Fase Grupal: mismo layout,
+// con textos en plural y el nombre del rival del equipo (no de una persona).
+function certCardHtmlF2(teamName, s) {
+  const color = avatarColor(teamName);
+  const displayName = teamName.split('/').map(p => p.trim().split(' ')[0]).join(' & ');
+  const streakTxt = s.bestStreak >= 2 ? `${s.bestStreak} seguidas 🔥` : (s.played ? 'sin racha todavía' : '—');
+  const nemesisTxt = s.nemesisName
+    ? `${s.nemesisName.split('/').map(p => p.trim().split(' ')[0]).join(' & ')} (les ganó ${s.nemesisLosses} de ${s.nemesisPlayed})`
+    : (s.played ? 'nadie les ganó más de una vez 💪' : '—');
+  const gameTxt = s.bestGameName
+    ? `${s.bestGameName} (${s.bestGameWins} de ${s.bestGamePlayed})`
+    : (s.played ? 'todavía sin un juego dominante' : '—');
+  const posTxt = s.outOf ? `${ordinal(s.position)} puesto de ${s.outOf} · Fase Grupal` : 'Todavía sin resultados';
+
+  return `<div class="cert-card" id="cert-card-capture" style="--cert-color:${color}">
+    <div class="cert-eyebrow">🎮 La Velada del Año</div>
+    <div class="cert-avatar-wrap">${avatarHtml(teamName, 76)}</div>
+    <div class="cert-name">${escapeHtml(displayName)}</div>
+    <div class="cert-position">${escapeHtml(posTxt)}</div>
+    <div class="cert-stats">
+      ${certStatRow('🔥', streakTxt, 'Mejor racha')}
+      ${certStatRow('😤', nemesisTxt, 'Quién más les costó')}
+      ${certStatRow('⭐', gameTxt, 'En qué brillaron')}
+    </div>
+    <div class="cert-footer">${s.total} pts · ${s.wins} de ${s.played} ganados</div>
+  </div>`;
+}
+
 function openCertificateModal(myName, myIdx) {
   const s = computeCertStats(myName, myIdx);
   let overlay = document.getElementById('cert-overlay');
@@ -728,6 +829,35 @@ function openCertificateModal(myName, myIdx) {
   document.getElementById('cert-close').addEventListener('click', close);
   document.getElementById('cert-backdrop').addEventListener('click', close);
   document.getElementById('cert-dl-btn').addEventListener('click', () => downloadCertificatePdf(myName));
+}
+
+// Certificado de equipo (Fase Grupal) — mismo modal, mismo flujo de PDF,
+// solo cambia qué se calcula y cómo se arma la tarjeta.
+function openTeamCertificateModal(teamName, teamIdx) {
+  const s = computeCertStatsF2(teamIdx);
+  let overlay = document.getElementById('cert-overlay');
+  if (!overlay) {
+    overlay = document.createElement('div');
+    overlay.className = 'cert-overlay';
+    overlay.id = 'cert-overlay';
+    document.body.appendChild(overlay);
+  }
+  overlay.innerHTML = `
+    <div class="cert-backdrop" id="cert-backdrop"></div>
+    <div class="cert-sheet">
+      <button class="cert-close" id="cert-close" aria-label="Cerrar">✕</button>
+      ${certCardHtmlF2(teamName, s)}
+      <div class="cert-actions">
+        <button class="cert-dl-btn" id="cert-dl-btn">⬇️ Descargar PDF</button>
+      </div>
+      <div class="cert-dl-status" id="cert-dl-status"></div>
+    </div>
+  `;
+  overlay.classList.add('show');
+  const close = () => overlay.classList.remove('show');
+  document.getElementById('cert-close').addEventListener('click', close);
+  document.getElementById('cert-backdrop').addEventListener('click', close);
+  document.getElementById('cert-dl-btn').addEventListener('click', () => downloadCertificatePdf(teamName));
 }
 
 // Carga html2canvas + jsPDF bajo demanda (recién cuando alguien quiere
@@ -920,6 +1050,14 @@ function renderDashboard(myName) {
       </div>
       <button class="gh-cert-btn" id="gh-cert-btn">Ver certificado</button>
     </div>
+    ${teamIdx >= 0 ? `<div class="gh-cert-card team">
+      <div class="gh-cert-card-emoji">🏆</div>
+      <div class="gh-cert-card-text">
+        <div class="gh-cert-card-title">Certificado del equipo</div>
+        <div class="gh-cert-card-sub">La racha, la némesis y el juego estrella de la dupla</div>
+      </div>
+      <button class="gh-cert-btn" id="gh-cert-btn-team">Ver certificado</button>
+    </div>` : ''}
     ${safeBlock(() => renderBetCard(myName, myIdx))}
     ${teamIdx >= 0 ? safeBlock(() => renderBetCardF2(myName, teamIdx)) : ''}
     ${safeBlock(() => renderMiiCard(myName, teamIdx >= 0 ? TEAMS[teamIdx] : null))}
@@ -947,6 +1085,8 @@ function renderDashboard(myName) {
   });
   const certBtn = document.getElementById('gh-cert-btn');
   if (certBtn) certBtn.addEventListener('click', () => openCertificateModal(myName, myIdx));
+  const certBtnTeam = document.getElementById('gh-cert-btn-team');
+  if (certBtnTeam) certBtnTeam.addEventListener('click', () => openTeamCertificateModal(TEAMS[teamIdx], teamIdx));
   const wallBtn = document.getElementById('gh-wall-btn');
   if (wallBtn) wallBtn.addEventListener('click', () => pickAndUploadPhotos(myName));
   try { wireBetCard(myName, myIdx); } catch (e) { console.warn('bet card:', e); }
