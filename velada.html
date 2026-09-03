@@ -12282,7 +12282,9 @@ function showWrapped(onDone) {
   };
   const advance = () => {
     if (i >= screens.length) { finish(); return; }
-    renderWrappedSlide(box, screens[i], i, screens.length);
+    try {
+      renderWrappedSlide(box, screens[i], i, screens.length);
+    } catch (e) { console.warn('[Wrapped] fallo al renderizar una pantalla, la salteo:', e); }
     i++;
     clearTimeout(timer);
     timer = setTimeout(advance, 4800);
@@ -12493,8 +12495,13 @@ function podiumReveal(phaseKind, onContinue) {
     caption.textContent = META[place].label;
     const reveal = () => {
       if (slots[place]) slots[place].classList.add('revealed');
-      if (navigator.vibrate) navigator.vibrate(isChamp ? [60, 40, 120] : 50);
-      if (isChamp && typeof launchConfetti === 'function') launchConfetti('finale');
+      // Vibración/confetti van en su propio try/catch: si algo ahí falla, no
+      // queremos que se corte la secuencia entera (podio → wrapped → créditos)
+      // sin que el próximo paso llegue a programarse.
+      try {
+        if (navigator.vibrate) navigator.vibrate(isChamp ? [60, 40, 120] : 50);
+        if (isChamp && typeof launchConfetti === 'function') launchConfetti('finale');
+      } catch (e) { console.warn('[Podio] fallo en vibración/confetti, sigo igual:', e); }
       _podiumTimer = setTimeout(revealNext, isChamp ? 1500 : 1100);
     };
     if (reduce) { reveal(); return; }
@@ -12509,7 +12516,9 @@ function podiumReveal(phaseKind, onContinue) {
     if (_podiumTimer) { clearTimeout(_podiumTimer); _podiumTimer = null; }
     order.forEach(p => slots[p] && slots[p].classList.add('revealed'));
     k = order.length;
-    if (typeof launchConfetti === 'function') launchConfetti('finale');
+    try {
+      if (typeof launchConfetti === 'function') launchConfetti('finale');
+    } catch (e) { console.warn('[Podio] fallo en confetti al saltar, sigo igual:', e); }
     finishPodium();
   };
 
