@@ -11059,43 +11059,50 @@ function renderFinal() {
 
 // --- MÚSICA DE LOS CRÉDITOS -------------------------------------------------
 // No se puede incluir el tema (copyright); poné tu propio MP3 al lado del HTML
-// con el nombre de abajo. Es "I Want You Back" (The Jackson 5), recortado a
-// 1m55s con fade out propio al final — un solo tramo continuo, sin outro
-// separado (no hay crossfade a una segunda canción).
+// con el nombre de abajo. Es "I Want You Back" (The Jackson 5), la canción
+// COMPLETA (~2:56). Toda la secuencia de cierre se acopla a la duración REAL
+// del archivo: los créditos terminan justo cuando la canción termina, de forma
+// orgánica. Si por algún motivo no se puede leer la duración, se usa el
+// fallback fijo VELADA_CLOSE_FALLBACK_MS.
 const CREDITS_MUSIC = {
   enabled: true,
-  src: 'cancion-creditos.mp3', // I Want You Back — The Jackson 5 (recortada a 1:55 con fade out)
-  startAt: 0,      // arranca desde el principio del recorte
-  endAt:   100,    // margen de seguridad antes del fade out propio del archivo,
-                   // por si los podios tardaran más de lo normal y hay que "vampear"
+  src: 'cancion-creditos.mp3', // I Want You Back — The Jackson 5 (canción completa ~2:56)
+  startAt: 0,      // arranca desde el principio
   volume:  0.85,
   fadeInMs:  2500, // entra suave en 2.5s
-  fadeOutMs: 3500, // fade out final (además del fade out que ya trae el propio archivo)
-  // Sin outro separado: el archivo ya termina con su propio fade out,
-  // así que no hace falta el crossfade a una segunda pista.
+  fadeOutMs: 3500, // fade out final (por si el archivo no trae su propio fade)
   outroAt:      null,
   outroHoldMs:  13000,
   crossfadeMs:  2600,
 };
+// Duración real de la canción, leída del archivo al cargar (en ms). Es la que
+// manda para acoplar TODO el cierre al tema. null hasta que carga.
+let _songDurationMs = null;
 // (Ya no se usan para calcular la velocidad del scroll — ver CREDITS_ROLL_SECONDS
 // más abajo — pero se dejan por si en algún momento se quiere volver al modo
 // "sincronizado con la canción" en vez de duración fija.)
 const CREDITS_FAST_SPEED = 95;
 const CREDITS_SPEED_FACTOR = 0.82;
-// Duración FIJA del scroll de créditos, siempre la misma sin importar cuánto
-// hayan tardado los podios (que no se tocan). Cambiá este número para ajustar
-// cuánto duran los créditos.
 // ── DURACIÓN TOTAL DEL CIERRE ────────────────────────────────────────────
 // Toda la secuencia de cierre (podio individual + podio grupal + Wrapped +
 // scroll de créditos, hasta que la palabra "FIN" termina de salir de pantalla)
-// dura SIEMPRE esto, sin importar cuántas pantallas tenga el Wrapped: el scroll
-// de créditos se estira o se acorta en tiempo real para clavar el total.
-const VELADA_CLOSE_TOTAL_MS = 177000; // 2:57
+// se ACOPLA A LA CANCIÓN: dura lo que dura el tema, así los créditos terminan
+// justo cuando la música termina. El scroll de créditos se estira o acorta en
+// tiempo real para clavar ese total, sin importar cuántas pantallas tuvo el
+// Wrapped. Si no se puede leer la duración del MP3, se usa este fallback fijo.
+const VELADA_CLOSE_FALLBACK_MS = 177000; // 2:57 (fallback si no carga la canción)
+// Total efectivo del cierre: la duración real de la canción si ya se conoce,
+// si no el fallback. Se lee en cada arranque del cierre.
+function veladaCloseTotalMs() {
+  return (_songDurationMs && isFinite(_songDurationMs) && _songDurationMs > 30000)
+    ? _songDurationMs
+    : VELADA_CLOSE_FALLBACK_MS;
+}
 // Cola después de que "FIN" sale de pantalla: fade de música + fade del overlay
-// antes de cerrar. Se descuenta del presupuesto para que el total dé 2:57.
+// antes de cerrar. Se descuenta del presupuesto para que el roll cierre a tiempo.
 const VELADA_CLOSE_END_TAIL_MS = 1200;
 const CREDITS_ROLL_MIN_SECONDS = 45;  // piso de seguridad para que no quede tipo rewind
-const CREDITS_ROLL_MAX_SECONDS = 150; // techo de seguridad
+const CREDITS_ROLL_MAX_SECONDS = 170; // techo de seguridad
 let _veladaCloseStart = null;         // performance.now() al arrancar el cierre
 const CREDITS_ROLL_SECONDS = 93; // 1m 33s — ajustado para que la canción (1m55s) termine junto con el roll (22s de podios + 93s de roll ≈ 1m55s)
 
@@ -11462,28 +11469,48 @@ function rollCredits() {
   observeCreditsBlocks();
 
   // Modo sin movimiento: créditos estáticos, sin scroll y sin contador.
+  // Se cierran solos cuando termina la canción (o por fallback de tiempo).
   if (reduce) {
     roll.style.position = 'relative'; roll.style.transform = 'none';
     const a = makeCreditsAudio();
-    if (a) { a.addEventListener('loadedmetadata', () => { try { a.currentTime = CREDITS_MUSIC.startAt || 0; } catch (e) {} a.play().catch(() => {}); }); }
+    if (a) {
+      a.addEventListener('loadedmetadata', () => { try { a.currentTime = CREDITS_MUSIC.startAt || 0; } catch (e) {} a.play().catch(() => {}); });
+      a.addEventListener('ended', () => { closeCredits(); }, { once: true });
+    }
+    if (_creditsEndTimer) clearTimeout(_creditsEndTimer);
+    _creditsEndTimer = setTimeout(() => { closeCredits(); }, veladaCloseTotalMs());
     return;
   }
 
   const travel = () => window.innerHeight + roll.offsetHeight + 40;
-  // La música YA viene sonando desde el podio (startCeremonyMusic) y sigue
-  // de fondo. El scroll en sí dura SIEMPRE CREDITS_ROLL_SECONDS exactos,
-  // sin importar cuánto hayan tardado los podios en revelarse (eso no se toca).
+  // La música (la canción COMPLETA ~2:56) viene sonando desde el primer podio.
+  // El scroll se calcula para terminar justo cuando la canción termina, así el
+  // cierre se acopla al tema de forma orgánica.
   if (_grooveGuard) { clearInterval(_grooveGuard); _grooveGuard = null; }
 
-  // Duración del scroll = presupuesto total (2:57) menos lo que ya se consumió
-  // en podios + Wrapped, menos la cola final. Así el cierre completo dura
-  // siempre lo mismo aunque el Wrapped haya tenido más o menos pantallas.
+  // Duración del scroll = lo que le queda a la canción desde ahora, menos la
+  // cola final. Preferimos el tiempo REAL de reproducción (currentTime) sobre
+  // el cronómetro, porque es lo que de verdad va a sonar; si no hay audio,
+  // caemos al presupuesto por reloj (duración de la canción − tiempo transcurrido).
   let rollSeconds = CREDITS_ROLL_SECONDS;
   try {
-    if (_veladaCloseStart != null) {
+    const totalMs = veladaCloseTotalMs();
+    let remainingMs = null;
+
+    // 1) Preferente: tiempo que le queda a la canción según su propio currentTime.
+    const a = _creditsAudio;
+    if (a && isFinite(a.duration) && a.duration > 0) {
+      remainingMs = (a.duration - (a.currentTime || 0)) * 1000 - VELADA_CLOSE_END_TAIL_MS;
+    }
+
+    // 2) Fallback por reloj: total (canción o fallback) − lo ya transcurrido.
+    if (remainingMs == null && _veladaCloseStart != null) {
       const now = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
       const elapsedMs = now - _veladaCloseStart;
-      const remainingMs = VELADA_CLOSE_TOTAL_MS - elapsedMs - VELADA_CLOSE_END_TAIL_MS;
+      remainingMs = totalMs - elapsedMs - VELADA_CLOSE_END_TAIL_MS;
+    }
+
+    if (remainingMs != null) {
       rollSeconds = Math.min(CREDITS_ROLL_MAX_SECONDS, Math.max(CREDITS_ROLL_MIN_SECONDS, remainingMs / 1000));
     }
   } catch (e) {}
@@ -11987,10 +12014,11 @@ function grandFinale() {
 }
 
 function _runGrandFinale() {
-  // Marca de tiempo del arranque: sirve para clavar la duración total del
-  // cierre (VELADA_CLOSE_TOTAL_MS) ajustando el scroll de créditos en vivo.
+  // Marca de tiempo del arranque: junto con la duración real de la canción,
+  // sirve para acoplar todo el cierre al tema (ver rollCredits).
   _veladaCloseStart = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
-  // 1) Arrancar la música de Michael Jackson desde el inicio (suena durante toda la ceremonia)
+  // 1) Arrancar la canción completa (~2:56) desde el inicio: suena de corrido
+  //    durante toda la ceremonia y los créditos terminan cuando ella termina.
   startCeremonyMusic();
   // 2) Podio individual (10s tras mostrarse) → podio grupal (10s tras mostrarse) → resumen Wrapped → créditos
   // Si por lo que sea el resumen Wrapped falla, no dejamos la noche colgada:
@@ -12011,19 +12039,18 @@ function startCeremonyMusic() {
   const audio = makeCreditsAudio();
   if (!audio) return;
   const begin = () => {
+    // Guardamos la duración REAL de la canción: es lo que manda para acoplar
+    // todo el cierre al tema (ver veladaCloseTotalMs / rollCredits).
+    if (isFinite(audio.duration) && audio.duration > 0) {
+      _songDurationMs = audio.duration * 1000;
+    }
     const startAt = CREDITS_MUSIC.startAt || 0;
     try { audio.currentTime = startAt; } catch (e) {}
     audio.play().catch(() => {});
     fadeInCreditsAudio();
-    // mantener el audio dentro del groove hasta que los créditos tomen el control
-    const endAt = (CREDITS_MUSIC.endAt != null) ? CREDITS_MUSIC.endAt : (startAt + 60);
-    if (_grooveGuard) clearInterval(_grooveGuard);
-    _grooveGuard = setInterval(() => {
-      if (!_creditsAudio) { clearInterval(_grooveGuard); _grooveGuard = null; return; }
-      if (!_rollStarted && _creditsAudio.currentTime >= endAt) {
-        try { _creditsAudio.currentTime = Math.max(startAt, endAt - 12); } catch (e) {}
-      }
-    }, 200);
+    // La canción es la COMPLETA (~2:56) y suena de corrido de punta a punta:
+    // ya no hace falta "vampear" (loopear un tramo) como con el recorte viejo.
+    if (_grooveGuard) { clearInterval(_grooveGuard); _grooveGuard = null; }
   };
   if (isFinite(audio.duration) && audio.duration > 0) begin();
   else audio.addEventListener('loadedmetadata', begin, { once: true });
