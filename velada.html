@@ -13711,6 +13711,14 @@ function openTVMode() {
       radial-gradient(ellipse 44% 46% at 26% 38%, rgba(200,240,96,0.14), transparent 70%),
       radial-gradient(ellipse 44% 46% at 74% 38%, rgba(96,180,240,0.14), transparent 70%);
   }
+  /* Con pestañas activas mostramos una sola fase, así que el glow sigue a la
+     fase visible (verde para Fase 1, azul para Fase 2) en vez del split. */
+  body.phase-both[data-tv-view="f1"] .tv-bg-glow {
+    background: radial-gradient(ellipse 60% 46% at 50% 38%, rgba(200,240,96,0.16), rgba(200,240,96,0.05) 55%, transparent 74%);
+  }
+  body.phase-both[data-tv-view="f2"] .tv-bg-glow {
+    background: radial-gradient(ellipse 60% 46% at 50% 38%, rgba(96,180,240,0.16), rgba(96,180,240,0.05) 55%, transparent 74%);
+  }
 
   /* ── Marca fija en la esquina (ancla visual en todos los estados) ── */
   .tv-brand {
@@ -13751,6 +13759,30 @@ function openTVMode() {
     text-transform: uppercase;
     font-weight: 600;
   }
+
+  /* Pestañas Fase 1 / Fase 2 — solo en modo 'both' (abierto desde Reglas).
+     En modo de una sola fase se ocultan (ya se ve solo esa fase). */
+  .tv-phase-tabs { display: none; justify-content: center; gap: clamp(8px, 1vw, 14px);
+    margin-top: clamp(10px, 1.8vh, 20px); }
+  body.phase-both .tv-phase-tabs { display: flex; }
+  .tv-phase-tab {
+    display: inline-flex; align-items: center; gap: 0.55em;
+    font-family: inherit; font-size: clamp(11px, 1.3vw, 16px); font-weight: 700;
+    letter-spacing: 0.06em; text-transform: uppercase;
+    padding: clamp(7px, 1vh, 12px) clamp(14px, 1.8vw, 26px);
+    border-radius: 999px; border: 1.5px solid var(--border2);
+    background: rgba(255,255,255,0.03); color: var(--muted); cursor: pointer;
+    transition: background 0.2s, color 0.2s, border-color 0.2s, box-shadow 0.2s;
+  }
+  .tv-phase-tab:hover { color: var(--text); border-color: rgba(255,255,255,0.28); }
+  .tv-phase-tab .dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
+  .tv-phase-tab .dot.f1 { background: var(--accent); }
+  .tv-phase-tab .dot.f2 { background: var(--info); }
+  .tv-phase-tab.active { color: var(--text); }
+  .tv-phase-tab[data-view="f1"].active { border-color: var(--accent);
+    background: rgba(200,240,96,0.12); box-shadow: 0 0 18px rgba(200,240,96,0.22); }
+  .tv-phase-tab[data-view="f2"].active { border-color: var(--info);
+    background: rgba(96,180,240,0.12); box-shadow: 0 0 18px rgba(96,180,240,0.22); }
 
   /* Two podiums side by side */
   .tv-podiums {
@@ -14682,6 +14714,10 @@ function openTVMode() {
 <div class="tv-header">
   <div class="tv-title">🎮 La Velada del Año</div>
   <div class="tv-subtitle"><span class="live-dot"></span>Podio en vivo${tvPhase === 'fase1' ? ' — Fase 1 Individual' : tvPhase === 'fase2' ? ' — Fase 2 Grupal' : ''}</div>
+  <div class="tv-phase-tabs" id="tv-phase-tabs">
+    <button class="tv-phase-tab active" data-view="f1" onclick="setTVBothView('f1')"><span class="dot f1"></span>Fase 1 · Individual</button>
+    <button class="tv-phase-tab" data-view="f2" onclick="setTVBothView('f2')"><span class="dot f2"></span>Fase 2 · Grupal</button>
+  </div>
 </div>
 
 <div class="tv-podiums" id="tv-podiums">
@@ -14930,6 +14966,10 @@ const F1_FIXTURE   = ${f1Fix};
 const F1_BYES      = ${f1Byes};
 const F2_FIXTURE   = ${f2Fix};
 const TV_PHASE     = ${tvPhaseJson}; // 'fase1' | 'fase2' | 'both'
+// En modo 'both' (abierto desde Reglas) el TV muestra una fase por vez con
+// pestañas; esta variable recuerda cuál se está viendo (arranca en Fase 1).
+let _tvBothView = 'f1';
+try { const _v = localStorage.getItem('ndj_tv_both_view'); if (_v === 'f1' || _v === 'f2') _tvBothView = _v; } catch (e) {}
 const RULES_INIT   = ${rulesStr};    // reglas sembradas desde el padre (clave en file://)
 const ENTITY_COLORS_INIT = ${colorsStr}; // colores custom por jugador/equipo
 let   MIIS_INIT = ${miisStr}; // personalizacion (pose/accesorio) por jugador
@@ -15036,9 +15076,36 @@ function tvAvatarHtml(name, idx, photos) {
     f2El.style.maxWidth = '820px';
     f2El.style.margin = '0 auto';
     f2El.style.width = '100%';
+  } else {
+    // 'both': en vez de apilar las dos fases (queda larguísimo), se muestran
+    // en pestañas Fase 1 / Fase 2 — se arranca en Fase 1 y se alterna con los
+    // botones del header. Cada pestaña se ve igual que abrir esa fase directo.
+    setTVBothView(_tvBothView);
   }
-  // 'both' keeps the default two-column layout
 })();
+
+// Alterna qué fase se ve en modo 'both' (solo aplica en ese modo). Muestra una
+// fase por vez, centrada y a ancho completo — idéntico al layout de una sola
+// fase — y marca la pestaña activa. No toca nada más del Modo TV.
+function setTVBothView(view) {
+  if (TV_PHASE !== 'both') return;
+  _tvBothView = (view === 'f2') ? 'f2' : 'f1';
+  try { localStorage.setItem('ndj_tv_both_view', _tvBothView); } catch (e) {}
+  const podiums = document.getElementById('tv-podiums');
+  const f1El    = document.getElementById('tv-f1');
+  const f2El    = document.getElementById('tv-f2');
+  const divider = document.getElementById('tv-divider');
+  if (!podiums || !f1El || !f2El) return;
+  if (divider) divider.style.display = 'none';
+  podiums.style.gridTemplateColumns = '1fr';
+  const show = (el) => { el.style.display = ''; el.style.maxWidth = '820px'; el.style.margin = '0 auto'; el.style.width = '100%'; };
+  if (_tvBothView === 'f2') { f1El.style.display = 'none'; show(f2El); }
+  else { f2El.style.display = 'none'; show(f1El); }
+  try { document.body.setAttribute('data-tv-view', _tvBothView); } catch (e) {}
+  document.querySelectorAll('#tv-phase-tabs .tv-phase-tab').forEach(b => {
+    b.classList.toggle('active', b.dataset.view === _tvBothView);
+  });
+}
 
 function lighten(hex, amt) {
   let c = hex.replace('#','');
@@ -15579,10 +15646,10 @@ const COLORS=['#a0b4c8','#f5c842','#cd7f32'];
 const POSES=['side','victory','slump'];
 const POS_LABELS=['2°','1°','3°'];
 const ORDER=[1,0,2]; // display: 2nd left, 1st center, 3rd right
-// figsize scales with viewport — bigger in single-phase mode
+// figsize scales with viewport — grande en fase única. Como el modo 'both'
+// ahora muestra una fase por vez (con pestañas), también usa el tamaño grande.
 function figSize(slotIdx){
-  const single = TV_PHASE !== 'both';
-  const base = single ? [0.10,0.13,0.085] : [0.07,0.09,0.06];
+  const base = [0.10,0.13,0.085];
   return Math.round(Math.min(window.innerWidth,window.innerHeight)*base[slotIdx]);
 }
 
