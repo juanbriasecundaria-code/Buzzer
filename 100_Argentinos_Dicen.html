@@ -3264,5 +3264,47 @@ loadState(); syncUI(); syncScoreUI(); renderMetaBtn();
 })();
 
 </script>
+<!-- ── FOTOS DE PERFIL: conexión directa a Firestore (mismo proyecto y documento
+     'ndj/photos' que arma velada.html), igual que en quien_lo_dijo.html/participante.html. ── -->
+<script type="module">
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
+import { getFirestore, doc, onSnapshot } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+const photosFbConfig = {
+  apiKey: "AIzaSyB-1B426OH2ZYKHT1n8VVzmv0h_10186Zo",
+  authDomain: "cumple-598e7.firebaseapp.com",
+  projectId: "cumple-598e7",
+  storageBucket: "cumple-598e7.firebasestorage.app",
+  messagingSenderId: "92890914103",
+  appId: "1:92890914103:web:ab78f983eee410e6eb8eb2"
+};
+const photosApp = initializeApp(photosFbConfig, 'photos');
+const photosDb = getFirestore(photosApp);
+window.qldPhotos = {};
+onSnapshot(doc(photosDb, 'ndj', 'photos'), (snap) => {
+  if (!snap.exists()) return;
+  try {
+    const o = JSON.parse(snap.data().data);
+    if (o && typeof o === 'object') {
+      window.qldPhotos = o;
+      if (typeof window.onQldPhotosUpdate === 'function') window.onQldPhotosUpdate();
+    }
+  } catch (e) { console.warn('Error al parsear fotos:', e); }
+}, (err) => console.warn('Firebase onSnapshot error (photos):', err));
+</script>
+<script>
+// Avatar reutilizable: foto real si está cargada en Firestore, si no un círculo con la inicial.
+// Independiente del resto del archivo (no depende de ningún escapeHtml propio del juego).
+function qldAvatar(name, size){
+  size = size || 30;
+  var photos = window.qldPhotos || {};
+  var photo = photos[name];
+  var safe = String(name==null?'?':name).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  if(photo){
+    return '<img src="'+photo+'" alt="" loading="lazy" style="width:'+size+'px;height:'+size+'px;border-radius:50%;object-fit:cover;flex-shrink:0;border:1.5px solid rgba(255,255,255,.15)" title="'+safe+'">';
+  }
+  var initial = (String(name==null?'?':name).trim()[0]||'?').toUpperCase();
+  return '<div style="width:'+size+'px;height:'+size+'px;border-radius:50%;background:#1e1e2a;border:1.5px solid rgba(255,255,255,.13);display:inline-flex;align-items:center;justify-content:center;font-weight:800;font-size:'+Math.round(size*0.42)+'px;flex-shrink:0;color:#c8f060" title="'+safe+'">'+initial+'</div>';
+}
+</script>
 </body>
 </html>
