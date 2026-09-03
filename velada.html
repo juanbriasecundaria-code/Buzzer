@@ -2870,43 +2870,80 @@ body.started .velada-bg-scrim { display: block; }
 }
 
 /* ── RESUMEN "WRAPPED" (antes de los créditos) ── */
-#wrapped-screen { flex-direction: column; align-items: center; justify-content: center; gap: 0.6rem;
-  text-align: center; padding: 2rem 1.5rem; position: fixed; inset: 0; z-index: 9600; overflow: hidden; }
+/* Layout en 3 zonas verticales (arriba: progreso + eyebrow · centro: contenido
+   grande · abajo: hint) que reparte el alto completo de la pantalla en vez de
+   apelotonar todo en el medio, así el resumen "llena" la pantalla. */
+#wrapped-screen { flex-direction: column; align-items: center; justify-content: space-between;
+  text-align: center; padding: clamp(1.6rem, 5vh, 3rem) clamp(1.2rem, 5vw, 2.5rem) clamp(1.4rem, 4vh, 2.4rem);
+  position: fixed; inset: 0; z-index: 9600; overflow: hidden; }
 
 /* Mismo fondo decorativo (tenue, sin animación) que el podio y los créditos,
    para que las tres pantallas de cierre se sientan parte de la misma secuencia. */
 .wrapped-bg-deco { position: absolute; inset: 0; z-index: 0; overflow: hidden; pointer-events: none; }
-.wrapped-bg-deco span { position: absolute; line-height: 1; opacity: 0.07; filter: grayscale(0.15); }
-.wrapped-glow { position: absolute; top: 50%; left: 50%; width: min(70vw, 520px); height: min(70vw, 520px);
-  transform: translate(-50%, -55%); border-radius: 50%; z-index: 0; pointer-events: none;
-  background: radial-gradient(circle, var(--wr-accent, var(--accent)) 0%, transparent 68%);
-  opacity: 0.16; filter: blur(10px); transition: background 0.4s ease; }
+.wrapped-bg-deco span { position: absolute; line-height: 1; opacity: 0.08; filter: grayscale(0.15); }
+/* Halo grande centrado en el contenido — bien amplio para que "pinte" toda la
+   zona central y no quede un puntito de luz en el medio de un vacío negro. */
+.wrapped-glow { position: absolute; top: 50%; left: 50%; width: min(115vw, 900px); height: min(115vw, 900px);
+  transform: translate(-50%, -50%); border-radius: 50%; z-index: 0; pointer-events: none;
+  background: radial-gradient(circle, var(--wr-accent, var(--accent)) 0%, transparent 60%);
+  opacity: 0.20; filter: blur(18px); transition: background 0.4s ease; }
+/* Segundo halo, más chico y arriba, para dar profundidad al centro. */
+.wrapped-glow::after { content: ''; position: absolute; top: 42%; left: 50%; width: 55%; height: 55%;
+  transform: translate(-50%, -50%); border-radius: 50%;
+  background: radial-gradient(circle, var(--wr-accent, var(--accent)) 0%, transparent 65%); opacity: 0.5; }
 
+/* ── ZONA SUPERIOR: barra de progreso + eyebrow ── */
+.wrapped-top { position: relative; z-index: 1; width: 100%; display: flex; flex-direction: column;
+  align-items: center; gap: clamp(0.9rem, 2.5vh, 1.5rem); flex-shrink: 0; }
 /* Barra de progreso tipo "stories" (Instagram/Spotify Wrapped) en vez de puntitos sueltos */
-.wrapped-progress { position: relative; z-index: 1; display: flex; gap: 5px; width: min(90%, 420px);
-  margin-bottom: clamp(1.4rem, 4.5vh, 2.6rem); }
-.wrapped-progress-seg { flex: 1; height: 3px; border-radius: 99px; background: rgba(255,255,255,0.18); overflow: hidden; }
-.wrapped-progress-fill { height: 100%; width: 0%; background: var(--wr-accent, var(--accent)); border-radius: 99px; }
+.wrapped-progress { position: relative; z-index: 1; display: flex; gap: 5px; width: min(94%, 620px); }
+.wrapped-progress-seg { flex: 1; height: 4px; border-radius: 99px; background: rgba(255,255,255,0.16); overflow: hidden; }
+.wrapped-progress-fill { height: 100%; width: 0%; background: var(--wr-accent, var(--accent)); border-radius: 99px;
+  box-shadow: 0 0 8px var(--wr-accent, var(--accent)); }
 .wrapped-progress-seg.done .wrapped-progress-fill { width: 100%; }
 .wrapped-progress-seg.active .wrapped-progress-fill { animation: wrappedFill 4.8s linear forwards; }
 @keyframes wrappedFill { from { width: 0%; } to { width: 100%; } }
+.wrapped-eyebrow { position: relative; z-index: 1; color: var(--wr-accent, var(--gold)); letter-spacing: 0.3em; text-transform: uppercase;
+  font-size: clamp(11px, 2.4vw, 14px); font-weight: 700; opacity: 0.95; transition: color 0.4s ease; }
 
-.wrapped-eyebrow { position: relative; z-index: 1; color: var(--wr-accent, var(--gold)); letter-spacing: 0.28em; text-transform: uppercase;
-  font-size: clamp(11px, 2.4vw, 14px); margin-bottom: clamp(1rem, 3vh, 1.8rem); opacity: 0.95; transition: color 0.4s ease; }
-.wrapped-emoji { position: relative; z-index: 1; font-size: clamp(48px, 10vw, 80px); margin-bottom: 0.5rem;
+/* ── ZONA CENTRAL: el contenido grande, ocupa el alto que sobra ── */
+.wrapped-content { position: relative; z-index: 1; flex: 1; width: 100%;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: clamp(0.4rem, 1.2vh, 0.9rem); }
+.wrapped-emoji { position: relative; z-index: 1; font-size: clamp(64px, 16vw, 140px); line-height: 1;
+  margin-bottom: clamp(0.3rem, 1.5vh, 1rem); filter: drop-shadow(0 6px 24px rgba(0,0,0,0.5));
   animation: wrappedPop 0.5s cubic-bezier(.2,1.4,.4,1) both; }
-.wrapped-title { position: relative; z-index: 1; font-size: clamp(19px, 4.2vw, 30px); font-weight: 800; margin-bottom: 0.3rem;
+.wrapped-title { position: relative; z-index: 1; font-size: clamp(24px, 6vw, 46px); font-weight: 800;
+  letter-spacing: -0.01em; line-height: 1.05; max-width: 16ch; overflow-wrap: break-word;
   animation: wrappedRise 0.5s ease 0.08s both; }
-.wrapped-stat { position: relative; z-index: 1; font-family: inherit; font-size: clamp(46px, 11vw, 90px); font-weight: 900;
-  line-height: 1; color: var(--wr-accent, var(--accent)); margin: 0.3rem 0 0.5rem;
-  text-shadow: 0 0 40px var(--wr-accent, var(--accent)); animation: wrappedPop 0.55s cubic-bezier(.2,1.4,.4,1) 0.05s both; }
-.wrapped-name { position: relative; z-index: 1; font-size: clamp(22px, 5vw, 38px); font-weight: 900; color: var(--wr-accent, var(--accent));
-  margin-bottom: 0.6rem; animation: wrappedRise 0.5s ease 0.16s both; }
-.wrapped-desc { position: relative; z-index: 1; color: var(--muted); font-size: clamp(14px, 2.6vw, 18px); font-weight: 600; max-width: 520px;
+.wrapped-stat { position: relative; z-index: 1; font-family: inherit; font-size: clamp(80px, 24vw, 220px); font-weight: 900;
+  line-height: 0.92; color: var(--wr-accent, var(--accent)); margin: clamp(0.2rem, 1vh, 0.6rem) 0;
+  letter-spacing: -0.03em; text-shadow: 0 0 60px var(--wr-accent, var(--accent)), 0 0 120px var(--wr-accent, var(--accent));
+  animation: wrappedPop 0.55s cubic-bezier(.2,1.4,.4,1) 0.05s both; }
+.wrapped-name { position: relative; z-index: 1; font-size: clamp(30px, 8vw, 62px); font-weight: 900; color: var(--wr-accent, var(--accent));
+  line-height: 1.05; letter-spacing: -0.01em; text-shadow: 0 0 30px var(--wr-accent, var(--accent));
+  max-width: 100%; overflow-wrap: break-word; word-break: break-word; padding: 0 0.2em;
+  animation: wrappedRise 0.5s ease 0.16s both; }
+.wrapped-desc { position: relative; z-index: 1; color: var(--text); opacity: 0.82; font-size: clamp(16px, 3.4vw, 24px); font-weight: 600;
+  max-width: 22ch; line-height: 1.3; margin-top: clamp(0.3rem, 1.2vh, 0.8rem);
   animation: wrappedRise 0.5s ease 0.22s both; }
-.wrapped-hint { position: absolute; z-index: 1; bottom: clamp(1.2rem, 4vh, 2.4rem); left: 0; right: 0;
-  text-align: center; color: var(--muted); font-size: 11.5px; letter-spacing: 0.05em; opacity: 0;
+/* ── ZONA INFERIOR: hint ── */
+.wrapped-hint { position: relative; z-index: 1; flex-shrink: 0;
+  color: var(--muted); font-size: clamp(12px, 2.2vw, 14px); letter-spacing: 0.05em; opacity: 0;
   animation: wrappedRise 0.5s ease 1s both; }
+/* Variante \"protagonista es el nombre\": el número pasa a ser un kicker chico
+   arriba del nombre gigante, en vez de dos elementos enormes peleando. Se usa
+   el orden visual con flex para poner el stat por encima del nombre. */
+#wrapped-screen.wr-has-name .wrapped-content { gap: clamp(0.25rem, 0.9vh, 0.6rem); }
+#wrapped-screen.wr-has-name .wrapped-stat {
+  font-size: clamp(30px, 8vw, 60px); line-height: 1; margin: clamp(0.4rem, 1.4vh, 1rem) 0 0;
+  order: 3; letter-spacing: 0.01em; opacity: 0.95;
+  text-shadow: 0 0 28px var(--wr-accent, var(--accent)); }
+#wrapped-screen.wr-has-name .wrapped-name { order: 4; font-size: clamp(38px, 11vw, 86px); margin-top: clamp(0.1rem, 0.5vh, 0.4rem); }
+#wrapped-screen.wr-has-name .wrapped-title { order: 2; opacity: 0.9; font-size: clamp(20px, 4.6vw, 34px); }
+#wrapped-screen.wr-has-name .wrapped-emoji { order: 1; }
+#wrapped-screen.wr-has-name .wrapped-desc { order: 5; }
+
 @keyframes wrappedPop { from { opacity: 0; transform: scale(0.5); } to { opacity: 1; transform: scale(1); } }
 @keyframes wrappedRise { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: translateY(0); } }
 @media (prefers-reduced-motion: reduce) {
@@ -12373,17 +12410,26 @@ function renderWrappedSlide(box, screen, idx, total) {
   const segs = Array.from({ length: total }, (_, j) =>
     `<div class="wrapped-progress-seg ${j === idx ? 'active' : ''} ${j < idx ? 'done' : ''}"><div class="wrapped-progress-fill"></div></div>`).join('');
   box.style.setProperty('--wr-accent', screen.color || 'var(--accent)');
+  // Cuando hay nombre (campeón, MVP…), el NOMBRE es el protagonista y el número
+  // va como \"kicker\" más chico arriba. Cuando solo hay número (26 duelos…),
+  // el número ocupa todo el protagonismo.
+  const hasName = !!screen.name;
+  box.classList.toggle('wr-has-name', hasName);
   box.innerHTML = `
     <div class="wrapped-bg-deco" aria-hidden="true">${WRAPPED_DECO_ICONS.map(d =>
       `<span style="top:${d.top};left:${d.left};font-size:${d.size}px;transform:rotate(${d.rot}deg)">${d.icon}</span>`).join('')}</div>
     <div class="wrapped-glow"></div>
-    <div class="wrapped-progress">${segs}</div>
-    <div class="wrapped-eyebrow">📊 Resumen de la noche</div>
-    <div class="wrapped-emoji">${screen.emoji}</div>
-    <div class="wrapped-title">${screen.title}</div>
-    ${screen.stat != null ? `<div class="wrapped-stat">${screen.stat}</div>` : ''}
-    ${screen.name ? `<div class="wrapped-name">${screen.name}</div>` : ''}
-    <div class="wrapped-desc">${screen.desc}</div>
+    <div class="wrapped-top">
+      <div class="wrapped-progress">${segs}</div>
+      <div class="wrapped-eyebrow">📊 Resumen de la noche</div>
+    </div>
+    <div class="wrapped-content">
+      <div class="wrapped-emoji">${screen.emoji}</div>
+      <div class="wrapped-title">${screen.title}</div>
+      ${screen.stat != null ? `<div class="wrapped-stat">${screen.stat}</div>` : ''}
+      ${screen.name ? `<div class="wrapped-name">${screen.name}</div>` : ''}
+      <div class="wrapped-desc">${screen.desc}</div>
+    </div>
     <div class="wrapped-hint">Tocá la pantalla para seguir</div>
   `;
 }
