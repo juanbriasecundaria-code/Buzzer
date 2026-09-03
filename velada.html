@@ -7757,6 +7757,14 @@ function simulateVelada() {
         state.f1[key] = { winner, bonus: Math.random() < 0.4 };
       });
 
+      // Fijamos los snapshots de fixture para que TODAS las pantallas
+      // (Fase 2, Final, Wrapped, créditos) lean contra el mismo fixture
+      // sobre el que la simulación carga los resultados.
+      try {
+        state.f1FixtureSnapshot = { fixture: F1_FIXTURE.map(m => m.slice()), byes: Object.assign({}, F1_BYES) };
+        state.f2FixtureSnapshot = { fixture: F2_FIXTURE.map(m => m.slice()), byes: Object.assign({}, F2_BYES) };
+      } catch (e) {}
+
       // ── Fase 2: ídem, sobre los duelos de equipos ──
       F2_FIXTURE.forEach(([r, a, b, g]) => {
         const key = `${r}-${a}-${b}`;
@@ -7791,11 +7799,19 @@ function simulateVelada() {
       state.impostor = { rounds: simRounds };
 
       // ── ¿Quién lo dijo?: podio random por equipo (3 / 2 / 1 puntos) ──
+      // Escribimos la MISMA fuente que usa el resultado real (state.qldTeamPoints /
+      // window._qldTeamPoints, keyed teamIndex => fase2Points). Así queda marcada
+      // como "jugada" y suma puntos en Fase 2, Final, Wrapped y créditos —
+      // no alcanza con qldOverride, que solo lo lee getTeamPoints de la pestaña.
       const teamOrder = TEAMS.map((_, idx) => idx).sort(() => Math.random() - 0.5);
       const qldPodiumPts = [3, 2, 1];
-      const qldOverrideSim = {};
-      teamOrder.forEach((idx, pos) => { qldOverrideSim[idx] = qldPodiumPts[pos] || 0; });
-      state.qldOverride = qldOverrideSim;
+      const qldSim = {};
+      teamOrder.forEach((idx, pos) => { qldSim[idx] = qldPodiumPts[pos] || 0; });
+      window._qldTeamPoints = qldSim;
+      state.qldTeamPoints = qldSim;
+      // Limpiamos cualquier override manual para no duplicar los puntos
+      // (las pantallas de cierre suman qldTeamPoints por su cuenta).
+      state.qldOverride = {};
 
       saveState();
       closeModal();
@@ -11032,6 +11048,18 @@ const CREDITS_SPEED_FACTOR = 0.82;
 // Duración FIJA del scroll de créditos, siempre la misma sin importar cuánto
 // hayan tardado los podios (que no se tocan). Cambiá este número para ajustar
 // cuánto duran los créditos.
+// ── DURACIÓN TOTAL DEL CIERRE ────────────────────────────────────────────
+// Toda la secuencia de cierre (podio individual + podio grupal + Wrapped +
+// scroll de créditos, hasta que aparece el contador "próxima velada") dura
+// SIEMPRE esto, sin importar cuántas pantallas tenga el Wrapped: el scroll de
+// créditos se estira o se acorta en tiempo real para clavar el total.
+const VELADA_CLOSE_TOTAL_MS = 177000; // 2:57
+// Cola después del scroll (fade de música + aparición del contador) que ya
+// no es "scroll": se descuenta del presupuesto para que el total dé 2:57.
+const VELADA_CLOSE_END_TAIL_MS = 3500;
+const CREDITS_ROLL_MIN_SECONDS = 45;  // piso de seguridad para que no quede tipo rewind
+const CREDITS_ROLL_MAX_SECONDS = 150; // techo de seguridad
+let _veladaCloseStart = null;         // performance.now() al arrancar el cierre
 const CREDITS_ROLL_SECONDS = 93; // 1m 33s — ajustado para que la canción (1m55s) termine junto con el roll (22s de podios + 93s de roll ≈ 1m55s)
 
 // --- MÚSICA DE LAS PRESENTACIONES ------------------------------------------
@@ -11415,7 +11443,20 @@ function rollCredits() {
   // de fondo. El scroll en sí dura SIEMPRE CREDITS_ROLL_SECONDS exactos,
   // sin importar cuánto hayan tardado los podios en revelarse (eso no se toca).
   if (_grooveGuard) { clearInterval(_grooveGuard); _grooveGuard = null; }
-  startRoll(travel() / CREDITS_ROLL_SECONDS);
+
+  // Duración del scroll = presupuesto total (2:57) menos lo que ya se consumió
+  // en podios + Wrapped, menos la cola final. Así el cierre completo dura
+  // siempre lo mismo aunque el Wrapped haya tenido más o menos pantallas.
+  let rollSeconds = CREDITS_ROLL_SECONDS;
+  try {
+    if (_veladaCloseStart != null) {
+      const now = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
+      const elapsedMs = now - _veladaCloseStart;
+      const remainingMs = VELADA_CLOSE_TOTAL_MS - elapsedMs - VELADA_CLOSE_END_TAIL_MS;
+      rollSeconds = Math.min(CREDITS_ROLL_MAX_SECONDS, Math.max(CREDITS_ROLL_MIN_SECONDS, remainingMs / 1000));
+    }
+  } catch (e) {}
+  startRoll(travel() / rollSeconds);
 }
 
 // Entrada escalonada por bloque: cada .cr-block hace fade-in + slide-up
@@ -11984,6 +12025,9 @@ function grandFinale() {
 }
 
 function _runGrandFinale() {
+  // Marca de tiempo del arranque: sirve para clavar la duración total del
+  // cierre (VELADA_CLOSE_TOTAL_MS) ajustando el scroll de créditos en vivo.
+  _veladaCloseStart = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
   // 1) Arrancar la música de Michael Jackson desde el inicio (suena durante toda la ceremonia)
   startCeremonyMusic();
   // 2) Podio individual (10s tras mostrarse) → podio grupal (10s tras mostrarse) → resumen Wrapped → créditos
@@ -12171,6 +12215,19 @@ function buildWrapped() {
   // colgada (buildWrapped no tenía ninguna red de seguridad antes).
   let statsIndiv = { matchesPlayed: 0, streakLen: 0 };
   let statsGrupal = { matchesPlayed: 0, streakLen: 0 };
+
+  // Puntajes finales (siempre disponibles, aunque sea una velada simulada):
+  // los usamos para las pantallas "seguras" que no dependen de timestamps.
+  let sortedP = [], sortedT = [];
+  try {
+    const ppts = (typeof getPlayerPoints === 'function') ? getPlayerPoints() : [];
+    sortedP = PLAYERS.map((n, i) => ({ n, i, pts: (ppts[i] ? ppts[i].total : 0) })).sort((a, b) => b.pts - a.pts);
+  } catch (e) { console.warn('[Wrapped] fallo leyendo puntos individuales:', e); }
+  try {
+    const tpts = (typeof getTeamPoints === 'function') ? getTeamPoints() : [];
+    sortedT = TEAMS.map((n, i) => ({ n, i, pts: (tpts[i] ? tpts[i].total : 0) })).sort((a, b) => b.pts - a.pts);
+  } catch (e) { console.warn('[Wrapped] fallo leyendo puntos grupales:', e); }
+
   try {
     statsIndiv = computePhaseStats('individual') || statsIndiv;
     statsGrupal = computePhaseStats('grupal') || statsGrupal;
@@ -12180,6 +12237,41 @@ function buildWrapped() {
       stat: totalPartidos, desc: `duelo${totalPartidos === 1 ? '' : 's'} jugado${totalPartidos === 1 ? '' : 's'} entre las dos fases`
     });
   } catch (e) { console.warn('[Wrapped] fallo en "Así fue la noche":', e); }
+
+  // Campeón de la Fase Individual — pantalla estelar, siempre presente.
+  try {
+    if (sortedP.length && sortedP[0].pts > 0) {
+      const c = sortedP[0];
+      screens.push({
+        emoji: '🥇', color: '#c8f060', title: 'Campeón · Fase Individual',
+        stat: `${c.pts} pts`, name: escHtml(c.n),
+        desc: sortedP.length > 1 ? `Le sacó ${Math.max(0, c.pts - sortedP[1].pts)} pts al segundo` : 'El más ganador de la fase'
+      });
+    }
+  } catch (e) { console.warn('[Wrapped] fallo en "campeón individual":', e); }
+
+  // Campeón de la Fase Grupal — el equipo que más sumó.
+  try {
+    if (sortedT.length && sortedT[0].pts > 0) {
+      const c = sortedT[0];
+      screens.push({
+        emoji: '🏆', color: '#60b4f0', title: 'Campeón · Fase Grupal',
+        stat: `${c.pts} pts`, name: escHtml(c.n),
+        desc: sortedT.length > 1 ? `Dejó al segundo ${Math.max(0, c.pts - sortedT[1].pts)} pts atrás` : 'El equipo de la noche'
+      });
+    }
+  } catch (e) { console.warn('[Wrapped] fallo en "campeón grupal":', e); }
+
+  // MVP de la fase individual (más victorias) — dato que sale de computePhaseStats.
+  try {
+    if (statsIndiv.mvpName && statsIndiv.mvpWins > 0) {
+      screens.push({
+        emoji: '⭐', color: '#ffd24a', title: 'El MVP de la fase individual',
+        stat: statsIndiv.mvpWins, name: escHtml(statsIndiv.mvpName),
+        desc: `victoria${statsIndiv.mvpWins === 1 ? '' : 's'} en toda la fase`
+      });
+    }
+  } catch (e) { console.warn('[Wrapped] fallo en "MVP":', e); }
 
   try {
     const comeback = findBiggestComeback();
@@ -12225,6 +12317,37 @@ function buildWrapped() {
       stat: comodinesCount, desc: `comodín${comodinesCount === 1 ? '' : 'es'} de la ruleta sumaron o restaron puntos durante la noche`
     });
   } catch (e) { console.warn('[Wrapped] fallo en "comodines":', e); }
+
+  // Ganador de ¿Quién lo dijo? (la ronda especial por parejas de Fase 2).
+  try {
+    const qld = (window._qldTeamPoints && Object.keys(window._qldTeamPoints).length) ? window._qldTeamPoints
+              : (state.qldTeamPoints || {});
+    const qldKeys = Object.keys(qld);
+    if (qldKeys.length) {
+      let bestIdx = -1, bestPts = -1;
+      qldKeys.forEach(k => { const v = Number(qld[k]) || 0; if (v > bestPts) { bestPts = v; bestIdx = parseInt(k, 10); } });
+      if (bestIdx >= 0 && bestPts > 0 && TEAMS[bestIdx]) {
+        screens.push({
+          emoji: '🗣️', color: '#c060e8', title: '¿Quién lo dijo?',
+          stat: `${bestPts} pts`, name: escHtml(TEAMS[bestIdx]),
+          desc: 'se llevó la ronda especial por parejas'
+        });
+      }
+    }
+  } catch (e) { console.warn('[Wrapped] fallo en "¿Quién lo dijo?":', e); }
+
+  // Total de puntos repartidos en toda la noche — cierre "numérico" antes del gracias.
+  try {
+    const totIndiv = sortedP.reduce((sum, e) => sum + (e.pts || 0), 0);
+    const totGrupal = sortedT.reduce((sum, e) => sum + (e.pts || 0), 0);
+    const totalPts = totIndiv + totGrupal;
+    if (totalPts > 0) {
+      screens.push({
+        emoji: '🧮', color: '#c8f060', title: 'Puntos repartidos en la noche',
+        stat: totalPts, desc: 'entre las dos fases y las rondas especiales'
+      });
+    }
+  } catch (e) { console.warn('[Wrapped] fallo en "puntos repartidos":', e); }
 
   screens.push({ emoji: '🎉', color: '#f5c842', title: '¡Gracias por jugar!', desc: 'Ahora sí... ¡los créditos!' });
 
