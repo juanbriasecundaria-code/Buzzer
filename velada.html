@@ -1655,6 +1655,13 @@
     display: flex; flex-wrap: wrap; gap: 0.5rem;
     padding: 0.15rem 0;
   }
+  .champ-pick-search {
+    width: 100%; box-sizing: border-box; margin-bottom: 0.5rem;
+    padding: 0.45rem 0.7rem; border-radius: 10px; border: 1.5px solid var(--border2);
+    background: var(--surface); color: var(--text); font-size: 12.5px; font-family: inherit;
+  }
+  .champ-pick-search:focus { outline: none; border-color: var(--accent); }
+  .champ-pick-search::placeholder { color: var(--muted); }
   .champ-pick {
     display: flex; align-items: center; gap: 0.4rem;
     padding: 0.35rem 0.7rem 0.35rem 0.35rem;
@@ -2875,6 +2882,26 @@ body.started .velada-bg-scrim { display: block; }
   .op-outro .op-bigtitle { animation: none; }
 }
 
+/* ── RESUMEN "WRAPPED" (antes de los créditos) ── */
+#wrapped-screen { flex-direction: column; align-items: center; justify-content: center; gap: 0.6rem; text-align: center; padding: 2rem 1.5rem; }
+.wrapped-dots { display: flex; gap: 6px; margin-bottom: clamp(1.2rem, 4vh, 2.4rem); }
+.wrapped-dot { width: 7px; height: 7px; border-radius: 50%; background: rgba(255,255,255,0.18); transition: background 0.3s; }
+.wrapped-dot.active { background: var(--accent); box-shadow: 0 0 10px var(--accent); }
+.wrapped-dot.done { background: rgba(200,240,96,0.45); }
+.wrapped-eyebrow { color: var(--gold); letter-spacing: 0.28em; text-transform: uppercase;
+  font-size: clamp(11px, 2.4vw, 14px); margin-bottom: clamp(1rem, 3vh, 1.8rem); opacity: 0.9; }
+.wrapped-emoji { font-size: clamp(48px, 10vw, 84px); margin-bottom: 0.6rem;
+  animation: wrappedPop 0.5s cubic-bezier(.2,1.4,.4,1) both; }
+.wrapped-title { font-size: clamp(20px, 4.5vw, 34px); font-weight: 800; margin-bottom: 0.5rem;
+  animation: wrappedRise 0.5s ease 0.1s both; }
+.wrapped-name { font-size: clamp(24px, 5.5vw, 42px); font-weight: 900; color: var(--accent);
+  margin-bottom: 0.7rem; animation: wrappedRise 0.5s ease 0.18s both; }
+.wrapped-desc { color: var(--muted); font-size: clamp(14px, 2.6vw, 18px); font-weight: 600; max-width: 520px;
+  animation: wrappedRise 0.5s ease 0.24s both; }
+@keyframes wrappedPop { from { opacity: 0; transform: scale(0.5); } to { opacity: 1; transform: scale(1); } }
+@keyframes wrappedRise { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: translateY(0); } }
+@media (prefers-reduced-motion: reduce) { .wrapped-emoji, .wrapped-title, .wrapped-name, .wrapped-desc { animation: none; } }
+
 /* ── PODIO FINAL animado ── */
 .pr-eyebrow { position: relative; z-index: 1; color: var(--gold); letter-spacing: 0.32em;
   text-transform: uppercase; font-size: clamp(14px, 3.8vw, 19px); margin-bottom: 1.6rem; text-align: center;
@@ -3082,6 +3109,7 @@ window.VarSwitch = (function () {
 <div id="credits" class="credits" aria-hidden="true"></div>
 <div id="opening" class="ceremony" aria-hidden="true"></div>
 <div id="podium-reveal" class="ceremony" aria-hidden="true"></div>
+<div id="wrapped-screen" class="ceremony" aria-hidden="true"></div>
 
 <nav>
   <div class="nav-logo" onclick="goTab('reglas')" style="cursor:pointer">🎮 La Velada del Año</div>
@@ -9662,7 +9690,7 @@ function champPickerHtml(inputId, selected) {
   // Orden por puntaje actual (de mayor a menor) — el candidato más lógico
   // aparece primero, sobre todo útil con roster grande.
   try {
-    const ptsArr = getPoints('f2', state, PLAYERS, TEAMS);
+    const ptsArr = getTeamPoints();
     cands = cands.slice().sort((a, b) => {
       const pa = ptsArr[TEAMS.indexOf(a)] ? ptsArr[TEAMS.indexOf(a)].total : 0;
       const pb = ptsArr[TEAMS.indexOf(b)] ? ptsArr[TEAMS.indexOf(b)].total : 0;
@@ -9672,12 +9700,27 @@ function champPickerHtml(inputId, selected) {
   const btns = cands.map((name) => {
     const sel = (selected && selected.trim() === name.trim()) ? ' selected' : '';
     const colorIdx = TEAMS.indexOf(name); // índice real (no el de orden por puntaje) para que el color no salte
-    return `<button type="button" class="champ-pick${sel}" data-name="${escHtmlName(name)}" onclick="pickChampeon('${inputId}', this)">
+    return `<button type="button" class="champ-pick${sel}" data-name="${escHtmlName(name)}" data-search="${escHtmlName(name.toLowerCase())}" onclick="pickChampeon('${inputId}', this)">
       <span class="champ-pick-av">${playerAvatarHtml(name, colorIdx)}</span>
       <span class="champ-pick-name">${escHtmlName(name)}</span>
     </button>`;
   }).join('');
-  return `<div class="champ-picker" id="picker-${inputId}">${btns}</div>`;
+  // Buscador: solo si vale la pena (roster chico no lo necesita)
+  const searchHtml = cands.length > 6
+    ? `<input type="text" class="champ-pick-search" placeholder="Buscar…" oninput="filterChampPicker('${inputId}', this.value)">`
+    : '';
+  return `${searchHtml}<div class="champ-picker" id="picker-${inputId}">${btns}</div>`;
+}
+
+// Filtra en vivo los chips del selector de campeones por nombre, sin re-renderizar
+function filterChampPicker(inputId, query) {
+  const wrap = document.getElementById('picker-' + inputId);
+  if (!wrap) return;
+  const q = (query || '').trim().toLowerCase();
+  Array.from(wrap.children).forEach(btn => {
+    const name = btn.getAttribute('data-search') || '';
+    btn.style.display = (!q || name.includes(q)) ? '' : 'none';
+  });
 }
 
 // Al tocar una opción del selector: guarda el nombre en el input y marca la selección
@@ -11976,7 +12019,7 @@ function openPlayerCeremony() {
 function grandFinale() {
   showConfirmModal(
     '¿Dar fin a la noche de juegos?',
-    'Arranca la música, el podio individual, el podio grupal y los créditos — una secuencia de varios minutos que corre sola una vez iniciada. Asegurate de que todo esté cargado (campeones, foto, elenco) antes de seguir.',
+    'Arranca la música, el podio individual, el podio grupal, un resumen de la noche y los créditos — una secuencia de varios minutos que corre sola una vez iniciada. Asegurate de que todo esté cargado (campeones, foto, elenco) antes de seguir.',
     () => { _runGrandFinale(); },
     null,
     '🎬 Dar fin'
@@ -11986,11 +12029,11 @@ function grandFinale() {
 function _runGrandFinale() {
   // 1) Arrancar la música de Michael Jackson desde el inicio (suena durante toda la ceremonia)
   startCeremonyMusic();
-  // 2) Podio individual → (5s) → podio grupal → (5s) → créditos
+  // 2) Podio individual → (5s) → podio grupal → (5s) → resumen Wrapped → créditos
   podiumReveal('individual', () => {
     _ceremonyTimer = setTimeout(() => {
       podiumReveal('grupal', () => {
-        _ceremonyTimer = setTimeout(() => { rollCredits(); }, 5000);
+        _ceremonyTimer = setTimeout(() => { showWrapped(() => rollCredits()); }, 5000);
       });
     }, 5000);
   });
@@ -12020,6 +12063,221 @@ function startCeremonyMusic() {
   };
   if (isFinite(audio.duration) && audio.duration > 0) begin();
   else audio.addEventListener('loadedmetadata', begin, { once: true });
+}
+
+// ── ORDEN CRONOLÓGICO REAL (para el resumen Wrapped) ────────────────────
+// Mismo criterio que usa el gráfico de evolución en "Modo TV": por hora real
+// (res.t) cuando existe, con fallback al orden del fixture.
+function chronoEntriesOuter(fixture, bucket) {
+  const entries = [];
+  fixture.forEach(([r, a, b, g], fixtureIdx) => {
+    const key = `${r}-${a}-${b}`;
+    const res = bucket[key];
+    if (!res) return;
+    entries.push({ r, a, b, g, res, fixtureIdx, key, t: (typeof res.t === 'number' ? res.t : null) });
+  });
+  return entries.slice().sort((x, y) => {
+    if (x.t != null && y.t != null) return x.t - y.t;
+    if (x.t != null && y.t == null) return 1;
+    if (x.t == null && y.t != null) return -1;
+    return x.fixtureIdx - y.fixtureIdx;
+  });
+}
+function combinedChronoEntriesOuter() {
+  const combined = [];
+  F1_FIXTURE.forEach(m => combined.push({ type: 'f1', r: m[0], m }));
+  F2_FIXTURE.forEach(m => combined.push({ type: 'f2', r: m[0], m }));
+  combined.sort((x, y) => x.r - y.r || (x.type === y.type ? 0 : (x.type === 'f1' ? -1 : 1)));
+  const entries = [];
+  combined.forEach(({ type, m }, fixtureIdx) => {
+    const [r, a, b, g] = m;
+    const bucket = type === 'f1' ? state.f1 : state.f2;
+    const res = bucket[`${r}-${a}-${b}`];
+    if (!res) return;
+    entries.push({ type, r, a, b, g, res, fixtureIdx, key: `${r}-${a}-${b}`, t: (typeof res.t === 'number' ? res.t : null) });
+  });
+  return entries.sort((x, y) => {
+    if (x.t != null && y.t != null) return x.t - y.t;
+    if (x.t != null && y.t == null) return 1;
+    if (x.t == null && y.t != null) return -1;
+    return x.fixtureIdx - y.fixtureIdx;
+  });
+}
+
+// "Duelo más parejo": recorre F1 y F2 en orden real y se queda con el duelo
+// donde, justo antes de cargarlo, la diferencia de puntos entre los dos
+// rivales era mínima.
+function findClosestMatch() {
+  function scan(fixture, bucket, names, isIndiv) {
+    const entries = chronoEntriesOuter(fixture, bucket);
+    const run = {}; names.forEach(n => run[n] = 0);
+    let best = null;
+    entries.forEach(e => {
+      const nameA = names[e.a], nameB = names[e.b];
+      const diff = Math.abs((run[nameA] || 0) - (run[nameB] || 0));
+      const RC = isIndiv ? (RULES_CONFIG && RULES_CONFIG.f1) : (RULES_CONFIG && RULES_CONFIG.f2);
+      const gCfg = (RC && RC[e.g]) ? RC[e.g] : null;
+      const winPts = gCfg ? gCfg.pts_win : 3, bonusPts = gCfg ? gCfg.pts_bonus : 1, drawPts = gCfg ? gCfg.pts_draw : 1;
+      if (!best || diff < best.diff) best = { isIndiv, r: e.r, nameA, nameB, diff, empate: e.res.winner === 'empate' };
+      if (e.res.winner === 'empate') { run[nameA] += drawPts; run[nameB] += drawPts; }
+      else { const w = e.res.winner === e.a ? nameA : nameB; run[w] += winPts + (e.res.bonus ? bonusPts : 0); }
+    });
+    return best;
+  }
+  const cands = [scan(F1_FIXTURE, state.f1 || {}, PLAYERS, true), scan(F2_FIXTURE, state.f2 || {}, TEAMS, false)].filter(Boolean);
+  if (!cands.length) return null;
+  cands.sort((x, y) => x.diff - y.diff);
+  return cands[0];
+}
+
+// Resultado consecutivo cargado más rápido de toda la noche (F1+F2 mezclados).
+function findFastestTurnaround() {
+  const entries = combinedChronoEntriesOuter();
+  let best = null;
+  for (let i = 1; i < entries.length; i++) {
+    const prev = entries[i - 1], cur = entries[i];
+    if (prev.t == null || cur.t == null) continue;
+    const gapMin = (cur.t - prev.t) / 60000;
+    if (!best || gapMin < best.gapMin) best = { gapMin, entry: cur };
+  }
+  return best;
+}
+
+// Reconstruye, jugador por jugador, el total acumulado en el orden real de
+// la noche completa (F1 + F2, repartiendo los puntos de equipo a sus
+// integrantes) — igual criterio que el modo "Total" del gráfico de
+// evolución en Modo TV, para poder calcular la remontada más fuerte.
+function buildTotalRunStepsOuter() {
+  const RC = RULES_CONFIG;
+  function delta(bucketKind, a, b, nameA, nameB, res, g) {
+    const cfg = (RC && RC[bucketKind] && RC[bucketKind][g]) ? RC[bucketKind][g] : null;
+    const winPts = cfg ? cfg.pts_win : 3, bonusPts = cfg ? cfg.pts_bonus : 1, drawPts = cfg ? cfg.pts_draw : 1;
+    const d = {};
+    if (res.winner === 'empate') { d[nameA] = drawPts; d[nameB] = drawPts; }
+    else { const wIsA = res.winner === a; d[wIsA ? nameA : nameB] = winPts + (res.bonus ? bonusPts : 0); }
+    return d;
+  }
+  const entries = combinedChronoEntriesOuter();
+  const run = {}; PLAYERS.forEach(n => run[n] = 0);
+  const steps = [];
+  entries.forEach(e => {
+    if (e.type === 'f1') {
+      const d = delta('f1', e.a, e.b, PLAYERS[e.a], PLAYERS[e.b], e.res, e.g);
+      Object.keys(d).forEach(n => { if (run[n] !== undefined) run[n] += d[n]; });
+    } else {
+      const teamA = TEAMS[e.a], teamB = TEAMS[e.b];
+      const d = delta('f2', e.a, e.b, teamA, teamB, e.res, e.g);
+      Object.keys(d).forEach(teamName => {
+        String(teamName).split('/').forEach(p => { const pn = p.trim(); if (run[pn] !== undefined) run[pn] += d[teamName]; });
+      });
+    }
+    steps.push(Object.assign({}, run));
+  });
+  return steps;
+}
+
+// "Remontada más fuerte": compara la peor posición que ocupó cada jugador en
+// algún momento de la noche contra dónde terminó.
+function findBiggestComeback() {
+  const steps = buildTotalRunStepsOuter();
+  if (!steps.length) return null;
+  const worstRank = {}; PLAYERS.forEach(n => worstRank[n] = 1);
+  steps.forEach(snap => {
+    PLAYERS.map(n => ({ n, v: snap[n] || 0 })).sort((a, b) => b.v - a.v)
+      .forEach((e, idx) => { const rank = idx + 1; if (rank > worstRank[e.n]) worstRank[e.n] = rank; });
+  });
+  const final = steps[steps.length - 1];
+  const finalRank = {};
+  PLAYERS.map(n => ({ n, v: final[n] || 0 })).sort((a, b) => b.v - a.v).forEach((e, idx) => { finalRank[e.n] = idx + 1; });
+  let best = null;
+  PLAYERS.forEach(n => {
+    const gain = worstRank[n] - finalRank[n];
+    if (gain > 0 && (!best || gain > best.gain)) best = { name: n, gain, worstRank: worstRank[n], finalRank: finalRank[n] };
+  });
+  return best;
+}
+
+function ordinalWord(n) { return n + '°'; }
+function escHtml(s) { return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
+
+// Arma las 4-5 pantallas del resumen "Wrapped", 100% en base a datos que ya
+// existen (getPoints, computePhaseStats, timestamps) — solo se empaquetan
+// distinto.
+function buildWrapped() {
+  const screens = [];
+  const comeback = findBiggestComeback();
+  if (comeback) screens.push({
+    emoji: '📈', title: 'La remontada de la noche', name: escHtml(comeback.name),
+    desc: `Llegó a estar ${ordinalWord(comeback.worstRank)} y terminó ${ordinalWord(comeback.finalRank)}`
+  });
+
+  const statsIndiv = computePhaseStats('individual');
+  const statsGrupal = computePhaseStats('grupal');
+  const bestStreak = (statsGrupal.streakLen > statsIndiv.streakLen) ? statsGrupal : statsIndiv;
+  if (bestStreak.streakLen >= 2) screens.push({
+    emoji: '🔥', title: 'La racha más larga', name: escHtml(bestStreak.streakName),
+    desc: `${bestStreak.streakLen} victorias seguidas`
+  });
+
+  const closest = findClosestMatch();
+  if (closest) screens.push({
+    emoji: '⚖️', title: 'El duelo más parejo', name: `${escHtml(closest.nameA)} vs ${escHtml(closest.nameB)}`,
+    desc: closest.diff === 0 ? 'Llegaron empatados en puntos a ese duelo' : `Llegaron con ${closest.diff} punto${closest.diff === 1 ? '' : 's'} de diferencia`
+  });
+
+  const fastest = findFastestTurnaround();
+  if (fastest && fastest.gapMin < 5) screens.push({
+    emoji: '⚡', title: 'El resultado más rápido de la noche',
+    desc: `Se cargó a ${fastest.gapMin < 1 ? 'menos de un minuto' : Math.round(fastest.gapMin) + ' minutos'} del anterior`
+  });
+
+  const comodinesCount = ((state.comodines || []).filter(c => c.status === 'done' && c.delta)).length
+    + ((state.comodinesF2 || []).filter(c => c.status === 'done' && c.delta)).length;
+  if (comodinesCount > 0) screens.push({
+    emoji: '🎰', title: 'Comodines que cambiaron el rumbo',
+    desc: `${comodinesCount} comodín${comodinesCount === 1 ? '' : 'es'} de la ruleta sumaron o restaron puntos durante la noche`
+  });
+
+  return screens;
+}
+
+function renderWrappedSlide(box, screen, idx, total) {
+  const dots = Array.from({ length: total }, (_, j) =>
+    `<span class="wrapped-dot ${j === idx ? 'active' : ''} ${j < idx ? 'done' : ''}"></span>`).join('');
+  box.innerHTML = `
+    <div class="wrapped-dots">${dots}</div>
+    <div class="wrapped-eyebrow">📊 Resumen de la noche</div>
+    <div class="wrapped-emoji">${screen.emoji}</div>
+    <div class="wrapped-title">${screen.title}</div>
+    ${screen.name ? `<div class="wrapped-name">${screen.name}</div>` : ''}
+    <div class="wrapped-desc">${screen.desc}</div>
+  `;
+}
+
+// Muestra el resumen Wrapped (corre solo, como el resto de la ceremonia;
+// tocar la pantalla avanza a la siguiente) y llama a onDone al terminar.
+function showWrapped(onDone) {
+  const screens = buildWrapped();
+  const box = document.getElementById('wrapped-screen');
+  if (!box || !screens.length) { onDone(); return; }
+  box.classList.add('show');
+  let i = 0, timer = null;
+  const finish = () => {
+    clearTimeout(timer);
+    box.classList.remove('show');
+    box.onclick = null;
+    box.innerHTML = '';
+    onDone();
+  };
+  const advance = () => {
+    if (i >= screens.length) { finish(); return; }
+    renderWrappedSlide(box, screens[i], i, screens.length);
+    i++;
+    clearTimeout(timer);
+    timer = setTimeout(advance, 4800);
+  };
+  box.onclick = () => advance();
+  advance();
 }
 
 // ── STATS DE FASE (para el podio) ──────────────────────────────────
@@ -13523,8 +13781,27 @@ function openTVMode() {
     border-radius: var(--radius); padding: clamp(6px,0.9vh,10px) clamp(10px,1.2vw,14px);
     margin-bottom: clamp(8px,1.4vh,14px); text-align: center;
   }
-  .tv-evo-chart-wrap { width: 100%; }
+  .tv-evo-chart-wrap { width: 100%; position: relative; }
   .tv-evo-chart-wrap svg { display: block; width: 100%; height: auto; }
+  .tv-evo-line { transition: opacity 0.25s, stroke-width 0.25s; }
+  .tv-evo-chart-wrap.dim-others .tv-evo-line:not(.active) { opacity: 0.14; }
+  .tv-evo-chart-wrap.dim-others .tv-evo-line.active { opacity: 1; }
+  path.tv-evo-line.active { stroke-width: 5; filter: drop-shadow(0 0 6px currentColor); }
+  .tv-evo-star { cursor: pointer; }
+  .tv-evo-tip {
+    position: absolute; left: 50%; bottom: 100%; transform: translate(-50%, -8px);
+    display: flex; align-items: flex-start; gap: 8px;
+    background: rgba(10,10,14,0.96); border: 1px solid var(--border2); border-radius: 12px;
+    padding: 8px 12px; max-width: 260px; font-size: clamp(11px,1vw,13px);
+    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    opacity: 0; pointer-events: none; transition: opacity 0.15s;
+  }
+  .tv-evo-tip.show { opacity: 1; }
+  .tv-evo-tip-emoji { font-size: 18px; flex-shrink: 0; }
+  .tv-evo-tip-desc { color: var(--muted); font-weight: 600; margin-top: 2px; }
+  .tv-evo-row { transition: opacity 0.25s, border-color 0.25s, background 0.25s; }
+  .tv-evo-chart-wrap.dim-others ~ .tv-evo-list .tv-evo-row:not(.active) { opacity: 0.4; }
+  .tv-evo-list .tv-evo-row.active { background: var(--surface2); }
   .tv-evo-empty { text-align: center; color: var(--muted); font-weight: 600;
     font-size: clamp(12px,1.4vw,16px); padding: clamp(20px,4vh,40px) 0; }
   .tv-evo-list {
@@ -14577,12 +14854,55 @@ function getPoints(type, state, PLAYERS, TEAMS) {
   }
 }
 
+// ── ORDEN CRONOLÓGICO REAL DE JUEGO ─────────────────────────────────────
+// Compartido por el gráfico de evolución, los logros y el resumen de cierre,
+// para que los tres cuenten siempre la misma historia. Si el resultado tiene
+// timestamp real (res.t, guardado desde que existe este gráfico) se ordena
+// por hora exacta; los resultados viejos o los de "Simular velada" no tienen
+// timestamp, así que quedan en su orden de fixture — y siempre van antes que
+// los que sí lo tienen, asumiendo que ya estaban jugados cuando se empezó a
+// trackear la hora.
+function sortByPlayOrder(entries) {
+  return entries.slice().sort((x, y) => {
+    if (x.t != null && y.t != null) return x.t - y.t;
+    if (x.t != null && y.t == null) return 1;
+    if (x.t == null && y.t != null) return -1;
+    return x.fixtureIdx - y.fixtureIdx;
+  });
+}
+// Entradas jugadas de una sola fase (F1 o F2), en orden real de juego.
+function phaseChronoEntries(fixture, bucket) {
+  const entries = [];
+  fixture.forEach(([r, a, b, g], fixtureIdx) => {
+    const res = bucket[r + '-' + a + '-' + b];
+    if (!res) return;
+    entries.push({ r: r, a: a, b: b, g: g, res: res, fixtureIdx: fixtureIdx, key: r + '-' + a + '-' + b, t: (typeof res.t === 'number' ? res.t : null) });
+  });
+  return sortByPlayOrder(entries);
+}
+// Entradas jugadas de F1 + F2 combinadas, en orden real de juego (mismo
+// criterio que el modo "Total" del gráfico de evolución).
+function combinedChronoEntries(state) {
+  const combined = [];
+  F1_FIXTURE.forEach(m => combined.push({ type: 'f1', r: m[0], m: m }));
+  F2_FIXTURE.forEach(m => combined.push({ type: 'f2', r: m[0], m: m }));
+  combined.sort((x, y) => x.r - y.r || (x.type === y.type ? 0 : (x.type === 'f1' ? -1 : 1)));
+  const entries = [];
+  combined.forEach(({ type, m }, fixtureIdx) => {
+    const [r, a, b, g] = m;
+    const res = (type === 'f1' ? state.f1 : state.f2)[r + '-' + a + '-' + b];
+    if (!res) return;
+    entries.push({ type: type, r: r, a: a, b: b, g: g, res: res, fixtureIdx: fixtureIdx, key: r + '-' + a + '-' + b, t: (typeof res.t === 'number' ? res.t : null) });
+  });
+  return sortByPlayOrder(entries);
+}
+
 // ── EVOLUCIÓN DE LA NOCHE — curva acumulada duelo a duelo ──────────────
-// Reconstruye, en el orden del fixture (proxy razonable del orden real de
-// juego), cómo fue subiendo el total de cada jugador/equipo. Los extras que
-// no tienen un duelo asociado (bonus manual, comodines, apuestas, Impostor,
-// ¿Quién lo dijo?, ajustes) se suman como un último escalón, para que el
-// total final coincida siempre con el de getPoints().
+// Reconstruye, en el orden real de juego (por hora cuando existe, si no en
+// el orden del fixture), cómo fue subiendo el total de cada jugador/equipo.
+// Los extras que no tienen un duelo asociado (bonus manual, comodines,
+// apuestas, Impostor, ¿Quién lo dijo?, ajustes) se suman como un último
+// escalón, para que el total final coincida siempre con el de getPoints().
 function buildEvoSeries(mode, state, PLAYERS, TEAMS) {
   const RC = getTVRules();
   const short = n => String(n || '').split('/')[0].trim().split(' ')[0];
@@ -14652,31 +14972,12 @@ function buildEvoSeries(mode, state, PLAYERS, TEAMS) {
     return ex;
   }
 
-  // Orden real de juego: si el resultado tiene timestamp (guardado desde
-  // que existe este gráfico), se ordena por hora real. Los resultados
-  // viejos o los de "Simular velada" no tienen timestamp, así que quedan
-  // en su orden de fixture — y siempre van antes que los que sí lo tienen,
-  // asumiendo que ya estaban jugados cuando se empezó a trackear la hora.
-  function sortByPlayOrder(entries) {
-    return entries.slice().sort((x, y) => {
-      if (x.t != null && y.t != null) return x.t - y.t;
-      if (x.t != null && y.t == null) return 1;
-      if (x.t == null && y.t != null) return -1;
-      return x.fixtureIdx - y.fixtureIdx;
-    });
-  }
-
-  // Construye pasos [{run:{nombre:total}}] a partir de un fixture + resolver de deltas
-  function buildSteps(fixture, stateBucket, names, deltaFn) {
-    const entries = [];
-    fixture.forEach(([r, a, b, g], fixtureIdx) => {
-      const res = stateBucket[r + '-' + a + '-' + b];
-      if (!res) return;
-      entries.push({ a, b, g, res, fixtureIdx, t: (typeof res.t === 'number' ? res.t : null) });
-    });
+  // Construye pasos [{run:{nombre:total}}] a partir de una secuencia de
+  // entradas ya ordenadas cronológicamente (ver phaseChronoEntries arriba).
+  function stepsFromEntries(entries, names, deltaFn) {
     const run = {}; names.forEach(n => run[n] = 0);
     const steps = [];
-    sortByPlayOrder(entries).forEach(e => {
+    entries.forEach(e => {
       const d = deltaFn(e.a, e.b, names[e.a], names[e.b], e.res, e.g);
       Object.keys(d).forEach(n => { if (run[n] !== undefined) run[n] += d[n]; });
       steps.push(Object.assign({}, run));
@@ -14684,36 +14985,24 @@ function buildEvoSeries(mode, state, PLAYERS, TEAMS) {
     return steps;
   }
 
-  let names, steps, extras, wins = {}, played = {};
+  let names, steps, extras, wins = {}, played = {}, orderedEntries;
 
   if (mode === 'f2') {
     names = TEAMS.slice();
-    steps = buildSteps(F2_FIXTURE, state.f2, names, f2MatchDelta);
+    orderedEntries = phaseChronoEntries(F2_FIXTURE, state.f2 || {});
+    steps = stepsFromEntries(orderedEntries, names, f2MatchDelta);
     extras = f2Extras();
     F2_FIXTURE.forEach(([r, a, b]) => { const res = state.f2[r + '-' + a + '-' + b]; if (!res) return;
       [names[a], names[b]].forEach(n => played[n] = (played[n] || 0) + 1);
       if (res.winner !== 'empate') { const w = names[res.winner]; wins[w] = (wins[w] || 0) + 1; } });
   } else if (mode === 'total') {
     names = PLAYERS.slice();
-    // Combina F1 (por jugador) + F2 (por equipo, repartido a sus integrantes).
-    // Orden base (respaldo, sin timestamp): por ronda, F1 antes que F2 en la
-    // misma ronda. Si hay timestamps reales, se reordena por hora exacta.
-    const combined = [];
-    F1_FIXTURE.forEach(m => combined.push({ type: 'f1', r: m[0], m: m }));
-    F2_FIXTURE.forEach(m => combined.push({ type: 'f2', r: m[0], m: m }));
-    combined.sort((x, y) => x.r - y.r || (x.type === y.type ? 0 : (x.type === 'f1' ? -1 : 1)));
-
-    const entries = [];
-    combined.forEach(({ type, m }, fixtureIdx) => {
-      const [r, a, b, g] = m;
-      const res = (type === 'f1' ? state.f1 : state.f2)[r + '-' + a + '-' + b];
-      if (!res) return;
-      entries.push({ type, a, b, g, res, fixtureIdx, t: (typeof res.t === 'number' ? res.t : null) });
-    });
-
+    // Combina F1 (por jugador) + F2 (por equipo, repartido a sus integrantes),
+    // en el mismo orden real de juego que usan los logros y el resumen.
+    orderedEntries = combinedChronoEntries(state);
     const run = {}; names.forEach(n => run[n] = 0);
     steps = [];
-    sortByPlayOrder(entries).forEach(e => {
+    orderedEntries.forEach(e => {
       if (e.type === 'f1') {
         const d = f1MatchDelta(e.a, e.b, names[e.a], names[e.b], e.res, e.g);
         Object.keys(d).forEach(n => { if (run[n] !== undefined) run[n] += d[n]; });
@@ -14732,7 +15021,8 @@ function buildEvoSeries(mode, state, PLAYERS, TEAMS) {
     extras = {}; names.forEach(n => extras[n] = (exF1[n] || 0) + (teamOfPlayer[n] !== undefined ? (exF2[TEAMS[teamOfPlayer[n]]] || 0) : 0));
   } else {
     names = PLAYERS.slice();
-    steps = buildSteps(F1_FIXTURE, state.f1, names, f1MatchDelta);
+    orderedEntries = phaseChronoEntries(F1_FIXTURE, state.f1 || {});
+    steps = stepsFromEntries(orderedEntries, names, f1MatchDelta);
     extras = f1Extras();
     F1_FIXTURE.forEach(([r, a, b]) => { const res = state.f1[r + '-' + a + '-' + b]; if (!res) return;
       [names[a], names[b]].forEach(n => played[n] = (played[n] || 0) + 1);
@@ -14759,49 +15049,103 @@ function buildEvoSeries(mode, state, PLAYERS, TEAMS) {
   })).filter(s => s.points.some(p => p > 0) || s.total > 0);
 
   series.sort((a, b) => b.total - a.total);
-  return { series: series, steps: steps.length, mode: mode };
+  return { series: series, steps: steps.length, mode: mode, entries: orderedEntries };
 }
 
 function evoModeLabel(mode) {
   return mode === 'f2' ? 'Fase Grupal' : (mode === 'total' ? 'Total de la noche' : 'Fase Individual');
 }
 
-// Extiende los puntos de cada serie a exactamente n pasos (repitiendo el
-// último valor si una serie tiene menos pasos que el máximo), y arma una
-// matriz [serieIdx][paso] lista para comparar entre jugadores/equipos.
-function evoPointsMatrix(series, n) {
-  return series.map(s => {
+function renderEvoSVG(series, maxSteps, stars, viewMode) {
+  const W = 600, H = 260, padL = 8, padR = 8, padT = 10, padB = 10;
+  const n = maxSteps + 1; // incluye el punto inicial en 0
+  const x = i => padL + (n > 1 ? (i / (n - 1)) * (W - padL - padR) : 0);
+
+  let grid = '';
+  [0, 0.25, 0.5, 0.75, 1].forEach(f => {
+    const gy = padT + f * (H - padT - padB);
+    grid += '<line x1="' + padL + '" y1="' + gy + '" x2="' + (W - padR) + '" y2="' + gy + '" stroke="var(--border2)" stroke-width="1" stroke-dasharray="3,4" opacity="0.6"/>';
+  });
+
+  // Extiende los puntos de cada serie a exactamente n pasos (repitiendo el
+  // último valor si una serie tiene menos pasos que el máximo).
+  const matrix = series.map(s => {
     const pts = s.points.slice(0, n);
     while (pts.length < n) pts.push(pts[pts.length - 1] || 0);
     return pts;
   });
-}
 
-// Para cada paso, calcula el ranking (1° = más puntos) de cada serie. Empates
-// se desempatan de forma estable por el índice ya ordenado por total final,
-// así las líneas del bump chart no tiemblan sin motivo entre pasos iguales.
-function evoRanksMatrix(matrix, n, count) {
-  const ranks = matrix.map(() => new Array(n).fill(1));
-  for (let j = 0; j < n; j++) {
-    const order = matrix.map((_, i) => i).sort((a, b) => {
-      const diff = matrix[b][j] - matrix[a][j];
-      return diff !== 0 ? diff : (a - b);
+  let lines = '';
+  let yOf; // función paso→coordenada Y para una serie puntual (para ubicar estrellitas)
+  const byName = {};
+
+  if (viewMode === 'pos') {
+    // Bump chart: eje Y = ranking (1° arriba del todo) en vez de puntos
+    // absolutos — con 6+ jugadores las curvas de puntos se apretujan, pero
+    // el orden relativo se lee mejor así. Empates se desempatan de forma
+    // estable por el índice ya ordenado por total final.
+    const count = series.length;
+    const ranks = matrix.map(() => new Array(n).fill(1));
+    for (let j = 0; j < n; j++) {
+      const order = matrix.map((_, i) => i).sort((a, b) => {
+        const diff = matrix[b][j] - matrix[a][j];
+        return diff !== 0 ? diff : (a - b);
+      });
+      order.forEach((i, rank) => { ranks[i][j] = rank + 1; });
+    }
+    const y = r => count > 1 ? padT + ((r - 1) / (count - 1)) * (H - padT - padB) : (padT + (H - padT - padB) / 2);
+    series.forEach((s, si) => {
+      byName[s.name] = { s: s, si: si };
+      const rs = ranks[si];
+      const d = rs.map((r, i) => (i === 0 ? 'M' : 'L') + x(i).toFixed(1) + ',' + y(r).toFixed(1)).join(' ');
+      const lastR = rs[rs.length - 1];
+      lines += '<path class="tv-evo-line" data-si="' + si + '" d="' + d + '" fill="none" stroke="' + s.color + '" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" opacity="0.95"/>';
+      lines += '<circle class="tv-evo-line" data-si="' + si + '" cx="' + x(n - 1).toFixed(1) + '" cy="' + y(lastR).toFixed(1) + '" r="4.5" fill="' + s.color + '"/>';
     });
-    order.forEach((i, rank) => { ranks[i][j] = rank + 1; });
+    yOf = (si, step) => y(ranks[si][step]);
+  } else {
+    const maxY = Math.max(1, ...series.map(s => Math.max(...s.points)));
+    const y = v => H - padB - (v / maxY) * (H - padT - padB);
+    series.forEach((s, si) => {
+      byName[s.name] = { s: s, si: si };
+      const pts = matrix[si];
+      const d = pts.map((v, i) => (i === 0 ? 'M' : 'L') + x(i).toFixed(1) + ',' + y(v).toFixed(1)).join(' ');
+      const last = pts[pts.length - 1];
+      lines += '<path class="tv-evo-line" data-si="' + si + '" d="' + d + '" fill="none" stroke="' + s.color + '" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" opacity="0.95"/>';
+      lines += '<circle class="tv-evo-line" data-si="' + si + '" cx="' + x(n - 1).toFixed(1) + '" cy="' + y(last).toFixed(1) + '" r="4.5" fill="' + s.color + '"/>';
+    });
+    yOf = (si, step) => y(matrix[si][step]);
   }
-  return ranks;
+
+  // Estrellitas: un logro marcado en el paso exacto de la curva del jugador/
+  // equipo al que le pasó. Tocarla recuerda qué fue (tvEvoStarTap lee de
+  // window._tvEvoStars, que se llena en renderEvoChart antes de esto).
+  let starsSvg = '';
+  (stars || []).forEach((st, i) => {
+    const entry = byName[st.logro.who];
+    if (!entry || st.step > n - 1) return;
+    const cx = x(st.step).toFixed(1), cy = (yOf(entry.si, st.step) - 10).toFixed(1);
+    starsSvg += '<text class="tv-evo-star" data-si="' + entry.si + '" x="' + cx + '" y="' + cy
+      + '" font-size="15" text-anchor="middle" onclick="tvEvoStarTap(event,' + i + ')">\u2B50</text>';
+  });
+
+  return '<svg viewBox="0 0 ' + W + ' ' + H + '" preserveAspectRatio="none">' + grid + lines + starsSvg + '</svg>';
 }
 
 // ── CAMBIOS DE LÍDER — cuenta cuántas veces cambió el 1er puesto en la
 // noche, recorriendo los mismos pasos de buildEvoSeries pero ordenando por
-// posición (no por puntos) en cada paso. Distinto de "duelo más parejo": acá
-// importa el trono (quién manda en cada momento), no un cruce puntual. Un
-// empate en la punta no cuenta como cambio (es ambiguo) ni resetea al líder
-// vigente.
+// posición (no por puntos) en cada paso. Distinto de "El duelo más parejo"
+// del Wrapped: acá importa el trono (quién manda en cada momento), no un
+// cruce puntual. Un empate en la punta no cuenta como cambio (es ambiguo)
+// ni resetea al líder vigente.
 function countLeaderChanges(series, maxSteps) {
   const n = maxSteps + 1;
   if (!series.length || n < 2) return 0;
-  const matrix = evoPointsMatrix(series, n);
+  const matrix = series.map(s => {
+    const pts = s.points.slice(0, n);
+    while (pts.length < n) pts.push(pts[pts.length - 1] || 0);
+    return pts;
+  });
   let changes = 0, prevLeader = null;
   for (let j = 0; j < n; j++) {
     let maxVal = -Infinity, leaders = [];
@@ -14818,47 +15162,29 @@ function countLeaderChanges(series, maxSteps) {
   return changes;
 }
 
-function renderEvoSVG(series, maxSteps, viewMode) {
-  const W = 600, H = 260, padL = 8, padR = 8, padT = 10, padB = 10;
-  const n = maxSteps + 1; // incluye el punto inicial en 0
-  const x = i => padL + (n > 1 ? (i / (n - 1)) * (W - padL - padR) : 0);
-
-  let grid = '';
-  [0, 0.25, 0.5, 0.75, 1].forEach(f => {
-    const gy = padT + f * (H - padT - padB);
-    grid += '<line x1="' + padL + '" y1="' + gy + '" x2="' + (W - padR) + '" y2="' + gy + '" stroke="var(--border2)" stroke-width="1" stroke-dasharray="3,4" opacity="0.6"/>';
+// Toca una estrellita del gráfico: muestra qué logro se disparó ahí.
+function tvEvoStarTap(ev, i) {
+  if (ev) ev.stopPropagation();
+  const stars = window._tvEvoStars || [];
+  const st = stars[i];
+  if (!st) return;
+  const l = st.logro;
+  const tip = document.getElementById('tv-evo-tip');
+  if (!tip) return;
+  tip.innerHTML = '<div class="tv-evo-tip-emoji">' + l.emoji + '</div><div><b>' + l.title + '</b>'
+    + (l.who ? ' — ' + l.who : '') + (l.desc ? '<div class="tv-evo-tip-desc">' + l.desc + '</div>' : '') + '</div>';
+  tip.classList.add('show');
+  clearTimeout(window._tvEvoTipTimer);
+  window._tvEvoTipTimer = setTimeout(() => tip.classList.remove('show'), 4200);
+}
+function tvEvoHighlight(si) {
+  const wrap = document.getElementById('tv-evo-wrap');
+  const box = document.getElementById('tv-evo');
+  if (!wrap || !box) return;
+  wrap.classList.toggle('dim-others', si !== null);
+  box.querySelectorAll('.tv-evo-line, .tv-evo-row').forEach(el => {
+    el.classList.toggle('active', si !== null && el.dataset.si === String(si));
   });
-
-  let lines = '';
-  if (viewMode === 'pos') {
-    // Bump chart: eje Y = ranking (1° arriba del todo) en vez de puntos
-    // absolutos — con 6+ jugadores las curvas de puntos se apretujan, pero
-    // el orden relativo se lee mejor así.
-    const count = series.length;
-    const matrix = evoPointsMatrix(series, n);
-    const ranks = evoRanksMatrix(matrix, n, count);
-    const y = r => count > 1 ? padT + ((r - 1) / (count - 1)) * (H - padT - padB) : (padT + (H - padT - padB) / 2);
-    series.forEach((s, i) => {
-      const rs = ranks[i];
-      const d = rs.map((r, j) => (j === 0 ? 'M' : 'L') + x(j).toFixed(1) + ',' + y(r).toFixed(1)).join(' ');
-      const lastR = rs[rs.length - 1];
-      lines += '<path d="' + d + '" fill="none" stroke="' + s.color + '" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" opacity="0.95"/>';
-      lines += '<circle cx="' + x(n - 1).toFixed(1) + '" cy="' + y(lastR).toFixed(1) + '" r="4.5" fill="' + s.color + '"/>';
-    });
-  } else {
-    const maxY = Math.max(1, ...series.map(s => Math.max(...s.points)));
-    const y = v => H - padB - (v / maxY) * (H - padT - padB);
-    series.forEach(s => {
-      const pts = s.points.slice(0, n);
-      while (pts.length < n) pts.push(pts[pts.length - 1] || 0);
-      const d = pts.map((v, i) => (i === 0 ? 'M' : 'L') + x(i).toFixed(1) + ',' + y(v).toFixed(1)).join(' ');
-      const last = pts[pts.length - 1];
-      lines += '<path d="' + d + '" fill="none" stroke="' + s.color + '" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" opacity="0.95"/>';
-      lines += '<circle cx="' + x(n - 1).toFixed(1) + '" cy="' + y(last).toFixed(1) + '" r="4.5" fill="' + s.color + '"/>';
-    });
-  }
-
-  return '<svg viewBox="0 0 ' + W + ' ' + H + '" preserveAspectRatio="none">' + grid + lines + '</svg>';
 }
 
 function renderEvoChart() {
@@ -14870,6 +15196,9 @@ function renderEvoChart() {
   const mode = getEvoMode();
   const view = getEvoView();
   const data = buildEvoSeries(mode, st, PLAYERS, TEAMS);
+  const logros = computeLogros(st, PLAYERS, TEAMS);
+  const stars = view === 'pos' ? [] : (logros.stars[mode] || []);
+  window._tvEvoStars = stars;
 
   const toggleHtml = '<div class="tv-evo-toggle">'
     + ['f1', 'f2', 'total'].map(m => '<button data-mode="' + m + '" class="' + (m === mode ? 'active' : '') + '">'
@@ -14884,21 +15213,22 @@ function renderEvoChart() {
   if (!data.series.length || data.steps === 0) {
     body = '<div class="tv-evo-empty">Todavía no hay resultados cargados en esta fase 🎲</div>';
   } else {
-    const chart = renderEvoSVG(data.series, data.steps, view);
+    const chart = renderEvoSVG(data.series, data.steps, stars, view);
     const leaderChanges = countLeaderChanges(data.series, data.steps);
     const leaderHtml = leaderChanges > 0
       ? '<div class="tv-evo-leaderfacts">👑 El 1er puesto cambió de manos ' + leaderChanges + ' ' + (leaderChanges === 1 ? 'vez' : 'veces') + ' esta noche</div>'
       : '';
     const list = data.series.map((s, i) => {
       const av = tvAvatarHtml(s.name, s.idx, window._tvLastPhotos || {});
-      return '<div class="tv-evo-row" style="border-color:' + s.color + '">'
+      return '<div class="tv-evo-row" data-si="' + i + '" style="border-color:' + s.color + '">'
         + '<span class="tv-evo-pos">#' + (i + 1) + '</span>'
         + '<span class="tv-evo-name">' + av + '<span><div>' + s.name.replace('/', ' & ') + '</div>'
         + (mode !== 'total' ? '<div class="tv-evo-sub">' + s.wins + ' de ' + s.played + ' ganados</div>' : '') + '</span></span>'
         + '<span class="tv-evo-pts" style="color:' + s.color + '">' + s.total + ' pts</span>'
         + '</div>';
     }).join('');
-    body = leaderHtml + '<div class="tv-evo-chart-wrap">' + chart + '</div><div class="tv-evo-list">' + list + '</div>';
+    body = leaderHtml + '<div class="tv-evo-chart-wrap" id="tv-evo-wrap">' + chart
+      + '<div class="tv-evo-tip" id="tv-evo-tip"></div></div><div class="tv-evo-list">' + list + '</div>';
   }
 
   box.innerHTML = '<div class="tv-evo-head"><div class="tv-evo-title">📈 Evolución — ' + evoModeLabel(mode) + '</div>' + toggleHtml + '</div>' + viewToggleHtml + body;
@@ -14908,6 +15238,15 @@ function renderEvoChart() {
   box.querySelectorAll('.tv-evo-toggle2 button').forEach(btn => {
     btn.addEventListener('click', ev => { ev.stopPropagation(); setEvoView(btn.dataset.view); renderEvoChart(); });
   });
+  // Pasar el dedo/mouse por una fila (o su línea en la curva) resalta esa
+  // línea un instante y atenúa las demás — más fácil de seguir con 6+ series.
+  box.querySelectorAll('.tv-evo-row, .tv-evo-line').forEach(el => {
+    const si = el.dataset.si;
+    el.addEventListener('mouseenter', () => tvEvoHighlight(si));
+    el.addEventListener('mouseleave', () => tvEvoHighlight(null));
+    el.addEventListener('touchstart', ev => { ev.stopPropagation(); tvEvoHighlight(si); }, { passive: true });
+  });
+  box.addEventListener('touchstart', ev => { if (!ev.target.closest('.tv-evo-row, .tv-evo-line')) tvEvoHighlight(null); }, { passive: true });
 }
 
 function getEvoMode() {
@@ -15206,42 +15545,50 @@ function markLogro(id) {
   try { localStorage.setItem('ndj_logros_tv', JSON.stringify(_logrosShown)); } catch(e) {}
 }
 
-function detectLogros(state, PLAYERS, TEAMS) {
+// computeLogros hace todo el trabajo: detecta los logros de la noche Y, de
+// paso, anota en qué "paso" de cada curva del gráfico de evolución se
+// disparó cada uno (stars.f1 / stars.f2 / stars.total — steps[i-1] en
+// buildEvoSeries corresponde a stars[*][j].step === i). Así el feed de
+// logros y las estrellitas de la curva salen siempre de la misma cuenta.
+function computeLogros(state, PLAYERS, TEAMS) {
   const found = [];
-  const short = n => String(n || '').split('/')[0].trim().split(' ')[0];
-  const add = (id, emoji, title, who, desc) => found.push({ id: id, emoji: emoji, title: title, who: who, desc: desc });
+  const starsF1 = [], starsF2 = [], starsTotal = [];
+  const add = (id, emoji, title, who, desc) => { const l = { id: id, emoji: emoji, title: title, who: who, desc: desc }; found.push(l); return l; };
 
-  // Orden cronológico de los resultados de Fase 1 (por ronda y por orden del fixture)
-  const f1Seq = [];
-  try {
-    F1_FIXTURE.forEach(m => {
-      const k = m[0] + '-' + m[1] + '-' + m[2];
-      const res = state.f1[k];
-      if (res) f1Seq.push({ key: k, r: m[0], a: m[1], b: m[2], res: res });
-    });
-  } catch(e) {}
+  const f1Entries = phaseChronoEntries(F1_FIXTURE, state.f1 || {});
+  const f2Entries = phaseChronoEntries(F2_FIXTURE, state.f2 || {});
+  const totalEntries = combinedChronoEntries(state);
+  const totalIndexOf = {};
+  totalEntries.forEach((e, i) => { totalIndexOf[e.type + '-' + e.key] = i + 1; }); // +1: points[0] es el punto inicial en 0
+
+  const mark = (starsArr, step, l) => { if (step >= 1) starsArr.push({ step: step, logro: l }); };
+  const markTotal = (typePrefix, key, l) => { const ti = totalIndexOf[typePrefix + '-' + key]; if (ti) starsTotal.push({ step: ti, logro: l }); };
 
   // "Primera sangre" — el primer ganador de la noche
-  if (f1Seq.length) {
-    const first = f1Seq.find(x => x.res.winner !== 'empate');
-    if (first) {
-      const w = PLAYERS[first.res.winner];
-      if (w) add('primera-sangre', '\u{1F4A5}', 'Primera Sangre', w, 'Ganó el primer duelo de la noche');
+  const firstF1Idx = f1Entries.findIndex(x => x.res.winner !== 'empate');
+  if (firstF1Idx >= 0) {
+    const x = f1Entries[firstF1Idx];
+    const w = PLAYERS[x.res.winner];
+    if (w) {
+      const l = add('primera-sangre', '\u{1F4A5}', 'Primera Sangre', w, 'Ganó el primer duelo de la noche');
+      mark(starsF1, firstF1Idx + 1, l);
+      markTotal('f1', x.key, l);
     }
   }
 
-  // Rachas: doblete, triplete, imparable
+  // Rachas F1: doblete, triplete, imparable, con estilo
   const streaks = {};
-  f1Seq.forEach(x => {
+  f1Entries.forEach((x, idx) => {
+    const step = idx + 1;
     if (x.res.winner === 'empate') { streaks[PLAYERS[x.a]] = 0; streaks[PLAYERS[x.b]] = 0; return; }
     const w = PLAYERS[x.res.winner];
-    const l = PLAYERS[x.res.winner === x.a ? x.b : x.a];
+    const l2 = PLAYERS[x.res.winner === x.a ? x.b : x.a];
     streaks[w] = (streaks[w] || 0) + 1;
-    streaks[l] = 0;
-    if (streaks[w] === 2) add('doblete-' + w, '\u26A1', 'Doblete', w, 'Dos victorias al hilo');
-    if (streaks[w] === 3) add('triplete-' + w, '\u{1F525}', 'Triplete', w, 'Tres victorias seguidas');
-    if (streaks[w] === 4) add('imparable-' + w, '\u{1F680}', 'Imparable', w, 'Cuatro victorias sin perder');
-    if (x.res.bonus) add('bonus-' + x.key, '\u2B50', 'Con Estilo', w, 'Ganó con bonus incluido');
+    streaks[l2] = 0;
+    if (streaks[w] === 2) { const l = add('doblete-' + w, '\u26A1', 'Doblete', w, 'Dos victorias al hilo'); mark(starsF1, step, l); markTotal('f1', x.key, l); }
+    if (streaks[w] === 3) { const l = add('triplete-' + w, '\u{1F525}', 'Triplete', w, 'Tres victorias seguidas'); mark(starsF1, step, l); markTotal('f1', x.key, l); }
+    if (streaks[w] === 4) { const l = add('imparable-' + w, '\u{1F680}', 'Imparable', w, 'Cuatro victorias sin perder'); mark(starsF1, step, l); markTotal('f1', x.key, l); }
+    if (x.res.bonus) { const l = add('bonus-' + x.key, '\u2B50', 'Con Estilo', w, 'Ganó con bonus incluido'); mark(starsF1, step, l); markTotal('f1', x.key, l); }
   });
 
   // "Superviviente" — ganó un duelo estando último en la tabla
@@ -15250,12 +15597,18 @@ function detectLogros(state, PLAYERS, TEAMS) {
     if (pts.length) {
       const sorted = PLAYERS.map((n, i) => ({ n: n, t: pts[i] ? pts[i].total : 0 })).sort((a, b) => a.t - b.t);
       const lastName = sorted.length ? sorted[0].n : null;
-      const lastWin = f1Seq.slice().reverse().find(x => x.res.winner !== 'empate' && PLAYERS[x.res.winner] === lastName);
-      if (lastName && lastWin) add('superviviente-' + lastWin.key, '\u{1F9DF}', 'Superviviente', lastName, 'Ganó estando último en la tabla');
+      let lastWinIdx = -1;
+      f1Entries.forEach((x, idx) => { if (x.res.winner !== 'empate' && PLAYERS[x.res.winner] === lastName) lastWinIdx = idx; });
+      if (lastName && lastWinIdx >= 0) {
+        const x = f1Entries[lastWinIdx];
+        const l = add('superviviente-' + x.key, '\u{1F9DF}', 'Superviviente', lastName, 'Ganó estando último en la tabla');
+        mark(starsF1, lastWinIdx + 1, l);
+        markTotal('f1', x.key, l);
+      }
     }
   } catch(e) {}
 
-  // Impostor
+  // Impostor (no tiene curva asociada; solo va al feed)
   try {
     const rounds = (state.impostor && state.impostor.rounds) || [];
     rounds.forEach((rd, i) => {
@@ -15267,26 +15620,20 @@ function detectLogros(state, PLAYERS, TEAMS) {
     });
   } catch(e) {}
 
-  // Fase 2
-  try {
-    const f2Seq = [];
-    F2_FIXTURE.forEach(m => {
-      const k = m[0] + '-' + m[1] + '-' + m[2];
-      if (state.f2[k]) f2Seq.push({ key: k, a: m[1], b: m[2], res: state.f2[k] });
-    });
-    const tstreaks = {};
-    f2Seq.forEach(x => {
-      if (x.res.winner === 'empate') { tstreaks[TEAMS[x.a]] = 0; tstreaks[TEAMS[x.b]] = 0; return; }
-      const w = TEAMS[x.res.winner];
-      const l = TEAMS[x.res.winner === x.a ? x.b : x.a];
-      tstreaks[w] = (tstreaks[w] || 0) + 1;
-      tstreaks[l] = 0;
-      if (tstreaks[w] === 2) add('duo-doblete-' + w, '\u{1F91D}', 'Dupla Encendida', w, 'Dos victorias seguidas en equipo');
-      if (tstreaks[w] === 3) add('duo-triplete-' + w, '\u{1F3C6}', 'Dupla Imparable', w, 'Tres victorias al hilo');
-    });
-  } catch(e) {}
+  // Rachas F2: dupla encendida / imparable
+  const tstreaks = {};
+  f2Entries.forEach((x, idx) => {
+    const step = idx + 1;
+    if (x.res.winner === 'empate') { tstreaks[TEAMS[x.a]] = 0; tstreaks[TEAMS[x.b]] = 0; return; }
+    const w = TEAMS[x.res.winner];
+    const l2 = TEAMS[x.res.winner === x.a ? x.b : x.a];
+    tstreaks[w] = (tstreaks[w] || 0) + 1;
+    tstreaks[l2] = 0;
+    if (tstreaks[w] === 2) { const l = add('duo-doblete-' + w, '\u{1F91D}', 'Dupla Encendida', w, 'Dos victorias seguidas en equipo'); mark(starsF2, step, l); markTotal('f2', x.key, l); }
+    if (tstreaks[w] === 3) { const l = add('duo-triplete-' + w, '\u{1F3C6}', 'Dupla Imparable', w, 'Tres victorias al hilo'); mark(starsF2, step, l); markTotal('f2', x.key, l); }
+  });
 
-  // Comodines
+  // Comodines (no tienen curva asociada; solo van al feed)
   try {
     (state.comodines || []).forEach(c => {
       if (c.status !== 'done') return;
@@ -15300,7 +15647,40 @@ function detectLogros(state, PLAYERS, TEAMS) {
     });
   } catch(e) {}
 
-  return found;
+  // "Rayo" / "Se Hizo Desear" — ritmo real entre resultados consecutivos de
+  // toda la noche (F1 + F2 mezclados, tal cual se fueron cargando). Solo se
+  // evalúa entre dos resultados que ambos tengan hora real: sin eso no hay
+  // forma honesta de medir cuánto tardó la mesa.
+  for (let i = 1; i < totalEntries.length; i++) {
+    const prev = totalEntries[i - 1], cur = totalEntries[i];
+    if (prev.t == null || cur.t == null) continue;
+    const gapMin = (cur.t - prev.t) / 60000;
+    if (cur.res.winner === 'empate') continue;
+    const names = cur.type === 'f1' ? PLAYERS : TEAMS;
+    const w = names[cur.res.winner];
+    if (!w) continue;
+    let l = null;
+    if (gapMin < 1) {
+      l = add('rayo-' + cur.type + '-' + cur.key, '\u26A1', 'Rayo', w, 'Resultado cargado a menos de un minuto del anterior — la mesa voló');
+    } else if (gapMin > 20) {
+      l = add('desear-' + cur.type + '-' + cur.key, '\u{1F40C}', 'Se Hizo Desear', w, 'Pasaron ' + Math.round(gapMin) + ' minutos desde el resultado anterior');
+    }
+    if (l) {
+      mark(starsTotal, i + 1, l);
+      const phaseEntries = cur.type === 'f1' ? f1Entries : f2Entries;
+      const phaseStars = cur.type === 'f1' ? starsF1 : starsF2;
+      const si = phaseEntries.findIndex(x => x.key === cur.key);
+      if (si >= 0) mark(phaseStars, si + 1, l);
+    }
+  }
+
+  return { found: found, stars: { f1: starsF1, f2: starsF2, total: starsTotal } };
+}
+
+// Mantiene la firma vieja: el resto del código (ticker, feed de logros del
+// TV, participante.html) sigue llamando detectLogros(state, PLAYERS, TEAMS).
+function detectLogros(state, PLAYERS, TEAMS) {
+  return computeLogros(state, PLAYERS, TEAMS).found;
 }
 
 function pushLogro(l) {
