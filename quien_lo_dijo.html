@@ -248,11 +248,9 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
 
 /* ── BUZZER BANNER ── */
 .buzzer-banner{display:flex;align-items:center;gap:.75rem;padding:.85rem 1rem;border-radius:14px;border:1.5px solid;font-weight:800;margin-bottom:.5rem;animation:bbSlide .3s ease}
-.buzzer-banner.open{background:var(--purple-dim);border-color:var(--purple);color:var(--purple);animation:bbSlide .3s ease, bbBreathe 1.7s ease-in-out infinite}
+.buzzer-banner.open{background:var(--purple-dim);border-color:var(--purple);color:var(--purple)}
 .buzzer-banner.won{background:var(--gold-dim);border-color:var(--gold);color:var(--gold);animation:bbSlide .3s ease, bbPulse 1.4s ease-in-out infinite}
-.buzzer-banner.bb-flash{animation:bbFlash .45s ease !important}
 .bb-icon{font-size:24px;flex-shrink:0;line-height:1}
-.bb-icon.bb-icon-armed{animation:bbIconBreathe 1.7s ease-in-out infinite}
 .bb-body{flex:1;display:flex;flex-direction:column;gap:.15rem;min-width:0}
 .bb-lbl{font-size:10px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;opacity:.8}
 .bb-name{font-size:16px;font-weight:900;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -261,9 +259,6 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
 .bb-reset:hover{background:rgba(255,255,255,.05)}
 @keyframes bbSlide{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:none}}
 @keyframes bbPulse{0%,100%{box-shadow:0 0 12px rgba(245,200,66,.25)}50%{box-shadow:0 0 24px rgba(245,200,66,.5)}}
-@keyframes bbBreathe{0%,100%{box-shadow:0 0 6px rgba(192,96,232,.18);border-color:var(--purple)}50%{box-shadow:0 0 20px rgba(192,96,232,.55);border-color:#e0a8f5}}
-@keyframes bbIconBreathe{0%,100%{transform:scale(1);opacity:.85}50%{transform:scale(1.18);opacity:1}}
-@keyframes bbFlash{0%{background:var(--red-dim);border-color:var(--red);transform:translateX(0)}20%{transform:translateX(-4px)}40%{transform:translateX(4px)}60%{transform:translateX(-3px)}80%{transform:translateX(3px)}100%{transform:translateX(0)}}
 
 /* ── EDITOR ── */
 .overlay{position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:700;display:none;align-items:center;justify-content:center;padding:1rem;backdrop-filter:blur(3px)}
@@ -550,7 +545,6 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
   </div>
   <div class="part-wrap">
     <div class="part-score-strip"><div class="part-score-inner" id="part-score-inner"></div></div>
-    <div id="buzzer-banner-part"></div>
     <div class="part-main" id="part-main">
       <div class="part-idle">
         <div class="part-idle-icon">🎤</div>
@@ -905,51 +899,31 @@ function applyBuzzerState(d){
     openAssignWithWinner(winner.name);
   }
 }
-let _lastBuzzerRenderState = null; // para detectar la transición open → won y disparar el flash
-function ensureBuzzerBannerEl(id, parentSelector){
-  let el = document.getElementById(id);
+function renderBuzzerBanner(){
+  let el = document.getElementById('buzzer-banner');
   if(!el){
     el = document.createElement('div');
-    el.id = id;
+    el.id = 'buzzer-banner';
     el.className = 'buzzer-banner';
-    const parent = document.querySelector(parentSelector);
-    if(parent) parent.insertBefore(el, parent.firstChild);
+    const body = document.querySelector('.cond-body');
+    if(body) body.insertBefore(el, body.firstChild);
   }
-  return el;
-}
-function renderBuzzerBanner(){
-  // Conductor: se inserta al principio de .cond-body (comportamiento original).
-  const elCond = ensureBuzzerBannerEl('buzzer-banner-cond', '.cond-body');
-  // Participante: el contenedor ya existe fijo arriba de la carta (ver #buzzer-banner-part en el HTML).
-  const elPart = document.getElementById('buzzer-banner-part');
   const btn = document.getElementById('buzzer-btn');
-  const justWon = buzzerState !== 'won' ? false : (_lastBuzzerRenderState === 'open'); // alguien acaba de ganar recién ahora
-  _lastBuzzerRenderState = buzzerState;
-
-  const targets = [elCond, elPart].filter(Boolean);
-
   if(buzzerWinner && buzzerWinner.name){
     const tIdx = nickToTeamIndex[buzzerWinner.name];
     const team = (typeof tIdx === 'number') ? teams.find(t => t.index === tIdx) : null;
     const nameLine = team ? `${escapeHtml(buzzerWinner.name)} <span style="opacity:.7;font-weight:600">(${escapeHtml(team.label)})</span>` : escapeHtml(buzzerWinner.name);
-    targets.forEach(el => {
-      const isCond = el.id === 'buzzer-banner-cond';
-      el.innerHTML = `<div class="bb-icon">🏆</div><div class="bb-body"><div class="bb-lbl">Buzzeó primero</div><div class="bb-name">${nameLine}</div></div>${isCond ? '<button class="bb-reset" onclick="fbOpenBuzzer()">Reabrir</button>' : ''}`;
-      el.className = 'buzzer-banner won' + (justWon ? ' bb-flash' : '');
-      el.style.display = 'flex';
-      if(justWon && navigator.vibrate) navigator.vibrate(el.id === 'buzzer-banner-part' ? [15,40,15] : 0);
-    });
+    el.innerHTML = `<div class="bb-icon">🏆</div><div class="bb-body"><div class="bb-lbl">Buzzeó primero</div><div class="bb-name">${nameLine}</div></div><button class="bb-reset" onclick="fbOpenBuzzer()">Reabrir</button>`;
+    el.className = 'buzzer-banner won';
+    el.style.display = 'flex';
     if(btn){ btn.textContent = '🔓 Reabrir buzzer'; btn.classList.remove('primary'); btn.classList.add('danger'); }
   } else if(buzzerState === 'open'){
-    targets.forEach(el => {
-      const isCond = el.id === 'buzzer-banner-cond';
-      el.innerHTML = `<div class="bb-icon bb-icon-armed">🔔</div><div class="bb-body"><div class="bb-lbl">Buzzer abierto</div><div class="bb-name">${isCond ? 'Esperando que alguien buzzee…' : '¡Buzzeá ya!'}</div></div>${isCond ? '<button class="bb-reset" onclick="fbLockBuzzer()">Cerrar</button>' : ''}`;
-      el.className = 'buzzer-banner open';
-      el.style.display = 'flex';
-    });
+    el.innerHTML = `<div class="bb-icon">🔔</div><div class="bb-body"><div class="bb-lbl">Buzzer abierto</div><div class="bb-name">Esperando que alguien buzzee…</div></div><button class="bb-reset" onclick="fbLockBuzzer()">Cerrar</button>`;
+    el.className = 'buzzer-banner open';
+    el.style.display = 'flex';
     if(btn){ btn.textContent = '🔒 Cerrar buzzer'; btn.classList.remove('primary'); btn.classList.add('danger'); }
   } else {
-    targets.forEach(el => { el.style.display = 'none'; });
+    el.style.display = 'none';
     if(btn){ btn.textContent = '🔔 Abrir buzzer'; btn.classList.add('primary'); btn.classList.remove('danger'); }
   }
 }
