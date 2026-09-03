@@ -2430,19 +2430,6 @@ body.started .velada-bg-scrim { display: block; }
   opacity: 0; animation: cerFadeIn 0.6s ease 1.6s forwards;
 }
 @keyframes cerFadeIn { to { opacity: 1; } }
-/* Botón "descargar imagen" del podio final — mismo estilo que el de salir,
-   pero del lado izquierdo, para mandar el resultado directo al grupo sin
-   sacarle foto a la tele. Solo aparece cuando ya se reveló el campeón. */
-.pr-shot-btn {
-  position: fixed; top: 1rem; left: 1rem; z-index: 9600;
-  background: rgba(200,240,96,0.12); border: 1px solid rgba(200,240,96,0.35); color: var(--accent);
-  border-radius: 99px; padding: 0.5rem 1rem; cursor: pointer; font-size: 13px; font-weight: 700;
-  display: none; align-items: center; gap: 6px;
-  opacity: 0; transition: opacity 0.4s ease, transform 0.15s ease;
-}
-.pr-shot-btn.show { display: inline-flex; opacity: 1; }
-.pr-shot-btn:active { transform: scale(0.96); }
-.pr-shot-btn.busy { opacity: 0.6; pointer-events: none; }
 
 /* ── APERTURA: presentación de equipos ── */
 #opening::before {
@@ -11669,78 +11656,6 @@ function closeCeremony(id) {
   }, 500);
 }
 
-// ── CAPTURA PARA EL GRUPO ────────────────────────────────────────────
-// Carga html2canvas una sola vez (bajo demanda) para poder convertir el
-// podio final a una imagen y mandarla directo al grupo de WhatsApp, sin
-// tener que sacarle una foto a la tele.
-let _html2canvasPromise = null;
-function ensureHtml2Canvas() {
-  if (window.html2canvas) return Promise.resolve();
-  if (_html2canvasPromise) return _html2canvasPromise;
-  _html2canvasPromise = new Promise((resolve, reject) => {
-    const s = document.createElement('script');
-    s.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js';
-    s.onload = () => resolve();
-    s.onerror = () => { _html2canvasPromise = null; reject(new Error('No se pudo cargar html2canvas')); };
-    document.head.appendChild(s);
-  });
-  return _html2canvasPromise;
-}
-
-// Convierte el overlay del podio final a una imagen y la descarga. Oculta
-// los botones flotantes (salir / descargar) mientras captura, para que no
-// salgan en la foto.
-//
-// Los avatares "Mii" se dibujan como SVG con la foto recortada en círculo
-// vía <clipPath> — un patrón que el método de captura "clásico" de
-// html2canvas (recrear todo a mano en un <canvas>) no siempre soporta bien.
-// Por eso probamos primero con foreignObjectRendering (deja que el propio
-// navegador dibuje ese SVG nativamente) y, si el navegador no lo permite,
-// caemos al método clásico como respaldo.
-function downloadPodiumImage(btnEl) {
-  const overlay = document.getElementById('podium-reveal');
-  if (!overlay) return;
-  if (btnEl) { btnEl.classList.add('busy'); btnEl.textContent = '⏳ Generando...'; }
-  const closeBtn = overlay.querySelector('.ceremony-close');
-  const toHide = [closeBtn, btnEl].filter(Boolean);
-  toHide.forEach(el => { el.style.visibility = 'hidden'; });
-
-  const baseOpts = {
-    backgroundColor: '#07070b',
-    useCORS: true,
-    scale: Math.min(2, window.devicePixelRatio || 1.5),
-  };
-
-  ensureHtml2Canvas()
-    .then(() => window.html2canvas(overlay, Object.assign({ foreignObjectRendering: true }, baseOpts))
-      .catch(() => window.html2canvas(overlay, Object.assign({ foreignObjectRendering: false }, baseOpts))))
-    .then(canvas => new Promise((resolve, reject) => {
-      canvas.toBlob(blob => {
-        if (!blob) reject(new Error('el navegador devolvió un canvas vacío'));
-        else resolve(blob);
-      }, 'image/png');
-    }))
-    .then(blob => {
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = 'la-velada-del-anio-podio.png';
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      setTimeout(() => URL.revokeObjectURL(url), 4000);
-    })
-    .catch(err => {
-      console.warn('No se pudo generar la imagen del podio:', err);
-      const detalle = (err && err.message) ? err.message : 'error desconocido';
-      alert('No se pudo generar la imagen (' + detalle + '). Probá de nuevo, o sacale una foto a la pantalla.');
-    })
-    .finally(() => {
-      toHide.forEach(el => { el.style.visibility = ''; });
-      if (btnEl) { btnEl.classList.remove('busy'); btnEl.textContent = '📸 Descargar imagen'; }
-    });
-}
-
 // ── CEREMONIA GENÉRICA v3: reveal en 3 fases por item ──
 // Genera las chispas que estallan al revelar el nombre (posiciones al azar en abanico)
 function _sparksHtml() {
@@ -12071,13 +11986,11 @@ function grandFinale() {
 function _runGrandFinale() {
   // 1) Arrancar la música de Michael Jackson desde el inicio (suena durante toda la ceremonia)
   startCeremonyMusic();
-  // 2) Podio individual → (5s) → podio grupal → (5s) → resumen Wrapped → créditos
+  // 2) Podio individual (10s tras mostrarse) → podio grupal (10s tras mostrarse) → resumen Wrapped → créditos
   podiumReveal('individual', () => {
-    _ceremonyTimer = setTimeout(() => {
-      podiumReveal('grupal', () => {
-        _ceremonyTimer = setTimeout(() => { showWrapped(() => rollCredits()); }, 5000);
-      });
-    }, 5000);
+    podiumReveal('grupal', () => {
+      showWrapped(() => rollCredits());
+    });
   });
 }
 
@@ -12511,7 +12424,6 @@ function podiumReveal(phaseKind, onContinue) {
 
   overlay.innerHTML =
     '<button class="ceremony-close" onclick="closeCeremony(\'podium-reveal\')">✕ Salir</button>'
-    + '<button class="pr-shot-btn" id="pr-shot-btn">📸 Descargar imagen</button>'
     + '<div class="pr-bg-deco" aria-hidden="true">' + decoHtml + '</div>'
     + '<div class="pr-eyebrow">' + eyebrow + '</div>'
     + '<div class="pr-stage"><div class="pr-row">'
@@ -12546,16 +12458,11 @@ function podiumReveal(phaseKind, onContinue) {
     // dato random — así no compiten con la revelación ni la apuran.
     const statsEl = overlay.querySelector('#pr-stats');
     const factEl  = overlay.querySelector('#pr-fact');
-    const shotBtn = overlay.querySelector('#pr-shot-btn');
     if (statsEl) statsEl.classList.add('show');
     if (factEl)  factEl.classList.add('show');
-    if (shotBtn) {
-      shotBtn.classList.add('show');
-      shotBtn.onclick = (ev) => { ev.stopPropagation(); downloadPodiumImage(shotBtn); };
-    }
-    // AUTOMÁTICO: tras revelar el campeón, espera y avanza solo (sin botón de "saltar")
+    // AUTOMÁTICO: tras revelar el campeón, espera 10s y avanza solo (sin botón de "saltar")
     if (_ceremonyTimer) clearTimeout(_ceremonyTimer);
-    _ceremonyTimer = setTimeout(advance, 6500);
+    _ceremonyTimer = setTimeout(advance, 10000);
   }
 
   function revealNext() {
