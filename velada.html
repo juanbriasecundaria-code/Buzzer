@@ -11987,9 +11987,12 @@ function _runGrandFinale() {
   // 1) Arrancar la música de Michael Jackson desde el inicio (suena durante toda la ceremonia)
   startCeremonyMusic();
   // 2) Podio individual (10s tras mostrarse) → podio grupal (10s tras mostrarse) → resumen Wrapped → créditos
+  // Si por lo que sea el resumen Wrapped falla, no dejamos la noche colgada:
+  // se cae directo a los créditos igual.
   podiumReveal('individual', () => {
     podiumReveal('grupal', () => {
-      showWrapped(() => rollCredits());
+      try { showWrapped(() => rollCredits()); }
+      catch (e) { rollCredits(); }
     });
   });
 }
@@ -12161,49 +12164,67 @@ function escHtml(s) { return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;',
 // que se sienta un resumen armado, no una lista de datos sueltos.
 function buildWrapped() {
   const screens = [];
-  const statsIndiv = computePhaseStats('individual');
-  const statsGrupal = computePhaseStats('grupal');
-  const totalPartidos = (statsIndiv.matchesPlayed || 0) + (statsGrupal.matchesPlayed || 0);
 
-  screens.push({
-    emoji: '🎬', color: '#f5c842', title: 'Así fue la noche',
-    stat: totalPartidos, desc: `duelo${totalPartidos === 1 ? '' : 's'} jugado${totalPartidos === 1 ? '' : 's'} entre las dos fases`
-  });
+  // Cada bloque va en su propio try/catch (igual que las stats del podio):
+  // si el dato de ESTA noche hace fallar un cálculo puntual, se salta solo
+  // esa pantalla en vez de tirar abajo todo el resumen y dejar la ceremonia
+  // colgada (buildWrapped no tenía ninguna red de seguridad antes).
+  let statsIndiv = { matchesPlayed: 0, streakLen: 0 };
+  let statsGrupal = { matchesPlayed: 0, streakLen: 0 };
+  try {
+    statsIndiv = computePhaseStats('individual') || statsIndiv;
+    statsGrupal = computePhaseStats('grupal') || statsGrupal;
+    const totalPartidos = (statsIndiv.matchesPlayed || 0) + (statsGrupal.matchesPlayed || 0);
+    screens.push({
+      emoji: '🎬', color: '#f5c842', title: 'Así fue la noche',
+      stat: totalPartidos, desc: `duelo${totalPartidos === 1 ? '' : 's'} jugado${totalPartidos === 1 ? '' : 's'} entre las dos fases`
+    });
+  } catch (e) {}
 
-  const comeback = findBiggestComeback();
-  if (comeback) screens.push({
-    emoji: '📈', color: '#60b4f0', title: 'La remontada de la noche',
-    stat: `+${comeback.gain}`, name: escHtml(comeback.name),
-    desc: `Llegó a estar ${ordinalWord(comeback.worstRank)} y terminó ${ordinalWord(comeback.finalRank)}`
-  });
+  try {
+    const comeback = findBiggestComeback();
+    if (comeback) screens.push({
+      emoji: '📈', color: '#60b4f0', title: 'La remontada de la noche',
+      stat: `+${comeback.gain}`, name: escHtml(comeback.name),
+      desc: `Llegó a estar ${ordinalWord(comeback.worstRank)} y terminó ${ordinalWord(comeback.finalRank)}`
+    });
+  } catch (e) {}
 
-  const bestStreak = (statsGrupal.streakLen > statsIndiv.streakLen) ? statsGrupal : statsIndiv;
-  if (bestStreak.streakLen >= 2) screens.push({
-    emoji: '🔥', color: '#ff8a3d', title: 'La racha más larga',
-    stat: bestStreak.streakLen, name: escHtml(bestStreak.streakName),
-    desc: `victoria${bestStreak.streakLen === 1 ? '' : 's'} seguida${bestStreak.streakLen === 1 ? '' : 's'}`
-  });
+  try {
+    const bestStreak = (statsGrupal.streakLen > statsIndiv.streakLen) ? statsGrupal : statsIndiv;
+    if (bestStreak.streakLen >= 2) screens.push({
+      emoji: '🔥', color: '#ff8a3d', title: 'La racha más larga',
+      stat: bestStreak.streakLen, name: escHtml(bestStreak.streakName),
+      desc: `victoria${bestStreak.streakLen === 1 ? '' : 's'} seguida${bestStreak.streakLen === 1 ? '' : 's'}`
+    });
+  } catch (e) {}
 
-  const closest = findClosestMatch();
-  if (closest) screens.push({
-    emoji: '⚖️', color: '#c084fc', title: 'El duelo más parejo',
-    stat: closest.diff === 0 ? 'Empate' : closest.diff, name: `${escHtml(closest.nameA)} vs ${escHtml(closest.nameB)}`,
-    desc: closest.diff === 0 ? 'Llegaron empatados en puntos a ese duelo' : `punto${closest.diff === 1 ? '' : 's'} de diferencia al llegar a ese duelo`
-  });
+  try {
+    const closest = findClosestMatch();
+    if (closest) screens.push({
+      emoji: '⚖️', color: '#c084fc', title: 'El duelo más parejo',
+      stat: closest.diff === 0 ? 'Empate' : closest.diff, name: `${escHtml(closest.nameA)} vs ${escHtml(closest.nameB)}`,
+      desc: closest.diff === 0 ? 'Llegaron empatados en puntos a ese duelo' : `punto${closest.diff === 1 ? '' : 's'} de diferencia al llegar a ese duelo`
+    });
+  } catch (e) {}
 
-  const fastest = findFastestTurnaround();
-  if (fastest && fastest.gapMin < 5) screens.push({
-    emoji: '⚡', color: '#c8f060', title: 'El resultado más rápido de la noche',
-    stat: fastest.gapMin < 1 ? '<1 min' : `${Math.round(fastest.gapMin)} min`,
-    desc: 'tardó en cargarse desde el resultado anterior'
-  });
+  try {
+    const fastest = findFastestTurnaround();
+    if (fastest && fastest.gapMin < 5) screens.push({
+      emoji: '⚡', color: '#c8f060', title: 'El resultado más rápido de la noche',
+      stat: fastest.gapMin < 1 ? '<1 min' : `${Math.round(fastest.gapMin)} min`,
+      desc: 'tardó en cargarse desde el resultado anterior'
+    });
+  } catch (e) {}
 
-  const comodinesCount = ((state.comodines || []).filter(c => c.status === 'done' && c.delta)).length
-    + ((state.comodinesF2 || []).filter(c => c.status === 'done' && c.delta)).length;
-  if (comodinesCount > 0) screens.push({
-    emoji: '🎰', color: '#ff6ec7', title: 'Comodines que cambiaron el rumbo',
-    stat: comodinesCount, desc: `comodín${comodinesCount === 1 ? '' : 'es'} de la ruleta sumaron o restaron puntos durante la noche`
-  });
+  try {
+    const comodinesCount = ((state.comodines || []).filter(c => c.status === 'done' && c.delta)).length
+      + ((state.comodinesF2 || []).filter(c => c.status === 'done' && c.delta)).length;
+    if (comodinesCount > 0) screens.push({
+      emoji: '🎰', color: '#ff6ec7', title: 'Comodines que cambiaron el rumbo',
+      stat: comodinesCount, desc: `comodín${comodinesCount === 1 ? '' : 'es'} de la ruleta sumaron o restaron puntos durante la noche`
+    });
+  } catch (e) {}
 
   screens.push({ emoji: '🎉', color: '#f5c842', title: '¡Gracias por jugar!', desc: 'Ahora sí... ¡los créditos!' });
 
