@@ -11087,13 +11087,13 @@ const CREDITS_SPEED_FACTOR = 0.82;
 // cuánto duran los créditos.
 // ── DURACIÓN TOTAL DEL CIERRE ────────────────────────────────────────────
 // Toda la secuencia de cierre (podio individual + podio grupal + Wrapped +
-// scroll de créditos, hasta que aparece el contador "próxima velada") dura
-// SIEMPRE esto, sin importar cuántas pantallas tenga el Wrapped: el scroll de
-// créditos se estira o se acorta en tiempo real para clavar el total.
+// scroll de créditos, hasta que la palabra "FIN" termina de salir de pantalla)
+// dura SIEMPRE esto, sin importar cuántas pantallas tenga el Wrapped: el scroll
+// de créditos se estira o se acorta en tiempo real para clavar el total.
 const VELADA_CLOSE_TOTAL_MS = 177000; // 2:57
-// Cola después del scroll (fade de música + aparición del contador) que ya
-// no es "scroll": se descuenta del presupuesto para que el total dé 2:57.
-const VELADA_CLOSE_END_TAIL_MS = 3500;
+// Cola después de que "FIN" sale de pantalla: fade de música + fade del overlay
+// antes de cerrar. Se descuenta del presupuesto para que el total dé 2:57.
+const VELADA_CLOSE_END_TAIL_MS = 1200;
 const CREDITS_ROLL_MIN_SECONDS = 45;  // piso de seguridad para que no quede tipo rewind
 const CREDITS_ROLL_MAX_SECONDS = 150; // techo de seguridad
 let _veladaCloseStart = null;         // performance.now() al arrancar el cierre
@@ -11461,15 +11461,9 @@ function rollCredits() {
   document.addEventListener('keydown', _creditsKeyHandler);
   observeCreditsBlocks();
 
-  // Modo sin movimiento: créditos estáticos + contador al pie, música sin sync
+  // Modo sin movimiento: créditos estáticos, sin scroll y sin contador.
   if (reduce) {
     roll.style.position = 'relative'; roll.style.transform = 'none';
-    const cd = document.createElement('div');
-    cd.className = 'cd-wrap'; cd.style.position = 'relative'; cd.style.inset = 'auto';
-    cd.style.minHeight = '70vh'; cd.style.marginTop = '2rem';
-    cd.innerHTML = `<div class="cd-eyebrow">La próxima velada</div><div class="cd-timer" id="cd-timer"></div><div class="cd-date">29 de septiembre</div>`;
-    roll.appendChild(cd);
-    startCountdownTicker(nextSep29());
     const a = makeCreditsAudio();
     if (a) { a.addEventListener('loadedmetadata', () => { try { a.currentTime = CREDITS_MUSIC.startAt || 0; } catch (e) {} a.play().catch(() => {}); }); }
     return;
@@ -11544,83 +11538,14 @@ function startRoll(speed) {
 function creditsEnded() {
   if (_creditsAF) { cancelAnimationFrame(_creditsAF); _creditsAF = null; }
   if (_grooveGuard) { clearInterval(_grooveGuard); _grooveGuard = null; }
-  const a = _creditsAudio;
-  const hasOutro = a && CREDITS_MUSIC.outroAt != null && isFinite(a.duration);
 
-  if (!hasOutro) {
-    // sin outro configurado: comportamiento clásico (fade out + contador)
-    fadeOutCreditsAudio();
-    if (_creditsEndTimer) clearTimeout(_creditsEndTimer);
-    _creditsEndTimer = setTimeout(showCountdown, 3500);
-    return;
-  }
-
-  // ── CROSSFADE REAL al "mama-say" (dos audios solapados, sin corte seco) ──
-  const target  = (CREDITS_MUSIC.volume != null) ? CREDITS_MUSIC.volume : 0.85;
-  const xfMs    = CREDITS_MUSIC.crossfadeMs || 2600;
-  const holdMs  = CREDITS_MUSIC.outroHoldMs || 13000;
-  const outroAt = CREDITS_MUSIC.outroAt;
-  const stepMs  = 50;
-  const steps   = Math.max(1, xfMs / stepMs);
-
-  // Segundo audio: el "mama-say", arranca en silencio desde outroAt
-  let b = null;
-  try {
-    b = new Audio(CREDITS_MUSIC.src);
-    b.preload = 'auto';
-    b.volume = 0;
-    b.currentTime = outroAt;
-    b.play().catch(() => {});
-  } catch (e) { b = null; }
-
-  // Si no se pudo crear el segundo audio, fallback: fade out simple + contador
-  if (!b) {
-    fadeOutCreditsAudio();
-    showCountdown();
-    return;
-  }
-
-  // El "mama-say" entra junto con el contador
-  showCountdown();
-
-  // Crossfade: A (groove) baja de target→0 mientras B (mama-say) sube de 0→target, a la vez
-  let i = 0;
-  const stepFn = () => {
-    i++;
-    const r = Math.min(1, i / steps);
-    // curva suave (ease-in-out) para que el cruce no se note
-    const ease = r < 0.5 ? 2*r*r : 1 - Math.pow(-2*r+2, 2)/2;
-    try { if (_creditsAudio) _creditsAudio.volume = Math.max(0, target * (1 - ease)); } catch (e) {}
-    try { b.volume = Math.min(target, target * ease); } catch (e) {}
-    if (i < steps) { setTimeout(stepFn, stepMs); }
-    else {
-      // termina el cruce: A se apaga, B queda como audio principal
-      try { if (_creditsAudio) _creditsAudio.pause(); } catch (e) {}
-      _creditsAudio = b;
-      // tras unos segundos de mama-say, fade out final suave
-      if (_creditsEndTimer) clearTimeout(_creditsEndTimer);
-      _creditsEndTimer = setTimeout(() => fadeOutCreditsAudio(), holdMs);
-    }
-  };
-  stepFn();
-}
-
-function showCountdown() {
-  const overlay = document.getElementById('credits');
-  if (!overlay || !overlay.classList.contains('show')) return;
-  if (_creditsBlockObserver) { _creditsBlockObserver.disconnect(); _creditsBlockObserver = null; }
-  overlay.innerHTML = `
-    <div class="cd-wrap">
-      <div class="cd-eyebrow">La próxima velada</div>
-      <div class="cd-timer" id="cd-timer"></div>
-      <div class="cd-date">29 de septiembre</div>
-    </div>
-    <button class="credits-close" onclick="event.stopPropagation(); closeCredits()">✕ Salir</button>`;
-  overlay.onclick = null;
-  startCountdownTicker(nextSep29());
-  // AUTOMÁTICO: tras mostrar el contador final, cierra solo a los 10s
-  if (_creditsAutoCloseTimer) clearTimeout(_creditsAutoCloseTimer);
-  _creditsAutoCloseTimer = setTimeout(closeCredits, 10000);
+  // La palabra \"FIN\" ya salió de pantalla: se acaba la secuencia. Ya no hay
+  // contador de \"próxima velada\" — bajamos la música suave y cerramos.
+  try { fadeOutCreditsAudio(); } catch (e) {}
+  if (_creditsEndTimer) clearTimeout(_creditsEndTimer);
+  // Pequeña espera para que el fade de música y el fade del overlay no se pisen
+  // en seco; luego cierra solo.
+  _creditsEndTimer = setTimeout(() => { closeCredits(); }, 1200);
 }
 
 function closeCredits() {
