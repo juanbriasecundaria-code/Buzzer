@@ -1016,8 +1016,10 @@ function fbOpenBuzzer(blocked){
   _buzzBlocked = blocked || null;
   if(!fbRef) return;
   clearTimeout(_buzzCountdownTimer);
-  const startTs = Date.now();
-  fbRef.set({ state:'countdown', winner:null, blocked:_buzzBlocked, countdownStart:startTs, countdownMs:BUZZ_COUNTDOWN_MS, names:{ a:nameA, b:nameB } });
+  // countdownStart va como ServerValue.TIMESTAMP (lo resuelve el servidor
+  // de Firebase, no el reloj de este celu) para que el 3-2-1 quede
+  // sincronizado en todos los dispositivos.
+  fbRef.set({ state:'countdown', winner:null, blocked:_buzzBlocked, countdownStart:firebase.database.ServerValue.TIMESTAMP, countdownMs:BUZZ_COUNTDOWN_MS, names:{ a:nameA, b:nameB } });
   _buzzCountdownTimer = setTimeout(()=>{
     if(!fbRef) return;
     fbRef.set({ state:'open', winner:null, blocked:_buzzBlocked, names:{ a:nameA, b:nameB } });
