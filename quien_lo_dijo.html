@@ -901,20 +901,29 @@ function fbPushDeck(){
 }
 
 // ── BUZZER ──
-let buzzerState = 'locked'; // 'locked' | 'open' | 'won'
+let buzzerState = 'locked'; // 'locked' | 'countdown' | 'open' | 'won'
 let buzzerWinner = null;    // { name }
+const BUZZ_COUNTDOWN_MS = 3000; // 3, 2, 1 antes de habilitar
+let _buzzCountdownTimer = null;
 function fbOpenBuzzer(){
   if(!fbBuzzerRef) return;
-  fbBuzzerRef.set({ state:'open', winner:null });
+  clearTimeout(_buzzCountdownTimer);
+  const startTs = Date.now();
+  fbBuzzerRef.set({ state:'countdown', winner:null, countdownStart:startTs, countdownMs:BUZZ_COUNTDOWN_MS });
   buzzerWinner = null;
+  _buzzCountdownTimer = setTimeout(()=>{
+    if(!fbBuzzerRef) return;
+    fbBuzzerRef.set({ state:'open', winner:null });
+  }, BUZZ_COUNTDOWN_MS);
 }
 function fbLockBuzzer(){
+  clearTimeout(_buzzCountdownTimer);
   if(!fbBuzzerRef) return;
   fbBuzzerRef.set({ state:'locked', winner:null });
   buzzerWinner = null;
 }
 function toggleBuzzer(){
-  if(buzzerState === 'open' || buzzerState === 'won') fbLockBuzzer();
+  if(buzzerState === 'open' || buzzerState === 'won' || buzzerState === 'countdown') fbLockBuzzer();
   else fbOpenBuzzer();
 }
 function applyBuzzerState(d){
@@ -947,6 +956,11 @@ function renderBuzzerBanner(){
     el.className = 'buzzer-banner won';
     el.style.display = 'flex';
     if(btn){ btn.textContent = '🔓 Reabrir buzzer'; btn.classList.remove('primary'); btn.classList.add('danger'); }
+  } else if(buzzerState === 'countdown'){
+    el.innerHTML = `<div class="bb-icon">⏳</div><div class="bb-body"><div class="bb-lbl">Cuenta regresiva…</div><div class="bb-name">3, 2, 1 — el buzzer se abre solo</div></div><button class="bb-reset" onclick="fbLockBuzzer()">Cancelar</button>`;
+    el.className = 'buzzer-banner open';
+    el.style.display = 'flex';
+    if(btn){ btn.textContent = '⏳ Cancelar cuenta regresiva'; btn.classList.remove('primary'); btn.classList.add('danger'); }
   } else if(buzzerState === 'open'){
     el.innerHTML = `<div class="bb-icon">🔔</div><div class="bb-body"><div class="bb-lbl">Buzzer abierto</div><div class="bb-name">Esperando que alguien buzzee…</div></div><button class="bb-reset" onclick="fbLockBuzzer()">Cerrar</button>`;
     el.className = 'buzzer-banner open';
