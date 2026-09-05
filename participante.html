@@ -415,6 +415,32 @@
 
   .gh-back-link{position:fixed;top:max(0.75rem,env(safe-area-inset-top));left:max(0.75rem,env(safe-area-inset-left));z-index:99999;font-size:11px;font-weight:700;color:rgba(240,239,232,0.7);background:rgba(10,10,14,0.6);border:1px solid rgba(255,255,255,0.1);border-radius:99px;padding:0.38rem 0.85rem;text-decoration:none;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);letter-spacing:0.04em;transition:color 0.15s,border-color 0.15s;white-space:nowrap}
   .gh-back-link:hover{color:#f0efe8;border-color:rgba(255,255,255,0.25)}
+
+  /* Aviso flotante que acompaña a la vibración */
+  .gh-news{position:fixed;left:50%;transform:translateX(-50%) translateY(-18px);
+    top:calc(env(safe-area-inset-top) + .6rem);z-index:9999;
+    background:var(--surface);border:1.5px solid var(--accent);border-radius:99px;
+    padding:.6rem 1.1rem;font-size:13px;font-weight:800;color:var(--text);
+    box-shadow:0 6px 26px rgba(0,0,0,.55);opacity:0;pointer-events:none;
+    transition:opacity .3s ease,transform .35s cubic-bezier(.2,1.1,.35,1);white-space:nowrap;max-width:92vw;
+    overflow:hidden;text-overflow:ellipsis}
+  .gh-news.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+  /* Cuántas rondas faltan para tu duelo */
+  .gh-away{display:inline-block;margin-left:.35rem;font-size:9.5px;font-weight:800;
+    letter-spacing:.04em;padding:1px 7px;border-radius:99px;
+    background:rgba(255,255,255,.07);color:var(--muted)}
+  .gh-away.soon{background:rgba(245,200,66,.18);color:#f5c842}
+  .gh-away.now{background:rgba(200,240,96,.2);color:var(--accent)}
+
+  /* Cara a cara */
+  .gh-h2h{display:flex;flex-direction:column;gap:.3rem;margin-top:.6rem}
+  .gh-h2h-row{display:flex;align-items:center;gap:.6rem;padding:.45rem .6rem;
+    background:var(--surface2);border-radius:9px}
+  .gh-h2h-name{flex:1;min-width:0;font-size:12.5px;font-weight:700;
+    overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .gh-h2h-rec{font-size:13px;font-weight:900;flex-shrink:0}
+  .gh-h2h-tot{font-size:10px;color:var(--muted);flex-shrink:0;min-width:56px;text-align:right}
 </style>
 </head>
 <body>
@@ -1015,6 +1041,25 @@ function renderSelection() {
   });
 }
 
+
+// Cuántas rondas faltan para tu próximo duelo. Sirve para saber si podés ir a
+// comer tranquilo o si tenés que estar yendo a la mesa.
+function roundsAway(type, nextRound) {
+  const fx = type === 'f1' ? F1_FIXTURE : F2_FIXTURE;
+  const store = (type === 'f1' ? latestState.f1 : latestState.f2) || {};
+  const pend = new Set();
+  fx.forEach(m => { if (!store[m[0] + '-' + m[1] + '-' + m[2]]) pend.add(m[0]); });
+  // Rondas pendientes anteriores a la tuya
+  return [...pend].filter(r => r < nextRound).length;
+}
+
+function nextBadge(type, nextRound) {
+  const away = roundsAway(type, nextRound);
+  if (away === 0) return '<span class="gh-away now">👉 Te toca ahora</span>';
+  if (away === 1) return '<span class="gh-away soon">⏱️ Falta 1 ronda</span>';
+  return '<span class="gh-away">Faltan ' + away + ' rondas</span>';
+}
+
 function renderPhaseCard(type, myIdx, myName) {
   const isF1 = type === 'f1';
   const list = ranked(type);
@@ -1027,7 +1072,7 @@ function renderPhaseCard(type, myIdx, myName) {
 
   let matchesHtml = '';
   if (next) {
-    matchesHtml += `<div class="gh-match"><span class="gh-match-icon">⏳</span><div class="gh-match-text"><span class="gh-match-tag">Próximo · Ronda ${next.round}</span>vs. ${escapeHtml(next.oppName)} — ${escapeHtml(next.game)}</div></div>`;
+    matchesHtml += `<div class="gh-match"><span class="gh-match-icon">⏳</span><div class="gh-match-text"><span class="gh-match-tag">Próximo · Ronda ${next.round} ${nextBadge(type, next.round)}</span>vs. ${escapeHtml(next.oppName)} — ${escapeHtml(next.game)}</div></div>`;
   }
   if (last) {
     const icon = last.result === 'empate' ? '🤝' : last.result === 'gano' ? '⚡' : '💀';
@@ -1077,6 +1122,7 @@ function renderDashboard(myName) {
       <div class="gh-title">Hola, ${escapeHtml(myName)} 👋</div>
     </div>
     ${renderPhaseCard('f1', myIdx, myName)}
+    ${safeBlock(() => renderH2H(myName))}
     ${teamIdx >= 0 ? renderPhaseCard('f2', teamIdx, myName) : ''}
     <div class="gh-cert-card">
       <div class="gh-cert-card-emoji">🎓</div>
@@ -1623,6 +1669,105 @@ function pickAndUploadPhotos(myName) {
     }
   };
   inp.click();
+}
+
+
+// ── HÁPTICA: el celular avisa cuando pasa algo TUYO ──────────
+// Antes el teléfono del invitado no vibraba nunca; ahora reacciona a sus
+// propios resultados y apuestas, que es lo que mira toda la noche.
+let _seenF1 = null, _seenF2 = null, _hapticArmed = false;
+
+function buzz(pattern) {
+  try { if (navigator.vibrate) navigator.vibrate(pattern); } catch (e) {}
+}
+
+// Devuelve las claves de duelos ya cargados, para comparar entre actualizaciones
+function resultKeys(store) { return new Set(Object.keys(store || {})); }
+
+function checkMyNews(myName) {
+  const f1 = resultKeys(latestState.f1), f2 = resultKeys(latestState.f2);
+  // La primera vez solo tomamos la foto: no queremos vibrar por lo ya jugado
+  if (!_hapticArmed) { _seenF1 = f1; _seenF2 = f2; _hapticArmed = true; return; }
+
+  const myIdx = PLAYERS.indexOf(myName);
+  const myTeam = teamIndexForPlayer(myName);
+  const toast = [];
+
+  f1.forEach(k => {
+    if (_seenF1.has(k)) return;
+    const res = latestState.f1[k], p = k.split('-').map(Number);
+    if (myIdx < 0 || (p[1] !== myIdx && p[2] !== myIdx)) return;
+    if (res.winner === 'empate')      { buzz([40, 60, 40]);            toast.push('🤝 Empataste tu duelo'); }
+    else if (res.winner === myIdx)    { buzz(res.bonus ? [70,50,70,50,110] : [60,50,110]); toast.push(res.bonus ? '⭐ ¡Ganaste con bonus!' : '🏆 ¡Ganaste tu duelo!'); }
+    else                              { buzz(140);                     toast.push('😕 Perdiste tu duelo'); }
+  });
+
+  f2.forEach(k => {
+    if (_seenF2.has(k)) return;
+    const res = latestState.f2[k], p = k.split('-').map(Number);
+    if (myTeam < 0 || (p[1] !== myTeam && p[2] !== myTeam)) return;
+    if (res.winner === 'empate')      { buzz([40, 60, 40]);            toast.push('🤝 Tu equipo empató'); }
+    else if (res.winner === myTeam)   { buzz(res.bonus ? [70,50,70,50,110] : [60,50,110]); toast.push(res.bonus ? '⭐ ¡Tu equipo ganó con bonus!' : '🏆 ¡Ganó tu equipo!'); }
+    else                              { buzz(140);                     toast.push('😕 Perdió tu equipo'); }
+  });
+
+  _seenF1 = f1; _seenF2 = f2;
+  if (toast.length) showNews(toast[toast.length - 1]);
+}
+
+// Cartelito flotante que acompaña a la vibración
+function showNews(txt) {
+  let el = document.getElementById('gh-news');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'gh-news';
+    el.className = 'gh-news';
+    document.body.appendChild(el);
+  }
+  el.textContent = txt;
+  el.classList.add('show');
+  clearTimeout(showNews._t);
+  showNews._t = setTimeout(() => el.classList.remove('show'), 3600);
+}
+
+// ── CARA A CARA: tu récord contra cada rival ─────────────────
+function headToHead(myName) {
+  const myIdx = PLAYERS.indexOf(myName);
+  if (myIdx < 0) return [];
+  const rec = {};
+  Object.keys(latestState.f1 || {}).forEach(k => {
+    const res = latestState.f1[k], p = k.split('-').map(Number);
+    if (p[1] !== myIdx && p[2] !== myIdx) return;
+    const rivalIdx = p[1] === myIdx ? p[2] : p[1];
+    const rival = PLAYERS[rivalIdx];
+    if (!rival) return;
+    rec[rival] = rec[rival] || { w: 0, l: 0, e: 0 };
+    if (res.winner === 'empate') rec[rival].e++;
+    else if (res.winner === myIdx) rec[rival].w++;
+    else rec[rival].l++;
+  });
+  return Object.keys(rec)
+    .map(n => ({ n, ...rec[n] }))
+    .sort((a, b) => (b.w + b.l + b.e) - (a.w + a.l + a.e));
+}
+
+function renderH2H(myName) {
+  const h = headToHead(myName);
+  if (!h.length) return '';
+  const rows = h.map(x => {
+    const tot = x.w + x.l + x.e;
+    const col = x.w > x.l ? 'var(--accent)' : (x.l > x.w ? 'var(--danger)' : 'var(--muted)');
+    return `<div class="gh-h2h-row">
+      <span class="gh-h2h-name">${escapeHtml(String(x.n).split(' ')[0])}</span>
+      <span class="gh-h2h-rec" style="color:${col}">${x.w}–${x.l}${x.e ? ' (' + x.e + 'E)' : ''}</span>
+      <span class="gh-h2h-tot">${tot} duelo${tot === 1 ? '' : 's'}</span>
+    </div>`;
+  }).join('');
+  return `<div class="gh-card">
+    <div class="gh-card-title">⚔️ Cara a cara</div>
+    <div class="gh-card-sub">Tu récord contra cada rival en Fase 1</div>
+    <div class="gh-h2h">${rows}</div>
+  </div>`;
 }
 
 // ── Pestañas (Yo / En vivo) ──────────────────────────────────
@@ -2232,6 +2377,10 @@ onSnapshot(doc(db, 'ndj', 'state'), (snap) => {
   }
   lastUpdate = new Date();
   ready = true;
+  try {
+    const who = localStorage.getItem('ndj_guest_who');
+    if (who) checkMyNews(who);
+  } catch (e) {}
   render();
 }, (err) => {
   console.warn('Firebase onSnapshot error (state):', err);
