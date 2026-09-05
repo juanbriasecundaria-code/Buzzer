@@ -3052,6 +3052,79 @@ body.started .velada-bg-scrim { display: block; }
   #opening.op-flash::before { animation: none; }
 }
 
+
+/* ── REVELACIÓN DEL IMPOSTOR ── */
+.imp-reveal{position:fixed;inset:0;z-index:9800;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;text-align:center;cursor:pointer;
+  padding:calc(2rem + env(safe-area-inset-top)) 1.5rem calc(2rem + env(safe-area-inset-bottom));
+  background:radial-gradient(circle at 50% 45%,rgba(255,95,95,.13),rgba(6,6,10,.985) 62%),#06060a;
+  opacity:0;transition:opacity .45s ease}
+.imp-reveal.show{opacity:1}
+.ir-eyebrow{font-size:clamp(11px,2.4vw,15px);font-weight:900;letter-spacing:.3em;
+  text-transform:uppercase;color:var(--danger);opacity:.9;
+  animation:irPulse 1.5s ease-in-out infinite}
+@keyframes irPulse{0%,100%{opacity:.55}50%{opacity:1}}
+.ir-name{font-size:clamp(2.1rem,10vw,5.5rem);font-weight:900;color:#fff;
+  letter-spacing:-.02em;line-height:1.06;margin-top:clamp(.8rem,2.5vh,1.6rem);
+  min-height:1.2em;text-shadow:0 0 40px rgba(255,95,95,.45)}
+.ir-name::after{content:'▌';color:var(--danger);animation:irCaret .6s step-end infinite}
+.ir-name.done::after{display:none}
+.ir-name.done{animation:irPop .5s cubic-bezier(.2,1.4,.4,1)}
+@keyframes irPop{0%{transform:scale(1)}45%{transform:scale(1.07)}100%{transform:scale(1)}}
+@keyframes irCaret{50%{opacity:0}}
+.ir-word{font-size:clamp(12px,2.6vw,17px);color:var(--muted);margin-top:clamp(.9rem,2.5vh,1.5rem)}
+.ir-word b{color:var(--gold)}
+.ir-skip{position:absolute;bottom:calc(1.6rem + env(safe-area-inset-bottom));
+  font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--muted);opacity:.5}
+@media (prefers-reduced-motion: reduce){.imp-reveal{display:none}}
+
+/* ── ENTRADA DE ESTACIÓN ── */
+.round-intro-btn{width:100%;padding:.7rem;margin-bottom:.75rem;border-radius:var(--radius);
+  border:1.5px solid var(--border2);background:var(--surface2);color:var(--muted);
+  font-family:inherit;font-size:13px;font-weight:700;cursor:pointer;transition:border-color .15s,color .15s}
+.round-intro-btn:hover{border-color:var(--accent);color:var(--accent)}
+
+.round-intro{position:fixed;inset:0;z-index:9700;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;gap:clamp(1rem,3vh,2rem);
+  padding:calc(2rem + env(safe-area-inset-top)) 1.25rem calc(2rem + env(safe-area-inset-bottom));
+  background:rgba(8,8,12,.97);backdrop-filter:blur(14px);
+  opacity:0;transition:opacity .35s ease;overflow-y:auto}
+.round-intro.show{opacity:1}
+.ri-head{text-align:center;flex-shrink:0}
+.ri-eyebrow{font-size:clamp(9px,1.6vw,12px);font-weight:900;letter-spacing:.26em;
+  text-transform:uppercase;color:var(--muted)}
+.ri-title{font-size:clamp(2rem,7vw,3.6rem);font-weight:900;letter-spacing:-.02em;
+  color:var(--accent);line-height:1.05;margin-top:.2rem}
+.ri-sub{font-size:clamp(11px,2vw,15px);color:var(--muted);margin-top:.25rem}
+
+.ri-grid{display:flex;flex-wrap:wrap;gap:.7rem;justify-content:center;
+  max-width:960px;width:100%}
+.ri-card{flex:1 1 200px;max-width:260px;background:var(--surface);
+  border:1.5px solid var(--border2);border-radius:16px;padding:.9rem .8rem;text-align:center;
+  animation:riIn .5s cubic-bezier(.2,1.1,.35,1) both}
+@keyframes riIn{from{opacity:0;transform:translateY(16px) scale(.96)}to{opacity:1;transform:none}}
+.ri-card.done{opacity:.42}
+.ri-station{font-size:9px;font-weight:900;letter-spacing:.2em;text-transform:uppercase;color:var(--muted)}
+.ri-game{font-size:clamp(13px,2.2vw,17px);font-weight:800;color:var(--text);margin:.3rem 0 .5rem;line-height:1.15}
+.ri-vs{display:flex;flex-direction:column;gap:.1rem;font-size:clamp(12px,2vw,15px);font-weight:700}
+.ri-vs em{font-style:normal;font-size:10px;color:var(--muted);letter-spacing:.1em}
+.ri-done{font-size:10px;color:var(--success);margin-top:.4rem;font-weight:700}
+.ri-rest{font-size:12px;color:var(--muted);text-align:center}
+.ri-rest b{color:var(--text)}
+.ri-close{padding:.85rem 2rem;border-radius:99px;border:none;background:var(--accent);
+  color:#0a0a0e;font-family:inherit;font-size:15px;font-weight:900;cursor:pointer;flex-shrink:0}
+
+/* ── Mapa de calor de estaciones (créditos) ── */
+.cr-heat{max-width:520px;margin:.8rem auto 0;display:flex;flex-direction:column;gap:.4rem}
+.cr-heat-row{display:flex;align-items:center;gap:.6rem}
+.cr-heat-name{flex:0 0 40%;text-align:right;font-size:.82em;font-weight:700;color:var(--text);
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cr-heat-bar{flex:1;height:9px;border-radius:99px;background:rgba(255,255,255,.07);overflow:hidden}
+.cr-heat-bar>span{display:block;height:100%;border-radius:99px;
+  background:linear-gradient(90deg,var(--info),var(--gold))}
+.cr-heat-val{flex:0 0 44px;text-align:left;font-size:.78em;font-weight:800;color:var(--gold)}
+.cr-heat-facts{margin-top:.9rem;font-size:.82em;color:var(--muted);line-height:1.7;text-align:center}
+.cr-heat-facts b{color:var(--text)}
 </style>
 <style>.hub-link{position:fixed;top:max(0.75rem,env(safe-area-inset-top));left:max(0.75rem,env(safe-area-inset-left));z-index:99999;font-size:11px;font-weight:700;color:rgba(240,239,232,0.7);background:rgba(10,10,14,0.6);border:1px solid rgba(255,255,255,0.1);border-radius:99px;padding:0.38rem 0.85rem;text-decoration:none;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);letter-spacing:0.04em;transition:color 0.15s,border-color 0.15s;white-space:nowrap}.hub-link:hover{color:#f0efe8;border-color:rgba(255,255,255,0.25)}body:has(.ceremony.show) .hub-link{display:none}</style></head>
 <body>
@@ -3208,6 +3281,7 @@ window.VarSwitch = (function () {
 
 <!-- ======================== FASE 1 ======================== -->
 <div class="page" id="page-fase1">
+  <button class="round-intro-btn" onclick="showNextRoundIntro('f1')">📺 Anunciar la próxima ronda en pantalla</button>
   <div id="bet-control-f1"></div>
   <div id="next-match-f1" style="margin-bottom:0.75rem"></div>
   <div id="my-next-f1" style="margin-bottom:0.75rem"></div>
@@ -3266,6 +3340,7 @@ window.VarSwitch = (function () {
 
 <!-- ======================== FASE 2 ======================== -->
 <div class="page" id="page-fase2">
+  <button class="round-intro-btn" onclick="showNextRoundIntro('f2')">📺 Anunciar la próxima ronda en pantalla</button>
   <div id="bet-control-f2"></div>
   <div id="next-match-f2" style="margin-bottom:0.75rem"></div>
   <div id="my-next-f2" style="margin-bottom:0.75rem"></div>
@@ -6682,7 +6757,7 @@ function saveResult() {
     state.sd[modalCtx.key] = { winner: modalCtx.winner, bonus: modalCtx.bonus };
     saveState();
     closeModal();
-    playSaveSound();
+    playResultSound(modalCtx.winner === 'empate' ? 'empate' : (modalCtx.bonus ? 'bonus' : 'win'));
     renderFase1();
     const wName = modalCtx.winner === modalCtx.idxA ? modalCtx.nameA : modalCtx.nameB;
     showToast('⚡', `SD: ${wName.split(' ')[0]} gana${modalCtx.bonus ? ' +bonus' : ''}`, false);
@@ -6695,7 +6770,7 @@ function saveResult() {
     state.sd2[modalCtx.key] = { winner: modalCtx.winner, bonus: modalCtx.bonus };
     saveState();
     closeModal();
-    playSaveSound();
+    playResultSound(modalCtx.winner === 'empate' ? 'empate' : (modalCtx.bonus ? 'bonus' : 'win'));
     renderFase2();
     const wName2 = modalCtx.winner === modalCtx.idxA ? modalCtx.nameA : modalCtx.nameB;
     showToast('⚡', `SD: ${wName2.split('/')[0].trim()} gana${modalCtx.bonus ? ' +bonus' : ''}`, false);
@@ -6715,7 +6790,7 @@ function saveResult() {
   const comoMsgs = resolvePendingComodines(modalCtx.phase, modalCtx.key, modalCtx.winner, modalCtx.bonus);
   saveState();
   closeModal();
-  playSaveSound();
+  playResultSound(modalCtx.winner === 'empate' ? 'empate' : (modalCtx.bonus ? 'bonus' : 'win'));
   if (modalCtx.phase === 'f1') renderFase1();
   else renderFase2();
   const winnerName = modalCtx.winner === 'empate'
@@ -6987,6 +7062,79 @@ function editSpecialPtsF1(idx) {
 // ── VENTANA DE APUESTAS ──────────────────────────────────────────────
 // El conductor abre las apuestas de una ronda, se cierran antes de jugar, y
 // al reabrirlas saltan solas a la ronda siguiente que quede pendiente.
+
+// ── ENTRADA DE ESTACIÓN ──────────────────────────────────────────────
+// Pantalla completa que anuncia qué se juega en cada mesa en la ronda que
+// arranca. Sirve de aviso práctico ("vayan a sus mesas") y de transición.
+function showRoundIntro(phase, round) {
+  const isF1 = phase === 'f1';
+  const fx    = isF1 ? F1_FIXTURE : F2_FIXTURE;
+  const ents  = isF1 ? PLAYERS : TEAMS;
+  const store = isF1 ? state.f1 : state.f2;
+  const duels = fx.filter(m => m[0] === round);
+  if (!duels.length) { showToast('⚠️', 'No hay duelos en esa ronda', false); return; }
+
+  const gameName = (gi) => isF1
+    ? ((RULES_CONFIG && RULES_CONFIG.f1 && RULES_CONFIG.f1[gi]) ? RULES_CONFIG.f1[gi].name : (GAMES_F1[gi] || '?'))
+    : ((RULES_CONFIG && RULES_CONFIG.f2 && RULES_CONFIG.f2[gi]) ? RULES_CONFIG.f2[gi].name : (GAMES_F2[gi] || '?'));
+  const gameIcon = (gi) => isF1
+    ? ((RULES_CONFIG && RULES_CONFIG.f1 && RULES_CONFIG.f1[gi]) ? RULES_CONFIG.f1[gi].icon : '🎮')
+    : ((RULES_CONFIG && RULES_CONFIG.f2 && RULES_CONFIG.f2[gi]) ? RULES_CONFIG.f2[gi].icon : '🎲');
+
+  const cards = duels.map((m, k) => {
+    const [r, a, b, g] = m;
+    const done = !!store[r + '-' + a + '-' + b];
+    const short = n => String(n || '?').split('/')[0].trim().split(' ')[0];
+    const nA = isF1 ? short(ents[a]) : (ents[a] || '?');
+    const nB = isF1 ? short(ents[b]) : (ents[b] || '?');
+    return `<div class="ri-card${done ? ' done' : ''}" style="animation-delay:${k * 90}ms">
+      <div class="ri-station">Mesa ${k + 1}</div>
+      <div class="ri-game">${gameIcon(g)} ${_escC(gameName(g))}</div>
+      <div class="ri-vs"><span>${_escC(nA)}</span><em>vs</em><span>${_escC(nB)}</span></div>
+      ${done ? '<div class="ri-done">✓ ya jugado</div>' : ''}
+    </div>`;
+  }).join('');
+
+  // Quién descansa esta ronda
+  const playing = new Set();
+  duels.forEach(m => { playing.add(m[1]); playing.add(m[2]); });
+  const resting = ents.map((n, i) => i).filter(i => !playing.has(i)).map(i => ents[i]);
+
+  const ov = document.createElement('div');
+  ov.className = 'round-intro';
+  ov.innerHTML = `
+    <div class="ri-head">
+      <div class="ri-eyebrow">${isF1 ? 'Fase 1 · Individual' : 'Fase 2 · Equipos'}</div>
+      <div class="ri-title">Ronda ${round}</div>
+      <div class="ri-sub">Cada uno a su mesa</div>
+    </div>
+    <div class="ri-grid">${cards}</div>
+    ${resting.length ? `<div class="ri-rest">😴 Descansa: <b>${_escC(resting.map(n => String(n).split('/')[0].trim()).join(', '))}</b></div>` : ''}
+    <button class="ri-close">Empezar la ronda →</button>`;
+  document.body.appendChild(ov);
+  requestAnimationFrame(() => ov.classList.add('show'));
+
+  const close = () => { ov.classList.remove('show'); setTimeout(() => ov.remove(), 350); };
+  ov.querySelector('.ri-close').onclick = close;
+  ov.onclick = (e) => { if (e.target === ov) close(); };
+  try { _resumeAudio(); if (typeof cerSndImpact === 'function') cerSndImpact(); } catch (e) {}
+}
+
+function showNextRoundIntro(phase) {
+  const r = phase === 'f1' ? firstPendingRound() : firstPendingRoundF2();
+  if (!r) { showToast('🏁', 'No quedan rondas pendientes', false); return; }
+  showRoundIntro(phase, r);
+}
+
+// Equivalente de firstPendingRound para Fase 2
+function firstPendingRoundF2() {
+  const rounds = [...new Set(F2_FIXTURE.map(m => m[0]))].sort((a, b) => a - b);
+  for (const r of rounds) {
+    if (F2_FIXTURE.some(m => m[0] === r && !state.f2[m[0] + '-' + m[1] + '-' + m[2]])) return r;
+  }
+  return 0;
+}
+
 function firstPendingRound() {
   const rounds = [...new Set(F1_FIXTURE.map(m => m[0]))].sort((a, b) => a - b);
   for (const r of rounds) {
@@ -9492,8 +9640,68 @@ function finalizeImpGame(legacyMode) {
   state.impostor.rounds.push(rd);
   saveState();
   saveImpGame();
-  renderImpRoundDone(rd);
+  revealImpostor(rd, () => renderImpRoundDone(rd));
 }
+
+// ── REVELACIÓN DEL IMPOSTOR ──────────────────────────────────────────
+// Es el momento más dramático de la noche y antes se resolvía con un cartel.
+// Ahora: fundido a negro, redoble, y el nombre apareciendo letra por letra.
+function revealImpostor(rd, done) {
+  if (_prefersReduce()) { done(); return; }
+  _resumeAudio();
+
+  const names = rd.mode === 'doble'
+    ? (rd.impostorNames || [])
+    : [rd.impostorName].filter(Boolean);
+  if (!names.length) { done(); return; }
+
+  const full = names.map(n => (typeof FULL_NAMES !== 'undefined' && FULL_NAMES[n]) ? FULL_NAMES[n] : n);
+  const texto = full.join('  &  ');
+
+  const ov = document.createElement('div');
+  ov.className = 'imp-reveal';
+  ov.innerHTML =
+    '<div class="ir-eyebrow">El impostor ' + (names.length > 1 ? 'eran' : 'era') + '…</div>' +
+    '<div class="ir-name" id="ir-name"></div>' +
+    '<div class="ir-word">La palabra era <b>' + _escC(rd.word || '—') + '</b></div>' +
+    '<div class="ir-skip">Tocá para continuar</div>';
+  document.body.appendChild(ov);
+  requestAnimationFrame(() => ov.classList.add('show'));
+
+  let finished = false;
+  const timers = [];
+  function finish() {
+    if (finished) return;
+    finished = true;
+    timers.forEach(clearTimeout);
+    ov.classList.remove('show');
+    setTimeout(() => { ov.remove(); done(); }, 420);
+  }
+  ov.addEventListener('click', finish);
+
+  // Redoble mientras se suspende el momento
+  try { if (typeof playDrumroll === 'function') playDrumroll(1.9); } catch (e) {}
+
+  // El nombre aparece letra por letra
+  const target = ov.querySelector('#ir-name');
+  timers.push(setTimeout(() => {
+    let i = 0;
+    (function type() {
+      if (finished) return;
+      target.textContent = texto.slice(0, ++i);
+      if (i < texto.length) timers.push(setTimeout(type, 70));
+      else {
+        try { if (typeof playCymbal === 'function') playCymbal(); } catch (e) {}
+        target.classList.add('done');
+        if (!_prefersReduce() && typeof launchConfetti === 'function' && rd.mode === 'noDescubierto') {
+          try { launchConfetti('imp-reveal'); } catch (e) {}
+        }
+        timers.push(setTimeout(finish, 3200));
+      }
+    })();
+  }, 2000));
+}
+
 
 function renderImpRoundDone(rd) {
   const roundNum = state.impostor.rounds.length;
@@ -10373,6 +10581,24 @@ function playPodiumSound() {
 function playSaveSound() {
   playTone(880, 'sine', 0.12, 0.1, 0);
   playTone(1100, 'sine', 0.10, 0.08, 0.1);
+}
+
+// Antes todos los resultados sonaban igual. Ahora el oído distingue de lejos
+// si fue una victoria normal, una con bonus o un empate.
+function playResultSound(kind) {
+  if (kind === 'empate') {
+    // Dos notas iguales: nadie ganó
+    playTone(660, 'sine', 0.12, 0.11, 0);
+    playTone(660, 'sine', 0.10, 0.09, 0.13);
+  } else if (kind === 'bonus') {
+    // Arpegio ascendente que remata arriba: se ganó en grande
+    playTone(880,  'triangle', 0.11, 0.08, 0);
+    playTone(1100, 'triangle', 0.11, 0.08, 0.08);
+    playTone(1320, 'triangle', 0.12, 0.09, 0.16);
+    playTone(1760, 'triangle', 0.10, 0.20, 0.26);
+  } else {
+    playSaveSound();
+  }
 }
 
 function playUndoSound() {
@@ -11430,6 +11656,50 @@ function rollCredits() {
     }
   } catch (e) {}
 
+  // Mapa de calor de estaciones: qué juego dio más bonus, cuál se peleó más.
+  // Sale de datos que ya se calculan, solo que hasta ahora no se mostraban.
+  let heatHtml = '';
+  try {
+    const stats = {};
+    const add = (name, res) => {
+      if (!name) return;
+      const st = stats[name] || (stats[name] = { jugados: 0, bonus: 0, empates: 0 });
+      st.jugados++;
+      if (res.bonus) st.bonus++;
+      if (res.winner === 'empate') st.empates++;
+    };
+    F1_FIXTURE.forEach(m => {
+      const res = state.f1[m[0] + '-' + m[1] + '-' + m[2]];
+      if (res) add((RULES_CONFIG && RULES_CONFIG.f1 && RULES_CONFIG.f1[m[3]]) ? RULES_CONFIG.f1[m[3]].name : GAMES_F1[m[3]], res);
+    });
+    F2_FIXTURE.forEach(m => {
+      const res = state.f2[m[0] + '-' + m[1] + '-' + m[2]];
+      if (res) add((RULES_CONFIG && RULES_CONFIG.f2 && RULES_CONFIG.f2[m[3]]) ? RULES_CONFIG.f2[m[3]].name : GAMES_F2[m[3]], res);
+    });
+    const rows = Object.keys(stats).map(n => ({ n, ...stats[n] }));
+    if (rows.length) {
+      const maxB = Math.max(1, ...rows.map(r => r.bonus));
+      rows.sort((a, b) => (b.bonus / b.jugados) - (a.bonus / a.jugados));
+      const cells = rows.map(r => {
+        const pct = Math.round(r.bonus / r.jugados * 100);
+        const w = Math.round(r.bonus / maxB * 100);
+        return `<div class="cr-heat-row">
+          <span class="cr-heat-name">${esc(r.n)}</span>
+          <span class="cr-heat-bar"><span style="width:${w}%"></span></span>
+          <span class="cr-heat-val">${pct}%</span>
+        </div>`;
+      }).join('');
+      const top = rows[0], peleado = rows.slice().sort((a, b) => b.empates - a.empates)[0];
+      heatHtml = `<div class="cr-block"><div class="cr-divider"></div>
+        <div class="cr-role role-fase2">Las estaciones</div>
+        <div class="cr-heat">${cells}</div>
+        <div class="cr-heat-facts">
+          🏅 El juego más dominado fue <b>${esc(top.n)}</b> (${Math.round(top.bonus / top.jugados * 100)}% con bonus)
+          ${peleado && peleado.empates ? `<br>⚔️ El más peleado: <b>${esc(peleado.n)}</b> con ${peleado.empates} empate${peleado.empates === 1 ? '' : 's'}` : ''}
+        </div></div>`;
+    }
+  } catch (e) {}
+
   // Foto de la noche: la polaroid grupal cargada en la pestaña Final
   let photoHtml = '';
   try {
@@ -11602,6 +11872,8 @@ function rollCredits() {
         ${tercerGame}
 
         ${motesHtml}
+
+        ${heatHtml}
 
         ${photoHtml}
 
@@ -14195,6 +14467,55 @@ function openTVMode() {
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .tv-logro-desc { font-size: clamp(9px,0.9vw,13px); color: var(--muted); margin-top: 3px; }
 
+
+
+  /* Saltito del avatar cuando su dueño suma */
+  .podium-avatar-wrap.bump { animation: podBump .75s cubic-bezier(.28,1.5,.4,1); }
+  @keyframes podBump {
+    0%   { transform: translateY(0) scale(1); }
+    30%  { transform: translateY(-14px) scale(1.07); }
+    55%  { transform: translateY(0) scale(.97); }
+    75%  { transform: translateY(-5px) scale(1.02); }
+    100% { transform: translateY(0) scale(1); }
+  }
+  @media (prefers-reduced-motion: reduce) { .podium-avatar-wrap.bump { animation: none; } }
+  /* ── Reacción al cambiar el puntaje ── */
+  .tv-rank-row { transition: background 0.4s ease, box-shadow 0.4s ease; }
+  .tv-rank-row.pts-up {
+    animation: rowUp 1.8s ease;
+  }
+  .tv-rank-row.pts-down { animation: rowDown 1.8s ease; }
+  @keyframes rowUp {
+    0%   { background: rgba(200,240,96,.30); box-shadow: inset 4px 0 0 var(--accent); }
+    60%  { background: rgba(200,240,96,.12); box-shadow: inset 4px 0 0 var(--accent); }
+    100% { background: transparent; box-shadow: none; }
+  }
+  @keyframes rowDown {
+    0%   { background: rgba(255,95,95,.26); box-shadow: inset 4px 0 0 var(--danger); }
+    100% { background: transparent; box-shadow: none; }
+  }
+
+  /* ── Cambio de líder ── */
+  .tv-leader-change {
+    position: fixed; left: 50%; top: 50%;
+    transform: translate(-50%,-50%) scale(.86);
+    z-index: 80; text-align: center; pointer-events: none;
+    padding: clamp(18px,2.6vh,34px) clamp(30px,4vw,64px);
+    background: rgba(10,10,14,.95); backdrop-filter: blur(12px);
+    border: 2px solid var(--lc, var(--accent)); border-radius: 22px;
+    box-shadow: 0 20px 80px rgba(0,0,0,.75), 0 0 46px color-mix(in srgb, var(--lc, var(--accent)) 40%, transparent);
+    opacity: 0; transition: opacity .45s ease, transform .55s cubic-bezier(.2,1.15,.35,1);
+  }
+  .tv-leader-change.show { opacity: 1; transform: translate(-50%,-50%) scale(1); }
+  .lc-lbl { font-size: clamp(10px,1vw,15px); font-weight: 900; letter-spacing: .22em;
+    text-transform: uppercase; color: var(--lc, var(--accent)); }
+  .lc-new { font-size: clamp(26px,3.6vw,58px); font-weight: 900; color: #fff;
+    line-height: 1.08; margin-top: clamp(6px,.9vh,12px); letter-spacing: -.02em; }
+  .lc-old { font-size: clamp(11px,1.2vw,19px); color: var(--muted); margin-top: clamp(4px,.6vh,9px); }
+
+  @media (prefers-reduced-motion: reduce) {
+    .tv-rank-row.pts-up, .tv-rank-row.pts-down { animation: none; }
+  }
   /* ── MURO DE FOTOS ── */
   .tv-wall {
     position: fixed; z-index: 55;
@@ -15711,8 +16032,12 @@ function renderTV() {
     const rest=sorted.slice(3);
     rankEl.innerHTML=rest.length?rest.map((e,i)=>{
       const av=tvAvatarHtml(e.n,e.i,photos);
-      return '<div class="tv-rank-row"><span class="tv-rank-pos">'+(i+4)+'°</span><span class="tv-rank-name">'+av+'<span>'+e.n+'</span></span><span class="tv-rank-pts'+(isF1?'':' f2')+'">'+e.pts.total+' pts</span></div>';
+      return '<div class="tv-rank-row" data-ent="'+String(e.n).replace(/"/g,'&quot;')+'"><span class="tv-rank-pos">'+(i+4)+'°</span><span class="tv-rank-name">'+av+'<span>'+e.n+'</span></span><span class="tv-rank-pts'+(isF1?'':' f2')+'">'+e.pts.total+' pts</span></div>';
     }).join(''):'';
+
+    // Quién sumó desde la última actualización: se le hace un flash a la fila y
+    // el total sube contando. Antes la tabla cambiaba sin que se notara nada.
+    reactToScoreChanges(phase, sorted);
   });
 
   renderTicker(state, PLAYERS, TEAMS);
@@ -16578,6 +16903,115 @@ function tvCloseMoteOverlay() {
   const env = document.getElementById('tv-mote-envelope');
   if (ov)  ov.classList.remove('open');
   if (env) env.classList.remove('flipped');
+}
+
+
+// ── REACCIÓN A LOS CAMBIOS DE PUNTAJE ────────────────────────────────
+// El TV se actualizaba en silencio; ahora marca visualmente quién sumó y
+// avisa cuando cambia el puntero, que es el momento que más ruido genera.
+const _prevPts = { f1: null, f2: null };
+const _prevLeader = { f1: null, f2: null };
+
+function reactToScoreChanges(phase, sorted) {
+  const now = {};
+  sorted.forEach(e => { now[e.n] = e.pts.total; });
+  const before = _prevPts[phase];
+  _prevPts[phase] = now;
+
+  const leaderNow = sorted.length && sorted[0].pts.total > 0 ? sorted[0].n : null;
+  const leaderBefore = _prevLeader[phase];
+  _prevLeader[phase] = leaderNow;
+
+  if (!before) return;   // primer render: nada que comparar
+
+  // El avatar del que sumó pega un saltito en el podio
+  Object.keys(now).forEach(name => {
+    if (before[name] === undefined || now[name] <= before[name]) return;
+    document.querySelectorAll('.podium-slot').forEach(slot => {
+      const nm = slot.querySelector('.podium-name');
+      if (!nm) return;
+      const txt = nm.textContent.replace(/[🔥🤡]/g, '').trim();
+      const target = String(name).split('/')[0].trim();
+      if (txt && (txt === name || txt === target || txt.startsWith(target.split(' ')[0]))) {
+        const wrap = slot.querySelector('.podium-avatar-wrap');
+        if (wrap) { wrap.classList.remove('bump'); void wrap.offsetWidth; wrap.classList.add('bump'); }
+      }
+    });
+  });
+
+  // Flash + conteo en las filas que cambiaron
+  Object.keys(now).forEach(name => {
+    if (before[name] === undefined || now[name] === before[name]) return;
+    const up = now[name] > before[name];
+    const row = document.querySelector('.tv-rank-row[data-ent="' + CSS.escape(name).replace(/\\/g,'') + '"]')
+             || [...document.querySelectorAll('.tv-rank-row')].find(r => r.dataset.ent === name);
+    if (row) {
+      row.classList.remove('pts-up','pts-down');
+      void row.offsetWidth;
+      row.classList.add(up ? 'pts-up' : 'pts-down');
+      const el = row.querySelector('.tv-rank-pts');
+      if (el) countUpPts(el, before[name], now[name]);
+      setTimeout(() => row.classList.remove('pts-up','pts-down'), 1800);
+    }
+  });
+
+  // Cambio de puntero
+  if (leaderNow && leaderBefore && leaderNow !== leaderBefore) {
+    announceLeaderChange(leaderNow, leaderBefore, phase);
+  }
+}
+
+// El número sube de a poco en vez de saltar de golpe
+function countUpPts(el, from, to) {
+  const dur = 700, t0 = performance.now();
+  const suffix = ' pts';
+  function step(t) {
+    const k = Math.min(1, (t - t0) / dur);
+    const eased = 1 - Math.pow(1 - k, 3);
+    const val = from + (to - from) * eased;
+    el.textContent = (Math.abs(val % 1) > 0.01 ? val.toFixed(1) : Math.round(val)) + suffix;
+    if (k < 1) requestAnimationFrame(step);
+    else el.textContent = to + suffix;
+  }
+  requestAnimationFrame(step);
+}
+
+// Cartel a pantalla ancha cuando alguien destrona al puntero
+function announceLeaderChange(nuevo, anterior, phase) {
+  let el = document.getElementById('tv-leader-change');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'tv-leader-change';
+    el.className = 'tv-leader-change';
+    document.body.appendChild(el);
+  }
+  const color = phase === 'f1' ? 'var(--accent)' : 'var(--info)';
+  el.style.setProperty('--lc', color);
+  el.innerHTML =
+    '<div class="lc-lbl">🔥 Cambio de líder · ' + (phase === 'f1' ? 'Fase 1' : 'Fase 2') + '</div>' +
+    '<div class="lc-new">' + nuevo + '</div>' +
+    '<div class="lc-old">destrona a ' + anterior + '</div>';
+  el.classList.remove('show'); void el.offsetWidth; el.classList.add('show');
+  try { leaderChangeSound(); } catch(e) {}
+  setTimeout(() => el.classList.remove('show'), 5200);
+}
+
+function leaderChangeSound() {
+  const AC = window.AudioContext || window.webkitAudioContext;
+  if (!AC) return;
+  if (!window._tvAC) window._tvAC = new AC();
+  const ctx = window._tvAC;
+  if (ctx.state === 'suspended') ctx.resume();
+  const t = ctx.currentTime;
+  [523.25, 659.25, 783.99, 1046.5, 1318.5].forEach((f, i) => {
+    const o = ctx.createOscillator(), g = ctx.createGain();
+    o.type = 'triangle'; o.frequency.setValueAtTime(f, t + i * 0.075);
+    g.gain.setValueAtTime(0, t + i * 0.075);
+    g.gain.linearRampToValueAtTime(0.13, t + i * 0.075 + 0.02);
+    g.gain.exponentialRampToValueAtTime(0.001, t + i * 0.075 + 0.5);
+    o.connect(g); g.connect(ctx.destination);
+    o.start(t + i * 0.075); o.stop(t + i * 0.075 + 0.55);
+  });
 }
 
 // ── MURO DE FOTOS en el TV: rota una foto cada tanto ─────────────────
