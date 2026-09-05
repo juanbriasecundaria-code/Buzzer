@@ -1534,7 +1534,7 @@ function launchRoulette(pool, winnerIdx, winner) {
       // Tic cada vez que un item nuevo cruza el centro (desacelera solo con el easing)
       if (closestIdx !== lastTickIdx) {
         lastTickIdx = closestIdx;
-        if (progress < 0.985) playTick();
+        if (progress < 0.985) playTick(progress);
       }
 
       if (progress < 1) {
@@ -1784,21 +1784,30 @@ function playWhistle() {
   } catch (e) {}
 }
 
-// Tic de la ruleta (clic corto) — se dispara por cada item que cruza el centro
-function playTick() {
+// Tic de la ruleta tipo casino (clac de ruido filtrado) — se dispara por cada item
+// que cruza el centro. progress (0→1) controla cuánto se apaga/agrava el clac a
+// medida que la ruleta frena, imitando el sonido físico de una rueda real.
+function playTick(progress = 0) {
   try {
     const ctx = getAudioCtx();
-     // no forzar resume en cada tic
-    const osc = ctx.createOscillator();
+    // no forzar resume en cada tic
+    const now = ctx.currentTime;
+    const decay = 1 - progress * 0.6; // 1 (rápido/fuerte) → 0.4 (lento/apagado)
+    const bufSize = Math.floor(ctx.sampleRate * 0.03);
+    const buf = ctx.createBuffer(1, bufSize, ctx.sampleRate);
+    const data = buf.getChannelData(0);
+    for (let i = 0; i < bufSize; i++) data[i] = (Math.random() * 2 - 1) * (1 - i / bufSize);
+    const noise = ctx.createBufferSource();
+    noise.buffer = buf;
+    const bp = ctx.createBiquadFilter();
+    bp.type = 'bandpass';
+    bp.frequency.value = 2200 * decay + 900;
     const gain = ctx.createGain();
-    osc.type = 'square';
-    osc.frequency.value = 1700;
-    osc.connect(gain); gain.connect(ctx.destination);
-    const t = ctx.currentTime;
-    gain.gain.setValueAtTime(0.0001, t);
-    gain.gain.exponentialRampToValueAtTime(0.12, t + 0.004);
-    gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.045);
-    osc.start(t); osc.stop(t + 0.05);
+    gain.gain.setValueAtTime(0.0001, now);
+    gain.gain.exponentialRampToValueAtTime(0.35 * decay, now + 0.004);
+    gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.05);
+    noise.connect(bp); bp.connect(gain); gain.connect(ctx.destination);
+    noise.start(now); noise.stop(now + 0.05);
   } catch (e) {}
 }
 
