@@ -592,6 +592,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
           <option value="gif">GIF (URL)</option>
           <option value="audio-url">🔊 Solo audio (URL)</option>
           <option value="audio-upload">🔊 Solo audio (subir archivo)</option>
+          <option value="image-audio">🖼️🔊 Imagen + Audio (combinado)</option>
         </select>
       </div>
       <div class="form-row" id="f-media-row">
@@ -600,6 +601,11 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
         <input type="file" id="f-media-file" style="display:none" accept="image/*" onchange="edFileChosen(event)">
         <div class="form-help" id="f-media-help"></div>
         <div class="media-preview" id="f-media-preview" style="display:none"></div>
+      </div>
+      <div class="form-row" id="f-media-image-row" style="display:none">
+        <span class="form-lbl">🖼 URL de la imagen (se muestra mientras suena el audio de arriba)</span>
+        <input class="form-in" id="f-media-image-url" placeholder="https://…/imagen.jpg" oninput="edPreviewMediaImage(this.value.trim())">
+        <div class="media-preview" id="f-media-image-preview" style="display:none"></div>
       </div>
       <div class="form-row">
         <span class="form-lbl">Frase / Prompt para los participantes</span>
@@ -1239,6 +1245,16 @@ function mountCondMedia(cur){
     condVideoEl.addEventListener('play',   () => pushVideoSync({ url:syncSrc, audio:true, playing:true,  t: condVideoEl.currentTime }));
     condVideoEl.addEventListener('pause',  () => pushVideoSync({ url:syncSrc, audio:true, playing:false, t: condVideoEl.currentTime }));
     condVideoEl.addEventListener('seeked', () => pushVideoSync({ url:syncSrc, audio:true, playing:!condVideoEl.paused, t: condVideoEl.currentTime }));
+  } else if(cur.mediaType === 'image-audio'){
+    // Imagen fija + audio de fondo: misma sincronización que "solo audio",
+    // pero mostrando la imagen en vez del cartel "Solo audio".
+    const img = cur.mediaImage ? `<img src="${escapeHtml(cur.mediaImage)}" alt="">` : '';
+    mount.innerHTML = `<div class="cc-media">${img}<audio id="cc-video-el" src="${escapeHtml(src)}" controls preload="metadata" style="width:100%;margin-top:.5rem"></audio></div>`;
+    condVideoEl = document.getElementById('cc-video-el');
+    const syncSrc2 = String(src).startsWith('data:') ? null : src;
+    condVideoEl.addEventListener('play',   () => pushVideoSync({ url:syncSrc2, audio:true, playing:true,  t: condVideoEl.currentTime }));
+    condVideoEl.addEventListener('pause',  () => pushVideoSync({ url:syncSrc2, audio:true, playing:false, t: condVideoEl.currentTime }));
+    condVideoEl.addEventListener('seeked', () => pushVideoSync({ url:syncSrc2, audio:true, playing:!condVideoEl.paused, t: condVideoEl.currentTime }));
   } else {
     // image / gif / image-upload
     mount.innerHTML = `<div class="cc-media"><img src="${escapeHtml(src)}" alt=""></div>`;
@@ -1710,6 +1726,7 @@ function mountPartMedia(c){
   if(!c.mediaType || c.mediaType === 'none'){ mount.innerHTML = ''; return; }
   const src = partMediaSrc(c);
   const isAudio = c.mediaType === 'audio-url' || c.mediaType === 'audio-upload';
+  const isImageAudio = c.mediaType === 'image-audio';
   if(!src){
     _partMediaPending = !!c.mediaIsLocal;
     mount.innerHTML = `<div class="part-media" style="min-height:80px;color:var(--muted);font-size:12px;padding:1rem">${c.mediaIsLocal ? '📁 Sincronizando el archivo…' : ''}</div>`;
@@ -1729,6 +1746,14 @@ function mountPartMedia(c){
     partVideoEl.addEventListener('play',  () => box && box.classList.add('playing'));
     partVideoEl.addEventListener('pause', () => box && box.classList.remove('playing'));
     partVideoEl.addEventListener('ended', () => box && box.classList.remove('playing'));
+    if(_pendingVideoSync){ applyVideoSync(_pendingVideoSync, c); _pendingVideoSync = null; }
+    return;
+  }
+  if(isImageAudio){
+    // Imagen fija + audio de fondo (oculto, se sincroniza igual que "solo audio")
+    const img = c.mediaImage ? `<img src="${escapeHtml(c.mediaImage)}" alt="">` : '';
+    mount.innerHTML = `<div class="part-media">${img}<audio id="part-video-el" src="${escapeHtml(src)}" playsinline preload="auto"></audio></div>`;
+    partVideoEl = document.getElementById('part-video-el');
     if(_pendingVideoSync){ applyVideoSync(_pendingVideoSync, c); _pendingVideoSync = null; }
     return;
   }
@@ -1761,7 +1786,7 @@ function applyVideoSync(sync, c){
       if(sync.playing){ partYtPlayer.playVideo(); maybeShowAudioUnlock(); }
       else partYtPlayer.pauseVideo();
     }catch(e){ _pendingVideoSync = sync; }
-  } else if(c.mediaType === 'video-url' || c.mediaType === 'audio-url' || c.mediaType === 'audio-upload'){
+  } else if(c.mediaType === 'video-url' || c.mediaType === 'audio-url' || c.mediaType === 'audio-upload' || c.mediaType === 'image-audio'){
     if(!partVideoEl){ _pendingVideoSync = sync; return; }
     const targetT = sync.playing ? sync.t + (Date.now() - sync.ts) / 1000 : sync.t;
     const setNow = () => { try{ partVideoEl.currentTime = targetT; }catch(e){} };
@@ -1926,7 +1951,8 @@ function renderEditorList(){
   list.innerHTML = filtered.map(c => {
     const cat = CAT_BY_ID[c.category] || CATEGORIES[0];
     const label = c.title || (c.prompt ? c.prompt.slice(0, 60) : (c.who || '(sin título)'));
-    const sub = `${c.who || '—'} · ${c.mediaType && c.mediaType !== 'none' ? '📎 ' + c.mediaType : 'solo frase'}${c.revealType && c.revealType !== 'none' ? (c.revealType.startsWith('video') ? ' · 🎬 clip' : ' · 🔊 clip') : ''}`;
+    const mediaLabel = c.mediaType === 'image-audio' ? '🖼️🔊 imagen+audio' : (c.mediaType && c.mediaType !== 'none' ? '📎 ' + c.mediaType : '');
+    const sub = `${c.who || '—'} · ${mediaLabel || 'solo frase'}${c.revealType && c.revealType !== 'none' ? (c.revealType.startsWith('video') ? ' · 🎬 clip' : ' · 🔊 clip') : ''}`;
     return `<div class="ed-item ${c.played?'played':''}">
       <div class="ed-item-icon">${c.played ? '✅' : cat.icon}</div>
       <div class="ed-item-body">
@@ -2036,7 +2062,9 @@ function edMediaChanged(){
   const file = document.getElementById('f-media-file');
   const help = document.getElementById('f-media-help');
   const prev = document.getElementById('f-media-preview');
+  const imgRow = document.getElementById('f-media-image-row');
   prev.style.display = 'none'; prev.innerHTML = '';
+  imgRow.style.display = (v === 'image-audio') ? 'flex' : 'none';
   if(v === 'none'){ row.style.display = 'none'; return; }
   row.style.display = 'flex';
   url.style.display = ''; file.style.display = 'none';
@@ -2061,9 +2089,22 @@ function edMediaChanged(){
     help.innerHTML = 'Se guarda en el mazo y se sincroniza a los participantes. Usá clips cortos (2–15 segundos) para que no pese — máx 4MB.';
     if(_edMediaFileData){ prev.style.display = 'flex'; prev.innerHTML = `<audio src="${_edMediaFileData}" controls style="width:100%"></audio>`; }
   }
+  else if(v === 'image-audio'){
+    lbl.textContent = '🔊 URL de audio';
+    url.placeholder = 'https://…/audio.mp3';
+    help.textContent = 'Link directo a un archivo de audio. Abajo cargás la imagen que se ve mientras suena.';
+  }
   // preview live
   if(!v.endsWith('-upload') && url.value.trim()){ edPreviewUrl(v, url.value.trim()); }
   url.oninput = () => edPreviewUrl(v, url.value.trim());
+  if(v === 'image-audio'){ edPreviewMediaImage(document.getElementById('f-media-image-url').value.trim()); }
+}
+function edPreviewMediaImage(src){
+  const prev = document.getElementById('f-media-image-preview');
+  if(!prev) return;
+  if(!src){ prev.style.display = 'none'; prev.innerHTML = ''; return; }
+  prev.style.display = 'flex';
+  prev.innerHTML = `<img src="${escapeHtml(src)}" alt="" onerror="this.replaceWith(Object.assign(document.createElement('span'),{textContent:'⚠️ no se pudo cargar esa imagen'}))">`;
 }
 function edPreviewUrl(mediaType, src){
   const prev = document.getElementById('f-media-preview');
@@ -2074,7 +2115,7 @@ function edPreviewUrl(mediaType, src){
     prev.innerHTML = id ? `<iframe src="https://www.youtube.com/embed/${id}" allowfullscreen></iframe>` : '<span>⚠️ ID inválido</span>';
   } else if(mediaType === 'video-url'){
     prev.innerHTML = `<video src="${escapeHtml(src)}" controls playsinline preload="metadata"></video>`;
-  } else if(mediaType === 'audio-url' || mediaType === 'audio-upload'){
+  } else if(mediaType === 'audio-url' || mediaType === 'audio-upload' || mediaType === 'image-audio'){
     prev.innerHTML = `<audio src="${escapeHtml(src)}" controls style="width:100%"></audio>`;
   } else {
     prev.innerHTML = `<img src="${escapeHtml(src)}" alt="">`;
@@ -2220,7 +2261,47 @@ function edRenderOptThumb(i){
 function edOptUrlInput(i){
   const v = document.getElementById(`f-opt${i}-url`).value.trim();
   _edOptImg[i] = v;
-  edRenderOptThumb(i);
+  const kind = _detectSharePageUrl(v);
+  if(!kind){ edRenderOptThumb(i); return; }
+  // Es un link de "página para ver/compartir" (ImgBB, Imgur, Postimg), no
+  // la imagen en sí — vamos a buscar la imagen real solos.
+  const t = document.getElementById(`f-opt${i}-thumb`);
+  if(t) t.innerHTML = '⏳';
+  _resolveSharePageUrl(v).then(direct => {
+    // Si mientras tanto el usuario cambió el campo, no pisar lo nuevo
+    const cur = document.getElementById(`f-opt${i}-url`);
+    if(!cur || cur.value.trim() !== v) return;
+    if(direct){
+      _edOptImg[i] = direct;
+      toast('🔗 Link de ' + kind + ' resuelto solo');
+    } else {
+      toast('No pude resolver ese link solo — pegá el link directo de la imagen');
+    }
+    edRenderOptThumb(i);
+  });
+}
+// Detecta links de "página para ver/compartir" en vez del archivo de imagen
+// en sí (típico al copiar el link de arriba de la barra del navegador, en
+// vez de ir a buscar el "link directo" de la imagen).
+function _detectSharePageUrl(url){
+  if(/^https?:\/\/ibb\.co\/[a-zA-Z0-9]+/i.test(url)) return 'ImgBB';
+  if(/^https?:\/\/(www\.)?imgur\.com\/(gallery\/|a\/)?[a-zA-Z0-9]+/i.test(url) && !/i\.imgur\.com/i.test(url)) return 'Imgur';
+  if(/^https?:\/\/postimg\.cc\/[a-zA-Z0-9]+/i.test(url)) return 'Postimg';
+  return null;
+}
+// El navegador no puede leer el HTML de otro sitio por CORS, así que para
+// sacarle la imagen real a esa página usamos un proxy público (allorigins).
+// Si ese servicio falla o está caído, devolvemos null y queda el aviso de
+// "pegá el link directo" como respaldo — no es 100% a prueba de balas.
+async function _resolveSharePageUrl(pageUrl){
+  try{
+    const res = await fetch('https://api.allorigins.win/raw?url=' + encodeURIComponent(pageUrl));
+    if(!res.ok) return null;
+    const html = await res.text();
+    const m = html.match(/<meta[^>]+property=["']og:image["'][^>]+content=["']([^"']+)["']/i)
+           || html.match(/<meta[^>]+content=["']([^"']+)["'][^>]+property=["']og:image["']/i);
+    return m ? m[1] : null;
+  }catch(e){ return null; }
 }
 function edOptPickFile(i){
   _edOptPickIdx = i;
@@ -2284,6 +2365,7 @@ function edEdit(id){
   document.getElementById('f-media').value = c.mediaType || 'none';
   _edMediaFileData = (c.mediaData && String(c.mediaData).startsWith('data:')) ? c.mediaData : null;
   document.getElementById('f-media-url').value = _edMediaFileData ? '' : (c.mediaUrl || '');
+  document.getElementById('f-media-image-url').value = c.mediaImage || '';
   document.getElementById('f-prompt').value = c.prompt || '';
   const hasDlg = c.dialogue && c.dialogue.length;
   document.querySelectorAll('input[name="f-prompt-mode"]').forEach(r => r.checked = r.value === (hasDlg ? 'dialogue' : 'simple'));
@@ -2389,6 +2471,10 @@ function edSave(){
   if(mediaType !== 'none'){
     if(mediaType.endsWith('-upload') && _edMediaFileData){ card.mediaData = _edMediaFileData; }
     else if(mediaUrl){ card.mediaUrl = mediaUrl; }
+    if(mediaType === 'image-audio'){
+      const mediaImage = document.getElementById('f-media-image-url').value.trim();
+      if(mediaImage) card.mediaImage = mediaImage;
+    }
   }
   if(revealTypeVal !== 'none'){
     card.revealType = revealTypeVal;
