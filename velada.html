@@ -11029,14 +11029,79 @@ function saveSegundoConfig() {
   localStorage.setItem('ndj_segundo_config', JSON.stringify(SEGUNDO_CONFIG));
 }
 
+// ============================================================
+// 4TO PUESTO (perdedor del juego x el 3er puesto, solo para foto del podio)
+// ============================================================
+const CUARTO_CONFIG_DEFAULT = { ganador: '' };
+let CUARTO_CONFIG = null;
+
+function loadCuartoConfig() {
+  try {
+    const s = localStorage.getItem('ndj_cuarto_config');
+    if (s) CUARTO_CONFIG = Object.assign({}, CUARTO_CONFIG_DEFAULT, JSON.parse(s));
+    else CUARTO_CONFIG = Object.assign({}, CUARTO_CONFIG_DEFAULT);
+  } catch(e) { CUARTO_CONFIG = Object.assign({}, CUARTO_CONFIG_DEFAULT); }
+}
+function saveCuartoConfig() {
+  localStorage.setItem('ndj_cuarto_config', JSON.stringify(CUARTO_CONFIG));
+}
+
+// ============================================================
+// FOTOS DEL PODIO — auto-carga desde GitHub según el equipo ganador
+// ============================================================
+// Cada equipo de TEAMS tiene una foto pre-cargada en el repo, nombrada por
+// su posición en el array (TEAMS[0] -> equipo1.jpg, TEAMS[1] -> equipo2.jpg...).
+// Si el ganador de un puesto es exactamente uno de esos equipos, se arma la
+// URL sola. Si es una dupla armada con compañero invitado (no está en TEAMS),
+// no hay foto para matchear y queda para subir a mano como antes.
+const PODIO_FOTO_BASE_URL = 'https://raw.githubusercontent.com/juanbriasecundaria-code/Buzzer/main/';
+
+function teamPhotoUrl(name) {
+  if (!name) return null;
+  const idx = TEAMS.indexOf(name.trim());
+  if (idx === -1) return null;
+  return PODIO_FOTO_BASE_URL + 'equipo' + (idx + 1) + '.jpg';
+}
+
+// Completa los 4 slots de "Fotos del podio" con la foto del equipo
+// correspondiente, sin pisar una foto que ya se haya subido a mano.
+function autoAssignPodioFotos() {
+  const KEY_PODIO = 'ndj_podio_fotos';
+  let data;
+  try { data = JSON.parse(localStorage.getItem(KEY_PODIO) || '{}') || {}; } catch(e) { data = {}; }
+
+  const mapping = {
+    finalPrimero:  FINAL_CONFIG   && FINAL_CONFIG.ganador,
+    finalSegundo:  SEGUNDO_CONFIG && SEGUNDO_CONFIG.ganador,
+    tercerPrimero: TERCER_CONFIG  && TERCER_CONFIG.ganador,
+    tercerSegundo: CUARTO_CONFIG  && CUARTO_CONFIG.ganador,
+  };
+
+  let changed = false;
+  Object.keys(mapping).forEach(slotKey => {
+    if (data[slotKey]) return; // ya hay una foto (manual o automática) — no se pisa
+    const url = teamPhotoUrl(mapping[slotKey]);
+    if (!url) return;
+    data[slotKey] = url;
+    changed = true;
+  });
+
+  if (changed) {
+    try { localStorage.setItem(KEY_PODIO, JSON.stringify(data)); } catch(e) { console.warn('podio fotos: storage full', e); }
+  }
+}
+
 // Guarda los tres puestos desde la card directa del cierre
 function saveCampeones() {
   const cf = document.getElementById('campeon-final-input')?.value?.trim();
   const cs = document.getElementById('campeon-segundo-input')?.value?.trim();
   const ct = document.getElementById('campeon-tercer-input')?.value?.trim();
+  const cq = document.getElementById('campeon-cuarto-input')?.value?.trim();
   if (FINAL_CONFIG) { FINAL_CONFIG.ganador = (cf || ''); saveFinalConfig(); }
   if (typeof SEGUNDO_CONFIG !== 'undefined' && SEGUNDO_CONFIG) { SEGUNDO_CONFIG.ganador = (cs || ''); saveSegundoConfig(); }
   if (typeof TERCER_CONFIG !== 'undefined' && TERCER_CONFIG) { TERCER_CONFIG.ganador = (ct || ''); saveTercerConfig(); }
+  if (typeof CUARTO_CONFIG !== 'undefined' && CUARTO_CONFIG) { CUARTO_CONFIG.ganador = (cq || ''); saveCuartoConfig(); }
+  if (typeof autoAssignPodioFotos === 'function') autoAssignPodioFotos();
   showToast('🏆', 'Campeones guardados', false);
   renderFinal();
 }
@@ -11348,6 +11413,37 @@ function renderFinal() {
       <div style="font-size:12px;color:var(--muted);padding-top:0.75rem;border-top:0.5px solid var(--border)">${tc.nota}</div>
     </div>
 
+    <!-- CAMPEONES (carga directa para los créditos) -->
+    <div class="card">
+      <div style="font-size:15px;font-weight:600;margin-bottom:0.3rem"><span class="dot-indicator" style="background:var(--gold);box-shadow:0 0 8px rgba(245,200,66,0.6)"></span>Campeones de la noche</div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:1rem;line-height:1.5">Tocá quién ganó cada partido. Su foto va a aparecer también en los créditos del cierre.</div>
+      <div class="final-edit-field">
+        <label class="final-edit-label">🏆 Campeón de la gran final</label>
+        ${champPickerHtml('campeon-final-input', FINAL_CONFIG && FINAL_CONFIG.ganador)}
+        <input class="final-edit-input" id="campeon-final-input" style="margin-top:0.4rem" placeholder="…o escribí un nombre a mano (ej: equipo nuevo)" value="${(FINAL_CONFIG && FINAL_CONFIG.ganador ? FINAL_CONFIG.ganador : '').replace(/"/g,'&quot;')}" oninput="updateChampManualPreview('campeon-final-input')">
+        <div class="champ-manual-preview" id="preview-campeon-final-input"></div>
+      </div>
+      <div class="final-edit-field">
+        <label class="final-edit-label">🥈 2do puesto</label>
+        ${champPickerHtml('campeon-segundo-input', typeof SEGUNDO_CONFIG!=='undefined' && SEGUNDO_CONFIG && SEGUNDO_CONFIG.ganador)}
+        <input class="final-edit-input" id="campeon-segundo-input" style="margin-top:0.4rem" placeholder="…o escribí un nombre a mano (ej: equipo nuevo)" value="${(typeof SEGUNDO_CONFIG!=='undefined' && SEGUNDO_CONFIG && SEGUNDO_CONFIG.ganador ? SEGUNDO_CONFIG.ganador : '').replace(/"/g,'&quot;')}" oninput="updateChampManualPreview('campeon-segundo-input')">
+        <div class="champ-manual-preview" id="preview-campeon-segundo-input"></div>
+      </div>
+      <div class="final-edit-field">
+        <label class="final-edit-label">🥉 Ganador del 3er puesto</label>
+        ${champPickerHtml('campeon-tercer-input', typeof TERCER_CONFIG!=='undefined' && TERCER_CONFIG && TERCER_CONFIG.ganador)}
+        <input class="final-edit-input" id="campeon-tercer-input" style="margin-top:0.4rem" placeholder="…o escribí un nombre a mano (ej: equipo nuevo)" value="${(typeof TERCER_CONFIG!=='undefined' && TERCER_CONFIG && TERCER_CONFIG.ganador ? TERCER_CONFIG.ganador : '').replace(/"/g,'&quot;')}" oninput="updateChampManualPreview('campeon-tercer-input')">
+        <div class="champ-manual-preview" id="preview-campeon-tercer-input"></div>
+      </div>
+      <div class="final-edit-field">
+        <label class="final-edit-label">🎖️ 4to puesto</label>
+        ${champPickerHtml('campeon-cuarto-input', typeof CUARTO_CONFIG!=='undefined' && CUARTO_CONFIG && CUARTO_CONFIG.ganador)}
+        <input class="final-edit-input" id="campeon-cuarto-input" style="margin-top:0.4rem" placeholder="…o escribí un nombre a mano (ej: equipo nuevo)" value="${(typeof CUARTO_CONFIG!=='undefined' && CUARTO_CONFIG && CUARTO_CONFIG.ganador ? CUARTO_CONFIG.ganador : '').replace(/"/g,'&quot;')}" oninput="updateChampManualPreview('campeon-cuarto-input')">
+        <div class="champ-manual-preview" id="preview-campeon-cuarto-input"></div>
+      </div>
+      <button class="final-edit-save" onclick="saveCampeones()">Guardar campeones</button>
+    </div>
+
     <!-- MOTES -->
     ${motesHtml}
 
@@ -11439,31 +11535,6 @@ function renderFinal() {
   const root2 = document.getElementById('final-root-2');
   if (root2) {
     root2.innerHTML = `
-    <!-- CAMPEONES (carga directa para los créditos) -->
-    <div class="card">
-      <div style="font-size:15px;font-weight:600;margin-bottom:0.3rem"><span class="dot-indicator" style="background:var(--gold);box-shadow:0 0 8px rgba(245,200,66,0.6)"></span>Campeones de la noche</div>
-      <div style="font-size:12px;color:var(--muted);margin-bottom:1rem;line-height:1.5">Tocá quién ganó cada partido. Su foto va a aparecer también en los créditos del cierre.</div>
-      <div class="final-edit-field">
-        <label class="final-edit-label">🏆 Campeón de la gran final</label>
-        ${champPickerHtml('campeon-final-input', FINAL_CONFIG && FINAL_CONFIG.ganador)}
-        <input class="final-edit-input" id="campeon-final-input" style="margin-top:0.4rem" placeholder="…o escribí un nombre a mano (ej: equipo nuevo)" value="${(FINAL_CONFIG && FINAL_CONFIG.ganador ? FINAL_CONFIG.ganador : '').replace(/"/g,'&quot;')}" oninput="updateChampManualPreview('campeon-final-input')">
-        <div class="champ-manual-preview" id="preview-campeon-final-input"></div>
-      </div>
-      <div class="final-edit-field">
-        <label class="final-edit-label">🥈 2do puesto</label>
-        ${champPickerHtml('campeon-segundo-input', typeof SEGUNDO_CONFIG!=='undefined' && SEGUNDO_CONFIG && SEGUNDO_CONFIG.ganador)}
-        <input class="final-edit-input" id="campeon-segundo-input" style="margin-top:0.4rem" placeholder="…o escribí un nombre a mano (ej: equipo nuevo)" value="${(typeof SEGUNDO_CONFIG!=='undefined' && SEGUNDO_CONFIG && SEGUNDO_CONFIG.ganador ? SEGUNDO_CONFIG.ganador : '').replace(/"/g,'&quot;')}" oninput="updateChampManualPreview('campeon-segundo-input')">
-        <div class="champ-manual-preview" id="preview-campeon-segundo-input"></div>
-      </div>
-      <div class="final-edit-field">
-        <label class="final-edit-label">🥉 Ganador del 3er puesto</label>
-        ${champPickerHtml('campeon-tercer-input', typeof TERCER_CONFIG!=='undefined' && TERCER_CONFIG && TERCER_CONFIG.ganador)}
-        <input class="final-edit-input" id="campeon-tercer-input" style="margin-top:0.4rem" placeholder="…o escribí un nombre a mano (ej: equipo nuevo)" value="${(typeof TERCER_CONFIG!=='undefined' && TERCER_CONFIG && TERCER_CONFIG.ganador ? TERCER_CONFIG.ganador : '').replace(/"/g,'&quot;')}" oninput="updateChampManualPreview('campeon-tercer-input')">
-        <div class="champ-manual-preview" id="preview-campeon-tercer-input"></div>
-      </div>
-      <button class="final-edit-save" onclick="saveCampeones()">Guardar campeones</button>
-    </div>
-
     <!-- FOTO DEL ORGANIZADOR (para "Una producción de" en los créditos) -->
     <div class="card">
       <div style="font-size:15px;font-weight:600;margin-bottom:0.3rem"><span class="dot-indicator" style="background:var(--gold);box-shadow:0 0 8px rgba(245,200,66,0.6)"></span>Tu foto</div>
@@ -11476,8 +11547,8 @@ function renderFinal() {
     </div>
 
   `;
-    ['campeon-final-input', 'campeon-segundo-input', 'campeon-tercer-input'].forEach(updateChampManualPreview);
   }
+  ['campeon-final-input', 'campeon-segundo-input', 'campeon-tercer-input', 'campeon-cuarto-input'].forEach(updateChampManualPreview);
 
   // El botón de cierre vive en su propio contenedor, ubicado en el HTML
   // *después* del Muro de fotos, para que nada aparezca debajo de él.
@@ -17845,6 +17916,7 @@ loadComodinesConfig();
 loadFinalConfig();
 loadTercerConfig();
 loadSegundoConfig();
+loadCuartoConfig();
 loadElencoConfig();
 syncRulestoRuntime();
 restoreRosterAndFixtures();
