@@ -54,6 +54,11 @@
   }
   html { background: var(--bg); }
 
+  /* Oculta la barra de scroll de toda la página (sigue pudiéndose
+     desplazar con rueda/touch/teclado, solo no se dibuja la barra) */
+  html { scrollbar-width: none; -ms-overflow-style: none; }
+  html::-webkit-scrollbar { display: none; }
+
   /* NAV */
   nav {
     display: flex;
