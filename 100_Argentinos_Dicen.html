@@ -2731,12 +2731,18 @@ function listenReactions(){
   });
 }
 function showFloatingReaction(emoji){
-  const el = document.createElement('div');
-  el.className = 'floating-reaction';
-  el.textContent = emoji;
-  el.style.left = (10 + Math.random()*80) + 'vw';
-  document.body.appendChild(el);
-  setTimeout(()=>el.remove(), 2200);
+  const count = 3 + Math.floor(Math.random()*3); // ráfaga de 3 a 5
+  for(let i=0;i<count;i++){
+    setTimeout(()=>{
+      const el = document.createElement('div');
+      el.className = 'floating-reaction';
+      el.textContent = emoji;
+      el.style.left = (10 + Math.random()*80) + 'vw';
+      el.style.fontSize = (52 + Math.random()*24) + 'px';
+      document.body.appendChild(el);
+      setTimeout(()=>el.remove(), 2200);
+    }, i * (80 + Math.random()*70));
+  }
 }
 
 function initFirebase(){
