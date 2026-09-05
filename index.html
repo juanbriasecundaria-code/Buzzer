@@ -987,7 +987,12 @@ function sfxEpa(){
 
 function showEarlyWarning(){
   _earlyTaps++;
-  const idx = Math.min(_earlyTaps - 1, EARLY_MSGS.length - 1);
+  // Mientras haya mensajes "nuevos" en la lista, los mostramos en orden
+  // (progresión de la broma). Una vez agotados, en vez de quedarnos
+  // clavados siempre en el último, elegimos uno al azar entre todos.
+  const idx = _earlyTaps <= EARLY_MSGS.length
+    ? _earlyTaps - 1
+    : Math.floor(Math.random() * EARLY_MSGS.length);
   const m = EARLY_MSGS[idx];
   const sub = idx === EARLY_MSGS.length - 1
     ? 'Ya van ' + _earlyTaps + ' intentos…'
