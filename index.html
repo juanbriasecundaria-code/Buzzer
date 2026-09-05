@@ -302,6 +302,20 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
 @media (prefers-reduced-motion: reduce){
   .bze-emoji,.bz-buzz-btn.shake{animation:none}
 }
+
+/* ── COUNTDOWN 3,2,1 antes de abrir el buzzer ── */
+.bz-countdown{position:absolute;inset:0;z-index:6;display:none;flex-direction:column;align-items:center;justify-content:center;gap:.6rem;text-align:center;
+  background:radial-gradient(120% 80% at 50% 35%,rgba(200,240,96,.10),transparent 70%),rgba(10,10,14,.82);
+  -webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px)}
+.bz-countdown.show{display:flex;animation:resultIn .3s cubic-bezier(.22,1,.36,1)}
+.bzc-num{font-size:6.5rem;font-weight:900;line-height:1;color:var(--accent);
+  text-shadow:0 0 40px rgba(200,240,96,.5);min-width:2ch}
+.bzc-num.tick{animation:bzcTick .82s cubic-bezier(.2,1.2,.4,1)}
+@keyframes bzcTick{0%{transform:scale(.4);opacity:0}25%{transform:scale(1.15);opacity:1}45%{transform:scale(1)}100%{transform:scale(.92);opacity:.85}}
+.bzc-label{font-size:14px;color:var(--muted);font-weight:700;letter-spacing:.06em;text-transform:uppercase}
+@media (prefers-reduced-motion: reduce){
+  .bzc-num.tick{animation:none}
+}
 </style>
 </head>
 <body>
@@ -447,6 +461,10 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
     <div class="bz-result-icon" id="bz-result-icon">🏆</div>
     <div class="bz-result-title" id="bz-result-title">¡Buzzaste primero!</div>
     <div class="bz-result-sub" id="bz-result-sub"></div>
+  </div>
+  <div class="bz-countdown" id="bz-countdown">
+    <div class="bzc-num" id="bz-countdown-num">3</div>
+    <div class="bzc-label">Preparate…</div>
   </div>
 </div>
 
@@ -711,6 +729,7 @@ function selectTeam(team){
   document.getElementById('bz-status').textContent = 'Esperando al conductor…';
   document.getElementById('bz-status').className = 'bz-status';
   hideResult(); _resultShownFor = null;
+  hideBzCountdown();
 
   stopNamesListener();
   stopIndivListener();
@@ -721,6 +740,7 @@ function selectTeam(team){
 function goBack(to){
   // Detener listener activo
   if(bzListener && fbRef){ fbRef.off('value', bzListener); bzListener=null; }
+  hideBzCountdown();
 
   if(to==='game'){
     bzTeam=null; currentGame=null;
@@ -757,6 +777,49 @@ function hideResult(){
   document.getElementById('bz-result').classList.remove('show');
 }
 
+// ── COUNTDOWN 3,2,1 ──────────────────────────────────────────────
+// El conductor, al habilitar el buzzer, primero escribe state:'countdown'
+// con countdownStart/countdownMs, y recién countdownMs después escribe
+// state:'open'. Acá solo animamos el 3-2-1; el desbloqueo real del botón
+// lo dispara la llegada de state==='open' desde Firebase (fuente de verdad).
+let _bzCountdownActiveTs = null; // countdownStart que ya estamos animando
+let _bzCountdownTicks = [];      // setTimeouts de los ticks en curso
+
+function showBzCountdown(startTs, durationMs){
+  startTs = startTs || Date.now();
+  durationMs = durationMs || 3000;
+  if(_bzCountdownActiveTs === startTs) return; // ya lo estamos mostrando
+  clearBzCountdownTicks();
+  _bzCountdownActiveTs = startTs;
+
+  const ov = document.getElementById('bz-countdown');
+  const numEl = document.getElementById('bz-countdown-num');
+  const totalSecs = Math.round(durationMs/1000) || 3;
+  ov.classList.add('show');
+
+  const elapsed = Date.now() - startTs;
+  for(let s=totalSecs; s>=1; s--){
+    const tickAt = (totalSecs - s) * 1000; // 0ms, 1000ms, 2000ms...
+    const delay = tickAt - elapsed;
+    const fire = ()=>{
+      if(_bzCountdownActiveTs !== startTs) return; // se canceló/reemplazó
+      numEl.textContent = s;
+      numEl.classList.remove('tick'); void numEl.offsetWidth; numEl.classList.add('tick');
+      if(navigator.vibrate) navigator.vibrate(25);
+    };
+    if(delay <= 0) fire(); else _bzCountdownTicks.push(setTimeout(fire, delay));
+  }
+}
+function clearBzCountdownTicks(){
+  _bzCountdownTicks.forEach(t=>clearTimeout(t));
+  _bzCountdownTicks = [];
+}
+function hideBzCountdown(){
+  _bzCountdownActiveTs = null;
+  clearBzCountdownTicks();
+  document.getElementById('bz-countdown').classList.remove('show');
+}
+
 // ── BUZZER LISTENER ──────────────────────────────────────────────
 function startBuzzListener(){
   if(!fbRef) return;
@@ -774,6 +837,7 @@ function startBuzzListener(){
     const statusEl = document.getElementById('bz-status');
 
     if(d.winner){
+      hideBzCountdown();
       _bzPhase = 'won';
       const wonByMe = d.winner.team === bzTeam;
       const winnerName = d.winner.name || (d.winner.team==='a'?nameA:nameB);
@@ -794,8 +858,18 @@ function startBuzzListener(){
         showResult(wonByMe, winnerName);
         _resultShownFor = d.winner.team;
       }
+    } else if(state==='countdown'){
+      hideResult(); _resultShownFor = null;
+      _bzPhase = 'countdown';
+      _earlyTaps = 0;
+      btn.classList.add('locked');
+      btn.classList.remove('open','won-me');
+      statusEl.textContent = 'Preparate…';
+      statusEl.className = 'bz-status';
+      showBzCountdown(d.countdownStart, d.countdownMs);
     } else if(state==='open'){
       hideResult(); _resultShownFor = null;
+      hideBzCountdown();
       if(d.blocked && d.blocked===bzTeam){
         _bzPhase = 'blocked';
         // Este equipo ya erró esta carta — le toca al otro
@@ -815,6 +889,7 @@ function startBuzzListener(){
       }
     } else {
       hideResult(); _resultShownFor = null;
+      hideBzCountdown();
       _bzPhase = 'waiting';
       btn.classList.add('locked');
       btn.classList.remove('open','won-me');
