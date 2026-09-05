@@ -675,6 +675,8 @@ body.is-participant .cad-bg-scrim { display: block; }
   .kb-dock-close { background: none; border: none; color: var(--muted); font-size: 13px; cursor: pointer; padding: 2px 4px; line-height: 1; }
   .kb-dock-close:active { opacity: 0.6; }
   @media (max-width: 980px), (max-height: 640px) { .kb-dock { display: none !important; } }
+.floating-reaction{position:fixed;bottom:8vh;font-size:64px;z-index:9999;pointer-events:none;animation:floatUp 2.2s ease-out forwards}
+@keyframes floatUp{0%{transform:translateY(0) scale(.6);opacity:0}15%{opacity:1;transform:translateY(-10vh) scale(1.15)}100%{transform:translateY(-55vh) scale(1);opacity:0}}
 </style>
 <style>.hub-link{position:fixed;top:max(0.75rem,env(safe-area-inset-top));left:max(0.75rem,env(safe-area-inset-left));z-index:99999;font-size:11px;font-weight:700;color:rgba(240,239,232,0.7);background:rgba(10,10,14,0.6);border:1px solid rgba(255,255,255,0.1);border-radius:99px;padding:0.38rem 0.85rem;text-decoration:none;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);letter-spacing:0.04em;transition:color 0.15s,border-color 0.15s;white-space:nowrap}.hub-link:hover{color:#f0efe8;border-color:rgba(255,255,255,0.25)}</style></head>
 <body>
@@ -2716,6 +2718,27 @@ function showToast(msg, ms = 2200) {
   t._hideTimer = setTimeout(() => { t.style.opacity = '0'; }, ms);
 }
 
+// ── REACCIONES RÁPIDAS DE LOS JUGADORES ─────────────────────────────
+let _lastReactionTs = 0;
+function listenReactions(){
+  if(!fbRef) return;
+  fbRef.child('reaccion').on('value', snap=>{
+    const r = snap.val();
+    if(r && r.ts > _lastReactionTs){
+      _lastReactionTs = r.ts;
+      showFloatingReaction(r.emoji);
+    }
+  });
+}
+function showFloatingReaction(emoji){
+  const el = document.createElement('div');
+  el.className = 'floating-reaction';
+  el.textContent = emoji;
+  el.style.left = (10 + Math.random()*80) + 'vw';
+  document.body.appendChild(el);
+  setTimeout(()=>el.remove(), 2200);
+}
+
 function initFirebase(){
   if(fbInited) return;
   try{
@@ -2723,6 +2746,7 @@ function initFirebase(){
     fbDb = firebase.database();
     fbRef = fbDb.ref('argentinos/buzzer');  // ruta exclusiva para este juego
     fbInited = true;
+    listenReactions();
     fbDb.ref('.info/connected').on('value', snap => {
       const ok = snap.val();
       setFbStatus(ok ? 'ready' : 'connecting', ok ? '🔔 Listo — tocá Reiniciar para abrir' : 'Reconectando…');
