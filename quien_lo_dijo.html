@@ -908,8 +908,11 @@ let _buzzCountdownTimer = null;
 function fbOpenBuzzer(){
   if(!fbBuzzerRef) return;
   clearTimeout(_buzzCountdownTimer);
-  const startTs = Date.now();
-  fbBuzzerRef.set({ state:'countdown', winner:null, countdownStart:startTs, countdownMs:BUZZ_COUNTDOWN_MS });
+  // countdownStart se manda como ServerValue.TIMESTAMP: lo resuelve el
+  // servidor de Firebase (no el reloj de este celu), así todos los
+  // dispositivos calculan el 3-2-1 contra el mismo reloj y quedan
+  // sincronizados entre sí.
+  fbBuzzerRef.set({ state:'countdown', winner:null, countdownStart:firebase.database.ServerValue.TIMESTAMP, countdownMs:BUZZ_COUNTDOWN_MS });
   buzzerWinner = null;
   _buzzCountdownTimer = setTimeout(()=>{
     if(!fbBuzzerRef) return;
