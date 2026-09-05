@@ -796,7 +796,7 @@ function hideResult(){
 // celus muestren los números sincronizados entre sí, sin depender de que
 // los relojes de los dispositivos coincidan.
 let _bzCountdownActiveKey = null; // countdownStart que ya estamos animando (también sirve de id)
-let _bzCountdownTicks = [];       // setTimeouts de los ticks en curso
+let _bzCountdownTimer = null;      // timer local (setTimeout/interval) del tick en curso
 
 function showBzCountdown(startTs, durationMs){
   const key = startTs || 'countdown';
@@ -810,25 +810,54 @@ function showBzCountdown(startTs, durationMs){
   const totalSecs = Math.max(1, Math.round(durationMs/1000));
   ov.classList.add('show');
 
+  const renderTick = (s)=>{
+    numEl.textContent = s;
+    numEl.classList.remove('tick'); void numEl.offsetWidth; numEl.classList.add('tick');
+    if(navigator.vibrate) navigator.vibrate(25);
+  };
+
   // "Cuánto ya pasó" del countdown, medido contra el reloj del servidor
   // (mismo para todos los dispositivos) — no contra el reloj de otro celu.
-  const elapsed = typeof startTs === 'number' ? (nowServer() - startTs) : 0;
-  for(let i=0; i<totalSecs; i++){
-    const s = totalSecs - i; // 3,2,1
-    const tickAt = i * 1000; // 0ms, 1000ms, 2000ms…
-    const delay = tickAt - elapsed;
-    const fire = ()=>{
-      if(_bzCountdownActiveKey !== key) return; // se canceló/reemplazó
-      numEl.textContent = s;
-      numEl.classList.remove('tick'); void numEl.offsetWidth; numEl.classList.add('tick');
-      if(navigator.vibrate) navigator.vibrate(25);
-    };
-    if(delay <= 0) fire(); else _bzCountdownTicks.push(setTimeout(fire, delay));
-  }
+  // Esto se calcula UNA SOLA VEZ acá, para saber en qué número "debería"
+  // estar el countdown ahora mismo (por ejemplo, si el mensaje de Firebase
+  // llegó tarde por mala señal y ya pasaron 1.4s de un countdown de 3s,
+  // arrancamos directo mostrando el "2"). A partir de este punto NO se
+  // vuelve a mirar el reloj del servidor: se cuenta hacia atrás con un
+  // timer local de 1s, así nunca se amontonan varios números en el mismo
+  // instante, sin importar cuánta demora de red haya habido.
+  const elapsed = typeof startTs === 'number' ? Math.max(0, nowServer() - startTs) : 0;
+  let secsLeft = totalSecs - Math.floor(elapsed / 1000);
+  if(secsLeft < 1) secsLeft = 1; // si ya se pasó de largo, mostramos igual el último número
+
+  renderTick(secsLeft);
+
+  // Sincronizamos el próximo tick con el instante exacto en que "debería"
+  // bajar al próximo número (en vez de esperar 1000ms fijos desde ahora),
+  // para no cortar un segundo de más o de menos.
+  const msIntoCurrentSec = elapsed % 1000;
+  const firstTickDelay = elapsed > 0 ? (1000 - msIntoCurrentSec) : 1000;
+
+  const tick = ()=>{
+    if(_bzCountdownActiveKey !== key) return; // se canceló/reemplazó
+    secsLeft -= 1;
+    if(secsLeft <= 0){
+      clearBzCountdownTicks();
+      return;
+    }
+    renderTick(secsLeft);
+  };
+
+  _bzCountdownTimer = setTimeout(function firstTick(){
+    if(_bzCountdownActiveKey !== key) return;
+    tick();
+    if(_bzCountdownActiveKey === key && secsLeft > 0){
+      _bzCountdownTimer = setInterval(tick, 1000);
+    }
+  }, firstTickDelay);
 }
 function clearBzCountdownTicks(){
-  _bzCountdownTicks.forEach(t=>clearTimeout(t));
-  _bzCountdownTicks = [];
+  if(_bzCountdownTimer){ clearTimeout(_bzCountdownTimer); clearInterval(_bzCountdownTimer); }
+  _bzCountdownTimer = null;
 }
 function hideBzCountdown(){
   _bzCountdownActiveKey = null;
