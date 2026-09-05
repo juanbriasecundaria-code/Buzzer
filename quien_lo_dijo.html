@@ -418,6 +418,8 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
   .form-2col{grid-template-columns:1fr}
   .action-grid-3{grid-template-columns:1fr 1fr}
 }
+.floating-reaction{position:fixed;bottom:8vh;font-size:64px;z-index:9999;pointer-events:none;animation:floatUp 2.2s ease-out forwards}
+@keyframes floatUp{0%{transform:translateY(0) scale(.6);opacity:0}15%{opacity:1;transform:translateY(-10vh) scale(1.15)}100%{transform:translateY(-55vh) scale(1);opacity:0}}
 </style>
 </head>
 <body>
@@ -791,6 +793,27 @@ const FB_CFG = {
 };
 let fbDb=null, fbStateRef=null, fbDeckRef=null, fbBuzzerRef=null, fbTeamsRef=null, fbResultRef=null, fbInited=false, _lastFbJson=null;
 
+// ── REACCIONES RÁPIDAS DE LOS JUGADORES ─────────────────────────────
+let _lastReactionTs = 0;
+function listenReactions(){
+  if(!fbBuzzerRef) return;
+  fbBuzzerRef.child('reaccion').on('value', snap=>{
+    const r = snap.val();
+    if(r && r.ts > _lastReactionTs){
+      _lastReactionTs = r.ts;
+      showFloatingReaction(r.emoji);
+    }
+  });
+}
+function showFloatingReaction(emoji){
+  const el = document.createElement('div');
+  el.className = 'floating-reaction';
+  el.textContent = emoji;
+  el.style.left = (10 + Math.random()*80) + 'vw';
+  document.body.appendChild(el);
+  setTimeout(()=>el.remove(), 2200);
+}
+
 function initFirebase(){
   if(fbInited) return;
   if(!window._fbScriptsDone){ window._fbReadyCb = initFirebase; return; }
@@ -804,6 +827,7 @@ function initFirebase(){
     fbTeamsRef  = fbDb.ref('velada/qld/teams');
     fbResultRef = fbDb.ref('velada/qld/result');
     fbInited = true;
+    listenReactions();
     fbDb.ref('.info/connected').on('value', s => setFbStatus(s.val()?'ok':'','Conectado'));
     // Roster de equipos — lo publica velada.html; lo escuchan conductor y participantes por igual
     fbTeamsRef.on('value', snap => {
