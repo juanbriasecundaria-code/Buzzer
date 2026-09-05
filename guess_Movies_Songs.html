@@ -506,6 +506,8 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
 .hosting-note{font-size:11px;color:var(--muted);background:var(--surface2);border-radius:8px;padding:.6rem .75rem;line-height:1.55;border:1px solid var(--border2)}
 .toast{position:fixed;bottom:calc(5rem + env(safe-area-inset-bottom));left:50%;transform:translateX(-50%);background:var(--surface2);border:1.5px solid var(--border2);border-radius:12px;padding:.6rem 1rem;font-size:13px;font-weight:700;color:var(--text);z-index:750;opacity:0;transition:opacity .2s;pointer-events:none;white-space:nowrap}
 .toast.show{opacity:1}
+.floating-reaction{position:fixed;bottom:8vh;font-size:64px;z-index:9999;pointer-events:none;animation:floatUp 2.2s ease-out forwards}
+@keyframes floatUp{0%{transform:translateY(0) scale(.6);opacity:0}15%{opacity:1;transform:translateY(-10vh) scale(1.15)}100%{transform:translateY(-55vh) scale(1);opacity:0}}
 </style>
 <style>.hub-link{position:fixed;top:max(0.75rem,env(safe-area-inset-top));left:max(0.75rem,env(safe-area-inset-left));z-index:99999;font-size:11px;font-weight:700;color:rgba(240,239,232,0.7);background:rgba(10,10,14,0.6);border:1px solid rgba(255,255,255,0.1);border-radius:99px;padding:0.38rem 0.85rem;text-decoration:none;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);letter-spacing:0.04em;transition:color 0.15s,border-color 0.15s;white-space:nowrap}.hub-link:hover{color:#f0efe8;border-color:rgba(255,255,255,0.25)}</style></head>
 <body>
@@ -929,6 +931,27 @@ const FB_CFG = {
 };
 let fbDb=null, fbRef=null, fbDeckRef=null, fbStateRef=null, fbInited=false, _lastFbStateJson=null;
 
+// ── REACCIONES RÁPIDAS DE LOS JUGADORES ─────────────────────────────
+let _lastReactionTs = 0;
+function listenReactions(){
+  if(!fbRef) return;
+  fbRef.child('reaccion').on('value', snap=>{
+    const r = snap.val();
+    if(r && r.ts > _lastReactionTs){
+      _lastReactionTs = r.ts;
+      showFloatingReaction(r.emoji);
+    }
+  });
+}
+function showFloatingReaction(emoji){
+  const el = document.createElement('div');
+  el.className = 'floating-reaction';
+  el.textContent = emoji;
+  el.style.left = (10 + Math.random()*80) + 'vw';
+  document.body.appendChild(el);
+  setTimeout(()=>el.remove(), 2200);
+}
+
 function initFirebase(){
   if(fbInited) return;
   // Si los scripts aún no terminaron de cargar, esperamos
@@ -950,6 +973,7 @@ function initFirebase(){
     fbStateRef = fbDb.ref('velada/live');
     if(MODE==='participant') startPartStateListener();
     fbInited = true;
+    listenReactions();
     // Connection status
     fbDb.ref('.info/connected').on('value', snap => {
       const ok = snap.val();
