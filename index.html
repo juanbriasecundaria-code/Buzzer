@@ -140,7 +140,8 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
 
 .bz-buzz-btn{width:min(280px,74vw);height:min(280px,74vw);border-radius:50%;border:3px solid;font-family:inherit;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.5rem;transition:transform .1s,box-shadow .2s;-webkit-tap-highlight-color:transparent;margin:.5rem 0}
 .bz-buzz-btn:active{transform:scale(.91)}
-.bz-buzz-btn.locked{opacity:.25;cursor:default;pointer-events:none}
+.bz-buzz-btn.locked{opacity:.25;cursor:default}
+.bz-buzz-btn.locked:active{transform:scale(.97)}
 .bz-buzz-btn.team-a{border-color:var(--blue);background:var(--blue-dim);color:var(--blue);box-shadow:0 0 0 1px rgba(96,180,240,.3),0 12px 40px rgba(96,180,240,.15)}
 .bz-buzz-btn.team-b{border-color:var(--gold);background:var(--gold-dim);color:var(--gold);box-shadow:0 0 0 1px rgba(245,200,66,.3),0 12px 40px rgba(245,200,66,.15)}
 .bz-buzz-btn.team-indiv{border-color:var(--purple);background:var(--purple-dim);color:var(--purple);box-shadow:0 0 0 1px rgba(192,96,232,.3),0 12px 40px rgba(192,96,232,.15)}
@@ -167,26 +168,6 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
 @keyframes bzTrophy{0%{transform:scale(.4) rotate(-12deg)}55%{transform:scale(1.16) rotate(7deg)}100%{transform:scale(1) rotate(0)}}
 .bz-result.lost .bz-result-title{color:var(--text)}
 .bz-result.lost .bz-result-icon{opacity:.7}
-.bz-reactions{display:none;gap:.6rem;margin-top:.3rem}
-.bz-result.lost .bz-reactions{display:flex}
-.bz-react-btn{font-size:26px;width:54px;height:54px;border-radius:50%;background:var(--surface2);border:1.5px solid var(--border2);cursor:pointer;transition:transform .12s}
-.bz-react-btn:active{transform:scale(.88);opacity:.8}
-.bz-night-counter{font-size:13px;color:var(--muted);font-weight:700;letter-spacing:.01em}
-
-/* ── COUNTDOWN DE HABILITACIÓN ── */
-.bz-countdown{position:absolute;inset:0;z-index:8;display:none;align-items:center;justify-content:center;
-  background:rgba(10,10,14,.82);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px)}
-.bz-countdown.show{display:flex}
-.bz-countdown-num{font-size:7rem;font-weight:900;color:var(--gold);text-shadow:0 0 40px rgba(245,200,66,.5)}
-.bz-countdown-num.pulse{animation:bzCountPulse .55s cubic-bezier(.22,1,.36,1)}
-@keyframes bzCountPulse{0%{transform:scale(.4);opacity:0}55%{transform:scale(1.18);opacity:1}100%{transform:scale(1);opacity:1}}
-
-/* ── FLASH DE PANTALLA COMPLETA AL GANAR/PERDER ── */
-.bz-flash{position:fixed;inset:0;z-index:9;opacity:0;pointer-events:none}
-.bz-flash.won{background:var(--green)}
-.bz-flash.lost{background:var(--red)}
-.bz-flash.play{animation:bzFlashAnim .6s ease-out}
-@keyframes bzFlashAnim{0%{opacity:.8}100%{opacity:0}}
 
 /* ── CONNECTING ── */
 .connecting-dot{width:10px;height:10px;border-radius:50%;background:var(--gold);animation:connPulse 1s ease-in-out infinite}
@@ -297,6 +278,30 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
 .pw-error{font-size:12px;color:var(--red);font-weight:700;min-height:1em}
 .pw-cancel{background:none;border:none;color:var(--muted);font-family:inherit;font-size:12px;font-weight:700;cursor:pointer;padding:.3rem .6rem;border-radius:99px;transition:color .15s}
 .pw-cancel:hover{color:var(--text)}
+
+/* ── Aviso de toque anticipado ── */
+.bz-early{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%) scale(.9);
+  z-index:9000;text-align:center;pointer-events:none;
+  background:rgba(14,14,20,.97);border:2px solid var(--danger);border-radius:20px;
+  padding:1.3rem 1.8rem;box-shadow:0 14px 50px rgba(0,0,0,.7),0 0 34px rgba(255,95,95,.25);
+  opacity:0;transition:opacity .22s ease,transform .3s cubic-bezier(.2,1.3,.4,1);
+  max-width:86vw}
+.bz-early.show{opacity:1;transform:translate(-50%,-50%) scale(1)}
+.bze-emoji{font-size:44px;line-height:1;margin-bottom:.4rem;
+  animation:bzeWag .45s ease-in-out 2}
+@keyframes bzeWag{0%,100%{transform:rotate(-12deg)}50%{transform:rotate(12deg)}}
+.bze-t{font-size:19px;font-weight:900;color:var(--danger);letter-spacing:-.01em;line-height:1.2}
+.bze-s{font-size:12.5px;color:var(--muted);margin-top:.35rem}
+.bz-buzz-btn.shake{animation:bzShake .42s cubic-bezier(.36,.07,.19,.97)}
+@keyframes bzShake{
+  10%,90%{transform:translateX(-3px)}
+  20%,80%{transform:translateX(5px)}
+  30%,50%,70%{transform:translateX(-8px)}
+  40%,60%{transform:translateX(8px)}
+}
+@media (prefers-reduced-motion: reduce){
+  .bze-emoji,.bz-buzz-btn.shake{animation:none}
+}
 </style>
 </head>
 <body>
@@ -434,7 +439,6 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
   <div class="bz-game-tag" id="bz-game-tag">Guess Movies &amp; Songs</div>
   <div class="bz-team-name" id="bz-team-name">🔵 Equipo 1</div>
   <div class="bz-status" id="bz-status">Esperando al conductor…</div>
-  <div class="bz-night-counter" id="bz-night-counter"></div>
   <button class="bz-buzz-btn locked team-a" id="bz-buzz-btn" onclick="doBuzz()">
     <span class="bz-buzz-icon">🔔</span>
     <span class="bz-buzz-text">¡BUZZ!</span>
@@ -443,16 +447,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
     <div class="bz-result-icon" id="bz-result-icon">🏆</div>
     <div class="bz-result-title" id="bz-result-title">¡Buzzaste primero!</div>
     <div class="bz-result-sub" id="bz-result-sub"></div>
-    <div class="bz-reactions" id="bz-reactions">
-      <button class="bz-react-btn" onclick="sendReaction('👏')">👏</button>
-      <button class="bz-react-btn" onclick="sendReaction('😤')">😤</button>
-      <button class="bz-react-btn" onclick="sendReaction('🔥')">🔥</button>
-    </div>
   </div>
-  <div class="bz-countdown" id="bz-countdown">
-    <div class="bz-countdown-num" id="bz-countdown-num">3</div>
-  </div>
-  <div class="bz-flash" id="bz-flash"></div>
 </div>
 
 <!-- ── MODAL DE CONTRASEÑA ── -->
@@ -721,13 +716,11 @@ function selectTeam(team){
   stopIndivListener();
   show('buzz-screen');
   startBuzzListener();
-  renderNightCounter();
 }
 
 function goBack(to){
   // Detener listener activo
   if(bzListener && fbRef){ fbRef.off('value', bzListener); bzListener=null; }
-  cancelCountdown(); _trulyOpenNow = false;
 
   if(to==='game'){
     bzTeam=null; currentGame=null;
@@ -749,7 +742,6 @@ function goBack(to){
 
 // ── RESULT OVERLAY ───────────────────────────────────────────────
 let _resultShownFor = null; // recuerda para qué winner ya animamos
-let _trulyOpenNow = false;  // si el botón ya está habilitado de verdad para este jugador
 function showResult(won, winnerName){
   const ov = document.getElementById('bz-result');
   document.getElementById('bz-result-icon').textContent  = won ? '🏆' : '⏱️';
@@ -760,52 +752,9 @@ function showResult(won, winnerName){
   ov.classList.remove('won','lost','show');
   void ov.offsetWidth;                 // reinicia la animación cada vez
   ov.classList.add(won ? 'won' : 'lost', 'show');
-  screenFlash(won);
 }
 function hideResult(){
   document.getElementById('bz-result').classList.remove('show');
-}
-function screenFlash(won){
-  const flash = document.getElementById('bz-flash');
-  flash.classList.remove('won','lost','play');
-  void flash.offsetWidth;
-  flash.classList.add(won ? 'won' : 'lost', 'play');
-}
-
-// ── CONTADOR PERSONAL DE LA NOCHE (local a este teléfono) ──────────
-function nightStats(){
-  try{ return JSON.parse(localStorage.getItem('bz_night_stats')||'{"wins":0,"total":0,"streak":0,"bestStreak":0}'); }
-  catch(e){ return {wins:0,total:0,streak:0,bestStreak:0}; }
-}
-function saveNightStats(s){ try{ localStorage.setItem('bz_night_stats', JSON.stringify(s)); }catch(e){} }
-function bumpNightStats(won){
-  const s = nightStats();
-  s.total++;
-  if(won){
-    s.wins++;
-    s.streak = (s.streak||0) + 1;
-    if(s.streak > (s.bestStreak||0)) s.bestStreak = s.streak;
-  } else {
-    s.streak = 0;
-  }
-  saveNightStats(s);
-  renderNightCounter();
-}
-function renderNightCounter(){
-  const el = document.getElementById('bz-night-counter');
-  if(!el) return;
-  const s = nightStats();
-  if(s.total===0){ el.textContent=''; return; }
-  let txt = `Vas ${s.wins}/${s.total} buzz ganados esta noche`;
-  if((s.bestStreak||0) >= 2) txt += ` · racha: ${s.bestStreak}`;
-  el.textContent = txt;
-}
-
-// ── REACCIONES RÁPIDAS (el que pierde manda un emoji a la TV) ──────
-function sendReaction(emoji){
-  if(!fbRef) return;
-  fbRef.child('reaccion').set({ emoji, team: bzTeam, ts: Date.now() });
-  if(navigator.vibrate) navigator.vibrate(20);
 }
 
 // ── BUZZER LISTENER ──────────────────────────────────────────────
@@ -825,7 +774,7 @@ function startBuzzListener(){
     const statusEl = document.getElementById('bz-status');
 
     if(d.winner){
-      cancelCountdown(); _trulyOpenNow = false;
+      _bzPhase = 'won';
       const wonByMe = d.winner.team === bzTeam;
       const winnerName = d.winner.name || (d.winner.team==='a'?nameA:nameB);
       btn.classList.add('locked');
@@ -844,37 +793,29 @@ function startBuzzListener(){
       if(_resultShownFor !== d.winner.team){
         showResult(wonByMe, winnerName);
         _resultShownFor = d.winner.team;
-        bumpNightStats(wonByMe);
       }
     } else if(state==='open'){
       hideResult(); _resultShownFor = null;
       if(d.blocked && d.blocked===bzTeam){
+        _bzPhase = 'blocked';
         // Este equipo ya erró esta carta — le toca al otro
-        cancelCountdown(); _trulyOpenNow = false;
         btn.classList.add('locked');
         btn.classList.remove('open','won-me');
         const otro = bzTeam==='a' ? nameB : nameA;
         statusEl.textContent = '✗ Erraron — ahora responde ' + otro;
         statusEl.className = 'bz-status lost';
-      } else if(!_trulyOpenNow){
-        // Recién se habilita para este jugador → cuenta regresiva de suspenso
-        btn.classList.add('locked');
-        btn.classList.remove('open','won-me');
-        statusEl.textContent = 'Preparate…';
-        statusEl.className = 'bz-status';
-        runEnableCountdown(()=>{
-          btn.classList.remove('locked','won-me');
-          btn.classList.add('open');
-          statusEl.textContent = '¡Tocá cuando sepas la respuesta!';
-          statusEl.className = 'bz-status open';
-          playBell();
-          if(navigator.vibrate) navigator.vibrate(30);
-        });
-        _trulyOpenNow = true;
+      } else {
+        _bzPhase = 'open';
+        _earlyTaps = 0;
+        btn.classList.remove('locked','won-me');
+        btn.classList.add('open');
+        statusEl.textContent = '¡Tocá cuando sepas la respuesta!';
+        statusEl.className = 'bz-status open';
+        if(navigator.vibrate) navigator.vibrate(30);
       }
     } else {
       hideResult(); _resultShownFor = null;
-      cancelCountdown(); _trulyOpenNow = false;
+      _bzPhase = 'waiting';
       btn.classList.add('locked');
       btn.classList.remove('open','won-me');
       statusEl.textContent = 'Esperando al conductor…';
@@ -890,69 +831,75 @@ function _bac(){ try{ if(!_buzzAudio) _buzzAudio=new (window.AudioContext||windo
 document.addEventListener('pointerdown',()=>{ _bac(); },{once:true});
 function sfxTin(){ const ctx=_bac(); if(!ctx) return; try{ const now=ctx.currentTime; [[988,0],[1319,0.07]].forEach(([f,t])=>{ const o=ctx.createOscillator(),g=ctx.createGain(); o.type='triangle'; o.frequency.value=f; o.connect(g); g.connect(ctx.destination); const s=now+t; g.gain.setValueAtTime(0.0001,s); g.gain.exponentialRampToValueAtTime(0.6,s+0.01); g.gain.exponentialRampToValueAtTime(0.0001,s+0.45); o.start(s); o.stop(s+0.5); }); }catch(e){} }
 
-// ── SFX: campana real al habilitarse el buzzer (además de la vibración) ──
-function playBell(){
-  const ctx=_bac(); if(!ctx) return;
+
+// ── TOQUE ANTICIPADO ─────────────────────────────────────────────────
+// Antes, tocar el buzzer antes de tiempo no hacía nada (el botón estaba
+// deshabilitado). Ahora se avisa, y el mensaje escala si el vivo insiste.
+let _bzPhase = 'waiting';   // waiting | open | won | blocked
+let _earlyTaps = 0;
+
+const EARLY_MSGS = [
+  { t: '¡Epa, epa! ¿Qué hacías?',        s: 'Todavía no abrió el buzzer' },
+  { t: 'Otra vez… 👀',                    s: 'Esperá a que el conductor lo abra' },
+  { t: 'Te estoy viendo, eh',            s: 'Tocar antes no te da ventaja' },
+  { t: '¿En serio seguís? 😂',            s: 'Guardá esos dedos para cuando valga' },
+  { t: 'Campeón del gatillo fácil 🏆',    s: 'Ya van ' + '' + ' intentos…' },
+];
+
+function sfxEpa(){
+  const ctx = _bac(); if(!ctx) return;
   try{
-    const now=ctx.currentTime;
-    [[784,0,0.7],[659,0.12,0.55]].forEach(([f,t,vol])=>{
+    const now = ctx.currentTime;
+    // Dos notas descendentes: el "no-no" clásico
+    [[440,0],[330,0.13]].forEach(([f,t])=>{
       const o=ctx.createOscillator(), g=ctx.createGain();
-      o.type='sine'; o.frequency.value=f;
-      o.connect(g); g.connect(ctx.destination);
-      const s=now+t;
-      g.gain.setValueAtTime(0.0001,s);
-      g.gain.exponentialRampToValueAtTime(vol,s+0.015);
-      g.gain.exponentialRampToValueAtTime(0.0001,s+0.6);
-      o.start(s); o.stop(s+0.65);
+      o.type='square'; o.frequency.value=f;
+      const lp=ctx.createBiquadFilter(); lp.type='lowpass'; lp.frequency.value=1200;
+      o.connect(lp); lp.connect(g); g.connect(ctx.destination);
+      const st=now+t;
+      g.gain.setValueAtTime(0.0001,st);
+      g.gain.exponentialRampToValueAtTime(0.28,st+0.012);
+      g.gain.exponentialRampToValueAtTime(0.0001,st+0.16);
+      o.start(st); o.stop(st+0.2);
     });
   }catch(e){}
 }
-// ── SFX: tick corto de la cuenta regresiva 3…2…1 ──
-function playCountTick(){
-  const ctx=_bac(); if(!ctx) return;
-  try{
-    const now=ctx.currentTime;
-    const o=ctx.createOscillator(), g=ctx.createGain();
-    o.type='square'; o.frequency.value=880;
-    o.connect(g); g.connect(ctx.destination);
-    g.gain.setValueAtTime(0.0001,now);
-    g.gain.exponentialRampToValueAtTime(0.25,now+0.008);
-    g.gain.exponentialRampToValueAtTime(0.0001,now+0.09);
-    o.start(now); o.stop(now+0.1);
-  }catch(e){}
-}
 
-// ── CUENTA REGRESIVA "3…2…1" antes de habilitar el buzzer ──────────
-let _countdownToken = 0;
-function runEnableCountdown(onDone){
-  const token = ++_countdownToken;
-  const el = document.getElementById('bz-countdown');
-  const numEl = document.getElementById('bz-countdown-num');
-  el.classList.add('show');
-  let n = 3;
-  const tick = () => {
-    if(token !== _countdownToken){ el.classList.remove('show'); return; } // se canceló
-    if(n > 0){
-      numEl.textContent = n;
-      numEl.classList.remove('pulse'); void numEl.offsetWidth; numEl.classList.add('pulse');
-      playCountTick();
-      if(navigator.vibrate) navigator.vibrate(15);
-      n--;
-      setTimeout(tick, 650);
-    } else {
-      el.classList.remove('show');
-      if(token === _countdownToken) onDone();
-    }
-  };
-  tick();
-}
-function cancelCountdown(){
-  _countdownToken++;
-  document.getElementById('bz-countdown').classList.remove('show');
+function showEarlyWarning(){
+  _earlyTaps++;
+  const idx = Math.min(_earlyTaps - 1, EARLY_MSGS.length - 1);
+  const m = EARLY_MSGS[idx];
+  const sub = idx === EARLY_MSGS.length - 1
+    ? 'Ya van ' + _earlyTaps + ' intentos…'
+    : m.s;
+
+  let el = document.getElementById('bz-early');
+  if(!el){
+    el = document.createElement('div');
+    el.id = 'bz-early';
+    el.className = 'bz-early';
+    document.body.appendChild(el);
+  }
+  el.innerHTML = '<div class="bze-emoji">✋</div>' +
+                 '<div class="bze-t">' + m.t + '</div>' +
+                 '<div class="bze-s">' + sub + '</div>';
+  el.classList.remove('show'); void el.offsetWidth; el.classList.add('show');
+
+  // Sacudida del botón, vibración de reproche y sonido
+  const btn = document.getElementById('bz-buzz-btn');
+  if(btn){ btn.classList.remove('shake'); void btn.offsetWidth; btn.classList.add('shake'); }
+  if(navigator.vibrate) navigator.vibrate([25,45,25]);
+  sfxEpa();
+
+  clearTimeout(showEarlyWarning._t);
+  showEarlyWarning._t = setTimeout(()=>el.classList.remove('show'), 2200);
 }
 
 function doBuzz(){
   if(!fbRef || !bzTeam) return;
+  // Todavía no abrió: avisamos en vez de ignorar el toque
+  if(_bzPhase === 'waiting'){ showEarlyWarning(); return; }
+  if(_bzPhase === 'won' || _bzPhase === 'blocked') return;  // ya se resolvió
   const meta = GAME_META[currentGame] || {};
   const isIndividual = !!meta.individual;
   const tName = isIndividual ? bzTeam : (bzTeam==='a' ? nameA : nameB);
