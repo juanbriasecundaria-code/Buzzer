@@ -3125,6 +3125,39 @@ body.started .velada-bg-scrim { display: block; }
 .cr-heat-val{flex:0 0 44px;text-align:left;font-size:.78em;font-weight:800;color:var(--gold)}
 .cr-heat-facts{margin-top:.9rem;font-size:.82em;color:var(--muted);line-height:1.7;text-align:center}
 .cr-heat-facts b{color:var(--text)}
+
+/* ── MINI SCOREBOARD FIJO ── */
+.mini-board{position:fixed;right:max(.7rem,env(safe-area-inset-right));
+  bottom:calc(.7rem + env(safe-area-inset-bottom));z-index:900;
+  width:168px;background:rgba(16,16,22,.95);backdrop-filter:blur(10px);
+  -webkit-backdrop-filter:blur(10px);border:1px solid var(--border2);
+  border-radius:13px;padding:.5rem .55rem;box-shadow:0 6px 26px rgba(0,0,0,.5);
+  font-size:12px;transition:border-color .3s}
+.mini-board.ph-f1{border-color:rgba(200,240,96,.35)}
+.mini-board.ph-f2{border-color:rgba(96,180,240,.35)}
+.mini-board.collapsed{width:auto;padding:0;background:transparent;border:none;box-shadow:none;backdrop-filter:none}
+.mb-open{width:40px;height:40px;border-radius:50%;border:1px solid var(--border2);
+  background:rgba(16,16,22,.95);color:var(--gold);font-size:17px;cursor:pointer;
+  box-shadow:0 4px 18px rgba(0,0,0,.5);backdrop-filter:blur(10px)}
+.mb-head{display:flex;align-items:center;justify-content:space-between;
+  margin-bottom:.35rem;padding-bottom:.3rem;border-bottom:1px solid var(--border)}
+.mb-tag{font-size:9px;font-weight:800;letter-spacing:.09em;text-transform:uppercase;color:var(--muted)}
+.ph-f1 .mb-tag{color:var(--accent)}
+.ph-f2 .mb-tag{color:var(--info)}
+.mb-hide{background:none;border:none;color:var(--muted);cursor:pointer;
+  font-size:16px;line-height:1;padding:0 2px;font-family:inherit}
+.mb-row{display:flex;align-items:center;gap:.3rem;padding:.16rem 0}
+.mb-row.lead .mb-name{color:var(--gold);font-weight:800}
+.mb-med{flex-shrink:0;font-size:11px}
+.mb-name{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+  font-weight:600;color:var(--text);font-size:11.5px}
+.mb-pts{flex-shrink:0;font-weight:900;font-size:12.5px;color:var(--text)}
+.mb-empty{font-size:10.5px;color:var(--muted);font-style:italic;padding:.25rem 0}
+@media (max-width:640px){
+  .mini-board{width:146px;font-size:11px}
+  .mb-name{font-size:10.5px}
+}
+@media print{.mini-board{display:none}}
 </style>
 <style>.hub-link{position:fixed;top:max(0.75rem,env(safe-area-inset-top));left:max(0.75rem,env(safe-area-inset-left));z-index:99999;font-size:11px;font-weight:700;color:rgba(240,239,232,0.7);background:rgba(10,10,14,0.6);border:1px solid rgba(255,255,255,0.1);border-radius:99px;padding:0.38rem 0.85rem;text-decoration:none;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);letter-spacing:0.04em;transition:color 0.15s,border-color 0.15s;white-space:nowrap}.hub-link:hover{color:#f0efe8;border-color:rgba(255,255,255,0.25)}body:has(.ceremony.show) .hub-link{display:none}</style></head>
 <body>
@@ -5445,8 +5478,84 @@ function activateTab(tab) {
   state.lastTab = tab;
   saveState();
 }
+
+// ── MINI SCOREBOARD FIJO ─────────────────────────────────────────────
+// Top 3 siempre visible en una esquina, sin importar en qué pestaña estés.
+// Cambia solo según la fase que estés mirando (o la que esté en juego).
+let _miniOn = true;
+try { _miniOn = localStorage.getItem('ndj_mini_off') !== '1'; } catch (e) {}
+
+function miniPhase() {
+  const tab = document.querySelector('.nav-tab.active')?.dataset.tab;
+  if (tab === 'fase2') return 'f2';
+  if (tab === 'fase1' || tab === 'impostor') return 'f1';
+  // En Reglas o Final, mostramos la fase que todavía se está jugando
+  try {
+    const f1Pend = F1_FIXTURE.some(m => !state.f1[m[0] + '-' + m[1] + '-' + m[2]]);
+    return f1Pend ? 'f1' : 'f2';
+  } catch (e) { return 'f1'; }
+}
+
+function toggleMiniBoard() {
+  _miniOn = !_miniOn;
+  try { localStorage.setItem('ndj_mini_off', _miniOn ? '0' : '1'); } catch (e) {}
+  renderMiniBoard();
+}
+
+function renderMiniBoard() {
+  let el = document.getElementById('mini-board');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'mini-board';
+    el.className = 'mini-board';
+    document.body.appendChild(el);
+  }
+
+  if (!_miniOn) {
+    el.className = 'mini-board collapsed';
+    el.innerHTML = '<button class="mb-open" onclick="toggleMiniBoard()" title="Mostrar posiciones">🏆</button>';
+    return;
+  }
+
+  const ph = miniPhase();
+  const isF1 = ph === 'f1';
+  let pts = [], ents = [];
+  try {
+    ents = isF1 ? PLAYERS : TEAMS;
+    pts  = isF1 ? getPlayerPoints() : getTeamPoints();
+  } catch (e) { return; }
+
+  const sorted = ents.map((n, i) => ({ n, i, t: pts[i] ? pts[i].total : 0 }))
+                     .sort((a, b) => b.t - a.t);
+  const top = sorted.slice(0, 3);
+  const anyPts = top.some(x => x.t > 0);
+
+  const short = n => String(n || '').split('/')[0].trim().split(' ')[0];
+  const medals = ['🥇', '🥈', '🥉'];
+  const rows = top.map((e, i) => {
+    // En equipos el nombre completo no entra: mostramos ambos apodos cortos
+    const label = isF1
+      ? short(e.n)
+      : String(e.n).split('/').map(p => p.trim().split(' ')[0]).join(' / ');
+    return `<div class="mb-row${i === 0 ? ' lead' : ''}">
+      <span class="mb-med">${medals[i]}</span>
+      <span class="mb-name">${_escC(label)}</span>
+      <span class="mb-pts">${e.t}</span>
+    </div>`;
+  }).join('');
+
+  el.className = 'mini-board ' + (isF1 ? 'ph-f1' : 'ph-f2');
+  el.innerHTML = `
+    <div class="mb-head">
+      <span class="mb-tag">${isF1 ? '🎮 Fase 1' : '👥 Fase 2'}</span>
+      <button class="mb-hide" onclick="toggleMiniBoard()" title="Ocultar" aria-label="Ocultar posiciones">−</button>
+    </div>
+    ${anyPts ? rows : '<div class="mb-empty">Sin puntos todavía</div>'}`;
+}
+
 function goTab(tab) {
   activateTab(tab);
+  renderMiniBoard();
 }
 
 // ============================================================
@@ -5858,6 +5967,7 @@ function setVsJC(playerName, value) {
 // RENDER FASE 1
 // ============================================================
 function renderFase1() {
+  renderMiniBoard();
   renderF1RosterAdmin();
   renderBonusManualF1();
   renderBetControl();
@@ -6501,6 +6611,7 @@ function renderMyNext(phase) {
 }
 
 function renderFase2() {
+  renderMiniBoard();
   renderF2RosterAdmin();
   renderBetControlF2();
   renderComodinesPanel('f2');
@@ -17565,6 +17676,7 @@ function updateNavProgress() {
 }
 
 loadState();
+setTimeout(() => { try { renderMiniBoard(); } catch (e) {} }, 300);
 loadWall();
 window._ndjWall = JSON.stringify(_wall);
 // Traer el muro desde Firebase (fotos subidas por los invitados desde el celu)
