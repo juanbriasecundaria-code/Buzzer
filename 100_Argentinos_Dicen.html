@@ -2773,29 +2773,47 @@ function setFbStatus(state, msg){
 // CONDUCTOR: un solo botón que HABILITA o BLOQUEA el buzzer.
 // El buzzer arranca SIEMPRE bloqueado; nadie aprieta hasta que el conductor
 // toque "Habilitar". El index.html (GitHub) obedece este estado por Firebase.
+// Al habilitar, primero pasa 3 segundos en 'countdown' (3,2,1) antes de 'open'.
 let _bzOpen = false;
+let _bzState = 'locked';
+const BUZZ_COUNTDOWN_MS = 3000;
+let _bzCountdownTimer = null;
 
 function fbToggle(){
   if(!fbRef){ showToast('⚠️ Firebase no conectado'); return; }
-  if(_bzOpen){
+  if(_bzOpen || _bzState==='countdown'){
+    clearTimeout(_bzCountdownTimer);
     fbRef.set({ state:'locked', winner:null, names:{ a:nameOf('a'), b:nameOf('b') } })
       .then(()=>{ showToast('🔒 Buzzer bloqueado'); })
       .catch(e=>{ showToast('Error: '+e.message); });
   } else {
-    fbRef.set({ state:'open', winner:null, names:{ a:nameOf('a'), b:nameOf('b') } })
-      .then(()=>{ showToast('🔓 Buzzer habilitado — esperando'); })
+    clearTimeout(_bzCountdownTimer);
+    const startTs = Date.now();
+    fbRef.set({ state:'countdown', winner:null, countdownStart:startTs, countdownMs:BUZZ_COUNTDOWN_MS, names:{ a:nameOf('a'), b:nameOf('b') } })
+      .then(()=>{ showToast('⏳ Cuenta regresiva…'); })
       .catch(e=>{ showToast('Error: '+e.message); });
+    _bzCountdownTimer = setTimeout(()=>{
+      if(!fbRef) return;
+      fbRef.set({ state:'open', winner:null, names:{ a:nameOf('a'), b:nameOf('b') } })
+        .then(()=>{ showToast('🔓 Buzzer habilitado — esperando'); })
+        .catch(e=>{ showToast('Error: '+e.message); });
+    }, BUZZ_COUNTDOWN_MS);
   }
 }
 
 function fbLock(){
+  clearTimeout(_bzCountdownTimer);
   if(!fbRef) return;
   fbRef.set({ state:'locked', winner:null, names:{ a:nameOf('a'), b:nameOf('b') } });
 }
 
 function renderBzToggle(){
   const b = document.getElementById('fb-toggle-btn'); if(!b) return;
-  if(_bzOpen){
+  if(_bzState === 'countdown'){
+    b.textContent = '⏳ Cancelar cuenta regresiva';
+    b.style.color = 'var(--red)';
+    b.style.borderColor = 'var(--red)';
+  } else if(_bzOpen){
     b.textContent = '🔒 Bloquear buzzer';
     b.style.color = 'var(--red)';
     b.style.borderColor = 'var(--red)';
@@ -2824,6 +2842,7 @@ function startCondBuzzerListener(){
     }
     const w = d.winner, s = d.state||'locked';
     _bzOpen = (s==='open' && !w);
+    _bzState = s;
     renderBzToggle();
     if(w){
       const t=w.team, n=w.name||(t==='a'?nameOf('a'):nameOf('b'));
@@ -2833,6 +2852,8 @@ function startCondBuzzerListener(){
         buzz(t);
         showToast('🏆 '+n+' buzzó primero!', 3000);
       }
+    } else if(s==='countdown'){
+      setFbStatus('open','⏳ Cuenta regresiva…');
     } else if(s==='open'){
       setFbStatus('open','🟢 Esperando buzzer…');
     } else {
@@ -3104,7 +3125,7 @@ function applyMode(m, team) {
     document.body.classList.add('is-conductor');
     initFirebase();
     startCondBuzzerListener();
-    fbLock(); _bzOpen=false; renderBzToggle();
+    fbLock(); _bzOpen=false; _bzState='locked'; renderBzToggle();
     startHeartbeat();
     syncMuteBtn();
   } else {
