@@ -2317,39 +2317,89 @@ function playRevealDing(step, weight) {
   } catch (e) {}
 }
 
-// Ovación sintetizada. `w` de 0 a 1 controla volumen, duración y densidad,
-// así la respuesta nº1 del tablero levanta al público y la última casi no.
+// Ovación sintetizada. `w` de 0 a 1 controla volumen, duración y densidad.
+// Un aplauso NO es ruido continuo (eso suena a lluvia o estática): son palmas
+// discretas, cada una un golpe corto que decae rápido, con silencio entre medio.
+// Acá se generan de a una dentro de un buffer y después se filtra el conjunto.
 function playApplause(w) {
   if (_sfxMuted) return;
   if (w < 0.12) return;                 // respuestas muy chicas: sin aplauso
   try {
     const ctx = _audioCtx; if (ctx.state === 'suspended') ctx.resume();
     const now = ctx.currentTime;
-    const dur = 0.45 + w * 1.15;
-    const peak = 0.05 + w * 0.30;
+    const SR  = ctx.sampleRate;
+    const dur = 0.5 + w * 1.3;
+    const N   = Math.floor(SR * dur);
 
-    // Ruido blanco = base del aplauso
-    const len = Math.floor(ctx.sampleRate * dur);
-    const buf = ctx.createBuffer(1, len, ctx.sampleRate);
-    const d = buf.getChannelData(0);
-    for (let i = 0; i < len; i++) {
-      // Palmas más marcadas cuando la respuesta vale mucho
-      const crackle = Math.random() < (0.004 + w * 0.010) ? 2.6 : 1;
-      d[i] = (Math.random() * 2 - 1) * crackle;
+    // Estéreo: las palmas se reparten entre los dos canales y el aplauso "abre"
+    const buf = ctx.createBuffer(2, N, SR);
+    const L = buf.getChannelData(0), R = buf.getChannelData(1);
+
+    // Más gente aplaudiendo cuanto más vale la respuesta
+    const clapsPerSec = 14 + w * 46;
+    const total = Math.floor(clapsPerSec * dur);
+
+    for (let c = 0; c < total; c++) {
+      // Las palmas arrancan casi juntas y se van dispersando, como en la vida real
+      const bias = Math.pow(Math.random(), 0.75);
+      const at = Math.floor(bias * (N - 3000));
+      const len = Math.floor(SR * (0.010 + Math.random() * 0.020));  // 10-30 ms
+      const amp = (0.45 + Math.random() * 0.55);
+      // Panorama aleatorio por palma
+      const pan = Math.random();
+      const gl = Math.sqrt(1 - pan), gr = Math.sqrt(pan);
+      for (let i = 0; i < len; i++) {
+        const k = at + i;
+        if (k >= N) break;
+        // Ataque instantáneo y caída exponencial = golpe seco
+        const env = Math.exp(-i / (len * 0.16));
+        const v = (Math.random() * 2 - 1) * env * amp;
+        L[k] += v * gl;
+        R[k] += v * gr;
+      }
     }
-    const src = ctx.createBufferSource(); src.buffer = buf;
-    const bp = ctx.createBiquadFilter();
-    bp.type = 'bandpass'; bp.frequency.value = 1400 + w * 900; bp.Q.value = 0.55;
-    const g = ctx.createGain();
-    src.connect(bp); bp.connect(g); g.connect(ctx.destination);
 
-    g.gain.setValueAtTime(0.0001, now);
-    g.gain.exponentialRampToValueAtTime(peak, now + 0.06 + w * 0.08);   // sube
-    g.gain.setValueAtTime(peak, now + dur * 0.45);                      // se sostiene
-    g.gain.exponentialRampToValueAtTime(0.0001, now + dur);             // se apaga
+    // Envolvente general: entra rápido, se sostiene y se apaga
+    for (let i = 0; i < N; i++) {
+      const p = i / N;
+      let e;
+      if (p < 0.08)      e = p / 0.08;              // entrada
+      else if (p < 0.55) e = 1;                     // sostén
+      else               e = 1 - (p - 0.55) / 0.45; // caída
+      L[i] *= e; R[i] *= e;
+    }
+
+    const src = ctx.createBufferSource(); src.buffer = buf;
+    // Pasabanda: le saca el sub-grave y el brillo excesivo, queda "cuerpo de palma"
+    const hp = ctx.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 500;
+    const bp = ctx.createBiquadFilter(); bp.type = 'peaking';
+    bp.frequency.value = 1600; bp.Q.value = 0.8; bp.gain.value = 4;
+    const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 6500;
+    const g  = ctx.createGain();
+    g.gain.value = 0.16 + w * 0.42;
+
+    src.connect(hp); hp.connect(bp); bp.connect(lp); lp.connect(g); g.connect(ctx.destination);
     src.start(now); src.stop(now + dur + 0.05);
+
+    // En las respuestas grandes se suma un "uhh" del público: da sensación de sala
+    if (w > 0.65) {
+      const rN = Math.floor(SR * dur);
+      const rb = ctx.createBuffer(1, rN, SR);
+      const d = rb.getChannelData(0);
+      for (let i = 0; i < rN; i++) d[i] = (Math.random() * 2 - 1);
+      const rs = ctx.createBufferSource(); rs.buffer = rb;
+      const rf = ctx.createBiquadFilter(); rf.type = 'bandpass';
+      rf.frequency.value = 420; rf.Q.value = 1.3;
+      const rg = ctx.createGain();
+      rg.gain.setValueAtTime(0.0001, now);
+      rg.gain.exponentialRampToValueAtTime(0.05 * w, now + 0.25);
+      rg.gain.exponentialRampToValueAtTime(0.0001, now + dur);
+      rs.connect(rf); rf.connect(rg); rg.connect(ctx.destination);
+      rs.start(now); rs.stop(now + dur);
+    }
   } catch (e) {}
 }
+
 function playBuzzer() {
   if (_sfxMuted) return;
   try {
