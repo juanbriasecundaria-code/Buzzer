@@ -2411,8 +2411,14 @@
     position: fixed; top: 1rem; right: 1rem; z-index: 10001;
     background: rgba(255,255,255,0.06); border: 1px solid var(--border2); color: var(--text);
     border-radius: 99px; padding: 0.5rem 1rem; cursor: pointer; font-size: 13px; font-weight: 600;
-    opacity: 0; animation: crFadeIn 0.6s ease 2.5s forwards;
+    opacity: 0; pointer-events: none; transition: opacity 0.35s ease;
   }
+  /* Durante los créditos, "← Hub" y "✕ Salir" quedan ocultos (para no tapar
+     la pantalla en la TV) y solo reaparecen si el mouse se acerca arriba
+     del todo — ver _startCreditsHoverWatch()/_stopCreditsHoverWatch(). */
+  body:has(.credits.show) .hub-link { opacity: 0; pointer-events: none; transition: opacity 0.35s ease; }
+  body:has(.credits.show).credits-controls-visible .hub-link { opacity: 1; pointer-events: auto; }
+  body:has(.credits.show).credits-controls-visible .credits-close { opacity: 1; pointer-events: auto; }
   .credits-hint {
     position: fixed; bottom: 1rem; left: 0; right: 0; text-align: center; z-index: 10001;
     color: var(--muted); font-size: 12px; letter-spacing: 0.06em; pointer-events: none;
@@ -2433,7 +2439,6 @@
 
   @media (prefers-reduced-motion: reduce) {
     .credits { overflow-y: auto; }
-    .credits-close { animation: none; opacity: 1; }
     .credits-hint { display: none; }
     .cd-wrap { animation: none; opacity: 1; }
   }
@@ -12141,6 +12146,7 @@ function rollCredits() {
   overlay.classList.add('show');
   overlay.classList.remove('credits-out');
   overlay.setAttribute('aria-hidden', 'false');
+  _startCreditsHoverWatch();
 
   const roll = document.getElementById('credits-roll');
   const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -12260,9 +12266,36 @@ function creditsEnded() {
   _creditsEndTimer = setTimeout(() => { closeCredits(); }, 1200);
 }
 
+// Mientras ruedan los créditos, "← Hub" y "✕ Salir" quedan invisibles salvo
+// que el mouse suba a la franja de arriba de la pantalla (útil en la TV para
+// no tapar los créditos, pero sin perder la forma de salir si hace falta).
+let _creditsHoverHandler = null;
+let _creditsHoverHideTimer = null;
+function _startCreditsHoverWatch() {
+  document.body.classList.remove('credits-controls-visible');
+  _creditsHoverHandler = (e) => {
+    if (e.clientY <= 90) {
+      document.body.classList.add('credits-controls-visible');
+      if (_creditsHoverHideTimer) { clearTimeout(_creditsHoverHideTimer); _creditsHoverHideTimer = null; }
+    } else if (document.body.classList.contains('credits-controls-visible') && !_creditsHoverHideTimer) {
+      _creditsHoverHideTimer = setTimeout(() => {
+        document.body.classList.remove('credits-controls-visible');
+        _creditsHoverHideTimer = null;
+      }, 700);
+    }
+  };
+  document.addEventListener('mousemove', _creditsHoverHandler);
+}
+function _stopCreditsHoverWatch() {
+  if (_creditsHoverHandler) { document.removeEventListener('mousemove', _creditsHoverHandler); _creditsHoverHandler = null; }
+  if (_creditsHoverHideTimer) { clearTimeout(_creditsHoverHideTimer); _creditsHoverHideTimer = null; }
+  document.body.classList.remove('credits-controls-visible');
+}
+
 function closeCredits() {
   const overlay = document.getElementById('credits');
   if (!overlay) return;
+  _stopCreditsHoverWatch();
   if (_creditsAF) { cancelAnimationFrame(_creditsAF); _creditsAF = null; }
   if (_creditsBlockObserver) { _creditsBlockObserver.disconnect(); _creditsBlockObserver = null; }
   if (_creditsKeyHandler) { document.removeEventListener('keydown', _creditsKeyHandler); _creditsKeyHandler = null; }
@@ -12690,12 +12723,46 @@ function openPlayerCeremony() {
 // discreto permite avanzar a mano por las dudas.
 function grandFinale() {
   showConfirmModal(
-    '¿Dar fin a la noche de juegos?',
-    'Arranca la música, el podio individual, el podio grupal, un resumen de la noche y los créditos — una secuencia de varios minutos que corre sola una vez iniciada. Asegurate de que todo esté cargado (campeones, foto, elenco) antes de seguir.',
-    () => { _runGrandFinale(); },
+    '¿Abrir el cierre de la noche?',
+    'Se abre en una ventana aparte, lista para pasarla a la TV. Ahí te espera un botón de Play: la música, los podios, el resumen y los créditos arrancan recién cuando lo toques, así tenés tiempo de acomodar la ventana en pantalla completa antes.',
+    () => { openCierreWindow(); },
     null,
-    '🎬 Dar fin'
+    '🎬 Abrir cierre'
   );
+}
+
+// Abre el cierre de la noche en una ventana aparte (misma URL + ?cierre=1),
+// para ponerla en la TV con tiempo de sobra antes de que arranque nada.
+// Como es el mismo archivo y origen, comparte automáticamente el localStorage
+// (campeones, elenco, fotos, etc.) sin necesidad de pasarle nada a mano.
+function openCierreWindow() {
+  const url = new URL(location.href);
+  url.searchParams.set('cierre', '1');
+  const win = window.open(url.href, '_blank', 'width=1280,height=720');
+  if (!win) { alert('Permití las ventanas emergentes para abrir el cierre de la noche'); return; }
+  window._cierreWin = win;
+}
+
+// En la ventana de cierre (?cierre=1), tapa la app con una pantalla de espera
+// y recién dispara _runGrandFinale() cuando se toca "Comenzar".
+function initCierreGate() {
+  let params;
+  try { params = new URLSearchParams(location.search); } catch (e) { return; }
+  if (params.get('cierre') !== '1') return;
+
+  const gate = document.createElement('div');
+  gate.id = 'cierre-gate';
+  gate.style.cssText = 'position:fixed;inset:0;z-index:999999;background:#07070b;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1.4rem;color:var(--text,#f0efe8);text-align:center;padding:2rem;font-family:inherit';
+  gate.innerHTML = `
+    <div style="font-size:12px;letter-spacing:0.3em;text-transform:uppercase;color:var(--gold,#f5c842)">La Velada del Año</div>
+    <div style="font-size:15px;color:var(--muted,#999);max-width:420px;line-height:1.6">Acomodá esta ventana en la TV y ponela en pantalla completa. Cuando estés listo, arrancá la ceremonia — música, podios, resumen y créditos corren solos de ahí en más.</div>
+    <button id="cierre-play-btn" style="margin-top:0.5rem;padding:1rem 2.4rem;border-radius:99px;border:none;background:var(--gold,#f5c842);color:#1a1305;font-weight:800;font-size:16px;cursor:pointer;letter-spacing:0.02em">▶ Comenzar</button>
+  `;
+  document.body.appendChild(gate);
+  document.getElementById('cierre-play-btn').addEventListener('click', () => {
+    gate.remove();
+    if (typeof _runGrandFinale === 'function') _runGrandFinale();
+  });
 }
 
 function _runGrandFinale() {
@@ -17924,6 +17991,7 @@ restoreImpGame();
 renderReglas();
 activateTab(state.lastTab || 'reglas');
 updateNavProgress();
+initCierreGate();
 
 // ============================================================
 // SINCRONIZACIÓN PC → CELULAR (roster, puntajes, eliminaciones, fotos)
