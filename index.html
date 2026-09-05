@@ -548,6 +548,8 @@ function hideError(){ document.getElementById('error-box').classList.remove('sho
 if(window._fbError) showError(window._fbError);
 
 // ── FIREBASE ─────────────────────────────────────────────────────
+let _fbServerOffsetMs = 0; // diferencia entre el reloj de este dispositivo y el del servidor
+function nowServer(){ return Date.now() + (_fbServerOffsetMs||0); }
 function initFirebase(cb){
   if(fbInited){ cb(); return; }
   if(!window._fbScriptsDone){ window._fbReadyCb=()=>initFirebase(cb); return; }
@@ -556,6 +558,14 @@ function initFirebase(cb){
     if(!firebase.apps.length) firebase.initializeApp(FB_CFG);
     fbDb = firebase.database();
     fbInited = true;
+    // Todos los dispositivos calculan el countdown contra el reloj del
+    // servidor (no entre ellos), así el 3-2-1 queda sincronizado aunque
+    // los relojes de los celus no lo estén.
+    try{
+      fbDb.ref('.info/serverTimeOffset').on('value', snap=>{
+        _fbServerOffsetMs = snap.val() || 0;
+      });
+    }catch(e){}
     cb();
   } catch(e){ showError('Error al conectar: '+e.message); }
 }
@@ -779,30 +789,36 @@ function hideResult(){
 
 // ── COUNTDOWN 3,2,1 ──────────────────────────────────────────────
 // El conductor, al habilitar el buzzer, primero escribe state:'countdown'
-// con countdownStart/countdownMs, y recién countdownMs después escribe
-// state:'open'. Acá solo animamos el 3-2-1; el desbloqueo real del botón
-// lo dispara la llegada de state==='open' desde Firebase (fuente de verdad).
-let _bzCountdownActiveTs = null; // countdownStart que ya estamos animando
-let _bzCountdownTicks = [];      // setTimeouts de los ticks en curso
+// con countdownStart (timestamp resuelto por el SERVIDOR de Firebase, no
+// por el reloj del celu del conductor) y countdownMs, y recién countdownMs
+// después escribe state:'open'. Acá animamos el 3-2-1 usando nowServer()
+// (Date.now() corregido con el offset del servidor) para que todos los
+// celus muestren los números sincronizados entre sí, sin depender de que
+// los relojes de los dispositivos coincidan.
+let _bzCountdownActiveKey = null; // countdownStart que ya estamos animando (también sirve de id)
+let _bzCountdownTicks = [];       // setTimeouts de los ticks en curso
 
 function showBzCountdown(startTs, durationMs){
-  startTs = startTs || Date.now();
+  const key = startTs || 'countdown';
   durationMs = durationMs || 3000;
-  if(_bzCountdownActiveTs === startTs) return; // ya lo estamos mostrando
+  if(_bzCountdownActiveKey === key) return; // ya lo estamos mostrando
   clearBzCountdownTicks();
-  _bzCountdownActiveTs = startTs;
+  _bzCountdownActiveKey = key;
 
   const ov = document.getElementById('bz-countdown');
   const numEl = document.getElementById('bz-countdown-num');
-  const totalSecs = Math.round(durationMs/1000) || 3;
+  const totalSecs = Math.max(1, Math.round(durationMs/1000));
   ov.classList.add('show');
 
-  const elapsed = Date.now() - startTs;
-  for(let s=totalSecs; s>=1; s--){
-    const tickAt = (totalSecs - s) * 1000; // 0ms, 1000ms, 2000ms...
+  // "Cuánto ya pasó" del countdown, medido contra el reloj del servidor
+  // (mismo para todos los dispositivos) — no contra el reloj de otro celu.
+  const elapsed = typeof startTs === 'number' ? (nowServer() - startTs) : 0;
+  for(let i=0; i<totalSecs; i++){
+    const s = totalSecs - i; // 3,2,1
+    const tickAt = i * 1000; // 0ms, 1000ms, 2000ms…
     const delay = tickAt - elapsed;
     const fire = ()=>{
-      if(_bzCountdownActiveTs !== startTs) return; // se canceló/reemplazó
+      if(_bzCountdownActiveKey !== key) return; // se canceló/reemplazó
       numEl.textContent = s;
       numEl.classList.remove('tick'); void numEl.offsetWidth; numEl.classList.add('tick');
       if(navigator.vibrate) navigator.vibrate(25);
@@ -815,7 +831,7 @@ function clearBzCountdownTicks(){
   _bzCountdownTicks = [];
 }
 function hideBzCountdown(){
-  _bzCountdownActiveTs = null;
+  _bzCountdownActiveKey = null;
   clearBzCountdownTicks();
   document.getElementById('bz-countdown').classList.remove('show');
 }
