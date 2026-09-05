@@ -2204,7 +2204,18 @@ function edRenderOptThumb(i){
   const t = document.getElementById(`f-opt${i}-thumb`);
   if(!t) return;
   const src = _edOptImg[i];
-  t.innerHTML = src ? `<img src="${escapeHtml(src)}" alt="" onerror="this.parentElement.innerHTML='🖼'">` : '🖼';
+  if(!src){ t.innerHTML = '🖼'; return; }
+  // Token por-contenedor: si mientras esta imagen carga se vuelve a llamar
+  // acá (por ej. porque el usuario tipeó/pegó de nuevo), el resultado de
+  // esta carga vieja se descarta en vez de tocar un contenedor que ya
+  // puede no ser el suyo (eso era lo que rompía con "parentElement" null).
+  const token = (t._thumbToken = (t._thumbToken || 0) + 1);
+  t.innerHTML = '';
+  const img = new Image();
+  img.alt = '';
+  img.onload = () => { if(t._thumbToken === token){ t.innerHTML = ''; t.appendChild(img); } };
+  img.onerror = () => { if(t._thumbToken === token){ t.innerHTML = '🖼'; toast('No se pudo cargar esa URL de imagen'); } };
+  img.src = src;
 }
 function edOptUrlInput(i){
   const v = document.getElementById(`f-opt${i}-url`).value.trim();
