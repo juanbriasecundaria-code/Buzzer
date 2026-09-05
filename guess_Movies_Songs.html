@@ -1007,16 +1007,27 @@ function setFbStatus(state, msg){
 
 // Habilitar el buzzer (limpia ganador) — se llama al revelar la carta
 // `blocked` = equipo que ya erró esta carta y no puede volver a buzzear ('a'|'b'|null)
+// Antes de habilitarlo de verdad, pasa 3 segundos en 'countdown' (3,2,1) para
+// que el index.html universal muestre la cuenta regresiva en los celus.
 let _buzzBlocked = null;
+const BUZZ_COUNTDOWN_MS = 3000;
+let _buzzCountdownTimer = null;
 function fbOpenBuzzer(blocked){
   _buzzBlocked = blocked || null;
   if(!fbRef) return;
-  fbRef.set({ state:'open', winner:null, blocked:_buzzBlocked, names:{ a:nameA, b:nameB } });
+  clearTimeout(_buzzCountdownTimer);
+  const startTs = Date.now();
+  fbRef.set({ state:'countdown', winner:null, blocked:_buzzBlocked, countdownStart:startTs, countdownMs:BUZZ_COUNTDOWN_MS, names:{ a:nameA, b:nameB } });
+  _buzzCountdownTimer = setTimeout(()=>{
+    if(!fbRef) return;
+    fbRef.set({ state:'open', winner:null, blocked:_buzzBlocked, names:{ a:nameA, b:nameB } });
+  }, BUZZ_COUNTDOWN_MS);
 }
 
 // Bloquear el buzzer — al ocultar la carta, cambiar de carta o iniciar
 function fbLock(){
   _buzzBlocked = null;
+  clearTimeout(_buzzCountdownTimer);
   if(!fbRef) return;
   fbRef.set({ state:'locked', winner:null, blocked:null, names:{ a:nameA, b:nameB } });
 }
@@ -1046,6 +1057,8 @@ function startCondListener(){
         showToast('🏆 '+n+' buzzó primero!', 3000);
         sfxBuzz();
       }
+    } else if(s==='countdown'){
+      setFbStatus('open','⏳ Cuenta regresiva…');
     } else if(s==='open'){
       setFbStatus('open','🟢 Esperando buzzer…');
     } else {
