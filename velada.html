@@ -1381,6 +1381,44 @@
   }
   .fn-btn:hover { color: var(--text); border-color: var(--gold); }
 
+  /* FOTOS DEL PODIO (dentro del grupo de Fotos, junto a Foto de la noche y Muro de fotos) */
+  .fotos-group-title {
+    font-size: 11px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase;
+    color: var(--muted); margin-bottom: 0.6rem;
+  }
+  .podio-fotos-grid {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 0.9rem;
+  }
+  .podio-foto-slot {
+    background: var(--surface); border: 0.5px solid var(--border2); border-radius: var(--radius-lg);
+    padding: 0.85rem; display: flex; flex-direction: column; align-items: center; gap: 0.55rem;
+  }
+  .podio-foto-label {
+    font-size: 12.5px; font-weight: 800; color: var(--text); text-align: center; line-height: 1.3;
+  }
+  .podio-foto-sub {
+    display: block; font-weight: 600; text-transform: none; letter-spacing: 0;
+    color: var(--muted); font-size: 10.5px; margin-top: 1px;
+  }
+  .podio-foto-area {
+    width: 100%; aspect-ratio: 1/1; border-radius: 10px; background: var(--surface2);
+    overflow: hidden; position: relative; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    border: 0.5px solid var(--border2);
+  }
+  .podio-foto-area img {
+    position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: none;
+  }
+  .podio-foto-hint { color: var(--muted); font-size: 22px; opacity: 0.45; pointer-events: none; }
+  .podio-foto-actions { display: flex; gap: 0.4rem; width: 100%; }
+  .podio-foto-btn {
+    flex: 1; background: var(--surface2); border: 0.5px solid var(--border2); border-radius: 6px;
+    color: var(--muted); font-size: 11px; font-family: inherit; padding: 5px 6px; cursor: pointer;
+    transition: color 0.1s, border-color 0.1s;
+  }
+  .podio-foto-btn:hover { color: var(--text); border-color: var(--gold); }
+  .podio-foto-btn.podio-foto-del { display: none; color: var(--danger); border-color: rgba(255,95,95,0.25); }
+
   /* MOTES DE LA NOCHE */
   .mote-item {
     display: flex;
@@ -7762,8 +7800,8 @@ function renderWallPanel() {
     + (p.by ? '<div style="font-size:9px;color:var(--muted);text-align:center;margin-top:2px;max-width:74px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + p.by + '</div>' : '')
     + '</div>').join('');
   el.innerHTML = `
-    <div class="section-header">
-      <span class="section-title"><span class="dot-indicator final"></span>Muro de fotos</span>
+    <div class="fn-section" style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0">
+      <span class="fotos-group-title" style="margin-bottom:0">Muro de fotos</span>
       <span class="especial-badge">${_wall.length} foto${_wall.length === 1 ? '' : 's'}</span>
     </div>
     <div class="card" style="margin-bottom:1.25rem">
@@ -10094,6 +10132,32 @@ function championCandidates() {
   return TEAMS.filter(name => entityMembers(name).length > 1);
 }
 
+// ── FOTOS DEL PODIO (1er/2do puesto de la final y del juego x el 3er puesto) ──
+// Viven junto a "Foto de la noche" y "Muro de fotos" en el grupo de Fotos de
+// la pestaña Final. Cada slot guarda su propia foto en localStorage; la
+// restauración real de las imágenes la hace podioFotosRestore() (ver el
+// script al final del archivo), igual que con Foto de la noche.
+const PODIO_FOTO_SLOTS = [
+  { key: 'finalPrimero',  medal: '🥇', label: '1er puesto', sub: 'Final' },
+  { key: 'finalSegundo',  medal: '🥈', label: '2do puesto', sub: 'Final' },
+  { key: 'tercerPrimero', medal: '🥇', label: '1er puesto', sub: 'Juego x el 3er puesto' },
+  { key: 'tercerSegundo', medal: '🥈', label: '2do puesto', sub: 'Juego x el 3er puesto' },
+];
+function podioFotoSlotHtml(slot) {
+  return `<div class="podio-foto-slot">
+    <div class="podio-foto-label">${slot.medal} ${slot.label}<span class="podio-foto-sub">${slot.sub}</span></div>
+    <div class="podio-foto-area" id="podio-area-${slot.key}" onclick="document.getElementById('podio-file-${slot.key}').click()">
+      <img id="podio-img-${slot.key}" src="" alt="${slot.label} - ${slot.sub}">
+      <span class="podio-foto-hint" id="podio-hint-${slot.key}">📷</span>
+    </div>
+    <div class="podio-foto-actions">
+      <button class="podio-foto-btn" onclick="event.stopPropagation();document.getElementById('podio-file-${slot.key}').click()">Subir foto</button>
+      <button class="podio-foto-btn podio-foto-del" id="podio-del-${slot.key}" onclick="event.stopPropagation();podioFotoDelete('${slot.key}')">Quitar</button>
+    </div>
+    <input type="file" id="podio-file-${slot.key}" accept="image/*" style="display:none" onchange="podioFotoLoad('${slot.key}', this)">
+  </div>`;
+}
+
 // Selector visual (con foto) para elegir el campeón de la gran final / 3er puesto.
 // inputId = id del <input> oculto/de texto donde se guarda el nombre elegido.
 function champPickerHtml(inputId, selected) {
@@ -11320,9 +11384,14 @@ function renderFinal() {
       </div>
     </details>
 
+    <!-- 📸 FOTOS (agrupa Foto de la noche, Fotos del podio y Muro de fotos) -->
+    <div class="section-header" style="margin-top:1.5rem">
+      <span class="section-title"><span class="dot-indicator final"></span>📸 Fotos</span>
+    </div>
+
     <!-- FOTO DE LA NOCHE -->
     <div class="fn-section">
-      <div class="section-header"><span class="section-title">Foto de la noche</span></div>
+      <div class="fotos-group-title">Foto de la noche</div>
       <div class="fn-board">
         <div class="fn-pin"></div>
         <div class="fn-polaroid" id="fn-polaroid" onclick="document.getElementById('fn-file').click()">
@@ -11347,6 +11416,14 @@ function renderFinal() {
         </div>
       </div>
       <input type="file" id="fn-file" accept="image/*" style="display:none" onchange="fnLoad(this)">
+    </div>
+
+    <!-- FOTOS DEL PODIO -->
+    <div class="fn-section" style="margin-top:1.75rem">
+      <div class="fotos-group-title">Fotos del podio</div>
+      <div class="podio-fotos-grid">
+        ${PODIO_FOTO_SLOTS.map(podioFotoSlotHtml).join('')}
+      </div>
     </div>
   `;
 
@@ -18252,6 +18329,82 @@ document.addEventListener('keydown', function(e) {
     window.renderFinal = function() {
       _orig.apply(this, arguments);
       setTimeout(fnRestore, 0);
+    };
+  }
+})();
+</script>
+<script>
+// FOTOS DEL PODIO (1er/2do puesto de la final y del juego x el 3er puesto)
+// Viven junto a Foto de la noche y Muro de fotos, en el grupo "📸 Fotos".
+(function() {
+  const KEY_PODIO = 'ndj_podio_fotos';
+
+  function loadPodioFotos() {
+    try { return JSON.parse(localStorage.getItem(KEY_PODIO) || '{}') || {}; } catch(e) { return {}; }
+  }
+  function savePodioFotos(data) {
+    try { localStorage.setItem(KEY_PODIO, JSON.stringify(data)); } catch(e) { console.warn('podio fotos: storage full', e); }
+  }
+  function podioFotosRestore() {
+    const data = loadPodioFotos();
+    (typeof PODIO_FOTO_SLOTS !== 'undefined' ? PODIO_FOTO_SLOTS : []).forEach(function(slot) {
+      const img  = document.getElementById('podio-img-' + slot.key);
+      const hint = document.getElementById('podio-hint-' + slot.key);
+      const del  = document.getElementById('podio-del-' + slot.key);
+      if (!img) return;
+      const saved = data[slot.key];
+      if (saved) {
+        img.src = saved; img.style.display = 'block';
+        if (hint) hint.style.display = 'none';
+        if (del)  del.style.display = 'block';
+      } else {
+        img.src = ''; img.style.display = 'none';
+        if (hint) hint.style.display = 'block';
+        if (del)  del.style.display = 'none';
+      }
+    });
+  }
+
+  window.podioFotoLoad = function(slotKey, input) {
+    const file = input.files[0];
+    if (!file || !file.type.startsWith('image/')) return;
+    // Reusa la misma compresión que usa el Muro de fotos, para no inflar
+    // localStorage con 4 fotos más a full resolución.
+    if (typeof compressPhoto === 'function') {
+      compressPhoto(file, function(dataUrl) {
+        if (!dataUrl) return;
+        const data = loadPodioFotos();
+        data[slotKey] = dataUrl;
+        savePodioFotos(data);
+        podioFotosRestore();
+      });
+    } else {
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        const data = loadPodioFotos();
+        data[slotKey] = e.target.result;
+        savePodioFotos(data);
+        podioFotosRestore();
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  window.podioFotoDelete = function(slotKey) {
+    const data = loadPodioFotos();
+    delete data[slotKey];
+    savePodioFotos(data);
+    podioFotosRestore();
+    const fileInp = document.getElementById('podio-file-' + slotKey);
+    if (fileInp) fileInp.value = '';
+  };
+
+  // Hook renderFinal para restaurar las fotos del podio al (re)dibujar la pestaña
+  const _orig = window.renderFinal;
+  if (typeof _orig === 'function') {
+    window.renderFinal = function() {
+      _orig.apply(this, arguments);
+      setTimeout(podioFotosRestore, 0);
     };
   }
 })();
