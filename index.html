@@ -167,6 +167,11 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
 @keyframes bzTrophy{0%{transform:scale(.4) rotate(-12deg)}55%{transform:scale(1.16) rotate(7deg)}100%{transform:scale(1) rotate(0)}}
 .bz-result.lost .bz-result-title{color:var(--text)}
 .bz-result.lost .bz-result-icon{opacity:.7}
+.bz-reactions{display:none;gap:.6rem;margin-top:.3rem}
+.bz-result.lost .bz-reactions{display:flex}
+.bz-react-btn{font-size:26px;width:54px;height:54px;border-radius:50%;background:var(--surface2);border:1.5px solid var(--border2);cursor:pointer;transition:transform .12s}
+.bz-react-btn:active{transform:scale(.88);opacity:.8}
+.bz-night-counter{font-size:13px;color:var(--muted);font-weight:700;letter-spacing:.01em}
 
 /* ── CONNECTING ── */
 .connecting-dot{width:10px;height:10px;border-radius:50%;background:var(--gold);animation:connPulse 1s ease-in-out infinite}
@@ -414,6 +419,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
   <div class="bz-game-tag" id="bz-game-tag">Guess Movies &amp; Songs</div>
   <div class="bz-team-name" id="bz-team-name">🔵 Equipo 1</div>
   <div class="bz-status" id="bz-status">Esperando al conductor…</div>
+  <div class="bz-night-counter" id="bz-night-counter"></div>
   <button class="bz-buzz-btn locked team-a" id="bz-buzz-btn" onclick="doBuzz()">
     <span class="bz-buzz-icon">🔔</span>
     <span class="bz-buzz-text">¡BUZZ!</span>
@@ -422,6 +428,11 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
     <div class="bz-result-icon" id="bz-result-icon">🏆</div>
     <div class="bz-result-title" id="bz-result-title">¡Buzzaste primero!</div>
     <div class="bz-result-sub" id="bz-result-sub"></div>
+    <div class="bz-reactions" id="bz-reactions">
+      <button class="bz-react-btn" onclick="sendReaction('👏')">👏</button>
+      <button class="bz-react-btn" onclick="sendReaction('😤')">😤</button>
+      <button class="bz-react-btn" onclick="sendReaction('🔥')">🔥</button>
+    </div>
   </div>
 </div>
 
@@ -691,6 +702,7 @@ function selectTeam(team){
   stopIndivListener();
   show('buzz-screen');
   startBuzzListener();
+  renderNightCounter();
 }
 
 function goBack(to){
@@ -732,6 +744,33 @@ function hideResult(){
   document.getElementById('bz-result').classList.remove('show');
 }
 
+// ── CONTADOR PERSONAL DE LA NOCHE (local a este teléfono) ──────────
+function nightStats(){
+  try{ return JSON.parse(localStorage.getItem('bz_night_stats')||'{"wins":0,"total":0}'); }
+  catch(e){ return {wins:0,total:0}; }
+}
+function saveNightStats(s){ try{ localStorage.setItem('bz_night_stats', JSON.stringify(s)); }catch(e){} }
+function bumpNightStats(won){
+  const s = nightStats();
+  s.total++;
+  if(won) s.wins++;
+  saveNightStats(s);
+  renderNightCounter();
+}
+function renderNightCounter(){
+  const el = document.getElementById('bz-night-counter');
+  if(!el) return;
+  const s = nightStats();
+  el.textContent = s.total>0 ? `Vas ${s.wins}/${s.total} buzz ganados esta noche` : '';
+}
+
+// ── REACCIONES RÁPIDAS (el que pierde manda un emoji a la TV) ──────
+function sendReaction(emoji){
+  if(!fbRef) return;
+  fbRef.child('reaccion').set({ emoji, team: bzTeam, ts: Date.now() });
+  if(navigator.vibrate) navigator.vibrate(20);
+}
+
 // ── BUZZER LISTENER ──────────────────────────────────────────────
 function startBuzzListener(){
   if(!fbRef) return;
@@ -767,6 +806,7 @@ function startBuzzListener(){
       if(_resultShownFor !== d.winner.team){
         showResult(wonByMe, winnerName);
         _resultShownFor = d.winner.team;
+        bumpNightStats(wonByMe);
       }
     } else if(state==='open'){
       hideResult(); _resultShownFor = null;
