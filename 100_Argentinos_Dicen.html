@@ -2788,8 +2788,10 @@ function fbToggle(){
       .catch(e=>{ showToast('Error: '+e.message); });
   } else {
     clearTimeout(_bzCountdownTimer);
-    const startTs = Date.now();
-    fbRef.set({ state:'countdown', winner:null, countdownStart:startTs, countdownMs:BUZZ_COUNTDOWN_MS, names:{ a:nameOf('a'), b:nameOf('b') } })
+    // countdownStart va como ServerValue.TIMESTAMP (lo resuelve el servidor
+    // de Firebase, no el reloj de este celu) para que el 3-2-1 quede
+    // sincronizado en todos los dispositivos.
+    fbRef.set({ state:'countdown', winner:null, countdownStart:firebase.database.ServerValue.TIMESTAMP, countdownMs:BUZZ_COUNTDOWN_MS, names:{ a:nameOf('a'), b:nameOf('b') } })
       .then(()=>{ showToast('⏳ Cuenta regresiva…'); })
       .catch(e=>{ showToast('Error: '+e.message); });
     _bzCountdownTimer = setTimeout(()=>{
