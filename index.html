@@ -316,6 +316,22 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
 @media (prefers-reduced-motion: reduce){
   .bzc-num.tick{animation:none}
 }
+
+/* ── Veredicto tras responder ── */
+.bz-verdict{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%) scale(.8);
+  z-index:9200;text-align:center;pointer-events:none;opacity:0;
+  padding:1.6rem 2rem;border-radius:22px;border:2px solid;
+  background:rgba(12,12,18,.96);backdrop-filter:blur(10px);
+  box-shadow:0 16px 55px rgba(0,0,0,.7);max-width:86vw;
+  transition:opacity .25s ease,transform .4s cubic-bezier(.2,1.4,.4,1)}
+.bz-verdict.show{opacity:1;transform:translate(-50%,-50%) scale(1)}
+.bz-verdict.ok{border-color:var(--accent);box-shadow:0 16px 55px rgba(0,0,0,.7),0 0 40px rgba(200,240,96,.3)}
+.bz-verdict.no{border-color:var(--danger)}
+.bv-emoji{font-size:48px;line-height:1}
+.bv-t{font-size:23px;font-weight:900;margin-top:.35rem;letter-spacing:-.01em}
+.bz-verdict.ok .bv-t{color:var(--accent)}
+.bz-verdict.no .bv-t{color:var(--danger)}
+.bv-pts{font-size:13px;color:var(--muted);margin-top:.25rem;font-weight:700}
 </style>
 </head>
 <body>
@@ -510,6 +526,7 @@ const GAME_META = {
 let fbDb = null, fbRef = null, fbInited = false;
 let currentGame = null;   // 'movies' | 'argentinos'
 let bzTeam = null;        // 'a' | 'b'
+let bzMyName = null;      // con qué nombre buzzeó este celular
 let bzListener = null;
 let namesListener = null;
 let selectGameWatchdog = null; // red de seguridad TOTAL: cubre incluso si el SDK de Firebase nunca termina de cargar
@@ -881,6 +898,16 @@ function startBuzzListener(){
     const btn = document.getElementById('bz-buzz-btn');
     const statusEl = document.getElementById('bz-status');
 
+    // Veredicto del conductor: le confirma al celular si su respuesta valió.
+    // Antes el teléfono solo sabía que había ganado el buzz, nunca el resultado.
+    if(d.verdict && d.verdict.ts && d.verdict.ts !== _lastVerdictTs){
+      _lastVerdictTs = d.verdict.ts;
+      // ¿Quién lo dijo? manda el nombre individual; Guess Movie manda el equipo
+      const mine = (d.verdict.team && d.verdict.team === bzTeam) ||
+                   (d.verdict.name && bzMyName && d.verdict.name === bzMyName);
+      if(mine) showVerdict(d.verdict.ok, d.verdict.pts);
+    }
+
     if(d.winner){
       hideBzCountdown();
       _bzPhase = 'won';
@@ -951,6 +978,90 @@ function _bac(){ try{ if(!_buzzAudio) _buzzAudio=new (window.AudioContext||windo
 document.addEventListener('pointerdown',()=>{ _bac(); },{once:true});
 function sfxTin(){ const ctx=_bac(); if(!ctx) return; try{ const now=ctx.currentTime; [[988,0],[1319,0.07]].forEach(([f,t])=>{ const o=ctx.createOscillator(),g=ctx.createGain(); o.type='triangle'; o.frequency.value=f; o.connect(g); g.connect(ctx.destination); const s=now+t; g.gain.setValueAtTime(0.0001,s); g.gain.exponentialRampToValueAtTime(0.6,s+0.01); g.gain.exponentialRampToValueAtTime(0.0001,s+0.45); o.start(s); o.stop(s+0.5); }); }catch(e){} }
 
+
+
+// ── VEREDICTO EN EL CELULAR ──────────────────────────────────────────
+let _lastVerdictTs = 0;
+
+function showVerdict(ok, pts){
+  let el = document.getElementById('bz-verdict');
+  if(!el){
+    el = document.createElement('div');
+    el.id = 'bz-verdict';
+    el.className = 'bz-verdict';
+    document.body.appendChild(el);
+  }
+  el.className = 'bz-verdict ' + (ok ? 'ok' : 'no');
+  el.innerHTML = ok
+    ? '<div class="bv-emoji">🎉</div><div class="bv-t">¡Acertaste!</div>' +
+      (pts ? '<div class="bv-pts">+' + pts + ' para tu equipo</div>' : '')
+    : '<div class="bv-emoji">😖</div><div class="bv-t">Esta vez no…</div>' +
+      '<div class="bv-pts">Va la próxima</div>';
+  void el.offsetWidth;
+  el.classList.add('show');
+
+  if(navigator.vibrate) navigator.vibrate(ok ? [50,40,50,40,140] : [180]);
+  sfxVerdict(ok);
+  if(ok) bzConfetti();
+
+  clearTimeout(showVerdict._t);
+  showVerdict._t = setTimeout(()=>el.classList.remove('show'), 2600);
+}
+
+function sfxVerdict(ok){
+  const ctx = _bac(); if(!ctx) return;
+  try{
+    const t = ctx.currentTime;
+    const notes = ok ? [523.25,659.25,783.99,1046.5] : [330,247];
+    notes.forEach((f,i)=>{
+      const o=ctx.createOscillator(), g=ctx.createGain();
+      o.type = ok ? 'triangle' : 'sawtooth';
+      o.frequency.setValueAtTime(f, t+i*0.08);
+      const lp=ctx.createBiquadFilter(); lp.type='lowpass'; lp.frequency.value = ok?4000:900;
+      o.connect(lp); lp.connect(g); g.connect(ctx.destination);
+      g.gain.setValueAtTime(0.0001, t+i*0.08);
+      g.gain.exponentialRampToValueAtTime(0.22, t+i*0.08+0.02);
+      g.gain.exponentialRampToValueAtTime(0.0001, t+i*0.08+0.45);
+      o.start(t+i*0.08); o.stop(t+i*0.08+0.5);
+    });
+  }catch(e){}
+}
+
+// Confetti liviano, pensado para no trabar celulares modestos
+let _bzCv=null,_bzP=[],_bzRaf=null;
+function bzConfetti(){
+  if(!_bzCv){
+    _bzCv=document.createElement('canvas');
+    _bzCv.style.cssText='position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:9100';
+    document.body.appendChild(_bzCv);
+  }
+  const dpr=Math.min(2,devicePixelRatio||1);
+  _bzCv.width=innerWidth*dpr; _bzCv.height=innerHeight*dpr;
+  const ctx=_bzCv.getContext('2d'); ctx.setTransform(dpr,0,0,dpr,0,0);
+  const C=['#c8f060','#f5c842','#60b4f0','#ff6ec7','#4cdb7a'];
+  for(let i=0;i<70;i++){
+    _bzP.push({x:innerWidth/2+(Math.random()-.5)*160, y:innerHeight*0.42,
+      vx:(Math.random()-.5)*8, vy:-5-Math.random()*8, s:4+Math.random()*6,
+      rot:Math.random()*3, vr:(Math.random()-.5)*.3,
+      col:C[(Math.random()*C.length)|0], life:1});
+  }
+  if(!_bzRaf) _bzRaf=requestAnimationFrame(bzTick);
+}
+function bzTick(){
+  const ctx=_bzCv.getContext('2d');
+  ctx.clearRect(0,0,innerWidth,innerHeight);
+  _bzP=_bzP.filter(p=>p.life>0);
+  _bzP.forEach(p=>{
+    p.vy+=.35; p.x+=p.vx; p.y+=p.vy; p.rot+=p.vr;
+    if(p.y>innerHeight*.7) p.life-=.025;
+    ctx.save(); ctx.globalAlpha=Math.max(0,p.life);
+    ctx.translate(p.x,p.y); ctx.rotate(p.rot);
+    ctx.fillStyle=p.col; ctx.fillRect(-p.s/2,-p.s/2,p.s,p.s*.6);
+    ctx.restore();
+  });
+  if(_bzP.length) _bzRaf=requestAnimationFrame(bzTick);
+  else { ctx.clearRect(0,0,innerWidth,innerHeight); _bzRaf=null; }
+}
 
 // ── TOQUE ANTICIPADO ─────────────────────────────────────────────────
 // Antes, tocar el buzzer antes de tiempo no hacía nada (el botón estaba
@@ -1028,6 +1139,7 @@ function doBuzz(){
   const meta = GAME_META[currentGame] || {};
   const isIndividual = !!meta.individual;
   const tName = isIndividual ? bzTeam : (bzTeam==='a' ? nameA : nameB);
+  bzMyName = tName;   // así reconocemos después si el veredicto es para nosotros
   if(navigator.vibrate) navigator.vibrate(60);
 
   // Transacción atómica — solo gana el primero en llegar
