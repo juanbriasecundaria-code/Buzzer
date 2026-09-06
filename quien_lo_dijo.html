@@ -8,6 +8,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no,viewport-fit=cover">
 <title>¿Quién lo dijo? — La Velada del Año</title>
 <meta name="theme-color" content="#c060e8">
+<meta name="color-scheme" content="dark">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -38,6 +39,7 @@ function onYtApiReady(fn){ if(window._ytApiReady) fn(); else window._ytApiCbs.pu
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 :root{
+  color-scheme:dark;
   --bg:#0a0a0e;--surface:#14141c;--surface2:#1e1e2a;
   --border:rgba(255,255,255,.07);--border2:rgba(255,255,255,.13);
   --text:#f0efe8;--muted:#666;--muted2:#888;
@@ -1595,19 +1597,15 @@ function toggleReveal(){
       const src = cur.revealUrl || cur.revealData;
       if(src){
         const kind = cur.revealType.startsWith('video') ? 'video' : 'audio';
-        if(kind === 'video'){
-          // Las respuestas se revelan ya (renderCard más abajo); el video recién aparece a los 5s
-          const cardIdAtReveal = cur.id;
-          revealCueTimer = setTimeout(() => {
-            revealCueTimer = null;
-            if(revealed && currentCard() && currentCard().id === cardIdAtReveal){
-              revealCueState = { src, kind, ts: Date.now() };
-              fbPushLive();
-            }
-          }, 5000);
-        } else {
-          revealCueState = { src, kind, ts: Date.now() };
-        }
+        // Las respuestas se revelan ya (renderCard más abajo); el clip (video o audio) recién aparece a los 3.5s
+        const cardIdAtReveal = cur.id;
+        revealCueTimer = setTimeout(() => {
+          revealCueTimer = null;
+          if(revealed && currentCard() && currentCard().id === cardIdAtReveal){
+            revealCueState = { src, kind, ts: Date.now() };
+            fbPushLive();
+          }
+        }, 3500);
       }
     }
   }
