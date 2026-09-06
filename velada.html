@@ -12044,13 +12044,10 @@ function rollCredits() {
         inner += `<div class="cr-name" style="color:var(--danger)">🕵️ ${esc(imp.topName)}</div>`
           + `<div class="cr-mini-line">fue impostor ${imp.topCount} ${imp.topCount === 1 ? 'vez' : 'veces'}</div>`;
       }
-      // Si en toda la noche hubo un único impostor (siempre la misma persona),
-      // "descubierto"/"zafó" describen sus propias veces y van en singular
-      // ("fue descubierto 2 veces", no "2 descubiertos"). Si hubo varias
-      // personas distintas, sí corresponde el plural por cantidad.
-      const soloUnaPersona = imp.uniqueImpostores === 1;
-      const caughtLabel = soloUnaPersona ? 'descubierto' : `descubierto${imp.caught === 1 ? '' : 's'}`;
-      const escapedLabel = soloUnaPersona ? 'zafó' : (imp.escaped === 1 ? 'zafó' : 'zafó');
+      // Siempre en singular: describen cuántas veces le pasó a esa persona
+      // ("fue descubierto 2 veces", no "2 descubiertos").
+      const caughtLabel = 'descubierto';
+      const escapedLabel = 'zafó';
       inner += `<div class="cr-imp-tally">`
         + `<div class="cr-imp-side"><div class="cr-imp-num" style="color:var(--accent)">${imp.caught}</div><div class="cr-imp-cap">${caughtLabel}</div></div>`
         + `<div class="cr-imp-vs">vs</div>`
