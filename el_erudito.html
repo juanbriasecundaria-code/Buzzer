@@ -489,6 +489,27 @@ function _onFbScriptError(){ window._fbScriptsDone = true; console.warn('[Fireba
   }
 
   canvas#er-confetti { position: fixed; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 330; }
+
+/* ── Golpe del número correcto al aparecer ── */
+.reveal-correct-val.landed{
+  animation:rvLand .55s cubic-bezier(.2,1.5,.35,1)}
+@keyframes rvLand{
+  0%{transform:scale(1.22);text-shadow:0 0 46px rgba(200,240,96,.75)}
+  100%{transform:scale(1);text-shadow:none}}
+@media (prefers-reduced-motion:reduce){
+  .reveal-correct-val.landed{animation:none}}
+
+/* ── Respuestas reveladas de a una ── */
+.reveal-ans{opacity:.25;transform:translateY(8px);
+  transition:opacity .35s ease,transform .4s cubic-bezier(.2,1.2,.35,1),border-color .3s}
+.reveal-ans.revealed{opacity:1;transform:none;
+  animation:rvAnsIn .45s cubic-bezier(.2,1.4,.35,1)}
+@keyframes rvAnsIn{0%{transform:scale(.9)}55%{transform:scale(1.04)}100%{transform:scale(1)}}
+.reveal-ans-tag{font-size:11px;opacity:.85}
+.reveal-ans.win .reveal-ans-tag{font-weight:800}
+@media (prefers-reduced-motion:reduce){
+  .reveal-ans{opacity:1;transform:none}
+  .reveal-ans.revealed{animation:none}}
 </style>
 <style>.hub-link{position:fixed;top:max(0.75rem,env(safe-area-inset-top));left:max(0.75rem,env(safe-area-inset-left));z-index:99999;font-size:11px;font-weight:700;color:rgba(240,239,232,0.7);background:rgba(10,10,14,0.6);border:1px solid rgba(255,255,255,0.1);border-radius:99px;padding:0.38rem 0.85rem;text-decoration:none;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);letter-spacing:0.04em;transition:color 0.15s,border-color 0.15s;white-space:nowrap}.hub-link:hover{color:#f0efe8;border-color:rgba(255,255,255,0.25)}</style>
 </head>
@@ -1126,6 +1147,9 @@ function refreshNextWait(){
   }
 }
 
+
+let _revealTimers = [];
+
 // ─── REVEAL (showcito de tensión) ────────────────────────────────
 function doReveal(){
   if(_revealAnimating) return;
@@ -1147,59 +1171,82 @@ function doReveal(){
   const correct = G.correct.value;
   const winner = G.correct.winner;
 
-  // tensión: puntos parpadeando
-  let dots = 0;
-  const suspTimer = setInterval(()=>{ dots=(dots+1)%4; susp.textContent='Calculando'+'.'.repeat(dots); playTick(); }, 230);
+  // El número correcto lo acaba de tipear uno de los dos equipos, así que no
+  // tiene sentido fingir suspenso con él: se muestra de una.
+  // Lo que nadie sabe todavía es qué puso el rival y quién quedó más cerca:
+  // ahí está la tensión, y por eso las respuestas se revelan de a una.
+  susp.textContent = '';
+  cv.textContent = fmt(correct);
+  cw.classList.add('show');
+  cv.classList.add('landed');
+  playDrum();
+  _revealTimers.push(setTimeout(()=>cv.classList.remove('landed'), 700));
+  if(navigator.vibrate) navigator.vibrate([20,40,20]);
 
-  // Tras 1.6s: revelar el correcto
-  setTimeout(()=>{
-    clearInterval(suspTimer);
-    susp.textContent = '';
-    cv.textContent = fmt(correct);
-    cw.classList.add('show');
-    playDrum();
-    if(navigator.vibrate) navigator.vibrate([20,40,20]);
-  }, 1600);
+  // Las respuestas se revelan de a una: ver la primera y esperar la otra es
+  // el momento de tensión real, porque nadie sabía qué había puesto el rival.
+  const ea = document.getElementById('rv-ans-a'), eb = document.getElementById('rv-ans-b');
+  _setText('rv-ans-a-name', a.name||'Equipo 1');
+  _setText('rv-ans-b-name', b.name||'Equipo 2');
+  ea.classList.remove('win','revealed'); eb.classList.remove('win','revealed');
+  _setText('rv-ans-a-val','—'); _setText('rv-ans-b-val','—');
+  _setText('rv-ans-a-tag',''); _setText('rv-ans-b-tag','');
 
-  // Tras 2.6s: el veredicto
-  setTimeout(()=>{
-    // respuestas
-    _setText('rv-ans-a-name', a.name||'Equipo 1');
-    _setText('rv-ans-b-name', b.name||'Equipo 2');
+  // Cuánto erró cada uno, en la unidad del número
+  const offA = (a.answer == null) ? null : Math.abs(a.answer - correct);
+  const offB = (b.answer == null) ? null : Math.abs(b.answer - correct);
+  const dist = off => off == null ? 'sin respuesta'
+             : (off === 0 ? '¡exacto!' : 'erró por ' + fmt(off));
+
+  _revealTimers.push(setTimeout(()=>{
+    ans.classList.add('show');
     _setText('rv-ans-a-val', fmt(a.answer));
-    _setText('rv-ans-b-val', fmt(b.answer));
-    const ea = document.getElementById('rv-ans-a'), eb = document.getElementById('rv-ans-b');
-    ea.classList.remove('win'); eb.classList.remove('win');
-    _setText('rv-ans-a-tag',''); _setText('rv-ans-b-tag','');
+    _setText('rv-ans-a-tag', dist(offA));
+    ea.classList.add('revealed');
+    playTick();
+    if(navigator.vibrate) navigator.vibrate(25);
+  }, 1500));
 
+  _revealTimers.push(setTimeout(()=>{
+    _setText('rv-ans-b-val', fmt(b.answer));
+    _setText('rv-ans-b-tag', dist(offB));
+    eb.classList.add('revealed');
+    playTick();
+    if(navigator.vibrate) navigator.vibrate(25);
+  }, 2500));
+
+  // Tras 3.4s: el veredicto
+  setTimeout(()=>{
     if(winner === 'tie'){
       res.textContent = '¡Empate! Punto para ambos';
       res.classList.add('tie','show');
       ea.classList.add('win'); eb.classList.add('win');
-      _setText('rv-ans-a-tag','+1'); _setText('rv-ans-b-tag','+1');
+      _setText('rv-ans-a-tag', dist(offA) + ' · +1');
+      _setText('rv-ans-b-tag', dist(offB) + ' · +1');
     } else {
       const wName = G.teams[winner].name || (winner==='a'?'Equipo 1':'Equipo 2');
       res.textContent = wName + ' adivinó';
       res.classList.add('show');
       const we = winner==='a'?ea:eb;
       we.classList.add('win');
-      _setText('rv-ans-'+winner+'-tag','✓ +1');
+      const off = winner==='a' ? offA : offB;
+      _setText('rv-ans-'+winner+'-tag', (off === 0 ? '✓ ¡exacto!' : '✓ más cerca') + ' · +1');
     }
-    ans.classList.add('show');
     playDing();
     launchConfetti();
     if(navigator.vibrate) navigator.vibrate([20,20,60]);
-  }, 2600);
+  }, 3400);
 
-  // Tras 3.4s: botón siguiente
+  // Tras 4.2s: botón siguiente
   setTimeout(()=>{
     next.classList.add('show');
     refreshNextWait();
     _revealAnimating = false;
-  }, 3400);
+  }, 4200);
 }
 
 function closeRevealOverlay(){
+  _revealTimers.forEach(clearTimeout); _revealTimers = [];
   document.getElementById('reveal-overlay').classList.remove('open');
   _revealAnimating = false;
 }
