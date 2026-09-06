@@ -2349,11 +2349,11 @@
     font-size: 9px; font-weight: 700; color: #fff; letter-spacing: 0.05em;
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   /* Fotos del podio en los créditos (1er/2do de la Final, 3er/4to del juego x el 3er puesto) */
-  .cr-podio-fotos-row { display: flex; gap: 1.1rem; justify-content: center; flex-wrap: wrap; margin: 0.7rem auto 0; }
+  .cr-podio-fotos-row { display: flex; gap: 1.3rem; justify-content: center; flex-wrap: wrap; margin: 0.7rem auto 0; max-width: 640px; }
   .cr-podio-foto { display: flex; flex-direction: column; align-items: center; }
-  .cr-podio-foto .cr-photo-frame { width: min(38vw, 165px); padding: 7px 7px 26px 7px; transform: rotate(-1deg); margin: 0; }
+  .cr-podio-foto .cr-photo-frame { width: min(52vw, 230px); padding: 9px 9px 32px 9px; transform: rotate(-1deg); margin: 0; }
   .cr-podio-foto:nth-child(2) .cr-photo-frame { transform: rotate(1deg); }
-  .cr-podio-foto .cr-photo-cap { font-size: 11px; bottom: 6px; }
+  .cr-podio-foto .cr-photo-cap { font-size: 13px; bottom: 8px; }
   .cr-games { display: flex; flex-direction: column; align-items: center; gap: 0.55rem; }
   .cr-game-item { font-size: clamp(1.05rem, 4vw, 1.4rem); line-height: 1.3;
     display: flex; align-items: center; gap: 0.5rem; }
@@ -2420,10 +2420,13 @@
   }
   /* Durante los créditos, "← Volver" y "✕ Salir" quedan ocultos (para no tapar
      la pantalla en la TV) y solo reaparecen si el mouse se acerca arriba
-     del todo — ver _startCreditsHoverWatch()/_stopCreditsHoverWatch(). */
-  body:has(.credits.show) .hub-link { opacity: 0; pointer-events: none; transition: opacity 0.35s ease; }
-  body:has(.credits.show).credits-controls-visible .hub-link { opacity: 1; pointer-events: auto; }
-  body:has(.credits.show).credits-controls-visible .credits-close { opacity: 1; pointer-events: auto; }
+     del todo — ver _startCreditsHoverWatch()/_stopCreditsHoverWatch(). Se usa
+     una clase en <body> (credits-active) en vez de depender solo de :has()
+     para que ambos elementos queden garantizados a comportarse igual. */
+  body.credits-active .hub-link,
+  body.credits-active .credits-close { opacity: 0; pointer-events: none; transition: opacity 0.35s ease; }
+  body.credits-active.credits-controls-visible .hub-link,
+  body.credits-active.credits-controls-visible .credits-close { opacity: 1; pointer-events: auto; }
   .credits-hint {
     position: fixed; bottom: 1rem; left: 0; right: 0; text-align: center; z-index: 10001;
     color: var(--muted); font-size: 12px; letter-spacing: 0.06em; pointer-events: none;
@@ -12152,6 +12155,7 @@ function rollCredits() {
   overlay.classList.add('show');
   overlay.classList.remove('credits-out');
   overlay.setAttribute('aria-hidden', 'false');
+  document.body.classList.add('credits-active');
   _startCreditsHoverWatch();
 
   const roll = document.getElementById('credits-roll');
@@ -12311,6 +12315,7 @@ function closeCredits() {
   stopCreditsAudio();
   overlay.onclick = null;
   overlay.classList.add('credits-out');
+  document.body.classList.remove('credits-active');
   setTimeout(() => {
     overlay.classList.remove('show', 'credits-out');
     overlay.innerHTML = '';
