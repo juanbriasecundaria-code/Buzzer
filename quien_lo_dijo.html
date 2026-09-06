@@ -1303,6 +1303,7 @@ let condYtPlayer = null;
 let condVideoEl = null;
 let videoSyncState = null; // { videoId|url, playing, t, ts } — se empuja a Firebase para sincronizar a los participantes
 let revealCueState = null; // { src, kind:'audio'|'video', ts } — dispara el clip de revelación en la pantalla de participantes
+let revealCueTimer = null; // timeout pendiente que dispara el clip de video 5s después de revelar
 
 function destroyCondPlayers(){
   if(condYtPlayer){ try{ condYtPlayer.destroy(); }catch(e){} condYtPlayer = null; }
@@ -1585,12 +1586,29 @@ function toggleHint(n){
 function toggleReveal(){
   const wasRevealed = revealed;
   revealed = !revealed;
+  // Si había un disparo de video pendiente (de una revelación anterior), lo cancelamos
+  if(revealCueTimer){ clearTimeout(revealCueTimer); revealCueTimer = null; }
   // Al revelar (no al ocultar) disparamos el clip de revelación, si la carta tiene uno cargado
   if(revealed && !wasRevealed){
     const cur = currentCard();
     if(cur && cur.revealType && cur.revealType !== 'none'){
       const src = cur.revealUrl || cur.revealData;
-      if(src) revealCueState = { src, kind: cur.revealType.startsWith('video') ? 'video' : 'audio', ts: Date.now() };
+      if(src){
+        const kind = cur.revealType.startsWith('video') ? 'video' : 'audio';
+        if(kind === 'video'){
+          // Las respuestas se revelan ya (renderCard más abajo); el video recién aparece a los 5s
+          const cardIdAtReveal = cur.id;
+          revealCueTimer = setTimeout(() => {
+            revealCueTimer = null;
+            if(revealed && currentCard() && currentCard().id === cardIdAtReveal){
+              revealCueState = { src, kind, ts: Date.now() };
+              fbPushLive();
+            }
+          }, 5000);
+        } else {
+          revealCueState = { src, kind, ts: Date.now() };
+        }
+      }
     }
   }
   renderCard();
