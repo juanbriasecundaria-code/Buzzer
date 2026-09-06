@@ -178,8 +178,8 @@ html{background:var(--bg)}
 .cc-cat-row{display:flex;align-items:center;justify-content:space-between;gap:.5rem}
 .cc-cat{display:inline-flex;align-items:center;gap:.4rem;padding:.3rem .7rem;border-radius:99px;background:var(--surface2);border:1px solid var(--border2);font-size:11px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--muted2)}
 .cc-idx{font-size:11px;font-weight:700;color:var(--muted);letter-spacing:.04em}
-.cc-media{display:flex;justify-content:center;align-items:center;background:var(--surface2);border-radius:12px;overflow:hidden;min-height:120px;max-height:340px}
-.cc-media img,.cc-media video{max-width:100%;max-height:340px;display:block;border-radius:10px}
+.cc-media{display:flex;justify-content:center;align-items:center;background:#2a2a38;border-radius:12px;overflow:hidden;min-height:120px;max-height:340px}
+.cc-media img,.cc-media video{max-width:100%;max-height:340px;display:block;border-radius:10px;filter:brightness(1.14) contrast(1.02)}
 .cc-media iframe{width:100%;aspect-ratio:16/9;border:none;border-radius:10px;background:#000}
 .cc-media.empty{color:var(--muted);font-size:12px;padding:1.25rem;min-height:0}
 .cc-media.audio{flex-direction:column;gap:.6rem;padding:1rem;min-height:0}
@@ -364,8 +364,8 @@ html{background:var(--bg)}
 @keyframes auPulse{0%,100%{opacity:.6;transform:scale(1)}50%{opacity:1;transform:scale(1.08)}}
 .part-card{width:100%;max-width:560px;display:flex;flex-direction:column;gap:1.1rem;align-items:center}
 .part-cat{display:inline-flex;align-items:center;gap:.4rem;padding:.4rem .9rem;border-radius:99px;background:var(--purple-dim);border:1px solid var(--purple);font-size:11px;font-weight:800;color:var(--purple);letter-spacing:.08em;text-transform:uppercase;box-shadow:0 4px 18px -8px rgba(192,96,232,.6)}
-.part-media{width:100%;background:linear-gradient(180deg,var(--surface2),var(--surface));border-radius:18px;overflow:hidden;display:flex;justify-content:center;align-items:center;min-height:180px;border:1.5px solid var(--border2)}
-.part-media img,.part-media video{max-width:100%;max-height:60vh;display:block}
+.part-media{width:100%;background:linear-gradient(180deg,#2c2c3c,#242430);border-radius:18px;overflow:hidden;display:flex;justify-content:center;align-items:center;min-height:180px;border:1.5px solid var(--border2)}
+.part-media img,.part-media video{max-width:100%;max-height:60vh;display:block;filter:brightness(1.14) contrast(1.02)}
 .part-media iframe{width:100%;aspect-ratio:16/9;border:none;background:#000}
 /* tarjeta de audio en la pantalla de participantes */
 .part-audio{width:100%;border-radius:18px;background:linear-gradient(180deg,var(--surface2),var(--surface));border:1.5px solid var(--border2);padding:1.7rem 1.2rem;display:flex;flex-direction:column;align-items:center;gap:1rem;box-shadow:0 14px 30px -18px rgba(0,0,0,.8)}
@@ -379,7 +379,7 @@ html{background:var(--bg)}
 .part-audio-eq span:nth-child(4){animation-delay:.36s}
 .part-audio-eq span:nth-child(5){animation-delay:.48s}
 @keyframes eqBar{0%,100%{height:8px}50%{height:32px}}
-.part-prompt{position:relative;font-size:clamp(18px,4.5vw,26px);font-weight:800;line-height:1.4;color:var(--text);background:linear-gradient(180deg,var(--surface2),var(--surface));border:1.5px solid var(--border2);border-radius:18px;padding:1.3rem 1.5rem 1.2rem}
+.part-prompt{position:relative;font-size:clamp(18px,4.5vw,26px);font-weight:800;line-height:1.4;color:var(--text);background:linear-gradient(180deg,#2c2c3c,#242430);border:1.5px solid var(--border2);border-radius:18px;padding:1.3rem 1.5rem 1.2rem}
 .part-prompt::before{content:'';position:absolute;left:50%;top:0;transform:translate(-50%,-50%);width:60px;height:4px;border-radius:99px;background:linear-gradient(90deg,var(--purple),var(--gold))}
 .part-prompt .gap{display:inline-block;min-width:100px;border-bottom:3px solid var(--purple);margin:0 .2rem;color:transparent;padding:0 .3rem}
 .part-prompt.revealed .gap{color:var(--purple);background:var(--purple-dim);border-radius:6px}
@@ -1455,11 +1455,11 @@ function renderPromptWithGap(prompt, isRevealed, ending){
 }
 // ── DIÁLOGO POR PERSONAJES ──
 const DLG_PALETTE = [
-  { bg:'rgba(124,92,255,.22)', border:'rgba(124,92,255,.55)', name:'#b3a3ff' },
-  { bg:'rgba(245,200,66,.18)', border:'rgba(245,200,66,.5)',  name:'#f5c842' },
-  { bg:'rgba(74,201,150,.18)', border:'rgba(74,201,150,.5)',  name:'#4ac996' },
-  { bg:'rgba(255,120,120,.18)', border:'rgba(255,120,120,.5)', name:'#ff9a9a' },
-  { bg:'rgba(90,180,255,.18)', border:'rgba(90,180,255,.5)',  name:'#7fc2ff' }
+  { bg:'rgba(124,92,255,.38)', border:'rgba(124,92,255,.7)', name:'#c9bdff' },
+  { bg:'rgba(245,200,66,.32)', border:'rgba(245,200,66,.65)',  name:'#ffdb7a' },
+  { bg:'rgba(74,201,150,.32)', border:'rgba(74,201,150,.65)',  name:'#7fe0b8' },
+  { bg:'rgba(255,120,120,.32)', border:'rgba(255,120,120,.65)', name:'#ffb0b0' },
+  { bg:'rgba(90,180,255,.32)', border:'rgba(90,180,255,.65)',  name:'#a9d6ff' }
 ];
 function dialogueSpeakerMeta(dialogue){
   const order = [];
