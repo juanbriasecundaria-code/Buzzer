@@ -12050,7 +12050,7 @@ function rollCredits() {
       // personas distintas, sí corresponde el plural por cantidad.
       const soloUnaPersona = imp.uniqueImpostores === 1;
       const caughtLabel = soloUnaPersona ? 'descubierto' : `descubierto${imp.caught === 1 ? '' : 's'}`;
-      const escapedLabel = soloUnaPersona ? 'zafó' : (imp.escaped === 1 ? 'zafó' : 'zafaron');
+      const escapedLabel = soloUnaPersona ? 'zafó' : (imp.escaped === 1 ? 'zafó' : 'zafó');
       inner += `<div class="cr-imp-tally">`
         + `<div class="cr-imp-side"><div class="cr-imp-num" style="color:var(--accent)">${imp.caught}</div><div class="cr-imp-cap">${caughtLabel}</div></div>`
         + `<div class="cr-imp-vs">vs</div>`
