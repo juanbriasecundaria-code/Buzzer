@@ -675,6 +675,19 @@ body.is-participant .cad-bg-scrim { display: block; }
   .kb-dock-close { background: none; border: none; color: var(--muted); font-size: 13px; cursor: pointer; padding: 2px 4px; line-height: 1; }
   .kb-dock-close:active { opacity: 0.6; }
   @media (max-width: 980px), (max-height: 640px) { .kb-dock { display: none !important; } }
+
+/* ── Cartel de quién se queda el tablero ── */
+.cad-control-pop{position:fixed;left:50%;top:40%;transform:translate(-50%,-50%) scale(.75);
+  z-index:9450;text-align:center;pointer-events:none;opacity:0;
+  padding:1.2rem 2.2rem;border-radius:20px;
+  background:rgba(12,12,18,.95);border:2px solid var(--accent);
+  box-shadow:0 16px 55px rgba(0,0,0,.7),0 0 40px rgba(200,240,96,.25);
+  transition:opacity .28s ease,transform .45s cubic-bezier(.2,1.4,.4,1)}
+.cad-control-pop.show{opacity:1;transform:translate(-50%,-50%) scale(1)}
+.ccp-lbl{font-size:11px;font-weight:800;letter-spacing:.2em;text-transform:uppercase;color:var(--muted)}
+.ccp-name{font-size:clamp(1.6rem,6vw,3rem);font-weight:900;color:var(--accent);
+  margin-top:.2rem;line-height:1.1;text-shadow:0 0 34px rgba(200,240,96,.45)}
+@media (prefers-reduced-motion:reduce){.cad-control-pop{transition:opacity .2s}}
 </style>
 <style>.hub-link{position:fixed;top:max(0.75rem,env(safe-area-inset-top));left:max(0.75rem,env(safe-area-inset-left));z-index:99999;font-size:11px;font-weight:700;color:rgba(240,239,232,0.7);background:rgba(10,10,14,0.6);border:1px solid rgba(255,255,255,0.1);border-radius:99px;padding:0.38rem 0.85rem;text-decoration:none;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);letter-spacing:0.04em;transition:color 0.15s,border-color 0.15s;white-space:nowrap}.hub-link:hover{color:#f0efe8;border-color:rgba(255,255,255,0.25)}</style></head>
 <body>
@@ -1837,7 +1850,41 @@ function resolveFaceoff() {
   else if (rb < ra) control = 'b';
   else control = round.buzzWinner || 'a';
   round.controlTeam = control;
+  // Los celulares se enteran de quién se quedó el tablero. Antes el que buzzeaba
+  // sabía que había ganado el buzz, pero no si eso le había servido de algo.
+  fbSendControl(control);
+  celebrateControl(control);
   setPhase('choice');
+}
+
+// Le avisa a cada celular si su equipo se quedó con el control del tablero
+function fbSendControl(team) {
+  if (!fbRef || !team) return;
+  try {
+    fbRef.set({
+      state: 'locked', winner: null,
+      names: { a: nameOf('a'), b: nameOf('b') },
+      verdict: { team: team, name: nameOf(team), ok: true, pts: 0,
+                 msg: 'control', ts: Date.now() }
+    });
+  } catch (e) {}
+}
+
+// Cartel + confetti en la pantalla grande al definirse el control
+function celebrateControl(team) {
+  const nombre = nameOf(team);
+  let el = document.getElementById('cad-control-pop');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'cad-control-pop';
+    el.className = 'cad-control-pop';
+    document.body.appendChild(el);
+  }
+  el.innerHTML = '<div class="ccp-lbl">Se queda el tablero</div>' +
+                 '<div class="ccp-name">' + escapeHtml(nombre) + '</div>';
+  el.classList.remove('show'); void el.offsetWidth; el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), 2600);
+  try { if (typeof playRevealDing === 'function') playRevealDing(3, 0.8); } catch (e) {}
 }
 
 function showAnswerFlash(rank, pts) {
