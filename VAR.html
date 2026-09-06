@@ -309,7 +309,7 @@ body { background: transparent; }
 /* ── SCOREBOARD ── */
 .scoreboard {
   display: flex; align-items: stretch; justify-content: center; gap: 0.5rem;
-  width: 100%; max-width: 380px;
+  width: 100%; max-width: 360px;
 }
 .sb-team {
   flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: center; gap: 0.2rem;
@@ -319,12 +319,12 @@ body { background: transparent; }
 .sb-team.sb-a { border-color: rgba(96,180,240,0.5); }
 .sb-team.sb-b { border-color: rgba(245,200,66,0.5); }
 .sb-name {
-  font-size: 12px; font-weight: 800; letter-spacing: -0.01em; line-height: 1.15;
+  font-size: 15px; font-weight: 800; letter-spacing: -0.01em; line-height: 1.15;
   text-align: center; overflow-wrap: anywhere;
 }
 .sb-team.sb-a .sb-name { color: var(--blue); }
 .sb-team.sb-b .sb-name { color: var(--gold); }
-.sb-score { font-size: 2.4rem; font-weight: 900; line-height: 1; color: var(--text); }
+.sb-score { font-size: 2.2rem; font-weight: 900; line-height: 1; color: var(--text); }
 .sb-score.bump { animation: scoreBump 0.4s cubic-bezier(.2,.9,.3,1.4); }
 .sb-vs { display: flex; align-items: center; font-size: 11px; font-weight: 800; letter-spacing: 0.1em; color: var(--muted); }
 
@@ -763,6 +763,15 @@ body.var-reviewing .var-static-bg::after {
   60%{ transform: translateX(-4px); }
   80%{ transform: translateX(4px); }
 }
+
+/* ── ENTRADA UNIFICADA ────────────────────────────────────────────────
+   Misma aparición en los seis juegos y en el HUB: al pasar de una pantalla
+   a otra se siente una sola app y no seis páginas sueltas.
+   Solo animamos la opacidad — un transform o un filter en <body> rompería
+   los elementos con position:fixed (overlays, barras, confetti). */
+@keyframes appEnter { from { opacity: 0 } to { opacity: 1 } }
+body { animation: appEnter .32s ease-out both; }
+@media (prefers-reduced-motion: reduce) { body { animation: none } }
 </style>
 <style>.hub-link{position:fixed;top:max(0.75rem,env(safe-area-inset-top));left:max(0.75rem,env(safe-area-inset-left));z-index:99999;font-size:11px;font-weight:700;color:rgba(240,239,232,0.7);background:rgba(10,10,14,0.6);border:1px solid rgba(255,255,255,0.1);border-radius:99px;padding:0.38rem 0.85rem;text-decoration:none;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);letter-spacing:0.04em;transition:color 0.15s,border-color 0.15s;white-space:nowrap}.hub-link:hover{color:#f0efe8;border-color:rgba(255,255,255,0.25)}</style></head>
 <body>
