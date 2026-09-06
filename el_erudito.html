@@ -231,7 +231,7 @@ function _onFbScriptError(){ window._fbScriptsDone = true; console.warn('[Fireba
   .sb-team.sb-a { border-color: rgba(96,180,240,0.5); }
   .sb-team.sb-b { border-color: rgba(245,200,66,0.5); }
   .sb-team.you { box-shadow: 0 0 0 1.5px currentColor inset; }
-  .sb-name { font-size: 12px; font-weight: 800; letter-spacing: -0.01em; line-height: 1.15; text-align: center; overflow-wrap: anywhere; }
+  .sb-name { font-size: 15px; font-weight: 800; letter-spacing: -0.01em; line-height: 1.15; text-align: center; overflow-wrap: anywhere; }
   .sb-team.sb-a .sb-name { color: var(--blue); }
   .sb-team.sb-b .sb-name { color: var(--gold); }
   .sb-score { font-size: 2.2rem; font-weight: 900; line-height: 1; color: var(--text); }
@@ -510,6 +510,33 @@ function _onFbScriptError(){ window._fbScriptsDone = true; console.warn('[Fireba
 @media (prefers-reduced-motion:reduce){
   .reveal-ans{opacity:1;transform:none}
   .reveal-ans.revealed{animation:none}}
+
+/* ── ENTRADA UNIFICADA ────────────────────────────────────────────────
+   Misma aparición en los seis juegos y en el HUB: al pasar de una pantalla
+   a otra se siente una sola app y no seis páginas sueltas.
+   Solo animamos la opacidad — un transform o un filter en <body> rompería
+   los elementos con position:fixed (overlays, barras, confetti). */
+@keyframes appEnter { from { opacity: 0 } to { opacity: 1 } }
+body { animation: appEnter .32s ease-out both; }
+@media (prefers-reduced-motion: reduce) { body { animation: none } }
+
+/* ── Quién está jugando ── */
+.now-playing{display:flex;flex-direction:column;align-items:center;gap:.15rem;
+  width:100%;max-width:360px;margin:0 auto .6rem;padding:.55rem .7rem;
+  border-radius:14px;background:rgba(255,255,255,.035);
+  border:1px solid rgba(255,255,255,.07)}
+.np-lbl{font-size:9px;font-weight:800;letter-spacing:.2em;text-transform:uppercase;
+  color:var(--muted)}
+.np-names{display:block;text-align:center;line-height:1.25;max-width:100%}
+/* Tamaño en px primero: si el navegador no entiende clamp, igual se lee grande */
+/* Sin recorte: los nombres son cortos y es preferible que bajen de línea
+   antes que aparecer cortados, que es justo lo que no queremos acá. */
+.np-names b{display:inline-block;vertical-align:middle;font-size:19px;
+  font-size:clamp(15px,4.4vw,21px);font-weight:900;color:var(--text);
+  letter-spacing:-.01em}
+.np-names i{display:inline-block;vertical-align:middle;font-style:normal;
+  font-size:10px;font-weight:800;color:var(--muted);letter-spacing:.1em;
+  text-transform:uppercase;margin:0 .5rem}
 </style>
 <style>.hub-link{position:fixed;top:max(0.75rem,env(safe-area-inset-top));left:max(0.75rem,env(safe-area-inset-left));z-index:99999;font-size:11px;font-weight:700;color:rgba(240,239,232,0.7);background:rgba(10,10,14,0.6);border:1px solid rgba(255,255,255,0.1);border-radius:99px;padding:0.38rem 0.85rem;text-decoration:none;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);letter-spacing:0.04em;transition:color 0.15s,border-color 0.15s;white-space:nowrap}.hub-link:hover{color:#f0efe8;border-color:rgba(255,255,255,0.25)}</style>
 </head>
@@ -575,6 +602,14 @@ function _onFbScriptError(){ window._fbScriptsDone = true; console.warn('[Fireba
   </div>
 
   <!-- Marcador -->
+  <!-- Quién está jugando: en los juegos físicos la pantalla es de apoyo,
+       así que conviene que se lea de lejos quién está en la mesa. -->
+  <div class="now-playing" id="now-playing">
+    <span class="np-lbl">Ahora juegan</span>
+    <span class="np-names">
+      <b id="np-a">—</b><i>vs</i><b id="np-b">—</b>
+    </span>
+  </div>
   <div class="scoreboard" id="scoreboard">
     <div class="sb-team sb-a" id="sb-team-a">
       <div class="sb-name" id="sb-name-a">Equipo 1</div>
@@ -1647,6 +1682,32 @@ initFirebase();
   s.addEventListener('keydown', e=>{ if(e.key==='Enter'||e.key===' '||e.key==='Escape'){ e.preventDefault(); dismissSplash(); } });
   try { s.focus({ preventScroll:true }); } catch(e){}
 })();
+
+// Mantiene sincronizado el cartel de "ahora juegan" con los nombres del marcador
+function syncNowPlaying(){
+  var np = document.getElementById('now-playing');
+  if(!np) return;
+  var a = document.getElementById('sb-name-a');
+  var b = document.getElementById('sb-name-b');
+  var na = document.getElementById('np-a');
+  var nb = document.getElementById('np-b');
+  if(a && na) na.textContent = a.textContent || '—';
+  if(b && nb) nb.textContent = b.textContent || '—';
+}
+// Se actualiza solo cuando cambian los nombres del marcador
+(function(){
+  function arrancar(){
+    syncNowPlaying();
+    var sb = document.getElementById('scoreboard');
+    if(sb && window.MutationObserver){
+      new MutationObserver(syncNowPlaying)
+        .observe(sb, { childList:true, subtree:true, characterData:true });
+    }
+  }
+  if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', arrancar);
+  else arrancar();
+})();
+
 </script>
 </body>
 </html>
