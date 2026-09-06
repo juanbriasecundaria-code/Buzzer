@@ -518,6 +518,21 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
 .gsp-name{font-size:clamp(1rem,3.4vw,1.7rem);font-weight:800;color:#fff;margin-top:.3rem;
   text-shadow:0 3px 14px rgba(0,0,0,.8)}
 @media (prefers-reduced-motion:reduce){.gms-score-pop{transition:opacity .2s}}
+
+/* ── Reacciones flotantes de los invitados ── */
+.react-layer{position:fixed;inset:0;pointer-events:none;z-index:9200;overflow:hidden}
+.react-float{position:absolute;bottom:-60px;line-height:1;
+  filter:drop-shadow(0 3px 10px rgba(0,0,0,.55));
+  animation:reactUp var(--dur,3s) ease-out forwards}
+@keyframes reactUp{
+  0%{transform:translateY(0) translateX(0) scale(.5);opacity:0}
+  12%{transform:translateY(-8vh) translateX(calc(var(--drift)*.15)) scale(1.1);opacity:1}
+  70%{opacity:1}
+  100%{transform:translateY(-92vh) translateX(var(--drift)) scale(.85);opacity:0}}
+.react-who{display:block;font-size:10px;font-weight:800;color:rgba(255,255,255,.75);
+  text-align:center;margin-top:2px;letter-spacing:.03em;
+  text-shadow:0 2px 6px rgba(0,0,0,.9)}
+@media (prefers-reduced-motion:reduce){.react-layer{display:none}}
 </style>
 <style>.hub-link{position:fixed;top:max(0.75rem,env(safe-area-inset-top));left:max(0.75rem,env(safe-area-inset-left));z-index:99999;font-size:11px;font-weight:700;color:rgba(240,239,232,0.7);background:rgba(10,10,14,0.6);border:1px solid rgba(255,255,255,0.1);border-radius:99px;padding:0.38rem 0.85rem;text-decoration:none;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);letter-spacing:0.04em;transition:color 0.15s,border-color 0.15s;white-space:nowrap}.hub-link:hover{color:#f0efe8;border-color:rgba(255,255,255,0.25)}</style></head>
 <body>
@@ -987,6 +1002,7 @@ function initFirebase(){
     fbRef = fbDb.ref('velada/buzzer');
     fbDeckRef = fbDb.ref('velada/deck');
     fbStateRef = fbDb.ref('velada/live');
+    if(window.initReactions) initReactions();   // emojis de los invitados
     if(MODE==='participant') startPartStateListener();
     fbInited = true;
     listenReactions();
@@ -3306,6 +3322,79 @@ function saveNames(){nameA=document.getElementById('ni-a').value.trim()||'Equipo
     initCarousel(document.getElementById('gate-carousel-bg'));
   }, 100);
 })();
+
+// ── REACCIONES DE LOS INVITADOS ──────────────────────────────────────
+// Los emojis que mandan desde el celular suben flotando por la pantalla.
+// Cada toque lanza varias copias con retardo, para que se note aunque
+// alguien lo apriete una sola vez.
+(function(){
+  var _reactSeen = {};
+  var _reactReady = false;
+
+  function floatReact(emoji, quien){
+    var cont = document.getElementById('react-layer');
+    if(!cont){
+      cont = document.createElement('div');
+      cont.id = 'react-layer';
+      cont.className = 'react-layer';
+      document.body.appendChild(cont);
+    }
+    // 5 o 6 copias escalonadas por cada toque
+    var copias = 5 + Math.floor(Math.random()*2);
+    for(var i=0;i<copias;i++){
+      (function(k){
+        setTimeout(function(){
+          var el = document.createElement('div');
+          el.className = 'react-float';
+          el.textContent = emoji;
+          // cada copia sale de un punto distinto y con tamaño distinto
+          el.style.left = (6 + Math.random()*26) + '%';
+          el.style.fontSize = (26 + Math.random()*22) + 'px';
+          el.style.setProperty('--drift', ((Math.random()-0.5)*140).toFixed(0) + 'px');
+          el.style.setProperty('--dur', (2.6 + Math.random()*1.5).toFixed(2) + 's');
+          if(k === 0 && quien){
+            var tag = document.createElement('span');
+            tag.className = 'react-who';
+            tag.textContent = String(quien).split(' ')[0];
+            el.appendChild(tag);
+          }
+          cont.appendChild(el);
+          setTimeout(function(){ if(el.parentNode) el.parentNode.removeChild(el); }, 4600);
+        }, k * (90 + Math.random()*130));
+      })(i);
+    }
+  }
+
+  window.initReactions = function(){
+    if(typeof fbDb === 'undefined' || !fbDb) return;
+    try{
+      var ref = fbDb.ref('velada/reactions').limitToLast(12);
+      ref.on('child_added', function(snap){
+        var v = snap.val(); if(!v || !v.e) return;
+        if(_reactSeen[snap.key]) return;
+        _reactSeen[snap.key] = 1;
+        // Al abrir la pantalla ignoramos lo viejo: solo mostramos lo nuevo
+        if(!_reactReady) return;
+        floatReact(v.e, v.by);
+      });
+      // Damos un instante para que entre el historial antes de empezar a mostrar
+      setTimeout(function(){ _reactReady = true; }, 1200);
+      // Limpieza: no dejamos crecer la lista toda la noche
+      setInterval(function(){
+        try{
+          fbDb.ref('velada/reactions').once('value', function(s){
+            var n = s.numChildren();
+            if(n > 60){
+              var borrar = n - 30, i = 0;
+              s.forEach(function(c){ if(i++ < borrar) c.ref.remove(); });
+            }
+          });
+        }catch(e){}
+      }, 45000);
+    }catch(e){}
+  };
+})();
+
 </script>
 </body>
 </html>
