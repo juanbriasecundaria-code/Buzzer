@@ -11880,6 +11880,7 @@ function computeEventTiming() {
 function rollCredits() {
   const overlay = document.getElementById('credits');
   if (!overlay) return;
+  if (typeof forceHideSplash === 'function') forceHideSplash();
 
   // Cerrar el podio al instante (sin fade) justo cuando aparecen los créditos,
   // así no se ve el menú de fondo entre el último podio y los créditos.
@@ -12441,6 +12442,7 @@ function _driftBitsHtml() {
 function _runCeremony({ items, title, eyebrow, labelFn, colorFn, figFn, finishTitle, finishBtn, confetti, music, sfx }) {
   const overlay = document.getElementById('opening');
   if (!overlay || !items.length) return;
+  if (typeof forceHideSplash === 'function') forceHideSplash();
   _resumeAudio();
   const reduce = _prefersReduce();
   const useSfx = sfx !== false; // por defecto suenan los efectos; pasá sfx:false para silenciarlos (ej: cuando hay música de fondo)
@@ -12754,6 +12756,13 @@ function initCierreGate() {
   let params;
   try { params = new URLSearchParams(location.search); } catch (e) { return; }
   if (params.get('cierre') !== '1') return;
+
+  // La ventana de cierre carga la página de cero, así que el splash original
+  // de "La Velada del Año" también está montado debajo del gate. Como acá
+  // nadie toca el botón del splash (solo el del gate), quedaba sin cerrar y
+  // reaparecía por encima del podio al arrancar _runGrandFinale(). Lo sacamos
+  // ya mismo (el gate lo tapa igual mientras tanto).
+  if (typeof forceHideSplash === 'function') forceHideSplash();
 
   const gate = document.createElement('div');
   gate.id = 'cierre-gate';
@@ -13150,6 +13159,7 @@ function showWrapped(onDone) {
   console.log('[Wrapped] buildWrapped devolvió', screens.length, 'pantallas:', screens.map(s => s.title));
   const box = document.getElementById('wrapped-screen');
   if (!box || !screens.length) { onDone(); return; }
+  if (typeof forceHideSplash === 'function') forceHideSplash();
   // Cerrar el podio al instante (mismo criterio que rollCredits): no confiamos
   // en el orden del DOM/z-index para que Wrapped quede "encima", lo ocultamos
   // a mano así no hay forma de que quede tapado ni de que se vea el podio de fondo.
@@ -13234,6 +13244,7 @@ function podiumReveal(phaseKind, onContinue) {
   if (typeof phaseKind === 'function') { onContinue = phaseKind; phaseKind = 'grupal'; }
   const overlay = document.getElementById('podium-reveal');
   if (!overlay) { if (onContinue) onContinue(); return; }
+  if (typeof forceHideSplash === 'function') forceHideSplash();
   _resumeAudio();
 
   let sorted, eyebrow;
@@ -18143,6 +18154,18 @@ function dismissSplash() {
   const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   setTimeout(() => { if (s) s.style.display = 'none'; }, 750);
   setTimeout(() => document.body.classList.add('started'), 700); // mostrar contenido al terminar el fade
+}
+// Por si este dispositivo (típicamente la TV, que sincroniza por Firebase/
+// BroadcastChannel pero nadie tocó "Comenzar" ahí) sigue con el splash puesto
+// cuando arranca una ceremonia (podio, presentación, wrapped o créditos):
+// lo saca al toque, sin animación, para que no quede tapando todo por encima.
+function forceHideSplash() {
+  const s = document.getElementById('splash');
+  if (s && s.style.display !== 'none') {
+    s.style.display = 'none';
+    s.classList.add('splash-out');
+  }
+  if (!document.body.classList.contains('started')) document.body.classList.add('started');
 }
 (function initSplash() {
   const s = document.getElementById('splash');
