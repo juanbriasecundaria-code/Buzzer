@@ -332,6 +332,32 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
 .bz-verdict.ok .bv-t{color:var(--accent)}
 .bz-verdict.no .bv-t{color:var(--danger)}
 .bv-pts{font-size:13px;color:var(--muted);margin-top:.25rem;font-weight:700}
+
+/* ── Barra de reacciones ── */
+.bz-reacts{display:flex;gap:.4rem;justify-content:center;flex-wrap:wrap;
+  margin-top:1.1rem;padding:0 .4rem}
+.bz-react{width:46px;height:46px;border-radius:50%;border:1.5px solid var(--border2);
+  background:var(--surface2);font-size:22px;line-height:1;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;padding:0;
+  transition:transform .12s,border-color .15s;-webkit-tap-highlight-color:transparent}
+.bz-react:active{transform:scale(.88)}
+.bz-react.pop{animation:bzReactPop .45s cubic-bezier(.2,1.5,.4,1)}
+@keyframes bzReactPop{0%{transform:scale(1)}40%{transform:scale(1.35)}100%{transform:scale(1)}}
+
+/* ── Récord de velocidad ── */
+.bz-record{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%) scale(.8);
+  z-index:9300;text-align:center;pointer-events:none;opacity:0;
+  padding:1.5rem 2rem;border-radius:22px;border:2px solid var(--gold);
+  background:rgba(12,12,18,.96);backdrop-filter:blur(10px);
+  box-shadow:0 16px 55px rgba(0,0,0,.7),0 0 44px rgba(245,200,66,.32);
+  transition:opacity .25s ease,transform .4s cubic-bezier(.2,1.4,.4,1)}
+.bz-record.show{opacity:1;transform:translate(-50%,-50%) scale(1)}
+.br-emoji{font-size:44px;line-height:1;animation:brZap .5s ease-in-out 2}
+@keyframes brZap{0%,100%{transform:scale(1)}50%{transform:scale(1.2)}}
+.br-t{font-size:17px;font-weight:900;color:var(--gold);margin-top:.3rem;letter-spacing:-.01em}
+.br-ms{font-size:38px;font-weight:900;color:#fff;line-height:1.05;margin-top:.15rem;
+  font-variant-numeric:tabular-nums}
+.br-old{font-size:12px;color:var(--muted);margin-top:.25rem}
 </style>
 </head>
 <body>
@@ -482,6 +508,15 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
     <div class="bzc-num" id="bz-countdown-num">3</div>
     <div class="bzc-label">Preparate…</div>
   </div>
+  <!-- Reacciones: aparecen flotando en la pantalla grande -->
+  <div class="bz-reacts" id="bz-reacts">
+    <button class="bz-react" onclick="sendReact('👏')" aria-label="Aplaudir">👏</button>
+    <button class="bz-react" onclick="sendReact('😂')" aria-label="Risa">😂</button>
+    <button class="bz-react" onclick="sendReact('😮')" aria-label="Sorpresa">😮</button>
+    <button class="bz-react" onclick="sendReact('🔥')" aria-label="Fuego">🔥</button>
+    <button class="bz-react" onclick="sendReact('😡')" aria-label="Enojo">😡</button>
+    <button class="bz-react" onclick="sendReact('🤡')" aria-label="Payaso">🤡</button>
+  </div>
 </div>
 
 <!-- ── MODAL DE CONTRASEÑA ── -->
@@ -583,6 +618,7 @@ function initFirebase(cb){
         _fbServerOffsetMs = snap.val() || 0;
       });
     }catch(e){}
+    watchSpeedRecord();   // récord de reflejos, compartido por todo el grupo
     cb();
   } catch(e){ showError('Error al conectar: '+e.message); }
 }
@@ -905,7 +941,12 @@ function startBuzzListener(){
       // ¿Quién lo dijo? manda el nombre individual; Guess Movie manda el equipo
       const mine = (d.verdict.team && d.verdict.team === bzTeam) ||
                    (d.verdict.name && bzMyName && d.verdict.name === bzMyName);
-      if(mine) showVerdict(d.verdict.ok, d.verdict.pts);
+      if(d.verdict.msg === 'control'){
+        // 100 Argentinos: el duelo define quién se queda el tablero
+        showVerdict(mine, 0, 'control');
+      } else if(mine){
+        showVerdict(d.verdict.ok, d.verdict.pts);
+      }
     }
 
     if(d.winner){
@@ -952,6 +993,9 @@ function startBuzzListener(){
         statusEl.className = 'bz-status lost';
       } else {
         _bzPhase = 'open';
+        // Momento en que quedó habilitado: desde acá medimos el reflejo.
+        // Usamos el reloj del servidor para que todos midan contra lo mismo.
+        if(_openedAt === null) _openedAt = nowServer();
         _earlyTaps = 0;
         btn.classList.remove('locked','won-me');
         btn.classList.add('open');
@@ -963,6 +1007,7 @@ function startBuzzListener(){
       hideResult(); _resultShownFor = null;
       hideBzCountdown();
       _bzPhase = 'waiting';
+      _openedAt = null;
       btn.classList.add('locked');
       btn.classList.remove('open','won-me');
       statusEl.textContent = 'Esperando al conductor…';
@@ -983,7 +1028,7 @@ function sfxTin(){ const ctx=_bac(); if(!ctx) return; try{ const now=ctx.current
 // ── VEREDICTO EN EL CELULAR ──────────────────────────────────────────
 let _lastVerdictTs = 0;
 
-function showVerdict(ok, pts){
+function showVerdict(ok, pts, kind){
   let el = document.getElementById('bz-verdict');
   if(!el){
     el = document.createElement('div');
@@ -992,11 +1037,20 @@ function showVerdict(ok, pts){
     document.body.appendChild(el);
   }
   el.className = 'bz-verdict ' + (ok ? 'ok' : 'no');
-  el.innerHTML = ok
-    ? '<div class="bv-emoji">🎉</div><div class="bv-t">¡Acertaste!</div>' +
-      (pts ? '<div class="bv-pts">+' + pts + ' para tu equipo</div>' : '')
-    : '<div class="bv-emoji">😖</div><div class="bv-t">Esta vez no…</div>' +
-      '<div class="bv-pts">Va la próxima</div>';
+  if(kind === 'control'){
+    // En 100 Argentinos el duelo no es "acertar", es quedarse el tablero
+    el.innerHTML = ok
+      ? '<div class="bv-emoji">🎯</div><div class="bv-t">¡El tablero es suyo!</div>' +
+        '<div class="bv-pts">A responder</div>'
+      : '<div class="bv-emoji">👀</div><div class="bv-t">Controla el rival</div>' +
+        '<div class="bv-pts">Esperá tu turno para robar</div>';
+  } else {
+    el.innerHTML = ok
+      ? '<div class="bv-emoji">🎉</div><div class="bv-t">¡Acertaste!</div>' +
+        (pts ? '<div class="bv-pts">+' + pts + ' para tu equipo</div>' : '')
+      : '<div class="bv-emoji">😖</div><div class="bv-t">Esta vez no…</div>' +
+        '<div class="bv-pts">Va la próxima</div>';
+  }
   void el.offsetWidth;
   el.classList.add('show');
 
@@ -1061,6 +1115,107 @@ function bzTick(){
   });
   if(_bzP.length) _bzRaf=requestAnimationFrame(bzTick);
   else { ctx.clearRect(0,0,innerWidth,innerHeight); _bzRaf=null; }
+}
+
+
+
+// ── REACCIONES ───────────────────────────────────────────────────────
+// Cualquiera manda un emoji desde el celular y aparece flotando en la
+// pantalla del juego. Es la forma más simple de que participen los que miran.
+let _reactCooldown = 0;
+
+function sendReact(emoji){
+  const ahora = Date.now();
+  if(ahora - _reactCooldown < 700) return;   // evita el spam de dedos rápidos
+  _reactCooldown = ahora;
+  if(!fbDb) return;
+  const quien = bzMyName || (bzTeam === 'a' ? nameA : (bzTeam === 'b' ? nameB : '')) || '';
+  try{
+    fbDb.ref('velada/reactions').push({
+      e: emoji, by: quien, ts: firebase.database.ServerValue.TIMESTAMP
+    });
+  }catch(e){}
+  if(navigator.vibrate) navigator.vibrate(18);
+  // Confirmación local: el emoji sube desde el propio botón
+  const btns = document.querySelectorAll('.bz-react');
+  btns.forEach(b => { if(b.textContent.trim() === emoji){
+    b.classList.remove('pop'); void b.offsetWidth; b.classList.add('pop');
+  }});
+}
+
+// ── RÉCORD DE VELOCIDAD ──────────────────────────────────────────────
+// Guarda el mejor tiempo de reacción de la noche y avisa a quien lo rompe.
+// El récord es compartido: vive en Firebase, así compite todo el grupo.
+let _openedAt = null;
+let _bestNight = null;   // { ms, name, ts }
+
+function fmtMs(ms){
+  return ms < 1000 ? ms + ' ms' : (ms/1000).toFixed(2).replace('.', ',') + ' s';
+}
+
+function watchSpeedRecord(){
+  if(!fbDb) return;
+  try{
+    fbDb.ref('velada/record_buzz').on('value', snap=>{
+      const v = snap.val();
+      if(v && typeof v.ms === 'number') _bestNight = v;
+    });
+  }catch(e){}
+}
+
+function checkSpeedRecord(ms){
+  if(typeof ms !== 'number' || ms <= 0 || ms > 10000) return;   // dato raro: lo ignoramos
+  const previo = _bestNight && typeof _bestNight.ms === 'number' ? _bestNight.ms : null;
+  const miNombre = bzMyName || (bzTeam === 'a' ? nameA : nameB) || 'Alguien';
+
+  if(previo === null || ms < previo){
+    // Transacción: si dos rompen el récord casi a la vez, gana el más rápido
+    try{
+      fbDb.ref('velada/record_buzz').transaction(cur=>{
+        if(cur && typeof cur.ms === 'number' && cur.ms <= ms) return;  // ya hay uno mejor
+        return { ms: ms, name: miNombre, ts: Date.now() };
+      }, (err, committed)=>{
+        if(!err && committed) showRecordBanner(ms, previo);
+      });
+    }catch(e){}
+  }
+}
+
+function showRecordBanner(ms, previo){
+  let el = document.getElementById('bz-record');
+  if(!el){
+    el = document.createElement('div');
+    el.id = 'bz-record';
+    el.className = 'bz-record';
+    document.body.appendChild(el);
+  }
+  el.innerHTML =
+    '<div class="br-emoji">⚡</div>' +
+    '<div class="br-t">¡Récord de la noche!</div>' +
+    '<div class="br-ms">' + fmtMs(ms) + '</div>' +
+    (previo ? '<div class="br-old">antes: ' + fmtMs(previo) + '</div>'
+            : '<div class="br-old">sos el primero</div>');
+  el.classList.remove('show'); void el.offsetWidth; el.classList.add('show');
+  if(navigator.vibrate) navigator.vibrate([40,60,40,60,40,60,150]);
+  sfxRecord();
+  clearTimeout(showRecordBanner._t);
+  showRecordBanner._t = setTimeout(()=>el.classList.remove('show'), 3600);
+}
+
+function sfxRecord(){
+  const ctx = _bac(); if(!ctx) return;
+  try{
+    const t = ctx.currentTime;
+    [784, 988, 1175, 1568, 1976].forEach((f,i)=>{
+      const o=ctx.createOscillator(), g=ctx.createGain();
+      o.type='triangle'; o.frequency.setValueAtTime(f, t+i*0.065);
+      g.gain.setValueAtTime(0.0001, t+i*0.065);
+      g.gain.exponentialRampToValueAtTime(0.20, t+i*0.065+0.015);
+      g.gain.exponentialRampToValueAtTime(0.0001, t+i*0.065+0.5);
+      o.connect(g); g.connect(ctx.destination);
+      o.start(t+i*0.065); o.stop(t+i*0.065+0.55);
+    });
+  }catch(e){}
 }
 
 // ── TOQUE ANTICIPADO ─────────────────────────────────────────────────
@@ -1140,6 +1295,8 @@ function doBuzz(){
   const isIndividual = !!meta.individual;
   const tName = isIndividual ? bzTeam : (bzTeam==='a' ? nameA : nameB);
   bzMyName = tName;   // así reconocemos después si el veredicto es para nosotros
+  // Cuánto tardó en reaccionar desde que se habilitó
+  const _ms = _openedAt ? Math.max(0, nowServer() - _openedAt) : null;
   if(navigator.vibrate) navigator.vibrate(60);
 
   // Transacción atómica — solo gana el primero en llegar
@@ -1152,13 +1309,16 @@ function doBuzz(){
     if(current.blocked && current.blocked===bzTeam) return; // abort — te toca esperar
     if(current.state==='open' && !current.winner){
       return Object.assign({}, current, {
-        winner: { team:bzTeam, name:tName },
+        winner: { team:bzTeam, name:tName, ms:_ms },
         state: 'won'
       });
     }
     return; // abort — ya hay ganador o está bloqueado
   }, (err, committed)=>{
-    if(!err && committed) sfxTin(); // sonó solo si este celular ganó
+    if(!err && committed){
+      sfxTin();                 // sonó solo si este celular ganó
+      checkSpeedRecord(_ms);    // ¿rompió el récord de la noche?
+    }
   });
 }
 
