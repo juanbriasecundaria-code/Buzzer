@@ -382,9 +382,11 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
 @keyframes appEnter { from { opacity: 0 } to { opacity: 1 } }
 body { animation: appEnter .32s ease-out both; }
 @media (prefers-reduced-motion: reduce) { body { animation: none } }
+.skip-splash #splash{display:none!important}
 </style>
 </head>
 <body>
+<script>if(new URLSearchParams(location.search).get('hub')) document.documentElement.classList.add('skip-splash');</script>
 
 <!-- ── SPLASH ── -->
 <div id="splash" class="splash" onclick="dismissSplash()" role="button" tabindex="0" aria-label="Entrar al HUB">
