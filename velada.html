@@ -78,7 +78,7 @@
     padding: 1rem 1.5rem 1rem 0;
     border-right: 0.5px solid var(--border);
     margin-right: 1rem;
-    margin-left: 4.5rem; /* deja lugar al chip fijo "← Hub" para que no se solapen */
+    margin-left: 4.5rem; /* deja lugar al chip fijo "← Volver" para que no se solapen */
     letter-spacing: -0.3px;
   }
   .nav-tabs { display: flex; gap: 0; }
@@ -2418,7 +2418,7 @@
     border-radius: 99px; padding: 0.5rem 1rem; cursor: pointer; font-size: 13px; font-weight: 600;
     opacity: 0; pointer-events: none; transition: opacity 0.35s ease;
   }
-  /* Durante los créditos, "← Hub" y "✕ Salir" quedan ocultos (para no tapar
+  /* Durante los créditos, "← Volver" y "✕ Salir" quedan ocultos (para no tapar
      la pantalla en la TV) y solo reaparecen si el mouse se acerca arriba
      del todo — ver _startCreditsHoverWatch()/_stopCreditsHoverWatch(). */
   body:has(.credits.show) .hub-link { opacity: 0; pointer-events: none; transition: opacity 0.35s ease; }
@@ -3317,7 +3317,7 @@ window.VarSwitch = (function () {
 })();
 </script>
 
-<a class="hub-link" href="index.html">← Hub</a>
+<a class="hub-link" href="index.html">← Volver</a>
 
 <!-- ── FONDO ANIMADO (persiste en todas las pestañas) ── -->
 <div class="velada-col-bg" id="velada-col-bg" style="position:fixed;z-index:0"></div>
@@ -12271,7 +12271,7 @@ function creditsEnded() {
   _creditsEndTimer = setTimeout(() => { closeCredits(); }, 1200);
 }
 
-// Mientras ruedan los créditos, "← Hub" y "✕ Salir" quedan invisibles salvo
+// Mientras ruedan los créditos, "← Volver" y "✕ Salir" quedan invisibles salvo
 // que el mouse suba a la franja de arriba de la pantalla (útil en la TV para
 // no tapar los créditos, pero sin perder la forma de salir si hace falta).
 let _creditsHoverHandler = null;
