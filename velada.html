@@ -11825,10 +11825,12 @@ function computeNightNumbers() {
 
 // Resumen del Impostor: quién fue impostor más veces y cuántas veces se lo
 // descubrió vs. cuántas zafó (sobre state.impostor.rounds, todos los modos).
+// También arma la dupla que más se repitió como impostores en modo doble.
 function computeImpostorSummary() {
   const rounds = (state.impostor && state.impostor.rounds) || [];
   if (!rounds.length) return null;
   const timesImpostor = {}; // nombre => veces que fue impostor
+  const pairCounts = {};    // "nombreA|nombreB" (orden alfabético) => veces que salieron juntos de impostores
   let caught = 0, escaped = 0, total = 0;
   rounds.forEach(rd => {
     if (rd.mode === 'doble') {
@@ -11839,6 +11841,10 @@ function computeImpostorSummary() {
       caught += caughtNames.length;
       escaped += escapedNames.length;
       total += imps.length;
+      if (imps.length === 2) {
+        const key = [...imps].sort().join('|');
+        pairCounts[key] = (pairCounts[key] || 0) + 1;
+      }
     } else if (rd.impostorName) {
       timesImpostor[rd.impostorName] = (timesImpostor[rd.impostorName] || 0) + 1;
       total += 1;
@@ -11848,7 +11854,11 @@ function computeImpostorSummary() {
   // El que más veces fue impostor (desempate: el primero que aparece)
   let topName = null, topCount = 0;
   Object.keys(timesImpostor).forEach(n => { if (timesImpostor[n] > topCount) { topCount = timesImpostor[n]; topName = n; } });
-  return { rounds: rounds.length, caught, escaped, total, topName, topCount };
+  // La dupla que más se repitió como impostores juntos (solo cuenta si se repitió)
+  let topPair = null, topPairCount = 0;
+  Object.keys(pairCounts).forEach(k => { if (pairCounts[k] > topPairCount) { topPairCount = pairCounts[k]; topPair = k; } });
+  const uniqueImpostores = Object.keys(timesImpostor).length;
+  return { rounds: rounds.length, caught, escaped, total, topName, topCount, uniqueImpostores, topPair, topPairCount };
 }
 
 // Fecha y duración real del evento a partir de los timestamps (res.t) de todos
@@ -12034,11 +12044,31 @@ function rollCredits() {
         inner += `<div class="cr-name" style="color:var(--danger)">🕵️ ${esc(imp.topName)}</div>`
           + `<div class="cr-mini-line">fue impostor ${imp.topCount} ${imp.topCount === 1 ? 'vez' : 'veces'}</div>`;
       }
+      // Si en toda la noche hubo un único impostor (siempre la misma persona),
+      // "descubierto"/"zafó" describen sus propias veces y van en singular
+      // ("fue descubierto 2 veces", no "2 descubiertos"). Si hubo varias
+      // personas distintas, sí corresponde el plural por cantidad.
+      const soloUnaPersona = imp.uniqueImpostores === 1;
+      const caughtLabel = soloUnaPersona ? 'descubierto' : `descubierto${imp.caught === 1 ? '' : 's'}`;
+      const escapedLabel = soloUnaPersona ? 'zafó' : (imp.escaped === 1 ? 'zafó' : 'zafaron');
       inner += `<div class="cr-imp-tally">`
-        + `<div class="cr-imp-side"><div class="cr-imp-num" style="color:var(--accent)">${imp.caught}</div><div class="cr-imp-cap">descubierto${imp.caught === 1 ? '' : 's'}</div></div>`
+        + `<div class="cr-imp-side"><div class="cr-imp-num" style="color:var(--accent)">${imp.caught}</div><div class="cr-imp-cap">${caughtLabel}</div></div>`
         + `<div class="cr-imp-vs">vs</div>`
-        + `<div class="cr-imp-side"><div class="cr-imp-num" style="color:var(--danger)">${imp.escaped}</div><div class="cr-imp-cap">${imp.escaped === 1 ? 'zafó' : 'zafaron'}</div></div>`
-        + `</div></div>`;
+        + `<div class="cr-imp-side"><div class="cr-imp-num" style="color:var(--danger)">${imp.escaped}</div><div class="cr-imp-cap">${escapedLabel}</div></div>`
+        + `</div>`;
+      // Comparación en palabras (solo si hay diferencia entre descubiertos y zafados)
+      if (imp.caught !== imp.escaped) {
+        const cmpText = imp.caught > imp.escaped
+          ? 'Se descubrieron más impostores de los que lograron zafar'
+          : 'Zafaron más impostores de los que se llegaron a descubrir';
+        inner += `<div class="cr-mini-line" style="margin-top:0.5rem">${cmpText}</div>`;
+      }
+      // La pareja que más se repitió como impostores juntos (modo doble, ≥2 veces)
+      if (imp.topPair && imp.topPairCount >= 2) {
+        const names = imp.topPair.split('|').map(esc).join(' y ');
+        inner += `<div class="cr-mini-line" style="margin-top:0.7rem">La pareja que más repitió como impostores: <b>${names}</b> (${imp.topPairCount} veces)</div>`;
+      }
+      inner += `</div>`;
       impostorHtml = inner;
     }
   } catch (e) {}
