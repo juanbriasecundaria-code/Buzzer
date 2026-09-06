@@ -441,6 +441,15 @@
     overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .gh-h2h-rec{font-size:13px;font-weight:900;flex-shrink:0}
   .gh-h2h-tot{font-size:10px;color:var(--muted);flex-shrink:0;min-width:56px;text-align:right}
+
+/* ── ENTRADA UNIFICADA ────────────────────────────────────────────────
+   Misma aparición en los seis juegos y en el HUB: al pasar de una pantalla
+   a otra se siente una sola app y no seis páginas sueltas.
+   Solo animamos la opacidad — un transform o un filter en <body> rompería
+   los elementos con position:fixed (overlays, barras, confetti). */
+@keyframes appEnter { from { opacity: 0 } to { opacity: 1 } }
+body { animation: appEnter .32s ease-out both; }
+@media (prefers-reduced-motion: reduce) { body { animation: none } }
 </style>
 </head>
 <body>
