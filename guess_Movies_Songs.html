@@ -508,6 +508,16 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
 .toast.show{opacity:1}
 .floating-reaction{position:fixed;bottom:8vh;font-size:64px;z-index:9999;pointer-events:none;animation:floatUp 2.2s ease-out forwards}
 @keyframes floatUp{0%{transform:translateY(0) scale(.6);opacity:0}15%{opacity:1;transform:translateY(-10vh) scale(1.15)}100%{transform:translateY(-55vh) scale(1);opacity:0}}
+
+.gms-score-pop{position:fixed;left:50%;top:38%;transform:translate(-50%,-50%) scale(.7);
+  z-index:9450;text-align:center;pointer-events:none;opacity:0;
+  transition:opacity .3s ease,transform .45s cubic-bezier(.2,1.5,.4,1)}
+.gms-score-pop.show{opacity:1;transform:translate(-50%,-50%) scale(1)}
+.gsp-pts{font-size:clamp(3.4rem,13vw,7rem);font-weight:900;line-height:1;color:var(--gold);
+  text-shadow:0 0 50px rgba(245,200,66,.6),0 6px 24px rgba(0,0,0,.7)}
+.gsp-name{font-size:clamp(1rem,3.4vw,1.7rem);font-weight:800;color:#fff;margin-top:.3rem;
+  text-shadow:0 3px 14px rgba(0,0,0,.8)}
+@media (prefers-reduced-motion:reduce){.gms-score-pop{transition:opacity .2s}}
 </style>
 <style>.hub-link{position:fixed;top:max(0.75rem,env(safe-area-inset-top));left:max(0.75rem,env(safe-area-inset-left));z-index:99999;font-size:11px;font-weight:700;color:rgba(240,239,232,0.7);background:rgba(10,10,14,0.6);border:1px solid rgba(255,255,255,0.1);border-radius:99px;padding:0.38rem 0.85rem;text-decoration:none;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);letter-spacing:0.04em;transition:color 0.15s,border-color 0.15s;white-space:nowrap}.hub-link:hover{color:#f0efe8;border-color:rgba(255,255,255,0.25)}</style></head>
 <body>
@@ -1928,10 +1938,99 @@ document.addEventListener('keydown',function(e){
 
 // ─── CONDUCTOR: PHASE ────────────────────────────────────────────
 function setBuzzer(team){phase='playing_'+team;activeBuzzer=team;syncPhaseUI();sendState();fbLock();sfxBuzz();}
-function markCorrect(){if(!activeBuzzer)return;if(activeBuzzer==='a'){scoreA++;bump('c-sa');}else{scoreB++;bump('c-sb');}saveScore();syncScoreUI();phase='reveal';activeBuzzer=null;stopTimer();syncPhaseUI();sendState();}
+
+// ── FESTEJO AL ACERTAR (pantalla grande) ─────────────────────────────
+let _gmsCv=null,_gmsP=[],_gmsRaf=null;
+function gmsConfetti(n){
+  if(!_gmsCv){
+    _gmsCv=document.createElement('canvas');
+    _gmsCv.style.cssText='position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:9400';
+    document.body.appendChild(_gmsCv);
+  }
+  const dpr=Math.min(2,devicePixelRatio||1);
+  _gmsCv.width=innerWidth*dpr; _gmsCv.height=innerHeight*dpr;
+  const ctx=_gmsCv.getContext('2d'); ctx.setTransform(dpr,0,0,dpr,0,0);
+  const C=['#f5c842','#c8f060','#60b4f0','#c060e8','#4cdb7a','#ff6ec7'];
+  for(let i=0;i<(n||100);i++){
+    _gmsP.push({x:innerWidth/2+(Math.random()-.5)*innerWidth*.45, y:innerHeight*.34,
+      vx:(Math.random()-.5)*9, vy:-6-Math.random()*9, s:5+Math.random()*7,
+      rot:Math.random()*3, vr:(Math.random()-.5)*.3,
+      col:C[(Math.random()*C.length)|0], life:1});
+  }
+  if(!_gmsRaf) _gmsRaf=requestAnimationFrame(gmsTick);
+}
+function gmsTick(){
+  const ctx=_gmsCv.getContext('2d');
+  ctx.clearRect(0,0,innerWidth,innerHeight);
+  _gmsP=_gmsP.filter(p=>p.life>0);
+  _gmsP.forEach(p=>{
+    p.vy+=.34; p.x+=p.vx; p.y+=p.vy; p.rot+=p.vr;
+    if(p.y>innerHeight*.72) p.life-=.02;
+    ctx.save(); ctx.globalAlpha=Math.max(0,p.life);
+    ctx.translate(p.x,p.y); ctx.rotate(p.rot);
+    ctx.fillStyle=p.col; ctx.fillRect(-p.s/2,-p.s/2,p.s,p.s*.62);
+    ctx.restore();
+  });
+  if(_gmsP.length) _gmsRaf=requestAnimationFrame(gmsTick);
+  else { ctx.clearRect(0,0,innerWidth,innerHeight); _gmsRaf=null; }
+}
+function gmsScoreSound(){
+  try{
+    const AC=window.AudioContext||window.webkitAudioContext; if(!AC) return;
+    if(!window._gmsAC) window._gmsAC=new AC();
+    const ctx=window._gmsAC; if(ctx.state==='suspended') ctx.resume();
+    const t=ctx.currentTime;
+    [523.25,659.25,783.99,1046.5].forEach((f,i)=>{
+      const o=ctx.createOscillator(), g=ctx.createGain();
+      o.type='triangle'; o.frequency.setValueAtTime(f,t+i*0.07);
+      g.gain.setValueAtTime(0,t+i*0.07);
+      g.gain.linearRampToValueAtTime(0.16,t+i*0.07+0.02);
+      g.gain.exponentialRampToValueAtTime(0.001,t+i*0.07+0.5);
+      o.connect(g); g.connect(ctx.destination);
+      o.start(t+i*0.07); o.stop(t+i*0.07+0.55);
+    });
+  }catch(e){}
+}
+function gmsCelebrate(label, pts){
+  gmsConfetti(110);
+  gmsScoreSound();
+  let el=document.getElementById('gms-score-pop');
+  if(!el){
+    el=document.createElement('div');
+    el.id='gms-score-pop'; el.className='gms-score-pop';
+    document.body.appendChild(el);
+  }
+  el.innerHTML='<div class="gsp-pts">+'+(pts||1)+'</div><div class="gsp-name">'+esc(label||'')+'</div>';
+  el.classList.remove('show'); void el.offsetWidth; el.classList.add('show');
+  setTimeout(()=>el.classList.remove('show'),2400);
+}
+
+function markCorrect(){
+  if(!activeBuzzer)return;
+  const who = activeBuzzer;
+  const equipo = who==='a' ? nameA : nameB;
+  if(who==='a'){scoreA++;bump('c-sa');}else{scoreB++;bump('c-sb');}
+  saveScore();syncScoreUI();phase='reveal';activeBuzzer=null;stopTimer();syncPhaseUI();sendState();
+  gmsSendVerdict(who, true, 1);     // el celular del que respondió se entera
+  gmsCelebrate(equipo, 1);          // y la pantalla grande lo festeja
+}
+
+// Le confirma al celular si su respuesta valió. Antes su teléfono solo sabía
+// que había ganado el buzz, nunca si había acertado.
+function gmsSendVerdict(team, ok, pts){
+  if(!fbRef || !team) return;
+  try{
+    fbRef.set({
+      state:'locked', winner:null, blocked:null,
+      names:{ a:nameA, b:nameB },
+      verdict:{ team:team, name:(team==='a'?nameA:nameB), ok:!!ok, pts:pts||0, ts:Date.now() }
+    });
+  }catch(e){}
+}
 function markWrong(){
   const failed=activeBuzzer;
   stopTimer();phase='idle';activeBuzzer=null;syncPhaseUI();sendState();
+  if(failed) gmsSendVerdict(failed, false, 0);
   if(failed && _buzzBlocked && _buzzBlocked!==failed){
     // Erraron los dos equipos: se cierra el buzzer y el conductor revela o pasa.
     fbLock();
