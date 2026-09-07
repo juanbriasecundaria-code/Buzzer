@@ -85,6 +85,8 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
 .game-tiempo .game-arrow{margin-left:auto;font-size:18px;opacity:.55;line-height:1}
 .game-erudito{background:var(--red-dim);border-color:var(--red);color:var(--red)}
 .game-erudito .game-arrow{margin-left:auto;font-size:18px;opacity:.55;line-height:1}
+.game-impostor{background:var(--purple-dim);border-color:var(--purple);color:var(--purple)}
+.game-impostor .game-arrow{margin-left:auto;font-size:18px;opacity:.55;line-height:1}
 .edit-names-btn{margin-top:.9rem;background:none;border:none;color:var(--muted);font-family:inherit;font-size:12px;font-weight:600;cursor:pointer;letter-spacing:.03em;text-decoration:underline;text-underline-offset:3px;opacity:.8;padding:.4rem .8rem}
 .edit-names-btn:active{opacity:1}
 .bzn-overlay{position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:600;display:none;align-items:center;justify-content:center;padding:1.25rem}
@@ -384,10 +386,6 @@ body { animation: appEnter .32s ease-out both; }
 @media (prefers-reduced-motion: reduce) { body { animation: none } }
 .skip-splash #splash{display:none!important}
 
-  .game-btn.game-impostor{border-color:rgba(255,95,95,.3)}
-  .game-btn.game-impostor:hover{border-color:rgba(255,95,95,.6);
-    box-shadow:0 8px 22px -10px rgba(255,95,95,.45)}
-  .game-btn.game-impostor .game-btn-icon{filter:drop-shadow(0 0 10px rgba(255,95,95,.35))}
 </style>
 </head>
 <body>
@@ -465,8 +463,9 @@ body { animation: appEnter .32s ease-out both; }
       </div>
       <span class="game-arrow">›</span>
     </a>
-    <!-- El Impostor vive dentro de velada.html: entramos directo a su pestaña -->
-    <a class="game-btn game-impostor" href="velada.html#impostor">
+    <!-- El Impostor vive dentro de velada.html, que está protegida por
+         contraseña: pasamos por el mismo modal y después saltamos a su pestaña. -->
+    <a class="game-btn game-impostor" href="#" onclick="openPwModal(event, 'impostor')">
       <span class="game-btn-icon">🕵️</span>
       <div class="game-btn-info">
         <span class="game-btn-name">El Impostor</span>
@@ -1466,7 +1465,9 @@ function initBzCarousel(bg, CARDS){
 }
 
 // ── PASSWORD MODAL ───────────────────────────────────────────────
-function openPwModal(e){
+let _pwDestino = null;   // pestaña a abrir en velada.html después de la contraseña
+function openPwModal(e, destino){
+  _pwDestino = destino || null;
   if(e) e.preventDefault();
   const ov = document.getElementById('pw-overlay');
   const inp = document.getElementById('pw-input');
@@ -1484,7 +1485,7 @@ function checkPw(){
   const errEl = document.getElementById('pw-error');
   if(inp.value.trim() === '100'){
     closePwModal();
-    window.location.href = 'velada.html';
+    window.location.href = 'velada.html' + (_pwDestino ? '#' + _pwDestino : '');
   } else {
     errEl.textContent = 'Contraseña incorrecta, intentá de nuevo.';
     inp.classList.remove('error');
