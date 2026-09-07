@@ -767,17 +767,19 @@
   @keyframes patBloomIn { to { opacity: 1; } }
   .pat-splash-inner { position: relative; z-index: 2; display: flex; flex-direction: column; align-items: center; gap: 0.6rem; padding: 2rem; text-align: center; }
   .pat-splash-eyebrow {
-    font-size: 11px; font-weight: 700; letter-spacing: 0.34em; text-transform: uppercase;
-    color: var(--gold); opacity: 0; padding-left: 0.34em; animation: patRise 0.6s ease 0.2s forwards;
+    font-size: 10px; font-weight: 900; letter-spacing: 0.28em; text-transform: uppercase;
+    color: var(--muted); opacity: 0; animation: patRise 0.55s ease 0.05s forwards;
   }
-  .pat-splash .pat-title { opacity: 0; animation: patRise 0.7s cubic-bezier(.2,.7,.2,1) 0.35s forwards; }
+  .pat-splash-icon { font-size: 64px; line-height: 1; opacity: 0; animation: patRise 0.6s cubic-bezier(.2,.7,.2,1) 0.13s forwards; }
+  .pat-splash .pat-title { opacity: 0; animation: patRise 0.65s cubic-bezier(.2,.7,.2,1) 0.21s forwards; }
+  .pat-splash-sub { font-size: 13px; color: var(--muted); opacity: 0; animation: patRise 0.55s ease 0.29s forwards; }
   .pat-splash-start {
-    margin-top: 1.4rem; display: inline-flex; align-items: center; gap: 0.5rem;
+    margin-top: 1.2rem; display: inline-flex; align-items: center; gap: 0.5rem;
     font-size: 16px; font-weight: 800; letter-spacing: 0.1em; text-transform: uppercase; color: #0f0f13;
     background: linear-gradient(180deg, #d6ff6e, var(--accent)); border: none; border-radius: 99px;
     padding: 0.8rem 2rem; cursor: pointer; opacity: 0;
     box-shadow: 0 0 0 1px rgba(200,240,96,0.5), 0 8px 28px rgba(200,240,96,0.25);
-    animation: patRise 0.55s cubic-bezier(.2,.9,.3,1.2) 0.7s forwards, patGlow 2.2s ease-in-out 1.3s infinite;
+    animation: patRise 0.55s cubic-bezier(.2,.9,.3,1.2) 0.37s forwards, patGlow 2.2s ease-in-out 1.3s infinite;
     transition: transform 0.14s ease;
   }
   .pat-splash-start:active { transform: scale(0.96); }
@@ -924,6 +926,17 @@
 body { animation: appEnter .32s ease-out both; }
 @media (prefers-reduced-motion: reduce) { body { animation: none } }
 
+/* ── BARRA SUPERIOR UNIFICADA (La Velada del Año) ── */
+body { padding-top: 44px; padding-top: calc(44px + env(safe-area-inset-top)); }
+.velada-bar{position:fixed;top:0;left:0;right:0;height:44px;height:calc(44px + env(safe-area-inset-top));padding-top:env(safe-area-inset-top);background:rgba(10,10,14,.85);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);border-bottom:1px solid rgba(255,255,255,.06);z-index:9990;box-sizing:border-box}
+.velada-bar-title{position:fixed;top:0;left:0;right:0;height:44px;margin-top:env(safe-area-inset-top);display:flex;align-items:center;justify-content:center;gap:.4rem;font-size:12px;font-weight:800;letter-spacing:.09em;text-transform:uppercase;color:#f0efe8;z-index:9991;pointer-events:none;white-space:nowrap}
+.velada-bar-title .vb-icon{font-size:15px;line-height:1}
+.velada-bar-dot{position:fixed;top:0;right:max(.75rem,env(safe-area-inset-right));height:44px;margin-top:env(safe-area-inset-top);display:flex;align-items:center;z-index:9991}
+.velada-bar-dot span{width:7px;height:7px;border-radius:50%;background:rgba(240,239,232,.3);transition:background .25s,box-shadow .25s}
+.velada-bar-dot span.on{background:var(--green,#4cdb7a);box-shadow:0 0 6px rgba(76,219,122,.65)}
+.velada-bar-dot span.err{background:var(--red,#ff5f5f);box-shadow:0 0 6px rgba(255,95,95,.5)}
+@media (prefers-reduced-motion: reduce){.velada-bar-dot span{transition:none}}
+
 /* ── Quién está jugando ── */
 .now-playing{display:flex;flex-direction:column;align-items:center;gap:.15rem;
   width:100%;max-width:360px;margin:0 auto .6rem;padding:.55rem .7rem;
@@ -942,7 +955,7 @@ body { animation: appEnter .32s ease-out both; }
   font-size:10px;font-weight:800;color:var(--muted);letter-spacing:.1em;
   text-transform:uppercase;margin:0 .5rem}
 </style>
-<style>.hub-link{position:fixed;top:max(0.75rem,env(safe-area-inset-top));left:max(0.75rem,env(safe-area-inset-left));z-index:99999;font-size:11px;font-weight:700;color:rgba(240,239,232,0.7);background:rgba(10,10,14,0.6);border:1px solid rgba(255,255,255,0.1);border-radius:99px;padding:0.38rem 0.85rem;text-decoration:none;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);letter-spacing:0.04em;transition:color 0.15s,border-color 0.15s;white-space:nowrap}.hub-link:hover{color:#f0efe8;border-color:rgba(255,255,255,0.25)}</style></head>
+<style>.hub-link{position:fixed;top:0;left:max(.6rem,env(safe-area-inset-left));height:44px;margin-top:env(safe-area-inset-top);display:inline-flex;align-items:center;z-index:9992;font-size:11px;font-weight:700;color:rgba(240,239,232,0.7);background:transparent;border:none;padding:0 .3rem;text-decoration:none;letter-spacing:0.04em;transition:color 0.15s;white-space:nowrap}.hub-link:hover{color:#f0efe8}</style></head>
 <body>
 <!-- ══════════════════════════════════════════════════════════════════
      INTERRUPTOR GLOBAL DEL VAR
@@ -1019,6 +1032,7 @@ window.VarSwitch = (function () {
   }
   if (!window.VAR_SWITCH_MANUAL) {
     (async function () {
+      const _connDot = document.getElementById('velada-conn-dot');
       try {
         if (typeof firebase === 'undefined' || !firebase.database) {
           await loadScript('https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js');
@@ -1027,8 +1041,10 @@ window.VarSwitch = (function () {
         let app;
         try { app = firebase.app('varcfg'); } catch (e) { app = firebase.initializeApp(CFG, 'varcfg'); }
         attachRef(app.database().ref(RTDB_PATH));
+        if (_connDot) _connDot.classList.add('on');
       } catch (e) {
         console.warn('VarSwitch: sin sincronización remota, se usa localStorage', e);
+        if (_connDot) _connDot.classList.add('err');
       }
     })();
   }
@@ -1045,6 +1061,9 @@ window.VarSwitch = (function () {
 })();
 </script>
 
+<div class="velada-bar"></div>
+<div class="velada-bar-title"><span class="vb-icon">⏱️</span>Palabras a Tiempo</div>
+<div class="velada-bar-dot"><span id="velada-conn-dot"></span></div>
 <a class="hub-link" href="index.html?hub=1">← Volver</a>
 
 <!-- ── CUSTOM CONFIRM MODAL ── -->
@@ -1094,8 +1113,10 @@ window.VarSwitch = (function () {
 <div id="pat-splash" class="pat-splash" onclick="dismissSplash()" role="button" tabindex="0" aria-label="Entrar">
   <div class="pat-splash-bloom"></div>
   <div class="pat-splash-inner">
-    <div class="pat-splash-eyebrow">🎯 La Velada del Año</div>
+    <div class="pat-splash-eyebrow">La Velada del Año</div>
+    <div class="pat-splash-icon">⏱️</div>
     <h1 class="pat-title"><span class="pt-1">Palabras</span><span class="pt-2">a Tiempo</span></h1>
+    <div class="pat-splash-sub">Adiviná la palabra antes de que se acabe el reloj</div>
     <button class="pat-splash-start" onclick="dismissSplash()"><span style="font-size:0.8em">▶</span> Comenzar</button>
   </div>
 </div>

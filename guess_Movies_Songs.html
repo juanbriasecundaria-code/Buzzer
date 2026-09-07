@@ -60,9 +60,9 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
 .sp-bloom-b{width:55vw;height:55vw;right:-10vw;bottom:-15vw;background:radial-gradient(circle,rgba(192,96,232,.35),transparent 65%);animation-delay:.15s,1.35s}
 .sp-inner{position:relative;z-index:2;text-align:center;padding:2rem;display:flex;flex-direction:column;align-items:center;gap:.35rem}
 /* AB-style eye label */
-.sp-eye{font-size:10px;font-weight:700;letter-spacing:.32em;text-transform:uppercase;color:rgba(245,200,66,.65);margin-bottom:14px;opacity:0;animation:spRise .7s ease .25s forwards}
+.sp-eye{font-size:10px;font-weight:900;letter-spacing:.28em;text-transform:uppercase;color:var(--muted);margin-bottom:14px;opacity:0;animation:spRise .55s ease .05s forwards}
 /* AB horizontal stack */
-.sp-ab-stack{display:flex;align-items:center;gap:clamp(10px,4vw,20px);opacity:0;transform:translateY(18px);animation:spRise .8s cubic-bezier(.2,.7,.2,1) .45s forwards}
+.sp-ab-stack{display:flex;align-items:center;gap:clamp(10px,4vw,20px);opacity:0;transform:translateY(18px);animation:spRise .65s cubic-bezier(.2,.7,.2,1) .21s forwards}
 .sp-ab-left{display:flex;flex-direction:column;align-items:flex-end;gap:2px;overflow:visible}
 .sp-ab-right{display:flex;flex-direction:column;align-items:flex-start;gap:2px;overflow:visible}
 .sp-ab-icon{font-size:clamp(14px,4vw,18px);opacity:.55}
@@ -81,8 +81,8 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
 .sp-ab-amp{font-size:12px;font-weight:400;color:rgba(255,255,255,.28);line-height:1;padding:5px 0;flex-shrink:0}
 .sp-ab-line-bottom{width:1px;flex:1;background:linear-gradient(to top,rgba(255,255,255,.0),rgba(255,255,255,.22))}
 /* badge & start button */
-.sp-badge{margin-top:.9rem;font-size:12px;font-weight:700;letter-spacing:.2em;color:var(--accent);padding:.4rem 1.1rem .4rem calc(1.1rem + .2em);border:1px solid rgba(200,240,96,.35);border-radius:99px;background:rgba(200,240,96,.07);opacity:0;animation:spPop .6s cubic-bezier(.2,.9,.3,1.2) .75s forwards}
-.sp-start{margin-top:1.8rem;display:inline-flex;align-items:center;gap:.6rem;font-size:clamp(14px,4vw,17px);font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:#0a0a0e;background:linear-gradient(150deg,var(--accent),#b0e040);border:none;border-radius:99px;padding:.85rem 2.4rem;cursor:pointer;box-shadow:0 0 0 1px rgba(200,240,96,.5),0 8px 28px rgba(200,240,96,.25);opacity:0;transform:translateY(14px);animation:spRise .6s cubic-bezier(.2,.9,.3,1.2) 1s forwards,spGlow 2.2s ease-in-out 1.6s infinite;transition:transform .14s ease;-webkit-tap-highlight-color:transparent;min-height:52px;font-family:inherit}
+.sp-badge{margin-top:.9rem;font-size:12px;font-weight:700;letter-spacing:.2em;color:var(--accent);padding:.4rem 1.1rem .4rem calc(1.1rem + .2em);border:1px solid rgba(200,240,96,.35);border-radius:99px;background:rgba(200,240,96,.07);opacity:0;animation:spPop .55s cubic-bezier(.2,.9,.3,1.2) .29s forwards}
+.sp-start{margin-top:1.4rem;display:inline-flex;align-items:center;gap:.6rem;font-size:clamp(14px,4vw,17px);font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:#0a0a0e;background:linear-gradient(150deg,var(--accent),#b0e040);border:none;border-radius:99px;padding:.85rem 2.4rem;cursor:pointer;box-shadow:0 0 0 1px rgba(200,240,96,.5),0 8px 28px rgba(200,240,96,.25);opacity:0;transform:translateY(14px);animation:spRise .55s cubic-bezier(.2,.9,.3,1.2) .37s forwards,spGlow 2.2s ease-in-out 1.2s infinite;transition:transform .14s ease;-webkit-tap-highlight-color:transparent;min-height:52px;font-family:inherit}
 .sp-start:active{transform:scale(.96)}
 @keyframes spBloomIn{to{opacity:1}}
 @keyframes spBreathe{0%,100%{transform:scale(1);opacity:.9}50%{transform:scale(1.12);opacity:1}}
@@ -379,7 +379,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
 .part-lyrics-tag{font-size:clamp(11px,1.6vw,15px);font-weight:800;color:var(--accent);letter-spacing:.14em;text-transform:uppercase;display:inline-flex;align-items:center;gap:.5rem;padding:.55rem 1.2rem;border-radius:99px;background:rgba(200,240,96,.08);border:1px solid rgba(200,240,96,.25);box-shadow:0 0 26px rgba(200,240,96,.1);animation:tagPulse 2.4s ease-in-out infinite}
 @keyframes tagPulse{0%,100%{opacity:.82}50%{opacity:1}}
 .part-lyrics-yt-hidden{position:absolute;width:1px;height:1px;opacity:0;pointer-events:none;overflow:hidden;left:-9999px}
-.part-bonus-ov{position:fixed;inset:0;z-index:60;display:none;flex-direction:column;align-items:center;justify-content:center;gap:1.1rem;padding:calc(2.2rem + env(safe-area-inset-top)) max(1.4rem,env(safe-area-inset-right)) calc(2.2rem + env(safe-area-inset-bottom)) max(1.4rem,env(safe-area-inset-left));background:rgba(8,8,12,.62);-webkit-backdrop-filter:blur(22px) saturate(1.1);backdrop-filter:blur(22px) saturate(1.1)}
+.part-bonus-ov{position:fixed;inset:0;z-index:60;display:none;flex-direction:column;align-items:center;justify-content:center;gap:1.1rem;padding:calc(2.2rem + env(safe-area-inset-top)) max(1.4rem,env(safe-area-inset-right)) calc(2.2rem + env(safe-area-inset-bottom)) max(1.4rem,env(safe-area-inset-left));background:rgba(10,10,14,.85);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px)}
 .part-bonus-ov.show{display:flex;animation:pboIn .35s cubic-bezier(.22,1,.36,1)}
 @keyframes pboIn{from{opacity:0;transform:scale(.96)}to{opacity:1;transform:scale(1)}}
 .pbo-label{font-size:clamp(13px,2vw,18px);font-weight:900;letter-spacing:.14em;color:var(--accent);text-shadow:0 0 18px rgba(200,240,96,.5)}
@@ -504,8 +504,8 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
 .copy-url-btn{width:100%;padding:.45rem;border-radius:8px;border:1px solid var(--border2);background:var(--surface);color:var(--muted);font-family:inherit;font-size:11px;font-weight:700;cursor:pointer}
 .copy-url-btn:active{opacity:.7}
 .hosting-note{font-size:11px;color:var(--muted);background:var(--surface2);border-radius:8px;padding:.6rem .75rem;line-height:1.55;border:1px solid var(--border2)}
-.toast{position:fixed;bottom:calc(5rem + env(safe-area-inset-bottom));left:50%;transform:translateX(-50%);background:var(--surface2);border:1.5px solid var(--border2);border-radius:12px;padding:.6rem 1rem;font-size:13px;font-weight:700;color:var(--text);z-index:750;opacity:0;transition:opacity .2s;pointer-events:none;white-space:nowrap}
-.toast.show{opacity:1}
+.toast{position:fixed;bottom:calc(1.5rem + env(safe-area-inset-bottom));left:50%;transform:translateX(-50%) translateY(20px);background:var(--surface2);border:1.5px solid var(--border2);border-radius:99px;padding:.75rem 1.2rem;font-size:13px;font-weight:700;color:var(--text);z-index:9999;opacity:0;transition:opacity .25s,transform .25s;pointer-events:none;box-shadow:0 4px 24px rgba(0,0,0,.5);white-space:nowrap}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
 .floating-reaction{position:fixed;bottom:8vh;font-size:64px;z-index:9999;pointer-events:none;animation:floatUp 2.2s ease-out forwards}
 @keyframes floatUp{0%{transform:translateY(0) scale(.6);opacity:0}15%{opacity:1;transform:translateY(-10vh) scale(1.15)}100%{transform:translateY(-55vh) scale(1);opacity:0}}
 
@@ -542,9 +542,23 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
 @keyframes appEnter { from { opacity: 0 } to { opacity: 1 } }
 body { animation: appEnter .32s ease-out both; }
 @media (prefers-reduced-motion: reduce) { body { animation: none } }
+
+/* ── BARRA SUPERIOR UNIFICADA (La Velada del Año) ── */
+body { padding-top: 44px; padding-top: calc(44px + env(safe-area-inset-top)); }
+.velada-bar{position:fixed;top:0;left:0;right:0;height:44px;height:calc(44px + env(safe-area-inset-top));padding-top:env(safe-area-inset-top);background:rgba(10,10,14,.85);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);border-bottom:1px solid rgba(255,255,255,.06);z-index:9990;box-sizing:border-box}
+.velada-bar-title{position:fixed;top:0;left:0;right:0;height:44px;margin-top:env(safe-area-inset-top);display:flex;align-items:center;justify-content:center;gap:.4rem;font-size:12px;font-weight:800;letter-spacing:.09em;text-transform:uppercase;color:#f0efe8;z-index:9991;pointer-events:none;white-space:nowrap}
+.velada-bar-title .vb-icon{font-size:15px;line-height:1}
+.velada-bar-dot{position:fixed;top:0;right:max(.75rem,env(safe-area-inset-right));height:44px;margin-top:env(safe-area-inset-top);display:flex;align-items:center;z-index:9991}
+.velada-bar-dot span{width:7px;height:7px;border-radius:50%;background:rgba(240,239,232,.3);transition:background .25s,box-shadow .25s}
+.velada-bar-dot span.on{background:var(--green,#4cdb7a);box-shadow:0 0 6px rgba(76,219,122,.65)}
+.velada-bar-dot span.err{background:var(--red,#ff5f5f);box-shadow:0 0 6px rgba(255,95,95,.5)}
+@media (prefers-reduced-motion: reduce){.velada-bar-dot span{transition:none}}
 </style>
-<style>.hub-link{position:fixed;top:max(0.75rem,env(safe-area-inset-top));left:max(0.75rem,env(safe-area-inset-left));z-index:99999;font-size:11px;font-weight:700;color:rgba(240,239,232,0.7);background:rgba(10,10,14,0.6);border:1px solid rgba(255,255,255,0.1);border-radius:99px;padding:0.38rem 0.85rem;text-decoration:none;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);letter-spacing:0.04em;transition:color 0.15s,border-color 0.15s;white-space:nowrap}.hub-link:hover{color:#f0efe8;border-color:rgba(255,255,255,0.25)}</style></head>
+<style>.hub-link{position:fixed;top:0;left:max(.6rem,env(safe-area-inset-left));height:44px;margin-top:env(safe-area-inset-top);display:inline-flex;align-items:center;z-index:9992;font-size:11px;font-weight:700;color:rgba(240,239,232,0.7);background:transparent;border:none;padding:0 .3rem;text-decoration:none;letter-spacing:0.04em;transition:color 0.15s;white-space:nowrap}.hub-link:hover{color:#f0efe8}</style></head>
 <body>
+<div class="velada-bar"></div>
+<div class="velada-bar-title"><span class="vb-icon">🎬</span>Guess Movie · Song</div>
+<div class="velada-bar-dot"><span id="velada-conn-dot"></span></div>
 <a class="hub-link" href="index.html?hub=1">← Volver</a>
 
 <div id="splash">
@@ -552,7 +566,7 @@ body { animation: appEnter .32s ease-out both; }
   <div class="sp-bloom sp-bloom-a"></div>
   <div class="sp-bloom sp-bloom-b"></div>
   <div class="sp-inner">
-    <div class="sp-eye">🎮 La Velada del Año</div>
+    <div class="sp-eye">La Velada del Año</div>
     <div class="sp-ab-stack">
       <div class="sp-ab-left">
         <span class="sp-ab-icon sp-ab-icon-movie">🎬</span>
@@ -1028,6 +1042,8 @@ function initFirebase(){
 }
 
 function setFbStatus(state, msg){
+  const barDot = document.getElementById('velada-conn-dot');
+  if(barDot) barDot.className = state==='error' ? 'err' : state==='connecting' ? '' : 'on';
   const dot = document.getElementById('fb-dot');
   const txt = document.getElementById('fb-txt');
   if(!dot||!txt) return;

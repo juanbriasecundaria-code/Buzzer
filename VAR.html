@@ -83,13 +83,19 @@ body { background: transparent; }
   display: flex; flex-direction: column; align-items: center; gap: 0.4rem;
 }
 .splash-eyebrow {
-  font-size: 11px; font-weight: 700; letter-spacing: 0.38em; text-transform: uppercase;
-  color: var(--gold); padding-left: 0.38em;
-  opacity: 0; animation: riseIn 0.7s ease 0.25s forwards;
+  font-size: 10px; font-weight: 900; letter-spacing: 0.28em; text-transform: uppercase;
+  color: var(--muted);
+  opacity: 0; animation: riseIn 0.55s ease 0.05s forwards;
+}
+.splash-icon {
+  font-size: clamp(2.6rem, 10vw, 4rem);
+  margin: 0.4rem 0;
+  opacity: 0; transform: translateY(12px) scale(0.8);
+  animation: popIn 0.5s cubic-bezier(.2,.9,.3,1.3) 0.13s forwards;
 }
 .splash-title {
   display: flex; flex-direction: column; align-items: center;
-  line-height: 0.9; margin: 0.5rem 0 0.3rem;
+  line-height: 0.9; margin: 0.3rem 0;
   font-weight: 900; letter-spacing: -0.02em; text-transform: uppercase;
 }
 .st-1 {
@@ -100,30 +106,24 @@ body { background: transparent; }
   color: transparent; -webkit-text-fill-color: transparent;
   text-shadow: 0 0 60px rgba(255,95,95,0.2);
   opacity: 0; transform: translateY(18px);
-  animation: riseIn 0.8s cubic-bezier(.2,.7,.2,1) 0.4s forwards, shimmer 5s ease-in-out 1.4s infinite;
+  animation: riseIn 0.65s cubic-bezier(.2,.7,.2,1) 0.21s forwards, shimmer 5s ease-in-out 1.2s infinite;
 }
 .splash-badge {
   margin-top: 0.7rem; font-size: 12px; font-weight: 700;
   letter-spacing: 0.24em; color: var(--red);
   padding: 0.4rem 1rem 0.4rem calc(1rem + 0.24em);
   border: 1px solid rgba(255,95,95,0.4); border-radius: 99px; background: rgba(255,95,95,0.08);
-  opacity: 0; animation: popIn 0.6s cubic-bezier(.2,.9,.3,1.2) 0.75s forwards;
-}
-.splash-icon {
-  font-size: clamp(2.6rem, 10vw, 4rem);
-  margin-top: 1rem;
-  opacity: 0; transform: translateY(12px) scale(0.8);
-  animation: popIn 0.5s cubic-bezier(.2,.9,.3,1.3) 0.9s forwards;
+  opacity: 0; animation: popIn 0.55s cubic-bezier(.2,.9,.3,1.2) 0.29s forwards;
 }
 .splash-start {
-  margin-top: 2rem; display: inline-flex; align-items: center; gap: 0.6rem;
+  margin-top: 1.4rem; display: inline-flex; align-items: center; gap: 0.6rem;
   font-size: clamp(15px, 4vw, 18px); font-weight: 800; letter-spacing: 0.12em;
   text-transform: uppercase; color: #0f0f13;
   background: linear-gradient(180deg, #ff8888, var(--red));
   border: none; border-radius: 99px; padding: 0.85rem 2.2rem; cursor: pointer;
   box-shadow: 0 0 0 1px rgba(255,95,95,0.5), 0 8px 28px rgba(255,95,95,0.3);
   opacity: 0; transform: translateY(14px);
-  animation: riseIn 0.6s cubic-bezier(.2,.9,.3,1.2) 1.1s forwards, startGlow 2.2s ease-in-out 1.7s infinite;
+  animation: riseIn 0.55s cubic-bezier(.2,.9,.3,1.2) 0.37s forwards, startGlow 2.2s ease-in-out 1.2s infinite;
   transition: transform 0.14s ease;
   touch-action: manipulation;
   -webkit-tap-highlight-color: transparent;
@@ -132,7 +132,7 @@ body { background: transparent; }
 .splash-start:active { transform: scale(0.96); }
 .splash-keys {
   margin-top: 0.8rem; font-size: 11px; color: var(--muted); letter-spacing: 0.1em;
-  opacity: 0; animation: riseIn 0.6s ease 1.3s forwards;
+  opacity: 0; animation: riseIn 0.55s ease 0.45s forwards;
 }
 
 @keyframes bloomIn { to { opacity: 1; } }
@@ -772,8 +772,19 @@ body.var-reviewing .var-static-bg::after {
 @keyframes appEnter { from { opacity: 0 } to { opacity: 1 } }
 body { animation: appEnter .32s ease-out both; }
 @media (prefers-reduced-motion: reduce) { body { animation: none } }
+
+/* ── BARRA SUPERIOR UNIFICADA (La Velada del Año) ── */
+body { padding-top: 44px; padding-top: calc(44px + env(safe-area-inset-top)); }
+.velada-bar{position:fixed;top:0;left:0;right:0;height:44px;height:calc(44px + env(safe-area-inset-top));padding-top:env(safe-area-inset-top);background:rgba(10,10,14,.85);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);border-bottom:1px solid rgba(255,255,255,.06);z-index:9990;box-sizing:border-box}
+.velada-bar-title{position:fixed;top:0;left:0;right:0;height:44px;margin-top:env(safe-area-inset-top);display:flex;align-items:center;justify-content:center;gap:.4rem;font-size:12px;font-weight:800;letter-spacing:.09em;text-transform:uppercase;color:#f0efe8;z-index:9991;pointer-events:none;white-space:nowrap}
+.velada-bar-title .vb-icon{font-size:15px;line-height:1}
+.velada-bar-dot{position:fixed;top:0;right:max(.75rem,env(safe-area-inset-right));height:44px;margin-top:env(safe-area-inset-top);display:flex;align-items:center;z-index:9991}
+.velada-bar-dot span{width:7px;height:7px;border-radius:50%;background:rgba(240,239,232,.3);transition:background .25s,box-shadow .25s}
+.velada-bar-dot span.on{background:var(--green,#4cdb7a);box-shadow:0 0 6px rgba(76,219,122,.65)}
+.velada-bar-dot span.err{background:var(--red,#ff5f5f);box-shadow:0 0 6px rgba(255,95,95,.5)}
+@media (prefers-reduced-motion: reduce){.velada-bar-dot span{transition:none}}
 </style>
-<style>.hub-link{position:fixed;top:max(0.75rem,env(safe-area-inset-top));left:max(0.75rem,env(safe-area-inset-left));z-index:99999;font-size:11px;font-weight:700;color:rgba(240,239,232,0.7);background:rgba(10,10,14,0.6);border:1px solid rgba(255,255,255,0.1);border-radius:99px;padding:0.38rem 0.85rem;text-decoration:none;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);letter-spacing:0.04em;transition:color 0.15s,border-color 0.15s;white-space:nowrap}.hub-link:hover{color:#f0efe8;border-color:rgba(255,255,255,0.25)}</style></head>
+<style>.hub-link{position:fixed;top:0;left:max(.6rem,env(safe-area-inset-left));height:44px;margin-top:env(safe-area-inset-top);display:inline-flex;align-items:center;z-index:9992;font-size:11px;font-weight:700;color:rgba(240,239,232,0.7);background:transparent;border:none;padding:0 .3rem;text-decoration:none;letter-spacing:0.04em;transition:color 0.15s;white-space:nowrap}.hub-link:hover{color:#f0efe8}</style></head>
 <body>
 <!-- ══════════════════════════════════════════════════════════════════
      INTERRUPTOR GLOBAL DEL VAR
@@ -850,6 +861,7 @@ window.VarSwitch = (function () {
   }
   if (!window.VAR_SWITCH_MANUAL) {
     (async function () {
+      const _connDot = document.getElementById('velada-conn-dot');
       try {
         if (typeof firebase === 'undefined' || !firebase.database) {
           await loadScript('https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js');
@@ -858,8 +870,10 @@ window.VarSwitch = (function () {
         let app;
         try { app = firebase.app('varcfg'); } catch (e) { app = firebase.initializeApp(CFG, 'varcfg'); }
         attachRef(app.database().ref(RTDB_PATH));
+        if (_connDot) _connDot.classList.add('on');
       } catch (e) {
         console.warn('VarSwitch: sin sincronización remota, se usa localStorage', e);
+        if (_connDot) _connDot.classList.add('err');
       }
     })();
   }
@@ -876,6 +890,9 @@ window.VarSwitch = (function () {
 })();
 </script>
 
+<div class="velada-bar"></div>
+<div class="velada-bar-title"><span class="vb-icon">📺</span>VAR</div>
+<div class="velada-bar-dot"><span id="velada-conn-dot"></span></div>
 <a class="hub-link" href="index.html?hub=1">← Volver</a>
 
 <!-- ── CUSTOM CONFIRM MODAL ── -->
@@ -926,12 +943,12 @@ window.VarSwitch = (function () {
   <div class="splash-bloom bloom-a"></div>
   <div class="splash-bloom bloom-b"></div>
   <div class="splash-inner">
-    <div class="splash-eyebrow">🎯 La Velada del Año</div>
+    <div class="splash-eyebrow">La Velada del Año</div>
+    <div class="splash-icon">📺</div>
     <div class="splash-title">
       <span class="st-1">VAR</span>
     </div>
     <div class="splash-badge">Video Assistant Referee</div>
-    <div class="splash-icon">📺</div>
     <button class="splash-start" onclick="event.stopPropagation(); dismissSplash()"><span>▶</span> Comenzar</button>
     <div class="splash-keys">Tocá en cualquier lugar para entrar</div>
   </div>

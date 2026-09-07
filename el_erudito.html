@@ -145,11 +145,12 @@ function _onFbScriptError(){ window._fbScriptsDone = true; console.warn('[Fireba
   }
 
   .er-splash-eyebrow {
-    font-size: 11px; font-weight: 700; letter-spacing: 0.34em; text-transform: uppercase;
-    color: rgba(245,200,66,0.7); opacity: 0; padding-left: 0.34em; margin-bottom: 0.7rem;
-    animation: erRise 0.6s ease 0.3s forwards;
+    font-size: 10px; font-weight: 900; letter-spacing: 0.28em; text-transform: uppercase;
+    color: var(--muted); opacity: 0; margin-bottom: 0.9rem;
+    animation: erRise 0.55s ease 0.05s forwards;
   }
-  .er-splash .er-title { opacity: 0; transform: translateY(16px); animation: erRise 0.8s cubic-bezier(.2,.7,.2,1) 0.45s forwards; }
+  .er-splash .er-title { opacity: 0; transform: translateY(16px); animation: erRise 0.65s cubic-bezier(.2,.7,.2,1) 0.21s forwards; }
+  .er-splash-sub { margin-top: 0.5rem; font-size: 13px; color: var(--muted); opacity: 0; transform: translateY(14px); animation: erRise 0.55s ease 0.29s forwards; }
   .er-splash-badge {
     margin-top: 1rem; font-size: 11px; font-weight: 700; letter-spacing: 0.16em; text-transform: uppercase;
     color: var(--red); padding: 0.42rem 1.1rem; border: 1px solid rgba(255,95,95,0.4);
@@ -157,12 +158,12 @@ function _onFbScriptError(){ window._fbScriptsDone = true; console.warn('[Fireba
     opacity: 0; animation: erPop 0.6s cubic-bezier(.2,.9,.3,1.2) 0.85s forwards;
   }
   .er-splash-start {
-    margin-top: 1.7rem; display: inline-flex; align-items: center; gap: 0.55rem;
+    margin-top: 1.4rem; display: inline-flex; align-items: center; gap: 0.55rem;
     font-size: clamp(14px,4vw,16px); font-weight: 800; letter-spacing: 0.1em; text-transform: uppercase; color: #0f0f13;
     background: linear-gradient(150deg, #ff8a6a, var(--red)); border: none; border-radius: 99px;
     padding: 0.85rem 2.3rem; cursor: pointer; opacity: 0; transform: translateY(14px); min-height: 52px; font-family: inherit;
     box-shadow: 0 0 0 1px rgba(255,95,95,0.5), 0 8px 28px rgba(255,95,95,0.25);
-    animation: erRise 0.6s cubic-bezier(.2,.9,.3,1.2) 1s forwards, erGlow 2.2s ease-in-out 1.6s infinite;
+    animation: erRise 0.55s cubic-bezier(.2,.9,.3,1.2) 0.37s forwards, erGlow 2.2s ease-in-out 1.2s infinite;
     transition: transform 0.14s ease;
   }
   .er-splash-start:active { transform: scale(0.96); }
@@ -520,6 +521,17 @@ function _onFbScriptError(){ window._fbScriptsDone = true; console.warn('[Fireba
 body { animation: appEnter .32s ease-out both; }
 @media (prefers-reduced-motion: reduce) { body { animation: none } }
 
+/* ── BARRA SUPERIOR UNIFICADA (La Velada del Año) ── */
+body { padding-top: 44px; padding-top: calc(44px + env(safe-area-inset-top)); }
+.velada-bar{position:fixed;top:0;left:0;right:0;height:44px;height:calc(44px + env(safe-area-inset-top));padding-top:env(safe-area-inset-top);background:rgba(10,10,14,.85);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);border-bottom:1px solid rgba(255,255,255,.06);z-index:9990;box-sizing:border-box}
+.velada-bar-title{position:fixed;top:0;left:0;right:0;height:44px;margin-top:env(safe-area-inset-top);display:flex;align-items:center;justify-content:center;gap:.4rem;font-size:12px;font-weight:800;letter-spacing:.09em;text-transform:uppercase;color:#f0efe8;z-index:9991;pointer-events:none;white-space:nowrap}
+.velada-bar-title .vb-icon{font-size:15px;line-height:1}
+.velada-bar-dot{position:fixed;top:0;right:max(.75rem,env(safe-area-inset-right));height:44px;margin-top:env(safe-area-inset-top);display:flex;align-items:center;z-index:9991}
+.velada-bar-dot span{width:7px;height:7px;border-radius:50%;background:rgba(240,239,232,.3);transition:background .25s,box-shadow .25s}
+.velada-bar-dot span.on{background:var(--green,#4cdb7a);box-shadow:0 0 6px rgba(76,219,122,.65)}
+.velada-bar-dot span.err{background:var(--red,#ff5f5f);box-shadow:0 0 6px rgba(255,95,95,.5)}
+@media (prefers-reduced-motion: reduce){.velada-bar-dot span{transition:none}}
+
 /* ── Quién está jugando ── */
 .now-playing{display:flex;flex-direction:column;align-items:center;gap:.15rem;
   width:100%;max-width:360px;margin:0 auto .6rem;padding:.55rem .7rem;
@@ -538,10 +550,13 @@ body { animation: appEnter .32s ease-out both; }
   font-size:10px;font-weight:800;color:var(--muted);letter-spacing:.1em;
   text-transform:uppercase;margin:0 .5rem}
 </style>
-<style>.hub-link{position:fixed;top:max(0.75rem,env(safe-area-inset-top));left:max(0.75rem,env(safe-area-inset-left));z-index:99999;font-size:11px;font-weight:700;color:rgba(240,239,232,0.7);background:rgba(10,10,14,0.6);border:1px solid rgba(255,255,255,0.1);border-radius:99px;padding:0.38rem 0.85rem;text-decoration:none;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);letter-spacing:0.04em;transition:color 0.15s,border-color 0.15s;white-space:nowrap}.hub-link:hover{color:#f0efe8;border-color:rgba(255,255,255,0.25)}</style>
+<style>.hub-link{position:fixed;top:0;left:max(.6rem,env(safe-area-inset-left));height:44px;margin-top:env(safe-area-inset-top);display:inline-flex;align-items:center;z-index:9992;font-size:11px;font-weight:700;color:rgba(240,239,232,0.7);background:transparent;border:none;padding:0 .3rem;text-decoration:none;letter-spacing:0.04em;transition:color 0.15s;white-space:nowrap}.hub-link:hover{color:#f0efe8}</style>
 </head>
 <body>
 
+<div class="velada-bar"></div>
+<div class="velada-bar-title"><span class="vb-icon">🧠</span>El Erudito</div>
+<div class="velada-bar-dot"><span id="velada-conn-dot"></span></div>
 <a class="hub-link" href="index.html?hub=1">← Volver</a>
 
 <!-- ── FONDO ANIMADO ── -->
@@ -554,6 +569,7 @@ body { animation: appEnter .32s ease-out both; }
   <div class="er-bloom er-bloom-a"></div>
   <div class="er-bloom er-bloom-b"></div>
   <div class="er-splash-inner">
+    <div class="er-splash-eyebrow">La Velada del Año</div>
     <div class="er-target" aria-hidden="true">
       <div class="er-ring er-ring-1"></div>
       <div class="er-ring er-ring-2"></div>
@@ -563,8 +579,8 @@ body { animation: appEnter .32s ease-out both; }
       <div class="er-dart er-dart-a"></div>
       <div class="er-dart er-dart-b"></div>
     </div>
-    <div class="er-splash-eyebrow">🧠 Juego de aproximación</div>
     <h1 class="er-title"><span class="et-1">El</span><span class="et-2">Erudito</span></h1>
+    <div class="er-splash-sub">Juego de aproximación</div>
     <button class="er-splash-start" onclick="dismissSplash()">Comenzar <span style="font-size:1.05em">→</span></button>
   </div>
 </div>
@@ -848,6 +864,8 @@ function setFbStatus(state, msg){
   const txt = document.getElementById('fb-txt');
   if(dot) dot.className = 'fb-dot ' + (state==='ok'?'ok':state==='connecting'?'connecting':state==='error'?'error':'');
   if(txt) txt.textContent = msg;
+  const barDot = document.getElementById('velada-conn-dot');
+  if(barDot) barDot.className = state==='ok' ? 'on' : state==='error' ? 'err' : '';
 }
 
 // Crea el estado base si no existe (transacción para evitar pisar)

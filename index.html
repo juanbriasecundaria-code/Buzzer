@@ -211,12 +211,12 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
 
 .splash-inner{position:relative;z-index:3;text-align:center;padding:2rem;
   display:flex;flex-direction:column;align-items:center;gap:.4rem}
-.splash-eyebrow{font-size:clamp(11px,2.6vw,14px);letter-spacing:.42em;
-  text-transform:uppercase;color:var(--muted);font-weight:700;
-  padding-left:.42em;opacity:0;animation:bz-riseIn .7s ease .25s forwards}
+.splash-eyebrow{font-size:10px;letter-spacing:.28em;
+  text-transform:uppercase;color:var(--muted);font-weight:900;
+  opacity:0;animation:bz-riseIn .55s ease .05s forwards}
 .splash-icon-big{font-size:clamp(3.5rem,14vw,6rem);line-height:1;
   opacity:0;transform:scale(.6) translateY(12px);
-  animation:bz-popIn .8s cubic-bezier(.2,.9,.3,1.3) .3s forwards,bz-bob 3.4s ease-in-out 1.2s infinite;
+  animation:bz-popIn .6s cubic-bezier(.2,.9,.3,1.3) .13s forwards,bz-bob 3.4s ease-in-out 1.2s infinite;
   filter:drop-shadow(0 0 40px rgba(200,240,96,.35))}
 .splash-title-bz{font-size:clamp(2rem,10vw,5rem);font-weight:900;letter-spacing:-.03em;
   line-height:1;margin:.3rem 0 0;
@@ -225,25 +225,25 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
   -webkit-background-clip:text;background-clip:text;
   color:transparent;-webkit-text-fill-color:transparent;
   opacity:0;transform:translateY(16px);
-  animation:bz-riseIn .8s cubic-bezier(.2,.7,.2,1) .45s forwards,bz-shimmer 5s ease-in-out 1.4s infinite}
+  animation:bz-riseIn .65s cubic-bezier(.2,.7,.2,1) .21s forwards,bz-shimmer 5s ease-in-out 1.2s infinite}
 .splash-sub-bz{font-size:clamp(12px,3vw,15px);color:var(--muted);font-weight:600;
-  letter-spacing:.04em;opacity:0;animation:bz-riseIn .6s ease .65s forwards}
+  letter-spacing:.04em;opacity:0;animation:bz-riseIn .55s ease .29s forwards}
 .splash-games-row{display:flex;gap:clamp(.5rem,3vw,1rem);margin-top:1.3rem;
   font-size:clamp(1.5rem,6vw,2.2rem)}
 .splash-games-row span{display:inline-block;opacity:0;transform:translateY(14px) scale(.6);
   animation:bz-castIn .5s cubic-bezier(.2,.9,.3,1.3) forwards,bz-bob 3.2s ease-in-out infinite}
-.splash-games-row span:nth-child(1){animation-delay:.9s,1.5s}
-.splash-games-row span:nth-child(2){animation-delay:.98s,1.7s}
-.splash-games-row span:nth-child(3){animation-delay:1.06s,1.9s}
-.splash-games-row span:nth-child(4){animation-delay:1.14s,2.1s}
-.splash-start-bz{margin-top:1.8rem;display:inline-flex;align-items:center;gap:.6rem;
+.splash-games-row span:nth-child(1){animation-delay:.37s,.97s}
+.splash-games-row span:nth-child(2){animation-delay:.44s,1.14s}
+.splash-games-row span:nth-child(3){animation-delay:.51s,1.31s}
+.splash-games-row span:nth-child(4){animation-delay:.58s,1.48s}
+.splash-start-bz{margin-top:1.4rem;display:inline-flex;align-items:center;gap:.6rem;
   font-size:clamp(15px,4vw,18px);font-weight:800;letter-spacing:.12em;
   text-transform:uppercase;color:#0f0f13;
   background:linear-gradient(180deg,#d6ff6e,var(--accent));
   border:none;border-radius:99px;padding:.85rem 2.2rem;cursor:pointer;
   box-shadow:0 0 0 1px rgba(200,240,96,.5),0 8px 30px rgba(200,240,96,.25);
   opacity:0;transform:translateY(14px);font-family:inherit;
-  animation:bz-riseIn .6s cubic-bezier(.2,.9,.3,1.2) 1.1s forwards,bz-startGlow 2.2s ease-in-out 1.7s infinite;
+  animation:bz-riseIn .55s cubic-bezier(.2,.9,.3,1.2) .66s forwards,bz-startGlow 2.2s ease-in-out 1.5s infinite;
   transition:transform .15s ease,box-shadow .2s ease;-webkit-tap-highlight-color:transparent}
 .splash-start-bz:hover{transform:translateY(0) scale(1.05);box-shadow:0 0 0 1px rgba(200,240,96,.75),0 10px 42px rgba(200,240,96,.45)}
 .splash-start-bz:active{transform:scale(.97)}
@@ -263,7 +263,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
   .splash-games-row span,.splash-start-bz{opacity:1!important;transform:none!important}}
 
 /* ── PASSWORD MODAL ── */
-.pw-overlay{position:fixed;inset:0;z-index:100;display:none;align-items:center;justify-content:center;padding:1.5rem;background:rgba(10,10,14,.85);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px)}
+.pw-overlay{position:fixed;inset:0;z-index:100;display:none;align-items:center;justify-content:center;padding:1.5rem;background:rgba(10,10,14,.85);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px)}
 .pw-overlay.show{display:flex;animation:resultIn .3s cubic-bezier(.22,1,.36,1)}
 .pw-modal{background:var(--surface);border:1.5px solid var(--border2);border-radius:18px;padding:2rem 1.75rem;width:100%;max-width:300px;display:flex;flex-direction:column;align-items:center;gap:1.1rem;text-align:center}
 .pw-modal-icon{font-size:2.4rem;line-height:1}
@@ -394,7 +394,7 @@ body { animation: appEnter .32s ease-out both; }
   <div class="splash-bloom bloom-a"></div>
   <div class="splash-bloom bloom-b"></div>
   <div class="splash-inner">
-    <div class="splash-eyebrow">🎮 La Velada del Año</div>
+    <div class="splash-eyebrow">La Velada del Año</div>
     <div class="splash-icon-big">🕹️</div>
     <div class="splash-title-bz">HUB</div>
     <div class="splash-sub-bz">Todos los juegos de la noche, en un solo lugar</div>

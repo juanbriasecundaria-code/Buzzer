@@ -66,8 +66,19 @@ html{background:var(--bg)}
 .qldrain-word.vis{opacity:1}
 
 /* ── HUB LINK ── */
-.hub-link{position:fixed;top:max(0.75rem,env(safe-area-inset-top));left:max(0.75rem,env(safe-area-inset-left));z-index:99999;font-size:11px;font-weight:700;color:rgba(240,239,232,.7);background:rgba(10,10,14,.6);border:1px solid rgba(255,255,255,.1);border-radius:99px;padding:.38rem .85rem;text-decoration:none;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);letter-spacing:.04em;transition:color .15s,border-color .15s;white-space:nowrap}
-.hub-link:hover{color:#f0efe8;border-color:rgba(255,255,255,.25)}
+.hub-link{position:fixed;top:0;left:max(.6rem,env(safe-area-inset-left));height:44px;margin-top:env(safe-area-inset-top);display:inline-flex;align-items:center;z-index:9992;font-size:11px;font-weight:700;color:rgba(240,239,232,.7);background:transparent;border:none;padding:0 .3rem;text-decoration:none;letter-spacing:.04em;transition:color .15s;white-space:nowrap}
+.hub-link:hover{color:#f0efe8}
+
+/* ── BARRA SUPERIOR UNIFICADA (La Velada del Año) ── */
+body{padding-top:44px;padding-top:calc(44px + env(safe-area-inset-top))}
+.velada-bar{position:fixed;top:0;left:0;right:0;height:44px;height:calc(44px + env(safe-area-inset-top));padding-top:env(safe-area-inset-top);background:rgba(10,10,14,.85);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);border-bottom:1px solid rgba(255,255,255,.06);z-index:9990;box-sizing:border-box}
+.velada-bar-title{position:fixed;top:0;left:0;right:0;height:44px;margin-top:env(safe-area-inset-top);display:flex;align-items:center;justify-content:center;gap:.4rem;font-size:12px;font-weight:800;letter-spacing:.09em;text-transform:uppercase;color:#f0efe8;z-index:9991;pointer-events:none;white-space:nowrap}
+.velada-bar-title .vb-icon{font-size:15px;line-height:1}
+.velada-bar-dot{position:fixed;top:0;right:max(.75rem,env(safe-area-inset-right));height:44px;margin-top:env(safe-area-inset-top);display:flex;align-items:center;z-index:9991}
+.velada-bar-dot span{width:7px;height:7px;border-radius:50%;background:rgba(240,239,232,.3);transition:background .25s,box-shadow .25s}
+.velada-bar-dot span.on{background:var(--green,#4cdb7a);box-shadow:0 0 6px rgba(76,219,122,.65)}
+.velada-bar-dot span.err{background:var(--red,#ff5f5f);box-shadow:0 0 6px rgba(255,95,95,.5)}
+@media (prefers-reduced-motion: reduce){.velada-bar-dot span{transition:none}}
 
 /* ── SPLASH ── */
 #splash{position:fixed;inset:0;z-index:900;display:flex;align-items:center;justify-content:center;
@@ -97,24 +108,26 @@ html{background:var(--bg)}
   background:radial-gradient(ellipse 62% 58% at 50% 46%,rgba(10,10,14,.88) 0%,rgba(10,10,14,.6) 45%,transparent 78%),
     linear-gradient(to bottom,rgba(10,10,14,.55) 0%,transparent 22%,transparent 78%,rgba(10,10,14,.6) 100%)}
 .sp-inner{position:relative;z-index:4;text-align:center;padding:2rem;display:flex;flex-direction:column;align-items:center;gap:.4rem}
-.sp-eye{font-size:10px;font-weight:700;letter-spacing:.32em;text-transform:uppercase;color:rgba(192,96,232,.7);margin-bottom:14px;opacity:0;animation:spRise .7s ease .25s forwards}
+.sp-eye{font-size:10px;font-weight:900;letter-spacing:.28em;text-transform:uppercase;color:var(--muted2);margin-bottom:14px;opacity:0;animation:spRise .55s ease .05s forwards}
 /* ── EMBLEMA: dos globos de diálogo superpuestos + signo de interrogación ── */
 .sp-emblem{position:relative;width:clamp(92px,24vw,124px);height:clamp(78px,20vw,106px);margin-bottom:.35rem;
-  opacity:0;animation:spRise .8s ease .35s forwards;display:flex;align-items:center;justify-content:center}
+  opacity:0;animation:spRise .6s cubic-bezier(.2,.7,.2,1) .13s forwards;display:flex;align-items:center;justify-content:center}
 .sp-emblem-svg{position:relative;width:100%;height:100%;filter:drop-shadow(0 6px 20px rgba(192,96,232,.45))}
 .sp-title{font-size:clamp(2.2rem,10vw,4.2rem);font-weight:900;letter-spacing:-.03em;line-height:1;
   background:linear-gradient(120deg,var(--purple) 0%,#e8a0ff 50%,var(--gold) 100%);
   -webkit-background-clip:text;background-clip:text;color:transparent;-webkit-text-fill-color:transparent;
-  opacity:0;transform:translateY(18px);animation:spRise .8s cubic-bezier(.2,.7,.2,1) .5s forwards}
-.sp-sub{font-size:clamp(11px,2.4vw,13px);color:rgba(240,239,232,.55);font-weight:600;margin-top:.5rem;letter-spacing:.02em;opacity:0;animation:spRise .8s ease .8s forwards}
-.sp-tap{margin-top:2rem;font-size:11px;font-weight:700;letter-spacing:.28em;text-transform:uppercase;color:rgba(240,239,232,.4);opacity:0;animation:spRise .8s ease 1.2s forwards,spPulse 2s ease-in-out 2s infinite}
+  opacity:0;transform:translateY(18px);animation:spRise .65s cubic-bezier(.2,.7,.2,1) .21s forwards}
+.sp-sub{font-size:clamp(11px,2.4vw,13px);color:rgba(240,239,232,.55);font-weight:600;margin-top:.5rem;letter-spacing:.02em;opacity:0;animation:spRise .55s ease .29s forwards}
+.sp-cta{margin-top:1.4rem;display:inline-flex;align-items:center;gap:.5rem;font-size:16px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:#0f0f13;background:linear-gradient(150deg,#e8a0ff,var(--purple));border:none;border-radius:99px;padding:.8rem 2rem;cursor:pointer;opacity:0;box-shadow:0 0 0 1px rgba(192,96,232,.5),0 8px 28px rgba(192,96,232,.25);animation:spRise .55s cubic-bezier(.2,.9,.3,1.2) .37s forwards,spGlowQ 2.2s ease-in-out 1.2s infinite;transition:transform .14s ease}
+.sp-cta:active{transform:scale(.96)}
 @keyframes spTileIn{to{opacity:var(--op,.5)}}
 @keyframes spBloomIn{to{opacity:1}}
 @keyframes spBreathe{0%,100%{transform:scale(1)}50%{transform:scale(1.06)}}
 @keyframes spRise{to{opacity:1;transform:none}}
-@keyframes spPulse{0%,100%{opacity:.4}50%{opacity:.8}}
+@keyframes spGlowQ{0%,100%{box-shadow:0 0 0 1px rgba(192,96,232,.5),0 8px 28px rgba(192,96,232,.25)}50%{box-shadow:0 0 0 1px rgba(192,96,232,.85),0 8px 44px rgba(192,96,232,.55)}}
 @keyframes spScatterIn{to{opacity:var(--op,.16)}}
 @keyframes spFloat{0%,100%{transform:translateY(0) rotate(var(--rot,0deg))}50%{transform:translateY(-14px) rotate(var(--rot,0deg))}}
+@media (prefers-reduced-motion: reduce){#splash,#splash *{animation:none!important;opacity:1!important;transform:none!important}}
 
 /* ── MODE GATE ── */
 #gate{position:fixed;inset:0;z-index:800;display:none;flex-direction:column;align-items:center;justify-content:center;padding:2rem 1.5rem;gap:2rem;background:var(--bg)}
@@ -295,7 +308,7 @@ html{background:var(--bg)}
 @keyframes bbPulse{0%,100%{box-shadow:0 0 12px rgba(245,200,66,.25)}50%{box-shadow:0 0 24px rgba(245,200,66,.5)}}
 
 /* ── EDITOR ── */
-.overlay{position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:700;display:none;align-items:center;justify-content:center;padding:1rem;backdrop-filter:blur(3px)}
+.overlay{position:fixed;inset:0;background:rgba(10,10,14,.85);z-index:700;display:none;align-items:center;justify-content:center;padding:1rem;backdrop-filter:blur(10px)}
 .overlay.open{display:flex}
 .ed-panel{background:var(--surface);border:1px solid var(--border2);border-radius:18px;width:100%;max-width:640px;max-height:92vh;display:flex;flex-direction:column;overflow:hidden}
 .ed-head{padding:1rem 1.25rem;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:.75rem;flex-shrink:0}
@@ -412,7 +425,7 @@ html{background:var(--bg)}
 .opt-correct-tag{font-size:10px;font-weight:800;color:var(--green);letter-spacing:.08em;text-transform:uppercase;margin-bottom:.35rem}
 
 /* ── AUDIO UNLOCK OVERLAY (participante) ── */
-.audio-unlock{position:fixed;inset:0;z-index:9500;display:none;flex-direction:column;align-items:center;justify-content:center;gap:.75rem;background:rgba(10,10,14,.92);backdrop-filter:blur(6px);cursor:pointer;text-align:center;padding:2rem}
+.audio-unlock{position:fixed;inset:0;z-index:9500;display:none;flex-direction:column;align-items:center;justify-content:center;gap:.75rem;background:rgba(10,10,14,.85);backdrop-filter:blur(10px);cursor:pointer;text-align:center;padding:2rem}
 .au-icon{font-size:3.5rem;animation:auPulse2 1.4s ease-in-out infinite}
 .au-text{font-size:16px;font-weight:800;color:var(--text)}
 .au-sub{font-size:12px;color:var(--muted2);font-weight:600}
@@ -428,7 +441,7 @@ html{background:var(--bg)}
 .rcv-text{font-size:14px;font-weight:800;letter-spacing:.05em;text-transform:uppercase}
 
 /* ── FB STATUS ── */
-.fb-status{position:fixed;top:max(.6rem,env(safe-area-inset-top));right:.6rem;z-index:50;display:flex;align-items:center;gap:.35rem;padding:.3rem .6rem;background:rgba(20,20,28,.7);border:1px solid var(--border2);border-radius:99px;backdrop-filter:blur(6px);font-size:10px;font-weight:700;color:var(--muted2);letter-spacing:.03em}
+.fb-status{position:fixed;top:calc(44px + env(safe-area-inset-top) + .5rem);right:.6rem;z-index:50;display:flex;align-items:center;gap:.35rem;padding:.3rem .6rem;background:rgba(20,20,28,.7);border:1px solid var(--border2);border-radius:99px;backdrop-filter:blur(6px);font-size:10px;font-weight:700;color:var(--muted2);letter-spacing:.03em}
 .fb-dot{width:7px;height:7px;border-radius:50%;background:var(--muted)}
 .fb-dot.ok{background:var(--green);box-shadow:0 0 6px var(--green)}
 .fb-dot.err{background:var(--red)}
@@ -499,6 +512,9 @@ body { animation: appEnter .32s ease-out both; }
 <!-- ── FONDO ANIMADO (persiste en splash y juego) ── -->
 <div class="qld-word-rain" id="qld-word-rain" style="position:fixed;z-index:0"></div>
 
+<div class="velada-bar"></div>
+<div class="velada-bar-title"><span class="vb-icon">🗣️</span>¿Quién lo dijo?</div>
+<div class="velada-bar-dot"><span id="velada-conn-dot"></span></div>
 <a class="hub-link" href="index.html?hub=1">← Volver</a>
 
 <!-- SPLASH -->
@@ -509,7 +525,7 @@ body { animation: appEnter .32s ease-out both; }
   <div class="sp-bloom sp-bloom-b"></div>
   <div class="sp-vignette"></div>
   <div class="sp-inner">
-    <div class="sp-eye">🎮 La Velada del Año</div>
+    <div class="sp-eye">La Velada del Año</div>
     <div class="sp-emblem">
       <svg class="sp-emblem-svg" viewBox="0 0 140 118" aria-hidden="true">
         <defs>
@@ -533,7 +549,7 @@ body { animation: appEnter .32s ease-out both; }
     </div>
     <div class="sp-title">¿Quién lo dijo?</div>
     <div class="sp-sub">Frases, memes, escenas y videos — adiviná el remate</div>
-    <div class="sp-tap">▸ Tocá para empezar</div>
+    <button class="sp-cta" onclick="event.stopPropagation(); dismissSplash()"><span style="font-size:0.8em">▶</span> Comenzar</button>
   </div>
 </div>
 
@@ -989,6 +1005,8 @@ function setFbStatus(cls, msg){
   const txts = [document.getElementById('fb-txt'), document.getElementById('fb-txt-p')];
   dots.forEach(d => { if(d){ d.classList.remove('ok','err'); if(cls) d.classList.add(cls); }});
   txts.forEach(t => { if(t) t.textContent = msg; });
+  const barDot = document.getElementById('velada-conn-dot');
+  if(barDot) barDot.className = cls==='ok' ? 'on' : cls==='err' ? 'err' : '';
 }
 
 function fbPushLive(){
