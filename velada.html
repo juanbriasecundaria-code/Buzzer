@@ -5353,8 +5353,20 @@ window._ndjState = localStorage.getItem('ndj_state') || '{}';
 
 function saveState() {
   const json = JSON.stringify(state);
-  localStorage.setItem('ndj_state', json);
-  localStorage.setItem('ndj_state_ts', String(Date.now()));
+  // Si el almacenamiento local está lleno (pasa con muchas fotos cargadas),
+  // setItem lanza y ANTES eso cortaba la función entera: no llegaba nada a la
+  // TV ni a Firebase y el resultado recién cargado se perdía. Ahora el fallo
+  // local no frena la sincronización, que es lo que realmente importa.
+  try {
+    localStorage.setItem('ndj_state', json);
+    localStorage.setItem('ndj_state_ts', String(Date.now()));
+  } catch (e) {
+    console.warn('No se pudo guardar localmente (¿almacenamiento lleno?):', e);
+    if (!window._avisoCuota) {
+      window._avisoCuota = true;
+      try { showToast('⚠️', 'Sin espacio local — se sigue sincronizando igual', false); } catch (e2) {}
+    }
+  }
   window._ndjState = json; // la TV lee esto por polling desde opener
   // Misma PC: mandar directo a la ventana TV si está abierta
   if (window._tvWin && !window._tvWin.closed) {

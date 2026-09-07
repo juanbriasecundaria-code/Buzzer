@@ -1018,10 +1018,13 @@ function startBuzzListener(){
         statusEl.textContent = '✗ Erraron — ahora responde ' + otro;
         statusEl.className = 'bz-status lost';
       } else {
+        // Cada apertura arranca su propia medición. Antes, si el conductor
+        // reabría el buzzer sin pasar por "bloqueado" (típico cuando el primer
+        // equipo erra), se seguía midiendo desde la apertura anterior y el
+        // tiempo salía enorme.
+        var _eraOpen = (_bzPhase === 'open');
         _bzPhase = 'open';
-        // Momento en que quedó habilitado: desde acá medimos el reflejo.
-        // Usamos el reloj del servidor para que todos midan contra lo mismo.
-        if(_openedAt === null) _openedAt = nowServer();
+        if(!_eraOpen) _openedAt = nowServer();
         _earlyTaps = 0;
         btn.classList.remove('locked','won-me');
         btn.classList.add('open');
