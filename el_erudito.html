@@ -532,6 +532,60 @@ body { padding-top: 44px; padding-top: calc(44px + env(safe-area-inset-top)); }
 .velada-bar-dot span.err{background:var(--red,#ff5f5f);box-shadow:0 0 6px rgba(255,95,95,.5)}
 @media (prefers-reduced-motion: reduce){.velada-bar-dot span{transition:none}}
 
+/* ── BARRA: AUTO-OCULTADO Y MODO LIMPIO ────────────────────────────── */
+/* La barra vive en z-index 9990, por encima de casi todos los overlays.
+   En vez de subirle el z-index a treinta overlays uno por uno, la barra se
+   aparta sola cuando hay algo a pantalla completa abierto. */
+.velada-bar, .velada-bar-title, .velada-bar-dot, .hub-link {
+  transition: opacity .25s ease, transform .25s ease;
+}
+body.vb-hide .velada-bar,
+body.vb-hide .velada-bar-title,
+body.vb-hide .velada-bar-dot,
+body.vb-hide .hub-link {
+  opacity: 0;
+  transform: translateY(-8px);
+  pointer-events: none;
+}
+/* Modo limpio: para proyectar sin la barra encima */
+body.vb-clean .velada-bar,
+body.vb-clean .velada-bar-title,
+body.vb-clean .velada-bar-dot,
+body.vb-clean .hub-link {
+  opacity: 0;
+  pointer-events: none;
+}
+/* Pestañita para recuperar la barra en modo limpio */
+.vb-peek {
+  position: fixed; top: 0; left: 50%;
+  transform: translateX(-50%);
+  margin-top: env(safe-area-inset-top);
+  width: 54px; height: 16px;
+  border-radius: 0 0 10px 10px;
+  background: rgba(255,255,255,.07);
+  border: 1px solid rgba(255,255,255,.09);
+  border-top: none;
+  cursor: pointer; z-index: 9993;
+  display: none; align-items: center; justify-content: center;
+}
+.vb-peek::after {
+  content: ''; width: 20px; height: 2px; border-radius: 2px;
+  background: rgba(240,239,232,.45);
+}
+body.vb-clean .vb-peek { display: flex; }
+/* El punto de conexión suma un estado intermedio: reconectando */
+.velada-bar-dot span.warn {
+  background: var(--gold, #f5c842);
+  box-shadow: 0 0 6px rgba(245,200,66,.6);
+  animation: vbPulse 1s ease-in-out infinite;
+}
+@keyframes vbPulse { 0%,100%{opacity:1} 50%{opacity:.35} }
+@media (prefers-reduced-motion: reduce) {
+  .velada-bar, .velada-bar-title, .velada-bar-dot, .hub-link { transition: none }
+  .velada-bar-dot span.warn { animation: none }
+}
+
+
 /* ── Quién está jugando ── */
 .now-playing{display:flex;flex-direction:column;align-items:center;gap:.15rem;
   width:100%;max-width:360px;margin:0 auto .6rem;padding:.55rem .7rem;
@@ -845,6 +899,8 @@ function initFirebase(){
       const ok = snap.val();
       if(ok) setFbStatus('ok', 'Conectado');
       else   setFbStatus('connecting', 'Reconectando…');
+      // El punto de la barra acompaña: verde conectado, ámbar reconectando
+      if(window.veladaConn) window.veladaConn(ok ? 'ok' : 'warn');
     });
     // Listener principal
     fbRef.on('value', snap=>{
@@ -1725,6 +1781,105 @@ function syncNowPlaying(){
   if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', arrancar);
   else arrancar();
 })();
+
+
+// ── BARRA: SE APARTA SOLA CUANDO HAY UN OVERLAY ──────────────────────
+// La barra está en z-index 9990 y quedaba por encima de las pantallas de
+// ganador, los reveals y los emojis flotantes, cortando el momento.
+// En vez de retocar el z-index de cada overlay, la barra se esconde mientras
+// haya algo a pantalla completa visible y vuelve cuando se cierra.
+(function(){
+  var body = document.body;
+  if(!body) return;
+
+  // Un overlay = elemento fijo que cubre (casi) toda la pantalla y está visible
+  function hayOverlay(){
+    var els = document.querySelectorAll('div,section,canvas');
+    for(var i=0;i<els.length;i++){
+      var el = els[i];
+      if(el.classList.contains('velada-bar') ||
+         el.classList.contains('velada-bar-title') ||
+         el.classList.contains('velada-bar-dot') ||
+         el.classList.contains('vb-peek') ||
+         el.classList.contains('react-layer')) continue;   // capa transparente
+      var cs = getComputedStyle(el);
+      if(cs.position !== 'fixed') continue;
+      if(cs.display === 'none' || cs.visibility === 'hidden') continue;
+      if(parseFloat(cs.opacity) < 0.15) continue;
+      var z = parseInt(cs.zIndex, 10);
+      if(isNaN(z) || z < 40) continue;            // fondos animados: no cuentan
+      // Una capa sin fondo propio (confetti, emojis) no tapa nada: no cuenta
+      var bg = cs.backgroundColor || '';
+      var transparente = bg === 'transparent' || bg === 'rgba(0, 0, 0, 0)';
+      if(transparente && !cs.backdropFilter && cs.backdropFilter !== undefined) {
+        if(!el.style.background && !cs.backgroundImage.startsWith('linear')
+           && !cs.backgroundImage.startsWith('radial')) continue;
+      }
+      var r = el.getBoundingClientRect();
+      if(r.width >= innerWidth*0.9 && r.height >= innerHeight*0.75) return true;
+    }
+    return false;
+  }
+
+  var ultimo = null;
+  function revisar(){
+    if(body.classList.contains('vb-clean')) return;   // el modo limpio manda
+    var v = hayOverlay();
+    if(v !== ultimo){
+      ultimo = v;
+      body.classList.toggle('vb-hide', v);
+    }
+  }
+
+  // Revisamos ante cualquier cambio del DOM y también por si algo cambia solo
+  try{
+    new MutationObserver(revisar).observe(document.documentElement, {
+      attributes:true, childList:true, subtree:true,
+      attributeFilter:['class','style']
+    });
+  }catch(e){}
+  setInterval(revisar, 700);
+  setTimeout(revisar, 300);
+
+  // ── MODO LIMPIO ──────────────────────────────────────────────────
+  // Para cuando se proyecta: un toque en la barra la esconde del todo.
+  // Queda una pestañita arriba al centro para traerla de vuelta.
+  var peek = document.createElement('div');
+  peek.className = 'vb-peek';
+  peek.title = 'Mostrar la barra';
+  peek.setAttribute('aria-label','Mostrar la barra');
+  document.body.appendChild(peek);
+
+  function limpio(on){
+    body.classList.toggle('vb-clean', on);
+    try{ localStorage.setItem('ndj_vb_clean', on ? '1' : '0'); }catch(e){}
+  }
+  peek.addEventListener('click', function(){ limpio(false); });
+
+  var barra = document.querySelector('.velada-bar');
+  if(barra){
+    barra.style.cursor = 'pointer';
+    barra.title = 'Tocá para ocultar la barra (modo proyección)';
+    barra.addEventListener('click', function(e){
+      // Que no se dispare al tocar el botón de volver
+      if(e.target.closest('.hub-link')) return;
+      limpio(true);
+    });
+  }
+  try{ if(localStorage.getItem('ndj_vb_clean') === '1') limpio(true); }catch(e){}
+})();
+
+// ── ESTADO DE CONEXIÓN CON TRES NIVELES ──────────────────────────────
+// Antes era verde o rojo: un parpadeo de red pintaba todo de rojo y asustaba.
+// Ahora hay un ámbar intermedio mientras intenta reconectar.
+window.veladaConn = function(estado){
+  var d = document.getElementById('velada-conn-dot');
+  if(!d) return;
+  d.classList.remove('on','warn','err');
+  if(estado === 'ok')   d.classList.add('on');
+  else if(estado === 'warn') d.classList.add('warn');
+  else if(estado === 'err')  d.classList.add('err');
+};
 
 </script>
 </body>
