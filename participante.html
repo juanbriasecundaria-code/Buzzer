@@ -450,6 +450,75 @@
 @keyframes appEnter { from { opacity: 0 } to { opacity: 1 } }
 body { animation: appEnter .32s ease-out both; }
 @media (prefers-reduced-motion: reduce) { body { animation: none } }
+
+  /* ── Resumen de un vistazo ── */
+  .gh-resumen{display:flex;align-items:stretch;gap:0;margin-bottom:.7rem;
+    background:var(--surface);border:1px solid var(--border2);border-radius:14px;
+    padding:.7rem .4rem;transition:border-color .3s}
+  .gh-resumen.lider{border-color:rgba(245,200,66,.5);
+    background:linear-gradient(160deg,rgba(245,200,66,.09),var(--surface) 65%)}
+  .gr-item{flex:1;min-width:0;text-align:center;padding:0 .2rem}
+  .gr-lbl{font-size:8.5px;font-weight:800;letter-spacing:.13em;text-transform:uppercase;
+    color:var(--muted);margin-bottom:2px}
+  .gr-val{font-size:20px;font-weight:900;color:var(--text);line-height:1.05;
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .gr-val.small{font-size:15px}
+  .gr-sub{font-size:10px;font-weight:700;color:var(--muted);margin-left:1px}
+  .gr-sep{width:1px;background:var(--border);margin:.15rem 0}
+
+  /* ── Tu momento ── */
+  .gh-momento{display:flex;align-items:center;gap:.65rem;margin-bottom:.7rem;
+    padding:.65rem .8rem;border-radius:13px;
+    background:linear-gradient(100deg,rgba(245,200,66,.13),rgba(245,200,66,.03));
+    border:1px solid rgba(245,200,66,.35)}
+  .gm-emoji{font-size:24px;line-height:1;flex-shrink:0}
+  .gm-txt{display:flex;flex-direction:column;min-width:0}
+  .gm-txt b{font-size:13.5px;font-weight:800;color:#f5c842;line-height:1.2}
+  .gm-txt span{font-size:10.5px;color:var(--muted);margin-top:1px}
+
+  /* ── Acceso al buzzer ── */
+  .gh-buzz-link{display:flex;align-items:center;gap:.7rem;margin-bottom:.9rem;
+    padding:.75rem .85rem;border-radius:14px;text-decoration:none;
+    background:var(--surface2);border:1.5px solid var(--border2);
+    transition:border-color .15s,transform .1s}
+  .gh-buzz-link:active{transform:scale(.99)}
+  .gbl-emoji{font-size:22px;line-height:1;flex-shrink:0}
+  .gbl-txt{flex:1;min-width:0;display:flex;flex-direction:column}
+  .gbl-txt b{font-size:13.5px;font-weight:800;color:var(--text)}
+  .gbl-txt span{font-size:10.5px;color:var(--muted);margin-top:1px}
+  .gbl-arrow{font-size:20px;color:var(--muted);flex-shrink:0;line-height:1}
+
+  /* ── Comparación con el grupo ── */
+  .gh-vs-prom{font-size:11.5px;padding:.5rem .65rem;border-radius:10px;
+    background:var(--surface2);margin:.6rem 0 .2rem;line-height:1.45}
+  .gh-vs-prom b{font-weight:800}
+  .gh-vs-prom.arriba{color:#4cdb7a}
+  .gh-vs-prom.abajo{color:var(--muted)}
+
+  /* ── Estados vacíos ── */
+  .gh-empty{font-size:12px;color:var(--muted);font-style:italic;line-height:1.6;
+    text-align:center;padding:1rem .5rem}
+
+  /* ── Es tu turno ── */
+  .gh-turno{position:fixed;inset:0;z-index:9800;display:flex;flex-direction:column;
+    align-items:center;justify-content:center;text-align:center;
+    padding:calc(2rem + env(safe-area-inset-top)) 1.5rem calc(2rem + env(safe-area-inset-bottom));
+    background:radial-gradient(circle at 50% 42%,
+      color-mix(in srgb,var(--tc,#c8f060) 22%,transparent),rgba(6,6,10,.985) 62%),#06060a;
+    opacity:0;pointer-events:none;transition:opacity .4s ease}
+  .gh-turno.show{opacity:1;pointer-events:auto}
+  .gt-lbl{font-size:11px;font-weight:900;letter-spacing:.28em;text-transform:uppercase;
+    color:var(--tc,#c8f060);animation:gtPulse 1.4s ease-in-out infinite}
+  @keyframes gtPulse{0%,100%{opacity:.6}50%{opacity:1}}
+  .gt-vs{font-size:12px;font-weight:800;color:var(--muted);letter-spacing:.2em;
+    text-transform:uppercase;margin-top:1.1rem}
+  .gt-rival{font-size:clamp(2rem,10vw,3.4rem);font-weight:900;color:#fff;
+    line-height:1.08;margin-top:.2rem;letter-spacing:-.02em}
+  .gt-juego{font-size:14px;color:var(--muted);margin-top:.6rem}
+  .gt-ok{margin-top:2rem;padding:.85rem 2.2rem;border-radius:99px;border:none;
+    background:var(--tc,#c8f060);color:#0a0a0e;font-family:inherit;
+    font-size:15px;font-weight:900;cursor:pointer}
+  @media (prefers-reduced-motion:reduce){.gt-lbl{animation:none}}
 </style>
 </head>
 <body>
@@ -1069,6 +1138,75 @@ function nextBadge(type, nextRound) {
   return '<span class="gh-away">Faltan ' + away + ' rondas</span>';
 }
 
+
+// ── ES TU TURNO ──────────────────────────────────────────────
+// Cuando no quedan rondas por delante, la pantalla entera lo avisa: en una
+// fiesta nadie está mirando el celular fijo, y un cartelito chico se pierde.
+let _turnoAvisado = null;
+let _turnoListo = false;   // no avisamos apenas se abre la app
+
+function chequearTurno(myName, myIdx, teamIdx) {
+  let aviso = null;
+  const n1 = findNextMatch('f1', myIdx);
+  if (n1 && roundsAway('f1', n1.round) === 0) {
+    aviso = { key: 'f1-' + n1.round + '-' + n1.oppName, fase: 'Fase 1',
+              rival: n1.oppName, juego: n1.game, color: 'var(--accent)' };
+  } else if (teamIdx >= 0) {
+    const n2 = findNextMatch('f2', teamIdx);
+    if (n2 && roundsAway('f2', n2.round) === 0) {
+      aviso = { key: 'f2-' + n2.round + '-' + n2.oppName, fase: 'Fase 2',
+                rival: n2.oppName, juego: n2.game, color: 'var(--info)' };
+    }
+  }
+  if (!aviso) { _turnoAvisado = null; return; }
+  if (_turnoAvisado === aviso.key) return;   // ya avisamos este duelo
+  _turnoAvisado = aviso.key;
+  // La primera lectura solo toma nota: abrir la app no debería dispararte
+  // una pantalla completa de entrada. Avisamos de la segunda en adelante.
+  if (!_turnoListo) { _turnoListo = true; return; }
+  mostrarTurno(aviso);
+}
+
+function mostrarTurno(a) {
+  let el = document.getElementById('gh-turno');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'gh-turno';
+    el.className = 'gh-turno';
+    document.body.appendChild(el);
+  }
+  el.style.setProperty('--tc', a.color);
+  el.innerHTML =
+    '<div class="gt-lbl">' + a.fase + ' · te toca</div>' +
+    '<div class="gt-vs">vs</div>' +
+    '<div class="gt-rival">' + escapeHtml(a.rival) + '</div>' +
+    '<div class="gt-juego">' + escapeHtml(a.juego || '') + '</div>' +
+    '<button class="gt-ok">Voy para allá</button>';
+  el.classList.add('show');
+  el.querySelector('.gt-ok').onclick = () => el.classList.remove('show');
+  el.onclick = (e) => { if (e.target === el) el.classList.remove('show'); };
+  buzz([60, 80, 60, 80, 200]);
+  try { sfxTurno(); } catch (e) {}
+}
+
+function sfxTurno() {
+  const AC = window.AudioContext || window.webkitAudioContext;
+  if (!AC) return;
+  if (!window._ghAC) window._ghAC = new AC();
+  const ctx = window._ghAC;
+  if (ctx.state === 'suspended') ctx.resume();
+  const t = ctx.currentTime;
+  [659.25, 880, 1046.5].forEach((f, i) => {
+    const o = ctx.createOscillator(), g = ctx.createGain();
+    o.type = 'triangle'; o.frequency.setValueAtTime(f, t + i * 0.11);
+    g.gain.setValueAtTime(0.0001, t + i * 0.11);
+    g.gain.exponentialRampToValueAtTime(0.20, t + i * 0.11 + 0.02);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + i * 0.11 + 0.5);
+    o.connect(g); g.connect(ctx.destination);
+    o.start(t + i * 0.11); o.stop(t + i * 0.11 + 0.55);
+  });
+}
+
 function renderPhaseCard(type, myIdx, myName) {
   const isF1 = type === 'f1';
   const list = ranked(type);
@@ -1116,6 +1254,212 @@ function renderPhaseCard(type, myIdx, myName) {
     </div>`;
 }
 
+
+// ── TIRA DE RESUMEN ──────────────────────────────────────────
+// Los tres datos que uno mira cada vez que saca el celular: dónde estoy,
+// cuántos puntos tengo y cómo vengo. Antes había que scrollear y sumarlos
+// mentalmente entre varias tarjetas.
+function renderQuickStats(myName, myIdx, teamIdx) {
+  const rk = ranked('f1');
+  const pos = rk.findIndex(x => x.n === myName) + 1;
+  const mio = rk[pos - 1];
+  if (!mio) return '';
+
+  const total = PLAYERS.length;
+  const medalla = pos === 1 ? '🥇' : pos === 2 ? '🥈' : pos === 3 ? '🥉' : '';
+  const wl = (mio.wins || 0) + '–' + (mio.losses || 0);
+
+  // Cómo viene en Fase 2, si juega en equipo
+  let equipoChip = '';
+  if (teamIdx >= 0) {
+    const rk2 = ranked('f2');
+    const p2 = rk2.findIndex(x => x.i === teamIdx) + 1;
+    if (p2 > 0) equipoChip = `<div class="qs-item">
+      <span class="qs-lbl">Tu equipo</span>
+      <span class="qs-val">${p2}º</span>
+    </div>`;
+  }
+
+  return `<div class="gh-quickstats">
+    <div class="qs-item">
+      <span class="qs-lbl">Tu puesto</span>
+      <span class="qs-val">${medalla}${pos}º<small>/${total}</small></span>
+    </div>
+    <div class="qs-sep"></div>
+    <div class="qs-item">
+      <span class="qs-lbl">Puntos</span>
+      <span class="qs-val qs-pts">${mio.total}</span>
+    </div>
+    <div class="qs-sep"></div>
+    <div class="qs-item">
+      <span class="qs-lbl">Ganados</span>
+      <span class="qs-val">${wl}</span>
+    </div>
+    ${equipoChip ? '<div class="qs-sep"></div>' + equipoChip : ''}
+  </div>`;
+}
+
+// ── TU MOMENTO ───────────────────────────────────────────────
+// Rescata lo mejor que te pasó hasta ahora. Cambia solo con la noche.
+function renderMyMoment(myName, myIdx) {
+  const f1 = latestState.f1 || {};
+  let mejorRacha = 0, racha = 0, conBonus = 0, victorias = 0;
+
+  F1_FIXTURE.forEach(m => {
+    const res = f1[m[0] + '-' + m[1] + '-' + m[2]];
+    if (!res) return;
+    if (m[1] !== myIdx && m[2] !== myIdx) return;
+    if (res.winner === myIdx) {
+      victorias++; racha++;
+      if (racha > mejorRacha) mejorRacha = racha;
+      if (res.bonus) conBonus++;
+    } else if (res.winner !== 'empate') racha = 0;
+  });
+
+  const t = myBetTally(myName);
+  const cands = [];
+  if (mejorRacha >= 3) cands.push({ e:'🔥', t:'Racha de ' + mejorRacha, s:'Ganaste ' + mejorRacha + ' duelos seguidos' });
+  if (conBonus > 0)    cands.push({ e:'⭐', t:conBonus + ' victoria' + (conBonus>1?'s':'') + ' con bonus', s:'Ganaste en grande' });
+  if (t.hits >= 3)     cands.push({ e:'🃏', t:t.hits + ' apuestas acertadas', s:'Ojo clínico' });
+  if (mejorRacha === 2) cands.push({ e:'⚡', t:'Doblete', s:'Dos victorias al hilo' });
+  if (victorias > 0 && !cands.length) cands.push({ e:'✅', t:'Primera victoria', s:'Ya rompiste el hielo' });
+
+  if (!cands.length) return '';
+  const m = cands[0];
+  return `<div class="gh-moment">
+    <span class="gm-emoji">${m.e}</span>
+    <span class="gm-txt"><b>${escapeHtml(m.t)}</b><small>${escapeHtml(m.s)}</small></span>
+  </div>`;
+}
+
+// ── ¿TE TOCA AHORA? ──────────────────────────────────────────
+// Cuando no faltan rondas, la pantalla entera avisa: es imposible perdérselo.
+function renderTurnAlert(myName, myIdx, teamIdx) {
+  const n1 = findNextMatch('f1', myIdx);
+  if (n1 && roundsAway('f1', n1.round) === 0) {
+    return `<div class="gh-turn f1">
+      <div class="gt-lbl">👉 Te toca ahora</div>
+      <div class="gt-vs">vs <b>${escapeHtml(n1.oppName)}</b></div>
+      <div class="gt-game">${escapeHtml(n1.game)}</div>
+    </div>`;
+  }
+  if (teamIdx >= 0) {
+    const n2 = findNextMatch('f2', teamIdx);
+    if (n2 && roundsAway('f2', n2.round) === 0) {
+      return `<div class="gh-turn f2">
+        <div class="gt-lbl">👉 Le toca a tu equipo</div>
+        <div class="gt-vs">vs <b>${escapeHtml(n2.oppName)}</b></div>
+        <div class="gt-game">${escapeHtml(n2.game)}</div>
+      </div>`;
+    }
+  }
+  return '';
+}
+
+// ¿La noche avanzó lo suficiente como para que el certificado tenga sentido?
+function nocheAvanzada() {
+  const jugados = F1_FIXTURE.filter(m => (latestState.f1||{})[m[0]+'-'+m[1]+'-'+m[2]]).length;
+  return jugados >= Math.max(3, Math.floor(F1_FIXTURE.length * 0.4));
+}
+
+// ¿Hay apuestas abiertas ahora? Sirve para resaltar esa sección.
+function apuestasAbiertas() {
+  const bw = latestState.betWindow || {};
+  const bw2 = latestState.betWindowF2 || {};
+  return !!(bw.open || bw2.open);
+}
+
+
+// ── RESUMEN DE UN VISTAZO ────────────────────────────────────
+// Los tres datos que uno mira cada vez que saca el celular: en qué puesto va,
+// cuántos puntos tiene y cómo viene su récord. Antes había que scrollear y
+// armarlos de memoria.
+function miResumen(myName, myIdx, teamIdx) {
+  const r1 = ranked('f1');
+  const pos1 = r1.findIndex(x => x.n === myName) + 1;
+  const yo = r1.find(x => x.n === myName) || { total: 0, wins: 0, losses: 0 };
+  let pos2 = 0, pts2 = 0;
+  if (teamIdx >= 0) {
+    const r2 = ranked('f2');
+    const t = TEAMS[teamIdx];
+    pos2 = r2.findIndex(x => x.n === t) + 1;
+    pts2 = (r2.find(x => x.n === t) || {}).total || 0;
+  }
+  return { pos1, pts1: yo.total, wins: yo.wins || 0, losses: yo.losses || 0,
+           pos2, pts2, total: PLAYERS.length };
+}
+
+function renderResumen(myName, myIdx, teamIdx) {
+  const r = miResumen(myName, myIdx, teamIdx);
+  const medalla = r.pos1 === 1 ? '🥇' : r.pos1 === 2 ? '🥈' : r.pos1 === 3 ? '🥉' : '';
+  const cls = r.pos1 === 1 ? ' lider' : '';
+  return `<div class="gh-resumen${cls}">
+    <div class="gr-item">
+      <div class="gr-lbl">Puesto</div>
+      <div class="gr-val">${medalla}${r.pos1 || '—'}<span class="gr-sub">/${r.total}</span></div>
+    </div>
+    <div class="gr-sep"></div>
+    <div class="gr-item">
+      <div class="gr-lbl">Puntos</div>
+      <div class="gr-val">${r.pts1}</div>
+    </div>
+    <div class="gr-sep"></div>
+    <div class="gr-item">
+      <div class="gr-lbl">Récord</div>
+      <div class="gr-val small">${r.wins}<span class="gr-sub">G</span> ${r.losses}<span class="gr-sub">P</span></div>
+    </div>
+    ${teamIdx >= 0 ? `<div class="gr-sep"></div>
+    <div class="gr-item">
+      <div class="gr-lbl">Tu equipo</div>
+      <div class="gr-val small">${r.pos2 || '—'}<span class="gr-sub">°</span> · ${r.pts2}<span class="gr-sub">pt</span></div>
+    </div>` : ''}
+  </div>`;
+}
+
+// ── TU MOMENTO ───────────────────────────────────────────────
+// Rescata lo mejor que te pasó hasta ahora y lo pone en primer plano.
+function miMomento(myName, myIdx) {
+  const store = latestState.f1 || {};
+  let mejorRacha = 0, rachaActual = 0, conBonus = 0, ultimaVict = null;
+  (F1_FIXTURE || []).forEach(m => {
+    const res = store[m[0] + '-' + m[1] + '-' + m[2]];
+    if (!res) return;
+    if (m[1] !== myIdx && m[2] !== myIdx) return;
+    if (res.winner === myIdx) {
+      rachaActual++;
+      if (rachaActual > mejorRacha) mejorRacha = rachaActual;
+      if (res.bonus) conBonus++;
+      ultimaVict = gameNameF1(m[3]);
+    } else if (res.winner !== 'empate') rachaActual = 0;
+  });
+  const t = myBetTally(myName);
+
+  if (mejorRacha >= 3) return { e: '🔥', t: `${mejorRacha} victorias al hilo`, s: 'Estás en llamas' };
+  if (conBonus >= 2)   return { e: '⭐', t: `${conBonus} victorias con bonus`, s: 'Ganás en grande' };
+  if (t.net >= 3)      return { e: '🃏', t: `${t.net} apuestas acertadas`, s: 'Ojo de vidente' };
+  if (ultimaVict)      return { e: '🏆', t: `Ganaste en ${ultimaVict}`, s: 'Tu última victoria' };
+  if (mejorRacha === 2) return { e: '⚡', t: 'Doblete', s: 'Dos seguidas' };
+  return null;
+}
+
+function renderMomento(myName, myIdx) {
+  const m = miMomento(myName, myIdx);
+  if (!m) return '';
+  return `<div class="gh-momento">
+    <span class="gm-emoji">${m.e}</span>
+    <span class="gm-txt"><b>${escapeHtml(m.t)}</b><span>${escapeHtml(m.s)}</span></span>
+  </div>`;
+}
+
+// ── COMPARACIÓN CON EL GRUPO ─────────────────────────────────
+function promedioGrupo() {
+  const r = ranked('f1');
+  if (!r.length) return { pts: 0, wins: 0 };
+  const pts = r.reduce((a, x) => a + (x.total || 0), 0) / r.length;
+  const wins = r.reduce((a, x) => a + (x.wins || 0), 0) / r.length;
+  return { pts: Math.round(pts * 10) / 10, wins: Math.round(wins * 10) / 10 };
+}
+
 function renderDashboard(myName) {
   const app = document.getElementById('app');
   const myIdx = PLAYERS.indexOf(myName);
@@ -1124,24 +1468,44 @@ function renderDashboard(myName) {
 
   const updatedTxt = lastUpdate ? lastUpdate.toLocaleTimeString('es-AR') : '—';
 
+  // ¿Ya avanzó la noche? Los certificados no tienen nada que mostrar al principio
+  const jugadosF1 = (F1_FIXTURE || []).filter(m => (latestState.f1 || {})[m[0]+'-'+m[1]+'-'+m[2]]).length;
+  const nocheAvanzada = jugadosF1 >= Math.max(3, Math.floor(F1_FIXTURE.length * 0.5));
+
   app.innerHTML = `
     <div class="gh-header">
       <div class="gh-avatar-wrap">${avatarHtml(myName, 64)}</div>
       <div class="gh-eyebrow">🎮 La Velada del Año</div>
       <div class="gh-title">Hola, ${escapeHtml(myName)} 👋</div>
     </div>
+
+    ${safeBlock(() => renderResumen(myName, myIdx, teamIdx))}
+    ${safeBlock(() => renderMomento(myName, myIdx))}
+
+    <a class="gh-buzz-link" href="index.html">
+      <span class="gbl-emoji">🔔</span>
+      <span class="gbl-txt"><b>Ir al buzzer</b><span>Para los juegos con pulsador</span></span>
+      <span class="gbl-arrow">›</span>
+    </a>
+
     ${renderPhaseCard('f1', myIdx, myName)}
-    ${safeBlock(() => renderH2H(myName))}
     ${teamIdx >= 0 ? renderPhaseCard('f2', teamIdx, myName) : ''}
-    <div class="gh-cert-card">
+
+    ${safeBlock(() => renderBetCard(myName, myIdx))}
+    ${teamIdx >= 0 ? safeBlock(() => renderBetCardF2(myName, teamIdx)) : ''}
+
+    ${safeBlock(() => renderH2H(myName))}
+    ${safeBlock(() => renderMiiCard(myName, teamIdx >= 0 ? TEAMS[teamIdx] : null))}
+
+    ${nocheAvanzada ? `<div class="gh-cert-card">
       <div class="gh-cert-card-emoji">🎓</div>
       <div class="gh-cert-card-text">
         <div class="gh-cert-card-title">Tu certificado de la noche</div>
         <div class="gh-cert-card-sub">Tu mejor racha, tu némesis y en qué juego brillaste</div>
       </div>
       <button class="gh-cert-btn" id="gh-cert-btn">Ver certificado</button>
-    </div>
-    ${teamIdx >= 0 ? `<div class="gh-cert-card team">
+    </div>` : ''}
+    ${nocheAvanzada && teamIdx >= 0 ? `<div class="gh-cert-card team">
       <div class="gh-cert-card-emoji">🏆</div>
       <div class="gh-cert-card-text">
         <div class="gh-cert-card-title">Certificado del equipo</div>
@@ -1149,9 +1513,6 @@ function renderDashboard(myName) {
       </div>
       <button class="gh-cert-btn" id="gh-cert-btn-team">Ver certificado</button>
     </div>` : ''}
-    ${safeBlock(() => renderBetCard(myName, myIdx))}
-    ${teamIdx >= 0 ? safeBlock(() => renderBetCardF2(myName, teamIdx)) : ''}
-    ${safeBlock(() => renderMiiCard(myName, teamIdx >= 0 ? TEAMS[teamIdx] : null))}
     <details class="gh-acc" data-acc-key="wall"${accOpen('wall', false) ? ' open' : ''}>
       <summary class="gh-acc-summary">
         <span class="gh-acc-summary-left">
@@ -1762,7 +2123,12 @@ function headToHead(myName) {
 
 function renderH2H(myName) {
   const h = headToHead(myName);
-  if (!h.length) return '';
+  // Antes esta sección simplemente no aparecía y daba sensación de que faltaba algo
+  if (!h.length) return `<div class="gh-card">
+    <div class="gh-card-title">⚔️ Cara a cara</div>
+    <div class="gh-empty">Todavía no jugaste ningún duelo.<br>
+      Acá vas a ver tu récord contra cada rival.</div>
+  </div>`;
   const rows = h.map(x => {
     const tot = x.w + x.l + x.e;
     const col = x.w > x.l ? 'var(--accent)' : (x.l > x.w ? 'var(--danger)' : 'var(--muted)');
@@ -1772,9 +2138,19 @@ function renderH2H(myName) {
       <span class="gh-h2h-tot">${tot} duelo${tot === 1 ? '' : 's'}</span>
     </div>`;
   }).join('');
+  // Contexto: tus números solos no dicen si vas bien o mal
+  const prom = promedioGrupo();
+  const mio = ranked('f1').find(x => x.n === myName) || { total: 0, wins: 0 };
+  const dif = mio.total - prom.pts;
+  const comp = `<div class="gh-vs-prom ${dif >= 0 ? 'arriba' : 'abajo'}">
+    ${dif >= 0 ? '▲' : '▼'} Tenés <b>${mio.total}</b> puntos ·
+    el promedio del grupo es <b>${prom.pts}</b>
+  </div>`;
+
   return `<div class="gh-card">
     <div class="gh-card-title">⚔️ Cara a cara</div>
     <div class="gh-card-sub">Tu récord contra cada rival en Fase 1</div>
+    ${comp}
     <div class="gh-h2h">${rows}</div>
   </div>`;
 }
@@ -2388,7 +2764,11 @@ onSnapshot(doc(db, 'ndj', 'state'), (snap) => {
   ready = true;
   try {
     const who = localStorage.getItem('ndj_guest_who');
-    if (who) checkMyNews(who);
+    if (who) {
+      checkMyNews(who);
+      const wi = PLAYERS.indexOf(who);
+      if (wi >= 0) chequearTurno(who, wi, teamIndexForPlayer(who));
+    }
   } catch (e) {}
   render();
 }, (err) => {
