@@ -6951,6 +6951,11 @@ function saveResult() {
     saveState();
     closeModal();
     playResultSound(modalCtx.winner === 'empate' ? 'empate' : (modalCtx.bonus ? 'bonus' : 'win'));
+    // Y el sonido que eligió el ganador desde su celular
+    if (modalCtx.winner !== 'empate') {
+      const gan = PLAYERS[modalCtx.winner];
+      if (gan) setTimeout(() => playWinSoundFor(gan), 380);
+    }
     renderFase1();
     const wName = modalCtx.winner === modalCtx.idxA ? modalCtx.nameA : modalCtx.nameB;
     showToast('⚡', `SD: ${wName.split(' ')[0]} gana${modalCtx.bonus ? ' +bonus' : ''}`, false);
@@ -6964,6 +6969,10 @@ function saveResult() {
     saveState();
     closeModal();
     playResultSound(modalCtx.winner === 'empate' ? 'empate' : (modalCtx.bonus ? 'bonus' : 'win'));
+    if (modalCtx.winner !== 'empate') {
+      const gan = TEAMS[modalCtx.winner];
+      if (gan) setTimeout(() => playWinSoundFor(gan), 380);
+    }
     renderFase2();
     const wName2 = modalCtx.winner === modalCtx.idxA ? modalCtx.nameA : modalCtx.nameB;
     showToast('⚡', `SD: ${wName2.split('/')[0].trim()} gana${modalCtx.bonus ? ' +bonus' : ''}`, false);
@@ -10804,6 +10813,57 @@ function playSaveSound() {
 
 // Antes todos los resultados sonaban igual. Ahora el oído distingue de lejos
 // si fue una victoria normal, una con bonus o un empate.
+
+// ── SONIDO DE VICTORIA PERSONALIZADO ─────────────────────────────────
+// Cada jugador elige el suyo desde el celular (queda en _miis[nombre].winSound)
+// y suena acá al cargar la victoria. Misma receta que la del participante.
+function playWinSoundFor(nombre) {
+  let id = 'fanfarria';
+  try {
+    const m = _miis && _miis[nombre];
+    if (m && m.winSound) id = m.winSound;
+  } catch (e) {}
+  try {
+    const ctx = getAudioCtx();
+    if (ctx.state === 'suspended') ctx.resume();
+    const t = ctx.currentTime;
+    const nota = (f, cuando, dur, tipo, vol) => {
+      const o = ctx.createOscillator(), g = ctx.createGain();
+      o.type = tipo || 'triangle';
+      o.frequency.setValueAtTime(f, t + cuando);
+      g.gain.setValueAtTime(0.0001, t + cuando);
+      g.gain.exponentialRampToValueAtTime(vol || 0.20, t + cuando + 0.015);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + cuando + (dur || 0.4));
+      o.connect(g); g.connect(ctx.destination);
+      o.start(t + cuando); o.stop(t + cuando + (dur || 0.4) + 0.05);
+    };
+    if (id === 'arcade') {
+      [523,659,784,1047,1319].forEach((f, i) => nota(f, i * 0.055, 0.25, 'square', 0.14));
+    } else if (id === 'campanas') {
+      [1047,1319,1568].forEach((f, i) => nota(f, i * 0.09, 0.9, 'sine', 0.18));
+      nota(2093, 0.27, 1.2, 'sine', 0.10);
+    } else if (id === 'grave') {
+      nota(110, 0, 0.5, 'sine', 0.32);
+      nota(165, 0.06, 0.45, 'triangle', 0.20);
+      nota(220, 0.12, 0.6, 'sine', 0.16);
+    } else if (id === 'chiflido') {
+      const o = ctx.createOscillator(), g = ctx.createGain();
+      o.type = 'sine';
+      o.frequency.setValueAtTime(700, t);
+      o.frequency.exponentialRampToValueAtTime(1500, t + 0.18);
+      o.frequency.exponentialRampToValueAtTime(600, t + 0.5);
+      g.gain.setValueAtTime(0.0001, t);
+      g.gain.exponentialRampToValueAtTime(0.18, t + 0.04);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + 0.55);
+      o.connect(g); g.connect(ctx.destination);
+      o.start(t); o.stop(t + 0.6);
+    } else {
+      [392,523,659].forEach((f, i) => nota(f, i * 0.07, 0.3, 'triangle', 0.18));
+      nota(784, 0.21, 0.8, 'triangle', 0.24);
+    }
+  } catch (e) {}
+}
+
 function playResultSound(kind) {
   if (kind === 'empate') {
     // Dos notas iguales: nadie ganó
@@ -16942,32 +17002,47 @@ function buildIdleFacts(state, PLAYERS, TEAMS) {
 
 // Cada tick de "mientras tanto" alterna entre un dato curioso (tv-idle) y el
 // gráfico de evolución de la noche (tv-evo), para no repetir siempre lo mismo.
+// Rotación automática del TV: en vez de quedarse fijo, va alternando entre
+// las tres cosas que valen la pena mirar mientras se acomodan las mesas.
+// El orden salta solo lo que no tenga contenido (ej. sin fotos cargadas).
 function showIdleFact() {
   const box = document.getElementById('tv-idle');
   const evoBox = document.getElementById('tv-evo');
+  const wallBox = document.getElementById('tv-wall');
   if (!box || !evoBox) return;
   const st = window._tvLastState;
   if (!st) return;
   const facts = buildIdleFacts(st, window._tvLastPlayers || [], window._tvLastTeams || []);
 
-  _idleIdx++;
-  const showEvo = (_idleIdx % 2 === 1);
+  // Qué vistas hay disponibles en este momento
+  const vistas = [];
+  if (facts.length) vistas.push('datos');
+  vistas.push('grafico');
+  if (_tvWall && _tvWall.length) vistas.push('fotos');
+  if (!vistas.length) { box.classList.remove('show'); evoBox.classList.remove('show'); return; }
 
-  if (showEvo) {
-    box.classList.remove('show');
-    evoBox.classList.remove('show');
-    setTimeout(() => {
-      renderEvoChart();
-      evoBox.classList.add('show');
-    }, 500);
+  _idleIdx++;
+  const vista = vistas[_idleIdx % vistas.length];
+
+  // Apagamos todo antes de encender la que toca
+  box.classList.remove('show');
+  evoBox.classList.remove('show');
+  if (wallBox && vista !== 'fotos') wallBox.classList.remove('show');
+
+  if (vista === 'grafico') {
+    setTimeout(() => { renderEvoChart(); evoBox.classList.add('show'); }, 500);
     return;
   }
 
-  evoBox.classList.remove('show');
-  if (!facts.length) { box.classList.remove('show'); return; }
-  box.classList.remove('show');
+  if (vista === 'fotos') {
+    // El muro ya rota solo; acá solo nos aseguramos de que esté visible
+    setTimeout(() => { try { tickWall(); } catch (e) {} }, 500);
+    return;
+  }
+
+  // Dato curioso
   setTimeout(() => {
-    const f = facts[Math.floor(_idleIdx / 2) % facts.length];
+    const f = facts[Math.floor(_idleIdx / vistas.length) % facts.length];
     box.innerHTML =
       '<div class="tv-idle-lbl">Mientras tanto\u2026</div>'
       + '<div class="tv-idle-big">' + f.big + '</div>'
@@ -16986,7 +17061,7 @@ function idleTick() {
 }
 function startIdle() {
   if (_idleTimer) clearInterval(_idleTimer);
-  _idleTimer = setInterval(idleTick, 9000);
+  _idleTimer = setInterval(idleTick, 30000);   // una vista cada 30 s
 }
 
 // ── ELEMENTOS ARRASTRABLES DEL TV (QR y cronómetro) ──────────────────

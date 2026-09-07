@@ -662,6 +662,23 @@ body { animation: appEnter .32s ease-out both; }
     .gh-in, .slide-der, .slide-izq, .num-pop, .gr-mov, .gn-p.movio{ animation:none }
     .gh-acc summary:active, .gh-cert-btn:active{ transform:none }
   }
+
+  /* ── Sonido de victoria ── */
+  .gh-ws-sep{ height:1px; background:var(--border); margin:.9rem 0 .8rem }
+  .gh-ws-list{ display:flex; flex-direction:column; gap:.35rem; margin-top:.6rem }
+  .gh-ws{ display:flex; align-items:center; gap:.6rem; width:100%;
+    padding:.55rem .7rem; border-radius:11px; cursor:pointer;
+    background:var(--surface2); border:1.5px solid transparent;
+    color:var(--text); font-family:inherit; text-align:left;
+    transition:border-color .15s, transform .1s }
+  .gh-ws:active{ transform:scale(.985) }
+  .gh-ws[data-picked]{ border-color:var(--accent); background:rgba(200,240,96,.09) }
+  .gh-ws-e{ font-size:20px; line-height:1; flex-shrink:0 }
+  .gh-ws-t{ flex:1; min-width:0; display:flex; flex-direction:column }
+  .gh-ws-t b{ font-size:13px; font-weight:800 }
+  .gh-ws-t span{ font-size:10.5px; color:var(--muted) }
+  .gh-ws-play{ font-size:11px; color:var(--muted); flex-shrink:0 }
+  .gh-ws[data-picked] .gh-ws-play{ color:var(--accent) }
 </style>
 </head>
 <body>
@@ -2265,6 +2282,75 @@ function colorSwatchesHtml(groupId, picked) {
   return MII_COLORS.map(c =>
     `<button class="gh-mii-color${picked === c ? ' picked' : ''}" data-color="${c}" data-group="${groupId}" style="background:${c}"></button>`).join('');
 }
+
+// ── SONIDO DE VICTORIA PROPIO ────────────────────────────────
+// Cada uno elige el suyo y suena en la pantalla grande cuando gana un duelo.
+const WIN_SOUNDS = [
+  { id: 'fanfarria', nom: 'Fanfarria',  emoji: '🎺', desc: 'Clásico de podio' },
+  { id: 'arcade',    nom: 'Arcade',     emoji: '🕹️', desc: 'Subida ochentosa' },
+  { id: 'campanas',  nom: 'Campanas',   emoji: '🔔', desc: 'Brillante y limpio' },
+  { id: 'grave',     nom: 'Grave',      emoji: '🥁', desc: 'Golpe con peso' },
+  { id: 'chiflido',  nom: 'Chiflido',   emoji: '😎', desc: 'Burlón, para picantear' },
+];
+
+// Reproduce el sonido elegido. Vive acá para poder probarlo desde el celular;
+// la pantalla grande usa su propia copia con la misma receta.
+function tocarWinSound(id) {
+  const AC = window.AudioContext || window.webkitAudioContext;
+  if (!AC) return;
+  if (!window._wsAC) window._wsAC = new AC();
+  const ctx = window._wsAC;
+  if (ctx.state === 'suspended') ctx.resume();
+  const t = ctx.currentTime;
+
+  const nota = (f, cuando, dur, tipo, vol) => {
+    const o = ctx.createOscillator(), g = ctx.createGain();
+    o.type = tipo || 'triangle';
+    o.frequency.setValueAtTime(f, t + cuando);
+    g.gain.setValueAtTime(0.0001, t + cuando);
+    g.gain.exponentialRampToValueAtTime(vol || 0.20, t + cuando + 0.015);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + cuando + (dur || 0.4));
+    o.connect(g); g.connect(ctx.destination);
+    o.start(t + cuando); o.stop(t + cuando + (dur || 0.4) + 0.05);
+  };
+
+  if (id === 'arcade') {
+    [523,659,784,1047,1319].forEach((f, i) => nota(f, i * 0.055, 0.25, 'square', 0.14));
+  } else if (id === 'campanas') {
+    [1047,1319,1568].forEach((f, i) => nota(f, i * 0.09, 0.9, 'sine', 0.18));
+    nota(2093, 0.27, 1.2, 'sine', 0.10);
+  } else if (id === 'grave') {
+    nota(110, 0, 0.5, 'sine', 0.32);
+    nota(165, 0.06, 0.45, 'triangle', 0.20);
+    nota(220, 0.12, 0.6, 'sine', 0.16);
+  } else if (id === 'chiflido') {
+    // Silbido que sube y baja, tipo "uuuh"
+    const o = ctx.createOscillator(), g = ctx.createGain();
+    o.type = 'sine';
+    o.frequency.setValueAtTime(700, t);
+    o.frequency.exponentialRampToValueAtTime(1500, t + 0.18);
+    o.frequency.exponentialRampToValueAtTime(600, t + 0.5);
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(0.18, t + 0.04);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + 0.55);
+    o.connect(g); g.connect(ctx.destination);
+    o.start(t); o.stop(t + 0.6);
+  } else {
+    // fanfarria (por defecto)
+    [392,523,659].forEach((f, i) => nota(f, i * 0.07, 0.3, 'triangle', 0.18));
+    nota(784, 0.21, 0.8, 'triangle', 0.24);
+  }
+}
+
+function winSoundHtml(elegido) {
+  return WIN_SOUNDS.map(w =>
+    `<button class="gh-ws" data-ws="${w.id}"${w.id === elegido ? ' data-picked="1"' : ''}>
+      <span class="gh-ws-e">${w.emoji}</span>
+      <span class="gh-ws-t"><b>${w.nom}</b><span>${w.desc}</span></span>
+      <span class="gh-ws-play">▶</span>
+    </button>`).join('');
+}
+
 function renderMiiCard(myName, teamName) {
   const m = loadMyMii(myName);
   const soloSwatches = colorSwatchesHtml('solo', m.color);
@@ -2293,6 +2379,9 @@ function renderMiiCard(myName, teamName) {
         <div class="gh-mii-opts">${soloSwatches}</div>
       </div>
       ${teamRowHtml}
+      <div class="gh-ws-sep"></div>
+      <div class="gh-mii-sub">🔊 Tu sonido de victoria — suena en la pantalla grande cuando ganás un duelo. Tocá para escucharlo.</div>
+      <div class="gh-ws-list">${winSoundHtml(m.winSound || 'fanfarria')}</div>
       <button class="gh-mii-save" id="gh-mii-save">Guardar</button>
       <div class="gh-mii-status" id="gh-mii-status"></div>
     </div>
@@ -2311,6 +2400,17 @@ function wireMiiCard(myName, teamName) {
   }
   wireGroup('solo', _myMii);
   if (teamName) wireGroup('team', _myTeamMii);
+
+  // Sonido de victoria: al tocar se escucha y queda elegido
+  document.querySelectorAll('.gh-ws').forEach(b => {
+    b.addEventListener('click', () => {
+      document.querySelectorAll('.gh-ws').forEach(x => x.removeAttribute('data-picked'));
+      b.setAttribute('data-picked', '1');
+      _myMii.winSound = b.getAttribute('data-ws');
+      try { tocarWinSound(_myMii.winSound); } catch (e) {}
+      if (navigator.vibrate) navigator.vibrate(18);
+    });
+  });
 
   const btn = document.getElementById('gh-mii-save');
   if (!btn) return;
