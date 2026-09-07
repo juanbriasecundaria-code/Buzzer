@@ -5633,7 +5633,10 @@ function goTab(tab) {
   function ir(){
     var h = (location.hash || '').replace('#','').trim();
     var validas = ['reglas','fase1','fase2','impostor','final'];
-    if (validas.indexOf(h) !== -1) { try { goTab(h); } catch(e){} }
+    if (validas.indexOf(h) === -1) return;
+    // Venís de un acceso directo: el splash sobra, saltamos derecho a la pestaña
+    try { if (typeof forceHideSplash === 'function') forceHideSplash(); } catch(e){}
+    try { goTab(h); } catch(e){}
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', function(){ setTimeout(ir, 350); });
   else setTimeout(ir, 350);
@@ -18303,8 +18306,12 @@ function reapplyStateAndRerender() {
 function dismissSplash() {
   const s = document.getElementById('splash');
   if (!s || s.classList.contains('splash-out')) return;
-  // Desde la pantalla del logo siempre se entra a Reglas (nunca a otra pestaña)
-  if (typeof activateTab === 'function') activateTab('reglas');
+  // Desde la pantalla del logo se entra a Reglas, salvo que el enlace pida otra
+  // pestaña (ej. el acceso directo del HUB: velada.html#impostor).
+  const pedida = (location.hash || '').replace('#', '').trim();
+  const validas = ['reglas', 'fase1', 'fase2', 'impostor', 'final'];
+  const destino = validas.indexOf(pedida) !== -1 ? pedida : 'reglas';
+  if (typeof activateTab === 'function') activateTab(destino);
   s.classList.add('splash-out');
   const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   setTimeout(() => { if (s) s.style.display = 'none'; }, 750);
