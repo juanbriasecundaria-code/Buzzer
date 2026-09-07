@@ -383,6 +383,11 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
 body { animation: appEnter .32s ease-out both; }
 @media (prefers-reduced-motion: reduce) { body { animation: none } }
 .skip-splash #splash{display:none!important}
+
+  .game-btn.game-impostor{border-color:rgba(255,95,95,.3)}
+  .game-btn.game-impostor:hover{border-color:rgba(255,95,95,.6);
+    box-shadow:0 8px 22px -10px rgba(255,95,95,.45)}
+  .game-btn.game-impostor .game-btn-icon{filter:drop-shadow(0 0 10px rgba(255,95,95,.35))}
 </style>
 </head>
 <body>
@@ -457,6 +462,15 @@ body { animation: appEnter .32s ease-out both; }
       <div class="game-btn-info">
         <span class="game-btn-name">El Erudito</span>
         <span class="game-btn-sub">Preguntas de aproximación numérica</span>
+      </div>
+      <span class="game-arrow">›</span>
+    </a>
+    <!-- El Impostor vive dentro de velada.html: entramos directo a su pestaña -->
+    <a class="game-btn game-impostor" href="velada.html#impostor">
+      <span class="game-btn-icon">🕵️</span>
+      <div class="game-btn-info">
+        <span class="game-btn-name">El Impostor</span>
+        <span class="game-btn-sub">Ronda especial · palabra secreta y votación</span>
       </div>
       <span class="game-arrow">›</span>
     </a>

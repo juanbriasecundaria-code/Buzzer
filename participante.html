@@ -597,6 +597,71 @@ body { animation: appEnter .32s ease-out both; }
   .gn-espera-t{font-size:15px;font-weight:800;color:var(--text);margin-top:.5rem}
   .gn-espera-s{font-size:12px;color:var(--muted);margin-top:.2rem}
   @media (prefers-reduced-motion:reduce){.gn-dot{animation:none}}
+
+  /* ── Entrada escalonada de las tarjetas ── */
+  .gh-in{ animation: ghIn .42s cubic-bezier(.2,1.05,.35,1) both; animation-delay: var(--d, 0ms); }
+  @keyframes ghIn{ from{opacity:0; transform:translateY(14px)} to{opacity:1; transform:none} }
+
+  /* ── Transición entre pestañas ── */
+  .slide-der{ animation: slDer .34s cubic-bezier(.2,1,.35,1) both; }
+  .slide-izq{ animation: slIzq .34s cubic-bezier(.2,1,.35,1) both; }
+  @keyframes slDer{ from{opacity:0; transform:translateX(22px)} to{opacity:1; transform:none} }
+  @keyframes slIzq{ from{opacity:0; transform:translateX(-22px)} to{opacity:1; transform:none} }
+
+  /* ── Números que se mueven ── */
+  .num-pop{ animation: numPop .45s cubic-bezier(.2,1.5,.4,1); }
+  @keyframes numPop{ 0%{transform:scale(1)} 45%{transform:scale(1.18)} 100%{transform:scale(1)} }
+
+  /* ── Flecha de movimiento en el puesto ── */
+  .gr-mov{ font-size:11px; font-weight:900; margin-left:4px; vertical-align:middle;
+    animation: movIn .5s cubic-bezier(.2,1.4,.4,1) both; }
+  .gr-mov.sube{ color:#4cdb7a }
+  .gr-mov.baja{ color:var(--danger) }
+  @keyframes movIn{ from{opacity:0; transform:translateY(6px)} to{opacity:1; transform:none} }
+
+  /* ── Cuánto falta para el de arriba ── */
+  .gh-dist{ margin:-.35rem 0 .7rem; padding:.55rem .7rem; border-radius:11px;
+    background:var(--surface2); font-size:11.5px; color:var(--muted); line-height:1.45 }
+  .gh-dist b{ color:var(--text); font-weight:900 }
+  .gh-dist.lider{ background:rgba(245,200,66,.1); color:#f5c842 }
+  .gh-dist.lider b{ color:#f5c842 }
+  .gh-dist.empate{ background:rgba(96,180,240,.1); color:#60b4f0 }
+  .gd-quien{ opacity:.75 }
+  .gd-bar{ height:4px; border-radius:99px; background:rgba(255,255,255,.07);
+    overflow:hidden; margin-top:.4rem }
+  .gd-fill{ height:100%; border-radius:99px; background:var(--accent);
+    transition:width .7s cubic-bezier(.2,.9,.3,1) }
+
+  /* ── Aviso breve (te pasaron / subiste) ── */
+  .gh-aviso{ position:fixed; left:50%; transform:translateX(-50%) translateY(-16px);
+    top:calc(env(safe-area-inset-top) + .6rem); z-index:9700;
+    display:flex; align-items:center; gap:.55rem; max-width:92vw;
+    background:var(--surface); border:1.5px solid var(--border2); border-radius:99px;
+    padding:.55rem 1rem; box-shadow:0 8px 30px rgba(0,0,0,.6);
+    opacity:0; pointer-events:none;
+    transition:opacity .3s ease, transform .38s cubic-bezier(.2,1.2,.35,1) }
+  .gh-aviso.show{ opacity:1; transform:translateX(-50%) translateY(0) }
+  .ga-e{ font-size:20px; line-height:1; flex-shrink:0 }
+  .ga-t{ display:flex; flex-direction:column; min-width:0 }
+  .ga-t b{ font-size:13px; font-weight:800; color:var(--text); line-height:1.2 }
+  .ga-t span{ font-size:10.5px; color:var(--muted) }
+
+  /* ── Feedback al tocar ── */
+  .gh-acc summary, .gh-card, .gh-buzz-link, .gh-cert-btn, .gh-switch{
+    transition: transform .12s cubic-bezier(.2,1,.3,1), border-color .2s }
+  .gh-acc summary:active, .gh-cert-btn:active, .gh-switch:active{ transform:scale(.985) }
+  .gh-b-opt:active, .gh-b-opt-f2:active, .gh-mii-color:active{ transform:scale(.92) }
+
+  /* ── El podio de "en vivo" reacciona ── */
+  .gn-p.movio{ animation: pMovio 1.5s ease }
+  @keyframes pMovio{
+    0%{ background:rgba(200,240,96,.22) }
+    100%{ background:rgba(255,255,255,.03) } }
+
+  @media (prefers-reduced-motion: reduce){
+    .gh-in, .slide-der, .slide-izq, .num-pop, .gr-mov, .gn-p.movio{ animation:none }
+    .gh-acc summary:active, .gh-cert-btn:active{ transform:none }
+  }
 </style>
 </head>
 <body>
@@ -1210,6 +1275,22 @@ function ultimosResultados(n) {
   return out.reverse().slice(0, n || 3);
 }
 
+let _podioPrev = null;
+
+// Marca las filas del podio cuyo ocupante cambió respecto de la última vez
+function marcarCambiosPodio() {
+  const top = ranked('f1').slice(0, 3).map(x => x.n);
+  if (_podioPrev) {
+    top.forEach((n, i) => {
+      if (_podioPrev[i] !== n) {
+        const fila = document.querySelectorAll('.gn-p')[i];
+        if (fila) { fila.classList.remove('movio'); void fila.offsetWidth; fila.classList.add('movio'); }
+      }
+    });
+  }
+  _podioPrev = top;
+}
+
 function renderNocheEnVivo() {
   const e = estadoNoche();
 
@@ -1286,6 +1367,7 @@ function renderSelection() {
     <div class="gh-sel-hint">¿No sos ninguno? Pedile al organizador que te agregue.</div>
     ${safeBlock(() => renderNocheEnVivo())}
   `;
+  setTimeout(() => { try { marcarCambiosPodio(); } catch (e) {} }, 60);
   app.querySelectorAll('.gh-sel-btn').forEach(btn => {
     btn.addEventListener('click', () => {
       if (navigator.vibrate) navigator.vibrate(30);
@@ -1548,6 +1630,78 @@ function apuestasAbiertas() {
 }
 
 
+
+// ── NÚMEROS QUE SE MUEVEN ────────────────────────────────────
+// Antes los puntajes saltaban de golpe y el cambio pasaba desapercibido.
+function contarHasta(el, desde, hasta, dur) {
+  if (!el || desde === hasta) { if (el) el.textContent = hasta; return; }
+  dur = dur || 650;
+  const t0 = performance.now();
+  const dec = (hasta % 1 !== 0) || (desde % 1 !== 0);
+  function paso(t) {
+    const k = Math.min(1, (t - t0) / dur);
+    const e = 1 - Math.pow(1 - k, 3);
+    const v = desde + (hasta - desde) * e;
+    el.textContent = dec ? v.toFixed(1) : Math.round(v);
+    if (k < 1) requestAnimationFrame(paso);
+    else { el.textContent = hasta; el.classList.add('num-pop');
+           setTimeout(() => el.classList.remove('num-pop'), 500); }
+  }
+  requestAnimationFrame(paso);
+}
+
+// ── POSICIÓN CON FLECHA DE MOVIMIENTO ────────────────────────
+// Guarda dónde estabas la última vez para poder decirte si subiste o bajaste.
+function leerPosPrevia(who) {
+  try { const v = localStorage.getItem('ndj_pos_' + who); return v ? JSON.parse(v) : null; }
+  catch (e) { return null; }
+}
+function guardarPos(who, pos, pts) {
+  try { localStorage.setItem('ndj_pos_' + who, JSON.stringify({ pos, pts, ts: Date.now() })); }
+  catch (e) {}
+}
+
+// A cuántos puntos estás del que tenés arriba
+function distanciaArriba(myName) {
+  const r = ranked('f1');
+  const i = r.findIndex(x => x.n === myName);
+  if (i <= 0) return null;                     // sos primero o no estás
+  const arriba = r[i - 1];
+  return { puesto: i, faltan: Math.max(0, (arriba.total || 0) - (r[i].total || 0)),
+           quien: arriba.n };
+}
+
+// ── AVISO DE QUE TE PASARON ──────────────────────────────────
+let _ultimaPos = null;
+function chequearAdelantamiento(myName) {
+  const r = ranked('f1');
+  const pos = r.findIndex(x => x.n === myName) + 1;
+  if (!pos) return;
+  if (_ultimaPos !== null && pos > _ultimaPos) {
+    const quien = r[pos - 2];                  // el que quedó justo arriba
+    avisoBreve('📉', 'Te pasaron', quien ? 'Ahora ' + shortName(quien.n, true) + ' está arriba tuyo' : '');
+  } else if (_ultimaPos !== null && pos < _ultimaPos) {
+    avisoBreve('📈', '¡Subiste!', 'Ahora vas ' + pos + '°');
+  }
+  _ultimaPos = pos;
+}
+
+function avisoBreve(emoji, titulo, sub) {
+  let el = document.getElementById('gh-aviso');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'gh-aviso'; el.className = 'gh-aviso';
+    document.body.appendChild(el);
+  }
+  el.innerHTML = '<span class="ga-e">' + emoji + '</span>' +
+                 '<span class="ga-t"><b>' + escapeHtml(titulo) + '</b>' +
+                 (sub ? '<span>' + escapeHtml(sub) + '</span>' : '') + '</span>';
+  el.classList.remove('show'); void el.offsetWidth; el.classList.add('show');
+  buzz(30);
+  clearTimeout(avisoBreve._t);
+  avisoBreve._t = setTimeout(() => el.classList.remove('show'), 3200);
+}
+
 // ── RESUMEN DE UN VISTAZO ────────────────────────────────────
 // Los tres datos que uno mira cada vez que saca el celular: en qué puesto va,
 // cuántos puntos tiene y cómo viene su récord. Antes había que scrollear y
@@ -1571,10 +1725,22 @@ function renderResumen(myName, myIdx, teamIdx) {
   const r = miResumen(myName, myIdx, teamIdx);
   const medalla = r.pos1 === 1 ? '🥇' : r.pos1 === 2 ? '🥈' : r.pos1 === 3 ? '🥉' : '';
   const cls = r.pos1 === 1 ? ' lider' : '';
+
+  // Comparación con la última vez que miró: el dato que más engancha
+  const prev = leerPosPrevia(myName);
+  let flecha = '';
+  if (prev && prev.pos && r.pos1 && prev.pos !== r.pos1) {
+    const d = prev.pos - r.pos1;   // positivo = subió
+    flecha = d > 0
+      ? `<span class="gr-mov sube">▲${d}</span>`
+      : `<span class="gr-mov baja">▼${Math.abs(d)}</span>`;
+  }
+  if (r.pos1) guardarPos(myName, r.pos1, r.pts1);
+
   return `<div class="gh-resumen${cls}">
     <div class="gr-item">
       <div class="gr-lbl">Puesto</div>
-      <div class="gr-val">${medalla}${r.pos1 || '—'}<span class="gr-sub">/${r.total}</span></div>
+      <div class="gr-val">${medalla}${r.pos1 || '—'}<span class="gr-sub">/${r.total}</span>${flecha}</div>
     </div>
     <div class="gr-sep"></div>
     <div class="gr-item">
@@ -1591,6 +1757,30 @@ function renderResumen(myName, myIdx, teamIdx) {
       <div class="gr-lbl">Tu equipo</div>
       <div class="gr-val small">${r.pos2 || '—'}<span class="gr-sub">°</span> · ${r.pts2}<span class="gr-sub">pt</span></div>
     </div>` : ''}
+  </div>
+  ${safeBlock(() => renderDistancia(myName))}`;
+}
+
+// Cuánto te falta para pasar al de arriba: da un objetivo concreto
+function renderDistancia(myName) {
+  const d = distanciaArriba(myName);
+  if (!d) {
+    const r = ranked('f1');
+    const yo = r.find(x => x.n === myName);
+    if (yo && yo.total > 0 && r[0] && r[0].n === myName && r[1]) {
+      const vent = yo.total - (r[1].total || 0);
+      return `<div class="gh-dist lider">👑 Vas primero · <b>${vent}</b> de ventaja sobre ${escapeHtml(shortName(r[1].n, true))}</div>`;
+    }
+    return '';
+  }
+  if (d.faltan === 0) {
+    return `<div class="gh-dist empate">⚖️ Empatado con ${escapeHtml(shortName(d.quien, true))} por el ${d.puesto}° puesto</div>`;
+  }
+  const pct = Math.max(6, Math.min(100, 100 - (d.faltan * 12)));
+  return `<div class="gh-dist">
+    <div class="gd-txt">A <b>${d.faltan}</b> ${d.faltan === 1 ? 'punto' : 'puntos'} del ${d.puesto}° puesto
+      <span class="gd-quien">(${escapeHtml(shortName(d.quien, true))})</span></div>
+    <div class="gd-bar"><div class="gd-fill" style="width:${pct}%"></div></div>
   </div>`;
 }
 
@@ -1709,6 +1899,14 @@ function renderDashboard(myName) {
       <button class="gh-switch" id="gh-switch-btn">Cambiar de jugador</button>
     </div>
   `;
+  // Entrada escalonada: cada bloque entra 45 ms después del anterior, así la
+  // pantalla se arma sola en vez de aparecer entera de golpe.
+  Array.from(app.children).forEach((el, i) => {
+    if (i > 11) return;                       // más allá ya no se percibe
+    el.style.setProperty('--d', (i * 45) + 'ms');
+    el.classList.add('gh-in');
+  });
+
   document.getElementById('gh-switch-btn').addEventListener('click', () => {
     localStorage.removeItem('ndj_guest_who');
     render();
@@ -2945,6 +3143,7 @@ onSnapshot(doc(db, 'ndj', 'state'), (snap) => {
     const who = localStorage.getItem('ndj_guest_who');
     if (who) {
       checkMyNews(who);
+      chequearAdelantamiento(who);
       const wi = PLAYERS.indexOf(who);
       if (wi >= 0) chequearTurno(who, wi, teamIndexForPlayer(who));
     }

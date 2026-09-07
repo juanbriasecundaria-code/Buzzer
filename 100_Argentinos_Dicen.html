@@ -3492,12 +3492,8 @@ loadState(); syncUI(); syncScoreUI(); renderMetaBtn();
           el.style.fontSize = (26 + Math.random()*22) + 'px';
           el.style.setProperty('--drift', ((Math.random()-0.5)*140).toFixed(0) + 'px');
           el.style.setProperty('--dur', (2.6 + Math.random()*1.5).toFixed(2) + 's');
-          if(k === 0 && quien){
-            var tag = document.createElement('span');
-            tag.className = 'react-who';
-            tag.textContent = String(quien).split(' ')[0];
-            el.appendChild(tag);
-          }
+          // Sin etiqueta de autor: en los juegos por equipo mostraba
+          // "Equipo 1" y ensuciaba; el emoji solo se lee mejor.
           cont.appendChild(el);
           setTimeout(function(){ if(el.parentNode) el.parentNode.removeChild(el); }, 4600);
         }, k * (90 + Math.random()*130));
@@ -3505,8 +3501,15 @@ loadState(); syncUI(); syncScoreUI(); renderMetaBtn();
     }
   }
 
+  // initFirebase() puede haber corrido antes de que este módulo se definiera:
+  // en ese caso la llamada quedaba en la nada. Reintentamos al final.
+  window.__reactionsPendiente = true;
+
   window.initReactions = function(){
     if(typeof fbDb === 'undefined' || !fbDb) return;
+    // Solo en la pantalla de participantes (la que va al TV). En la del
+    // conductor los emojis tapan los controles y no aportan.
+    if(typeof MODE !== 'undefined' && MODE !== 'participant') return;
     try{
       var ref = fbDb.ref('velada/reactions').limitToLast(12);
       ref.on('child_added', function(snap){
@@ -3633,6 +3636,21 @@ window.veladaConn = function(estado){
   else if(estado === 'warn') d.classList.add('warn');
   else if(estado === 'err')  d.classList.add('err');
 };
+
+
+// Arranque propio de las reacciones: initFirebase() suele correr antes de que
+// este bloque exista, así que su llamada quedaba en la nada y los emojis nunca
+// aparecían. Reintentamos hasta que la conexión y el modo estén listos.
+(function esperarReacciones(intentos){
+  if(intentos > 40) return;                        // ~20 s y abandonamos
+  var hayDb   = (typeof fbDb !== 'undefined') && fbDb;
+  var hayModo = (typeof MODE === 'undefined') || (MODE !== null);
+  if(hayDb && hayModo){
+    try { if(window.initReactions) window.initReactions(); } catch(e){}
+    return;
+  }
+  setTimeout(function(){ esperarReacciones(intentos + 1); }, 500);
+})(0);
 
 </script>
 </body>
