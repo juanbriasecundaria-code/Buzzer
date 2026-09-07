@@ -16539,6 +16539,13 @@ let _tvWall = [], _tvWallIdx = 0, _tvWallTimer = null;
 // reintentaba). Mismo patrón que el bug de _tickerAnim y compañía.
 const TV_SCALE_MIN = 0.55, TV_SCALE_MAX = 2.0, TV_SCALE_STEP = 0.1;
 
+// reactToScoreChanges() (llamada desde renderTV, incluida su primera
+// ejecución de más abajo) necesita estas dos declaradas ya. Mismo motivo
+// que TV_SCALE_*: si vivían junto a la función, más abajo, quedaban en
+// Temporal Dead Zone en el primer render y tiraban ReferenceError.
+const _prevPts = { f1: null, f2: null };
+const _prevLeader = { f1: null, f2: null };
+
 // Blindado: un error acá no debe impedir que el resto del script (sync,
 // drag, QR, etc.) se termine de definir y ejecutar más abajo.
 try { renderTV(); } catch(e) { console.warn('renderTV inicial:', e); }
@@ -17268,8 +17275,9 @@ function tvCloseMoteOverlay() {
 // ── REACCIÓN A LOS CAMBIOS DE PUNTAJE ────────────────────────────────
 // El TV se actualizaba en silencio; ahora marca visualmente quién sumó y
 // avisa cuando cambia el puntero, que es el momento que más ruido genera.
-const _prevPts = { f1: null, f2: null };
-const _prevLeader = { f1: null, f2: null };
+// (_prevPts / _prevLeader se declaran más arriba, junto a las demás
+// variables que renderTV() necesita desde su primera ejecución — ver nota
+// de TDZ en ese bloque.)
 
 function reactToScoreChanges(phase, sorted) {
   const now = {};
@@ -17302,7 +17310,7 @@ function reactToScoreChanges(phase, sorted) {
   Object.keys(now).forEach(name => {
     if (before[name] === undefined || now[name] === before[name]) return;
     const up = now[name] > before[name];
-    const row = document.querySelector('.tv-rank-row[data-ent="' + CSS.escape(name).replace(/\\/g,'') + '"]')
+    const row = document.querySelector('.tv-rank-row[data-ent="' + CSS.escape(name).replace(/\\\\/g,'') + '"]')
              || [...document.querySelectorAll('.tv-rank-row')].find(r => r.dataset.ent === name);
     if (row) {
       row.classList.remove('pts-up','pts-down');
