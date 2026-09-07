@@ -552,6 +552,51 @@ body { animation: appEnter .32s ease-out both; }
     .gh-sel-btn{animation:none}
     .gh-sel-btn::after{display:none}
   }
+
+  /* ── La noche en vivo (bajo la selección) ── */
+  .gh-noche{margin-top:1.6rem;padding:1.1rem 1.15rem 1.2rem;border-radius:var(--radius-lg);
+    background:linear-gradient(170deg,var(--surface),var(--surface2));
+    border:1px solid var(--border2)}
+  .gn-head{display:flex;align-items:center;justify-content:space-between;
+    gap:.6rem;margin-bottom:.7rem;flex-wrap:wrap}
+  .gn-vivo{display:inline-flex;align-items:center;gap:.35rem;font-size:9.5px;
+    font-weight:800;letter-spacing:.16em;text-transform:uppercase;color:var(--muted)}
+  .gn-dot{width:6px;height:6px;border-radius:50%;background:#ff5f5f;
+    animation:gnLive 1.6s ease-in-out infinite}
+  @keyframes gnLive{0%,100%{opacity:1}50%{opacity:.3}}
+  .gn-fase{font-size:12.5px;font-weight:800;color:var(--accent)}
+  .gn-bar{height:5px;border-radius:99px;background:rgba(255,255,255,.07);overflow:hidden}
+  .gn-fill{height:100%;border-radius:99px;background:var(--accent);
+    transition:width .6s cubic-bezier(.2,.9,.3,1)}
+  .gn-prog{font-size:10.5px;color:var(--muted);margin-top:.35rem}
+
+  .gn-cols{display:grid;grid-template-columns:1fr;gap:1rem;margin-top:1rem}
+  @media (min-width:620px){ .gn-cols{grid-template-columns:1fr 1fr;gap:1.4rem} }
+  .gn-lbl{font-size:9px;font-weight:800;letter-spacing:.15em;text-transform:uppercase;
+    color:var(--muted);margin-bottom:.45rem}
+
+  .gn-podio{display:flex;flex-direction:column;gap:.3rem}
+  .gn-p{display:flex;align-items:center;gap:.45rem;padding:.35rem .5rem;
+    border-radius:9px;background:rgba(255,255,255,.03)}
+  .gn-med{font-size:13px;flex-shrink:0}
+  .gn-p-nom{flex:1;min-width:0;font-size:12.5px;font-weight:700;color:var(--text);
+    overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .gn-p-pts{font-size:13px;font-weight:900;color:var(--accent);flex-shrink:0}
+
+  .gn-ult{display:flex;flex-direction:column;gap:.3rem}
+  .gn-u{padding:.35rem .5rem;border-radius:9px;background:rgba(255,255,255,.03);
+    display:flex;flex-direction:column;gap:1px}
+  .gn-u-g{font-size:8.5px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;
+    color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .gn-u-t{font-size:12px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .gn-u-t b{color:var(--text);font-weight:800}
+
+  /* Antes de que arranque no mostramos tablas vacías */
+  .gh-noche.esperando{text-align:center;padding:1.6rem 1rem}
+  .gn-espera-emoji{font-size:34px;line-height:1}
+  .gn-espera-t{font-size:15px;font-weight:800;color:var(--text);margin-top:.5rem}
+  .gn-espera-s{font-size:12px;color:var(--muted);margin-top:.2rem}
+  @media (prefers-reduced-motion:reduce){.gn-dot{animation:none}}
 </style>
 </head>
 <body>
@@ -1132,6 +1177,99 @@ function avatarHtml(name, size) {
 
 // ── Rendering ──────────────────────────────────────────────
 
+
+// ── LA NOCHE EN VIVO (pantalla de selección) ─────────────────
+// Debajo de la grilla, para que quien agarra el celular vea cómo viene todo
+// antes de identificarse. En escritorio además llena el espacio que sobraba.
+function estadoNoche() {
+  const f1Tot = (F1_FIXTURE || []).length;
+  const f1Hay = (F1_FIXTURE || []).filter(m => (latestState.f1 || {})[m[0]+'-'+m[1]+'-'+m[2]]).length;
+  const f2Tot = (F2_FIXTURE || []).length;
+  const f2Hay = (F2_FIXTURE || []).filter(m => (latestState.f2 || {})[m[0]+'-'+m[1]+'-'+m[2]]).length;
+  const imp   = ((latestState.impostor || {}).rounds || []).length;
+
+  let fase, icono, hechos, total;
+  if (f1Hay < f1Tot)      { fase = 'Fase 1 · Individual'; icono = '🎮'; hechos = f1Hay; total = f1Tot; }
+  else if (f2Hay < f2Tot) { fase = 'Fase 2 · Equipos';    icono = '👥'; hechos = f2Hay; total = f2Tot; }
+  else                    { fase = 'Fase final';          icono = '🏆'; hechos = 1;     total = 1; }
+
+  const arrancó = (f1Hay + f2Hay + imp) > 0;
+  return { fase, icono, hechos, total, arrancó, f1Hay, f1Tot, f2Hay, f2Tot };
+}
+
+function ultimosResultados(n) {
+  const out = [];
+  (F1_FIXTURE || []).forEach(m => {
+    const r = (latestState.f1 || {})[m[0]+'-'+m[1]+'-'+m[2]];
+    if (r) out.push({ f: 'f1', r, a: PLAYERS[m[1]], b: PLAYERS[m[2]], g: gameNameF1(m[3]) });
+  });
+  (F2_FIXTURE || []).forEach(m => {
+    const r = (latestState.f2 || {})[m[0]+'-'+m[1]+'-'+m[2]];
+    if (r) out.push({ f: 'f2', r, a: TEAMS[m[1]], b: TEAMS[m[2]], g: gameNameF2(m[3]) });
+  });
+  return out.reverse().slice(0, n || 3);
+}
+
+function renderNocheEnVivo() {
+  const e = estadoNoche();
+
+  // Todavía no arrancó: no tiene sentido mostrar tablas vacías
+  if (!e.arrancó) {
+    return `<div class="gh-noche esperando">
+      <div class="gn-espera-emoji">🎲</div>
+      <div class="gn-espera-t">La noche está por empezar</div>
+      <div class="gn-espera-s">Elegí quién sos y prepará el pulgar</div>
+    </div>`;
+  }
+
+  const pct = e.total ? Math.round(e.hechos / e.total * 100) : 0;
+  const top = ranked('f1').slice(0, 3).filter(x => x.total > 0);
+  const med = ['🥇','🥈','🥉'];
+
+  const podio = top.length ? `
+    <div class="gn-col">
+      <div class="gn-lbl">Van ganando</div>
+      <div class="gn-podio">
+        ${top.map((x, i) => `<div class="gn-p">
+          <span class="gn-med">${med[i]}</span>
+          ${avatarHtml(x.n, 26)}
+          <span class="gn-p-nom">${escapeHtml(shortName(x.n, true))}</span>
+          <span class="gn-p-pts">${x.total}</span>
+        </div>`).join('')}
+      </div>
+    </div>` : '';
+
+  const ult = ultimosResultados(3);
+  const recientes = ult.length ? `
+    <div class="gn-col">
+      <div class="gn-lbl">Recién jugado</div>
+      <div class="gn-ult">
+        ${ult.map(x => {
+          const esF1 = x.f === 'f1';
+          if (x.r.winner === 'empate') {
+            return `<div class="gn-u"><span class="gn-u-g">${escapeHtml(x.g)}</span>
+              <span class="gn-u-t">${escapeHtml(shortName(x.a, esF1))} y ${escapeHtml(shortName(x.b, esF1))} empataron</span></div>`;
+          }
+          const lista = esF1 ? PLAYERS : TEAMS;
+          const gan = lista[x.r.winner] || x.a;
+          const per = (gan === x.a) ? x.b : x.a;
+          return `<div class="gn-u"><span class="gn-u-g">${escapeHtml(x.g)}</span>
+            <span class="gn-u-t"><b>${escapeHtml(shortName(gan, esF1))}</b> le ganó a ${escapeHtml(shortName(per, esF1))}</span></div>`;
+        }).join('')}
+      </div>
+    </div>` : '';
+
+  return `<div class="gh-noche">
+    <div class="gn-head">
+      <span class="gn-vivo"><span class="gn-dot"></span>En vivo</span>
+      <span class="gn-fase">${e.icono} ${escapeHtml(e.fase)}</span>
+    </div>
+    <div class="gn-bar"><div class="gn-fill" style="width:${pct}%"></div></div>
+    <div class="gn-prog">${e.hechos} de ${e.total} duelos jugados</div>
+    <div class="gn-cols">${podio}${recientes}</div>
+  </div>`;
+}
+
 function renderSelection() {
   const app = document.getElementById('app');
   // Esta pantalla usa todo el ancho disponible; el resto del panel no
@@ -1146,6 +1284,7 @@ function renderSelection() {
       ${PLAYERS.map((p, i) => `<button class="gh-sel-btn" data-p="${escapeHtml(p)}" style="animation-delay:${i * 45}ms">${avatarHtml(p, 62)}<span>${escapeHtml(p)}</span></button>`).join('')}
     </div>
     <div class="gh-sel-hint">¿No sos ninguno? Pedile al organizador que te agregue.</div>
+    ${safeBlock(() => renderNocheEnVivo())}
   `;
   app.querySelectorAll('.gh-sel-btn').forEach(btn => {
     btn.addEventListener('click', () => {
