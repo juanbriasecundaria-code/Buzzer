@@ -5642,6 +5642,24 @@ window._bc = (() => { try { return new BroadcastChannel('ndj_sync'); } catch(e) 
 window._ndjState = localStorage.getItem('ndj_state') || '{}';
 
 function saveState() {
+  // El roster viaja SIEMPRE con el estado. Antes solo se publicaba al editarlo
+  // desde ciertas pantallas, así que si agregabas o sacabas un jugador por otra
+  // vía, participante.html seguía mostrando la lista vieja.
+  try {
+    if (Array.isArray(PLAYERS) && PLAYERS.length) state.playersSnapshot = PLAYERS.slice();
+    if (Array.isArray(TEAMS)   && TEAMS.length)   state.teamsSnapshot   = TEAMS.slice();
+    state.rosterTs = Date.now();
+  } catch (e) {}
+  // "¿Quién lo dijo?" y el HUB leen los equipos de otro canal (RTDB), que solo
+  // se publicaba al abrir velada.html: un equipo creado después no llegaba.
+  // Republicamos, pero solo si de verdad cambió, para no escribir de más.
+  try {
+    const firma = JSON.stringify(TEAMS);
+    if (firma !== window._qldTeamsFirma && typeof window._pushQldTeams === 'function') {
+      window._qldTeamsFirma = firma;
+      window._pushQldTeams();
+    }
+  } catch (e) {}
   const json = JSON.stringify(state);
   // Si el almacenamiento local está lleno (pasa con muchas fotos cargadas),
   // setItem lanza y ANTES eso cortaba la función entera: no llegaba nada a la
@@ -5778,6 +5796,8 @@ function markLocalTs(key, ts) {
         }catch(e){ console.warn('No se pudo publicar los equipos a QLD', e); }
       }
       pushQldTeams();
+      // Queda accesible para republicar cuando se editan jugadores o equipos
+      window._pushQldTeams = pushQldTeams;
 
       // Leemos el resultado ya finalizado de la ronda (1°/2°/3° puesto → 3/2/1 pts)
       qldDb.ref('velada/qld/result').on('value', snap => {
