@@ -465,7 +465,9 @@ body { animation: appEnter .32s ease-out both; }
     </a>
     <!-- El Impostor vive dentro de velada.html, que está protegida por
          contraseña: pasamos por el mismo modal y después saltamos a su pestaña. -->
-    <a class="game-btn game-impostor" href="#" onclick="openPwModal(event, 'impostor')">
+    <!-- Entra directo: el Impostor se juega en grupo y no expone puntajes ni
+         configuración. Las demás pestañas quedan bloqueadas por contraseña. -->
+    <a class="game-btn game-impostor" href="velada.html?solo=1#impostor">
       <span class="game-btn-icon">🕵️</span>
       <div class="game-btn-info">
         <span class="game-btn-name">El Impostor</span>
