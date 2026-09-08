@@ -7,6 +7,11 @@
 <meta http-equiv="Expires" content="0">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>La Velada del Año</title>
+<!-- Tipografía con serifas para la portada del diario. Si no carga, Georgia
+     (que está en todos los sistemas) cumple el mismo rol. -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;0,900;1,700&display=swap" rel="stylesheet">
 <!-- ── PWA / Agregar a pantalla de inicio ── -->
 <meta name="theme-color" content="#c8f060">
 <meta name="mobile-web-app-capable" content="yes">
@@ -3325,60 +3330,109 @@ body.solo-impostor #tv-btn{ opacity:.42 }
 /* ── El diario de mañana ──────────────────────────────────────────────
    Papel claro y tipografía con serifas: es lo único de toda la app que
    rompe con la estética oscura, y esa es justamente la gracia. */
-.diario{ background:#f4f1e8; color:#16150f; padding:1.5rem 1.3rem 1.2rem;
-  font-family:Georgia,'Times New Roman',serif }
-.dia-cab{ text-align:center }
-.dia-nombre{ font-size:44px; font-size:clamp(32px,10vw,52px); font-weight:900; letter-spacing:.02em;
-  line-height:1; font-family:Georgia,'Times New Roman',serif }
-.dia-sub{ font-size:9.5px; letter-spacing:.14em; text-transform:uppercase;
-  color:#5a564a; margin-top:.4rem }
-.dia-regla{ height:3px; background:#16150f; margin:.7rem 0 1rem;
+.diario{ position:relative; color:#16150f; padding:1.9rem 1.6rem 1.3rem;
+  font-family:Georgia,'Times New Roman',serif;
+  /* Papel: base cálida con una veladura y un grano muy sutil, para que no
+     se vea como un rectángulo de color plano. */
+  background-color:#f4f1e8;
+  background-image:
+    radial-gradient(ellipse at 18% 8%, rgba(255,255,255,.55), transparent 55%),
+    radial-gradient(ellipse at 82% 92%, rgba(120,105,70,.06), transparent 60%),
+    repeating-linear-gradient(0deg, rgba(22,21,15,.014) 0 1px, transparent 1px 3px);
+  box-shadow:inset 0 0 90px rgba(120,100,60,.07) }
+
+/* Cabecera: nombre al centro y datos de imprenta a los costados */
+.dia-cab{ display:grid; grid-template-columns:1fr auto 1fr; align-items:center; gap:.6rem }
+.dia-cab-lado{ font-size:8.5px; letter-spacing:.12em; text-transform:uppercase;
+  color:#6b6656; line-height:1.5 }
+.dia-cab-lado.izq{ text-align:left }
+.dia-cab-lado.der{ text-align:right }
+.dia-cab-centro{ text-align:center; min-width:0 }
+.dia-nombre{ font-size:46px; font-size:clamp(34px,11vw,62px); font-weight:900;
+  letter-spacing:.03em; line-height:.95;
+  font-family:'Playfair Display',Georgia,'Times New Roman',serif;
+  text-shadow:0 1px 0 rgba(255,255,255,.5) }
+.dia-lema{ font-size:9.5px; font-style:italic; color:#6b6656; margin-top:.3rem;
+  letter-spacing:.02em }
+
+/* Reglas horizontales: la gruesa, la fina y la doble */
+.dia-regla{ height:3px; background:#16150f; margin:.75rem 0 0;
   border-top:1px solid #16150f; border-bottom:1px solid #16150f; box-sizing:content-box }
+.dia-regla.fina{ height:0; background:none; border-top:1px solid #16150f;
+  border-bottom:none; margin:0 0 1.1rem }
+.dia-regla.doble{ height:0; background:none; border-top:3px double #16150f;
+  border-bottom:none; margin:1.2rem 0 .9rem }
 
-.dia-titular{ font-size:36px; font-size:clamp(26px,8.5vw,44px); font-weight:900; line-height:1.03;
-  letter-spacing:-.03em; text-align:center; margin-bottom:.7rem;
-  text-transform:uppercase }
-.dia-bajada{ font-size:13px; line-height:1.6; color:#2e2b22; text-align:center;
-  font-style:italic; padding:0 .3rem; border-bottom:1px solid #c9c3b2;
-  padding-bottom:.9rem; margin-bottom:.9rem }
+/* Fecha y precio, entre las dos reglas */
+.dia-fecha{ display:flex; justify-content:space-between; align-items:center;
+  gap:.6rem; padding:.35rem 0; font-size:9px; letter-spacing:.14em;
+  text-transform:uppercase; color:#5a564a }
+.dia-precio{ font-style:italic; text-transform:none; letter-spacing:.02em; font-size:9.5px }
 
-/* La foto ocupaba todo el ancho y recortaba la cara en un primerísimo plano.
-   Ahora es un retrato contenido, centrado, con proporción de foto de diario. */
-.dia-foto{ margin:0 auto 1rem; max-width:340px }
-.dia-fotos{ display:flex; gap:.5rem; justify-content:center }
+/* Volanta del titular */
+.dia-kicker{ text-align:center; font-size:9px; font-weight:700; letter-spacing:.24em;
+  text-transform:uppercase; color:#8a3b2a; margin-bottom:.5rem }
+
+.dia-titular{ font-size:36px; font-size:clamp(26px,8.5vw,46px); font-weight:900;
+  line-height:1.02; letter-spacing:-.025em; text-align:center; margin-bottom:.75rem;
+  text-transform:uppercase;
+  font-family:'Playfair Display',Georgia,'Times New Roman',serif }
+
+/* Bajada con capitular: el primer carácter grande, como en los diarios */
+.dia-bajada{ font-size:13.5px; line-height:1.62; color:#2e2b22; text-align:center;
+  font-style:italic; padding:0 .4rem; max-width:58ch; margin:0 auto }
+
+/* Fotos */
+.dia-foto{ margin:1.2rem auto 0; max-width:360px }
+.dia-fotos{ display:flex; gap:.55rem; justify-content:center }
 .dia-fotos figure{ margin:0; flex:1; min-width:0 }
 .dia-foto img{ width:100%; aspect-ratio:4/5; object-fit:cover; object-position:center 25%;
   display:block; border:1px solid #16150f;
-  /* Tratamiento de foto de diario: blanco y negro con negros profundos y
-     algo de nitidez. Además de quedar mejor, disimula la baja resolución. */
   filter:grayscale(1) contrast(1.22) brightness(1.06) saturate(0);
-  image-rendering:auto }
-.dia-fotos figcaption{ font-size:9px; font-weight:700; letter-spacing:.06em;
-  text-transform:uppercase; color:#5a564a; text-align:center; margin-top:.25rem }
-.dia-foto.duo{ max-width:300px }
-.dia-epigrafe{ font-size:9.5px; color:#5a564a; margin-top:.4rem; font-style:italic;
-  text-align:center }
+  box-shadow:0 2px 10px rgba(22,21,15,.16) }
+.dia-fotos figcaption{ font-size:9px; font-weight:700; letter-spacing:.14em;
+  text-transform:uppercase; color:#5a564a; text-align:center; margin-top:.3rem }
+.dia-foto.duo{ max-width:320px }
+.dia-epigrafe{ font-size:9.5px; color:#5a564a; margin-top:.5rem; font-style:italic;
+  text-align:center; line-height:1.45 }
 
+/* Notas en columnas con filete entre ellas */
 .dia-notas{ display:grid; grid-template-columns:1fr; gap:0 }
-@media (min-width:560px){ .dia-notas{ grid-template-columns:1fr 1fr 1fr; gap:0 } }
-.dia-nota{ padding:.75rem 0; border-top:1px solid #c9c3b2 }
+@media (min-width:480px){ .dia-notas{ grid-template-columns:repeat(3,minmax(0,1fr)) } }
+.dia-nota{ padding:.8rem 0; border-top:1px solid #c9c3b2 }
 @media (min-width:560px){
-  .dia-nota{ padding:.2rem .7rem; border-top:none; border-left:1px solid #c9c3b2 }
+  .dia-nota{ padding:.1rem .85rem; border-top:none; border-left:1px solid #c9c3b2 }
   .dia-nota:first-child{ border-left:none; padding-left:0 }
   .dia-nota:last-child{ padding-right:0 }
 }
-.dia-vol{ font-size:8.5px; font-weight:700; letter-spacing:.2em; text-transform:uppercase;
-  color:#8a3b2a; margin-bottom:.25rem }
-.dia-nt{ font-size:14px; font-weight:900; line-height:1.2; margin-bottom:.3rem }
-.dia-nx{ font-size:11.5px; line-height:1.55; color:#2e2b22 }
+.dia-vol{ font-size:8.5px; font-weight:700; letter-spacing:.22em; text-transform:uppercase;
+  color:#8a3b2a; margin-bottom:.3rem }
+.dia-nt{ font-size:15px; font-weight:900; line-height:1.18; margin-bottom:.35rem;
+  font-family:'Playfair Display',Georgia,serif }
+.dia-nx{ font-size:11.5px; line-height:1.62; color:#2e2b22; text-align:justify;
+  hyphens:auto }
+/* Capitular en la primera nota */
+.dia-nota:first-child .dia-nx::first-letter{ font-size:2.05em; font-weight:900;
+  float:left; line-height:.86; padding:.06em .1em 0 0; color:#16150f }
 
-.dia-pie{ margin-top:1rem; padding-top:.6rem; border-top:3px double #16150f;
-  font-size:9px; letter-spacing:.1em; text-transform:uppercase; color:#5a564a;
+/* Franja de cifras */
+.dia-franja{ display:flex; flex-wrap:wrap; align-items:center; justify-content:center;
+  gap:.45rem; margin-top:1.1rem; padding:.6rem .5rem;
+  border-top:1px solid #c9c3b2; border-bottom:1px solid #c9c3b2;
+  font-size:10px; letter-spacing:.06em; text-transform:uppercase; color:#5a564a }
+.dia-fr-item b{ font-size:13px; color:#16150f; font-weight:900; letter-spacing:0 }
+.dia-fr-sep{ color:#b3aa93; font-size:7px; margin:0 .5rem }
+.dia-fr-item{ white-space:nowrap; margin:0 .1rem }
+
+.dia-pie{ margin-top:1rem; padding-top:.7rem; border-top:3px double #16150f;
+  font-size:9px; letter-spacing:.12em; text-transform:uppercase; color:#5a564a;
   text-align:center }
+.dia-pie-sep{ margin:0 .45rem; color:#b3aa93 }
 
 .dia-dl{ background:none; border:1px solid var(--border2); border-radius:99px;
   color:var(--muted); font-family:inherit; font-size:11px; font-weight:700;
   padding:.3rem .7rem; cursor:pointer }
+.dia-dl:hover{ border-color:var(--accent); color:var(--accent) }
 .dia-dl:hover{ border-color:var(--accent); color:var(--accent) }
 
 /* ── Modo pánico: estado real y etapas especiales ── */
@@ -11984,7 +12038,17 @@ function armarDiario() {
     : new Date().toLocaleDateString('es-AR',
         { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
 
-  return { titular, bajada, notas: notas.slice(0, 3), fechaTxt, campeon };
+  // Franja de cifras: le da cuerpo al pie y son todos datos que ya tenemos
+  const franja = [];
+  if (nums.partidos)  franja.push({ n: nums.partidos,  v: 'duelos' });
+  if (nums.puntos)    franja.push({ n: nums.puntos,    v: 'puntos repartidos' });
+  if (nums.empates)   franja.push({ n: nums.empates,   v: nums.empates === 1 ? 'empate' : 'empates' });
+  if (nums.comodines) franja.push({ n: nums.comodines, v: 'comodines' });
+  if (imp && imp.total) franja.push({ n: imp.total, v: imp.total === 1 ? 'impostor' : 'impostores' });
+  if (timing && timing.durText) franja.push({ n: timing.durText, v: 'de velada' });
+
+  return { titular, bajada, notas: notas.slice(0, 3), fechaTxt, campeon,
+           franja: franja.slice(0, 5) };
 }
 
 
@@ -12117,12 +12181,23 @@ function renderDiario() {
     ${avisoFotos}
     <div class="card" style="padding:0;overflow:hidden;margin-bottom:1.25rem">
       <div class="diario" id="diario-hoja">
+        <!-- Cabecera con los datos de imprenta a los costados, como un diario real -->
         <div class="dia-cab">
-          <div class="dia-nombre">EL VELADO</div>
-          <div class="dia-sub">Diario de La Velada del Año · ${_escC(d.fechaTxt)} · Edición única</div>
+          <div class="dia-cab-lado izq">Año I<br>Nº 1</div>
+          <div class="dia-cab-centro">
+            <div class="dia-nombre">EL VELADO</div>
+            <div class="dia-lema">— La noticia de la noche, al día siguiente —</div>
+          </div>
+          <div class="dia-cab-lado der">Edición<br>única</div>
         </div>
         <div class="dia-regla"></div>
+        <div class="dia-fecha">
+          <span>${_escC(d.fechaTxt)}</span>
+          <span class="dia-precio">Ejemplar sin cargo</span>
+        </div>
+        <div class="dia-regla fina"></div>
 
+        <div class="dia-kicker">Edición especial · Cierre de la velada</div>
         <div class="dia-titular">${_escC(d.titular)}</div>
         <div class="dia-bajada">${_escC(d.bajada)}</div>
 
@@ -12136,6 +12211,8 @@ function renderDiario() {
             : 'El campeón, anoche, tras la consagración.'}</div>
         </div>` : ''}
 
+        <div class="dia-regla doble"></div>
+
         <div class="dia-notas">
           ${d.notas.map(n => `<div class="dia-nota">
             <div class="dia-vol">${_escC(n.vol)}</div>
@@ -12144,7 +12221,17 @@ function renderDiario() {
           </div>`).join('')}
         </div>
 
-        <div class="dia-pie">Redacción: la casa · Fotografía: el muro de la noche</div>
+        ${d.franja && d.franja.length ? `<div class="dia-franja">
+          ${d.franja.map(f => `<span class="dia-fr-item"><b>${_escC(f.n)}</b> ${_escC(f.v)}</span>`).join('<span class="dia-fr-sep">◆</span>')}
+        </div>` : ''}
+
+        <div class="dia-pie">
+          <span>Redacción: la casa</span>
+          <span class="dia-pie-sep">·</span>
+          <span>Fotografía: el muro de la noche</span>
+          <span class="dia-pie-sep">·</span>
+          <span>Impreso en la cocina</span>
+        </div>
       </div>
     </div>`;
 }
