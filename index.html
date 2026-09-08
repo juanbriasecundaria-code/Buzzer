@@ -755,9 +755,17 @@ function startIndividualPlayerListener(){
   }, 4000);
   indivListener = ref.on('value', snap => {
     const d = snap.val() || {};
-    const teams = Array.isArray(d.teams) ? d.teams : [];
     let list = [];
-    teams.forEach(t => { if(Array.isArray(t.members)) list = list.concat(t.members); });
+    // El roster completo manda: incluye a los que todavía no están en un equipo.
+    // Antes se armaba juntando integrantes y esos jugadores quedaban afuera.
+    if(Array.isArray(d.players) && d.players.length){
+      list = d.players.slice();
+    } else {
+      const teams = Array.isArray(d.teams) ? d.teams : [];
+      teams.forEach(t => { if(Array.isArray(t.members)) list = list.concat(t.members); });
+    }
+    // Sin duplicados, por si alguien figura en dos lados
+    list = list.filter((n, i) => n && list.indexOf(n) === i);
     // Si todavía no se publicó el roster (velada.html no se abrió en esta sesión), usamos un default
     if(!list.length) list = DEFAULT_QLD_PLAYERS;
     finish(list);
