@@ -3342,10 +3342,19 @@ body.solo-impostor #tv-btn{ opacity:.42 }
   font-style:italic; padding:0 .3rem; border-bottom:1px solid #c9c3b2;
   padding-bottom:.9rem; margin-bottom:.9rem }
 
-.dia-foto{ margin:0 0 1rem }
-.dia-foto img{ width:100%; max-height:230px; object-fit:cover; display:block;
-  filter:grayscale(1) contrast(1.08); border:1px solid #16150f }
-.dia-epigrafe{ font-size:9.5px; color:#5a564a; margin-top:.3rem; font-style:italic }
+/* La foto ocupaba todo el ancho y recortaba la cara en un primerísimo plano.
+   Ahora es un retrato contenido, centrado, con proporción de foto de diario. */
+.dia-foto{ margin:0 auto 1rem; max-width:340px }
+.dia-fotos{ display:flex; gap:.5rem; justify-content:center }
+.dia-fotos figure{ margin:0; flex:1; min-width:0 }
+.dia-foto img{ width:100%; aspect-ratio:4/5; object-fit:cover; object-position:center 22%;
+  display:block; filter:grayscale(1) contrast(1.05) brightness(1.02);
+  border:1px solid #16150f }
+.dia-fotos figcaption{ font-size:9px; font-weight:700; letter-spacing:.06em;
+  text-transform:uppercase; color:#5a564a; text-align:center; margin-top:.25rem }
+.dia-foto.duo{ max-width:300px }
+.dia-epigrafe{ font-size:9.5px; color:#5a564a; margin-top:.4rem; font-style:italic;
+  text-align:center }
 
 .dia-notas{ display:grid; grid-template-columns:1fr; gap:0 }
 @media (min-width:560px){ .dia-notas{ grid-template-columns:1fr 1fr 1fr; gap:0 } }
@@ -3368,6 +3377,35 @@ body.solo-impostor #tv-btn{ opacity:.42 }
   color:var(--muted); font-family:inherit; font-size:11px; font-weight:700;
   padding:.3rem .7rem; cursor:pointer }
 .dia-dl:hover{ border-color:var(--accent); color:var(--accent) }
+
+/* ── Modo pánico: estado real y etapas especiales ── */
+.pn-estado{ background:rgba(255,255,255,.04); border-radius:11px;
+  padding:.6rem .7rem; margin-bottom:.9rem; text-align:left }
+.pn-est-linea{ font-size:11.5px; color:var(--muted); line-height:1.7 }
+.pn-est-linea b{ color:var(--text); font-weight:800 }
+.pn-est-linea.destacada{ color:var(--gold) }
+.pn-est-linea.destacada b{ color:var(--gold) }
+.pn-est-linea.aviso{ color:var(--danger) }
+.pn-usar{ background:none; border:1px solid rgba(245,200,66,.45); border-radius:99px;
+  color:var(--gold); font-family:inherit; font-size:9.5px; font-weight:700;
+  padding:1px 7px; margin-left:5px; cursor:pointer }
+.pn-usar:hover{ background:rgba(245,200,66,.14) }
+
+.pn-esp{ text-align:left; margin-bottom:.75rem; padding:.6rem .7rem;
+  background:var(--surface2); border-radius:11px }
+.pn-esp-lbl{ font-size:9.5px; font-weight:800; letter-spacing:.1em;
+  text-transform:uppercase; color:var(--muted); margin-bottom:.45rem }
+.pn-esp-item{ display:flex; align-items:center; gap:.45rem; padding:.25rem 0;
+  font-size:12px; color:var(--text); cursor:pointer }
+.pn-esp-item span{ flex:1; min-width:0 }
+.pn-esp-item input[type="checkbox"]{ width:15px; height:15px; accent-color:var(--accent);
+  flex-shrink:0; cursor:pointer }
+.pn-esp-min{ width:52px; padding:.25rem; border-radius:7px;
+  border:1px solid var(--border2); background:var(--surface); color:var(--text);
+  font-size:12px; font-weight:800; text-align:center; font-family:inherit }
+.pn-esp-item em{ font-style:normal; font-size:10px; color:var(--muted) }
+.pn-esp-row span{ opacity:.85 }
+.pn-esp-row b{ color:var(--gold) !important }
 </style>
 <style>.hub-link{position:fixed;top:max(0.75rem,env(safe-area-inset-top));left:max(0.75rem,env(safe-area-inset-left));z-index:99999;font-size:11px;font-weight:700;color:rgba(240,239,232,0.7);background:rgba(10,10,14,0.6);border:1px solid rgba(255,255,255,0.1);border-radius:99px;padding:0.38rem 0.85rem;text-decoration:none;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);letter-spacing:0.04em;transition:color 0.15s,border-color 0.15s;white-space:nowrap}.hub-link:hover{color:#f0efe8;border-color:rgba(255,255,255,0.25)}body:has(.ceremony.show) .hub-link{display:none}</style></head>
 <body>
@@ -11507,10 +11545,84 @@ function panicInfo(fase) {
 
 // Reparte el tiempo disponible entre las dos fases, garantizando al menos
 // una ronda de cada una si todavía quedaban pendientes.
+
+// Ritmo real de la noche: en vez de confiar solo en el número que se tipea,
+// medimos cuánto tardaron de verdad las rondas ya jugadas.
+function panicRitmo() {
+  const marcas = [];   // { ronda, fase, t }
+  try {
+    F1_FIXTURE.forEach(m => {
+      const r = state.f1[m[0] + '-' + m[1] + '-' + m[2]];
+      if (r && typeof r.t === 'number') marcas.push({ ronda: m[0], fase: 'f1', t: r.t });
+    });
+    F2_FIXTURE.forEach(m => {
+      const r = state.f2[m[0] + '-' + m[1] + '-' + m[2]];
+      if (r && typeof r.t === 'number') marcas.push({ ronda: m[0], fase: 'f2', t: r.t });
+    });
+  } catch (e) {}
+  if (marcas.length < 2) return null;
+
+  marcas.sort((a, b) => a.t - b.t);
+  const inicio = marcas[0].t, ultimo = marcas[marcas.length - 1].t;
+
+  // Cuándo se cerró cada ronda (última carga de esa ronda en esa fase)
+  const cierres = {};
+  marcas.forEach(m => {
+    const k = m.fase + '-' + m.ronda;
+    cierres[k] = Math.max(cierres[k] || 0, m.t);
+  });
+  const tiempos = Object.values(cierres).sort((a, b) => a - b);
+  const rondasCerradas = tiempos.length;
+
+  // Minutos promedio entre el cierre de una ronda y el de la siguiente
+  let promedio = null;
+  if (rondasCerradas >= 2) {
+    let suma = 0;
+    for (let i = 1; i < tiempos.length; i++) suma += (tiempos[i] - tiempos[i - 1]);
+    promedio = Math.round(suma / (tiempos.length - 1) / 60000);
+  }
+
+  return {
+    jugandoMin: Math.round((Date.now() - inicio) / 60000),
+    desdeUltimaMin: Math.round((Date.now() - ultimo) / 60000),
+    rondasCerradas,
+    promedio: (promedio && promedio > 0 && promedio < 90) ? promedio : null
+  };
+}
+
+// Minutos que hay que reservar para las etapas que no son rondas
+function panicEspeciales() {
+  const items = [];
+  try {
+    const impHecho = ((state.impostor && state.impostor.rounds) || []).length > 0;
+    if (!impHecho) items.push({ id: 'imp', nom: '🕵️ Impostor', min: 30 });
+    const qldHecho = !!(state.qldTeamPoints && Object.keys(state.qldTeamPoints).length);
+    if (!qldHecho) items.push({ id: 'qld', nom: '🗣️ ¿Quién lo dijo?', min: 20 });
+    const g = (c) => { try { return c && c.ganador; } catch (e) { return null; } };
+    const finalHecha = !!g(typeof FINAL_CONFIG !== 'undefined' ? FINAL_CONFIG : null);
+    if (!finalHecha) items.push({ id: 'fin', nom: '🏆 Tercer puesto + final', min: 20 });
+  } catch (e) {}
+  return items;
+}
+
 function panicPlan() {
   const min = Math.max(5, parseInt((document.getElementById('panic-min') || {}).value || '60', 10));
   const por = Math.max(5, parseInt((document.getElementById('panic-por') || {}).value || '14', 10));
-  const caben = Math.floor(min / por);
+
+  // Las rondas no son lo único que queda: el Impostor, ¿Quién lo dijo? y la
+  // final también comen tiempo. Se los descontamos antes de repartir.
+  const esp = panicEspeciales().filter(x => {
+    const chk = document.getElementById('pn-esp-' + x.id);
+    return chk ? chk.checked : true;
+  });
+  const minEsp = esp.reduce((a, x) => {
+    const inp = document.getElementById('pn-esp-min-' + x.id);
+    const v = inp ? parseInt(inp.value, 10) : x.min;
+    x.min = (v && v > 0) ? v : x.min;    // el usuario puede ajustarlo
+    return a + x.min;
+  }, 0);
+  const paraRondas = Math.max(0, min - minEsp);
+  const caben = Math.floor(paraRondas / por);
 
   const f1 = panicInfo('f1'), f2 = panicInfo('f2');
   let k1 = 0, k2 = 0, libres = caben;
@@ -11520,11 +11632,12 @@ function panicPlan() {
     if (k1 < f1.pendientes && libres > 0) { k1++; libres--; }
     if (k2 < f2.pendientes && libres > 0) { k2++; libres--; }
   }
-  return { min, por, caben, f1, f2, k1, k2 };
+  return { min, por, caben, f1, f2, k1, k2, esp, minEsp, paraRondas };
 }
 
 function openPanicMode() {
   const hayCopia = !!localStorage.getItem(PANIC_BACKUP);
+  const esp = panicEspeciales();
   let ov = document.getElementById('panic-ov');
   if (!ov) {
     ov = document.createElement('div');
@@ -11538,6 +11651,8 @@ function openPanicMode() {
       <div class="pn-title">Modo pánico</div>
       <div class="pn-sub">Decime cuánto tiempo te queda y recorto las rondas que no entran.</div>
 
+      <div class="pn-estado" id="panic-estado"></div>
+
       <div class="pn-field">
         <label>Minutos de juego que te quedan</label>
         <input type="number" id="panic-min" value="60" min="5" max="300" step="5" oninput="updatePanicPreview()">
@@ -11547,6 +11662,17 @@ function openPanicMode() {
         <input type="number" id="panic-por" value="14" min="5" max="40" step="1" oninput="updatePanicPreview()">
       </div>
 
+      ${esp.length ? `<div class="pn-esp">
+        <div class="pn-esp-lbl">Reservar tiempo para</div>
+        ${esp.map(x => `<label class="pn-esp-item">
+          <input type="checkbox" id="pn-esp-${x.id}" checked onchange="updatePanicPreview()">
+          <span>${x.nom}</span>
+          <input type="number" class="pn-esp-min" id="pn-esp-min-${x.id}" value="${x.min}"
+                 min="5" max="120" step="5" oninput="updatePanicPreview()">
+          <em>min</em>
+        </label>`).join('')}
+      </div>` : ''}
+
       <div class="pn-preview" id="panic-preview"></div>
 
       <button class="pn-go" onclick="applyPanic()">✂️ Recortar el fixture</button>
@@ -11554,6 +11680,7 @@ function openPanicMode() {
       <div class="pn-nota">Nunca se borra nada que ya se haya jugado.</div>
     </div>`;
   ov.classList.add('show');
+  renderPanicEstado();
   updatePanicPreview();
 }
 
@@ -11566,17 +11693,58 @@ function updatePanicPreview() {
   const el = document.getElementById('panic-preview');
   if (!el) return;
   const p = panicPlan();
-  if (p.caben <= 0) { el.innerHTML = '<div class="pn-bad">No entra ninguna ronda con ese tiempo.</div>'; return; }
+
+  if (p.caben <= 0) {
+    el.innerHTML = `<div class="pn-bad">No entra ninguna ronda.</div>
+      <div class="pn-small" style="margin-top:.3rem">
+        ${p.minEsp ? 'Las etapas especiales ya se llevan ' + p.minEsp + ' min de los ' + p.min + '.' : 'Poné más minutos.'}
+      </div>`;
+    return;
+  }
+
   const corta1 = p.f1.pendientes - p.k1, corta2 = p.f2.pendientes - p.k2;
-  const fin = new Date(Date.now() + (p.k1 + p.k2) * p.por * 60000);
-  const hh = fin.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' });
+  const totalMin = (p.k1 + p.k2) * p.por + p.minEsp;
+  const fin = new Date(Date.now() + totalMin * 60000);
+  // Formato 24 h: "00:28" y no "12:28 a. m."
+  const hh = fin.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit', hour12: false });
+
   el.innerHTML = `
     <div class="pn-big">${p.k1 + p.k2} ronda${p.k1 + p.k2 === 1 ? '' : 's'}</div>
-    <div class="pn-small">entran en ${p.min} min · terminarías ~${hh}</div>
+    <div class="pn-small">todo terminaría ~<b>${hh}</b> · ${totalMin} min en total</div>
     <div class="pn-rows">
       <div><span>🎮 Fase 1</span><b>${p.k1} de ${p.f1.pendientes}</b>${corta1 > 0 ? `<em>−${corta1}</em>` : ''}</div>
       <div><span>👥 Fase 2</span><b>${p.k2} de ${p.f2.pendientes}</b>${corta2 > 0 ? `<em>−${corta2}</em>` : ''}</div>
+      ${p.esp.map(x => `<div class="pn-esp-row"><span>${x.nom}</span><b>${x.min} min</b></div>`).join('')}
     </div>`;
+}
+
+// Lo que ya viene pasando: sirve para saber si el número que puse es realista
+function renderPanicEstado() {
+  const el = document.getElementById('panic-estado');
+  if (!el) return;
+  const r = panicRitmo();
+  const f1 = panicInfo('f1'), f2 = panicInfo('f2');
+
+  if (!r) {
+    el.innerHTML = `<div class="pn-est-linea">Todavía no hay suficientes rondas jugadas para medir el ritmo.</div>
+      <div class="pn-est-linea">🎮 Fase 1: ${f1.ultima} de ${f1.total} · 👥 Fase 2: ${f2.ultima} de ${f2.total}</div>`;
+    return;
+  }
+
+  const hs = Math.floor(r.jugandoMin / 60), mm = r.jugandoMin % 60;
+  const llevan = hs > 0 ? hs + 'h ' + String(mm).padStart(2, '0') + 'min' : r.jugandoMin + ' min';
+
+  el.innerHTML = `
+    <div class="pn-est-linea">⏱️ Llevan jugando <b>${llevan}</b> · ${r.rondasCerradas} ronda${r.rondasCerradas === 1 ? '' : 's'} cerrada${r.rondasCerradas === 1 ? '' : 's'}</div>
+    <div class="pn-est-linea">🎮 Fase 1: <b>${f1.ultima}/${f1.total}</b> · 👥 Fase 2: <b>${f2.ultima}/${f2.total}</b></div>
+    ${r.promedio ? `<div class="pn-est-linea destacada">📊 Ritmo real: <b>${r.promedio} min</b> por ronda
+      <button class="pn-usar" onclick="usarRitmoReal(${r.promedio})">usar este valor</button></div>` : ''}
+    ${r.desdeUltimaMin > 12 ? `<div class="pn-est-linea aviso">⚠️ Hace ${r.desdeUltimaMin} min que no se carga un resultado</div>` : ''}`;
+}
+
+function usarRitmoReal(min) {
+  const inp = document.getElementById('panic-por');
+  if (inp) { inp.value = min; updatePanicPreview(); }
 }
 
 function applyPanic() {
@@ -11644,11 +11812,19 @@ function armarDiario() {
   try { timing = computeEventTiming(); } catch (e) {}
 
   // ── Titular ──
+  // Los equipos son dos personas: "Mica y Juan se llevó la noche" queda mal.
+  // Detectamos si el ganador es dúo y conjugamos en consecuencia.
+  const esDuo = n => String(n || '').includes('/');
   let titular, bajada;
   if (campeon) {
-    titular = corto(campeon).toUpperCase() + ' SE LLEVÓ LA NOCHE';
-    bajada = 'Tras una jornada de ' + (nums.partidos || 0) + ' duelos, ' +
-             full(campeon) + ' se consagró campeón de La Velada del Año' +
+    const duo = esDuo(campeon);
+    titular = corto(campeon).toUpperCase() + (duo ? ' SE LLEVARON LA NOCHE' : ' SE LLEVÓ LA NOCHE');
+    const jornada = nums.partidos
+      ? 'Tras una jornada de ' + nums.partidos + ' duelos, '
+      : 'Al cabo de la velada, ';
+    bajada = jornada + full(campeon) +
+             (duo ? ' se consagraron campeones' : ' se consagró campeón') +
+             ' de La Velada del Año' +
              (segundo ? ', dejando a ' + corto(segundo) + ' en el segundo puesto' : '') + '.';
   } else {
     // Todavía sin campeón cargado: titulamos con quien va puntero
@@ -11658,7 +11834,9 @@ function armarDiario() {
       const orden = PLAYERS.map((n, i) => ({ n, t: p[i] ? p[i].total : 0 })).sort((a, b) => b.t - a.t);
       if (orden[0] && orden[0].t > 0) lider = orden[0].n;
     } catch (e) {}
-    titular = lider ? corto(lider).toUpperCase() + ' LIDERA LA VELADA' : 'LA VELADA EN MARCHA';
+    titular = lider
+      ? corto(lider).toUpperCase() + (esDuo(lider) ? ' LIDERAN LA VELADA' : ' LIDERA LA VELADA')
+      : 'LA VELADA EN MARCHA';
     bajada = lider
       ? full(lider) + ' encabeza la tabla con la noche todavía en juego.'
       : 'La jornada está en curso y el campeón aún no tiene nombre.';
@@ -11679,7 +11857,9 @@ function armarDiario() {
     });
   }
 
-  if (motes.length) {
+  const nocheJugada = (nums.partidos || 0) > 0;
+
+  if (nocheJugada && motes.length) {
     const m = motes[0];
     if (m && m.player) {
       notas.push({
@@ -11693,7 +11873,7 @@ function armarDiario() {
   if (tercero) {
     notas.push({
       vol: 'DEPORTES',
-      tit: corto(tercero) + ' se quedó con el bronce',
+      tit: corto(tercero) + (esDuo(tercero) ? ' se quedaron con el bronce' : ' se quedó con el bronce'),
       txt: 'El partido por el tercer puesto quedó en manos de ' + full(tercero) + '.'
     });
   }
@@ -11710,7 +11890,7 @@ function armarDiario() {
     });
   }
 
-  if (motes.length > 1 && motes[1] && motes[1].player) {
+  if (nocheJugada && motes.length > 1 && motes[1] && motes[1].player) {
     const m = motes[1];
     notas.push({
       vol: 'ESPECTÁCULOS',
@@ -11721,6 +11901,14 @@ function armarDiario() {
 
   // computeEventTiming ya devuelve la fecha formateada; si no hay datos
   // todavía (noche sin resultados), usamos la de hoy.
+  if (!notas.length) {
+    notas.push({
+      vol: 'ÚLTIMO MOMENTO',
+      tit: 'La noche todavía no arrancó',
+      txt: 'Cuando se jueguen los primeros duelos, esta portada se completa sola.'
+    });
+  }
+
   const fechaTxt = (timing && timing.dateText)
     ? timing.dateText
     : new Date().toLocaleDateString('es-AR',
@@ -11736,9 +11924,14 @@ function renderDiario() {
   try { d = armarDiario(); } catch (e) { root.innerHTML = ''; return; }
   if (!d) { root.innerHTML = ''; return; }
 
-  const fotoCampeon = d.campeon ? (_playerPhotos[d.campeon] ||
-    (String(d.campeon).split('/').map(x => x.trim())[0]
-      ? _playerPhotos[String(d.campeon).split('/').map(x => x.trim())[0]] : null)) : null;
+  // Fotos del campeón: si es equipo, las dos caras; si es individual, una.
+  const fotosCampeon = [];
+  if (d.campeon) {
+    String(d.campeon).split('/').map(x => x.trim()).filter(Boolean).forEach(n => {
+      const f = _playerPhotos[n] || _playerPhotos[n.split(' ')[0]];
+      if (f) fotosCampeon.push({ src: f, nom: n.split(' ')[0] });
+    });
+  }
 
   root.innerHTML = `
     <div class="section-header">
@@ -11756,8 +11949,15 @@ function renderDiario() {
         <div class="dia-titular">${_escC(d.titular)}</div>
         <div class="dia-bajada">${_escC(d.bajada)}</div>
 
-        ${fotoCampeon ? `<div class="dia-foto"><img src="${fotoCampeon}" alt="El campeón">
-          <div class="dia-epigrafe">El campeón, anoche, tras la consagración.</div></div>` : ''}
+        ${fotosCampeon.length ? `<div class="dia-foto${fotosCampeon.length > 1 ? ' duo' : ''}">
+          <div class="dia-fotos">
+            ${fotosCampeon.map(f => `<figure><img src="${f.src}" alt="${_escC(f.nom)}">
+              <figcaption>${_escC(f.nom)}</figcaption></figure>`).join('')}
+          </div>
+          <div class="dia-epigrafe">${fotosCampeon.length > 1
+            ? 'Los campeones, anoche, tras la consagración.'
+            : 'El campeón, anoche, tras la consagración.'}</div>
+        </div>` : ''}
 
         <div class="dia-notas">
           ${d.notas.map(n => `<div class="dia-nota">
@@ -11772,20 +11972,45 @@ function renderDiario() {
     </div>`;
 }
 
-// Guarda la portada como imagen para mandarla al grupo
+// Guarda la portada como imagen para mandarla al grupo.
+// La librería no venía incluida: se carga acá bajo demanda, igual que hace el
+// QR de invitados. Antes esto avisaba "sacale una captura" y nunca descargaba.
 function descargarDiario() {
   const hoja = document.getElementById('diario-hoja');
   if (!hoja) return;
-  if (typeof html2canvas === 'undefined') {
-    showToast('⚠️', 'Sacale una captura de pantalla al diario', false);
-    return;
-  }
-  html2canvas(hoja, { backgroundColor: '#f4f1e8', scale: 2 }).then(canvas => {
-    const a = document.createElement('a');
-    a.download = 'el-velado.png';
-    a.href = canvas.toDataURL('image/png');
-    a.click();
-  }).catch(() => showToast('⚠️', 'Sacale una captura de pantalla al diario', false));
+
+  const capturar = () => {
+    showToast('⏳', 'Armando la portada…', false);
+    html2canvas(hoja, {
+      backgroundColor: '#f4f1e8',
+      scale: Math.min(2, window.devicePixelRatio || 1) * 1.5,
+      useCORS: true,
+      logging: false
+    }).then(canvas => {
+      canvas.toBlob(blob => {
+        if (!blob) { showToast('⚠️', 'No se pudo generar la imagen', true); return; }
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.download = 'el-velado.png';
+        a.href = url;
+        document.body.appendChild(a); a.click(); a.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 4000);
+        showToast('✓', 'Diario descargado', false);
+      }, 'image/png');
+    }).catch(err => {
+      console.warn('diario:', err);
+      showToast('⚠️', 'No se pudo generar. Probá con una captura de pantalla.', true);
+    });
+  };
+
+  if (typeof html2canvas !== 'undefined') { capturar(); return; }
+
+  showToast('⏳', 'Preparando la descarga…', false);
+  const sc = document.createElement('script');
+  sc.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js';
+  sc.onload = capturar;
+  sc.onerror = () => showToast('⚠️', 'Sin conexión: sacale una captura de pantalla al diario', true);
+  document.head.appendChild(sc);
 }
 
 function renderBracket() {
