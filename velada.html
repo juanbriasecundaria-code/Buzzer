@@ -3347,9 +3347,12 @@ body.solo-impostor #tv-btn{ opacity:.42 }
 .dia-foto{ margin:0 auto 1rem; max-width:340px }
 .dia-fotos{ display:flex; gap:.5rem; justify-content:center }
 .dia-fotos figure{ margin:0; flex:1; min-width:0 }
-.dia-foto img{ width:100%; aspect-ratio:4/5; object-fit:cover; object-position:center 22%;
-  display:block; filter:grayscale(1) contrast(1.05) brightness(1.02);
-  border:1px solid #16150f }
+.dia-foto img{ width:100%; aspect-ratio:4/5; object-fit:cover; object-position:center 25%;
+  display:block; border:1px solid #16150f;
+  /* Tratamiento de foto de diario: blanco y negro con negros profundos y
+     algo de nitidez. Además de quedar mejor, disimula la baja resolución. */
+  filter:grayscale(1) contrast(1.22) brightness(1.06) saturate(0);
+  image-rendering:auto }
 .dia-fotos figcaption{ font-size:9px; font-weight:700; letter-spacing:.06em;
   text-transform:uppercase; color:#5a564a; text-align:center; margin-top:.25rem }
 .dia-foto.duo{ max-width:300px }
@@ -3406,6 +3409,10 @@ body.solo-impostor #tv-btn{ opacity:.42 }
 .pn-esp-item em{ font-style:normal; font-size:10px; color:var(--muted) }
 .pn-esp-row span{ opacity:.85 }
 .pn-esp-row b{ color:var(--gold) !important }
+
+.dia-aviso{ font-size:11px; color:var(--gold); background:rgba(245,200,66,.1);
+  border:1px solid rgba(245,200,66,.3); border-radius:10px;
+  padding:.5rem .7rem; margin-bottom:.6rem; line-height:1.45 }
 </style>
 <style>.hub-link{position:fixed;top:max(0.75rem,env(safe-area-inset-top));left:max(0.75rem,env(safe-area-inset-left));z-index:99999;font-size:11px;font-weight:700;color:rgba(240,239,232,0.7);background:rgba(10,10,14,0.6);border:1px solid rgba(255,255,255,0.1);border-radius:99px;padding:0.38rem 0.85rem;text-decoration:none;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);letter-spacing:0.04em;transition:color 0.15s,border-color 0.15s;white-space:nowrap}.hub-link:hover{color:#f0efe8;border-color:rgba(255,255,255,0.25)}body:has(.ceremony.show) .hub-link{display:none}</style></head>
 <body>
@@ -10652,14 +10659,23 @@ function triggerPhotoUpload(entityName, phase) {
     reader.onload = function(e) {
       const img = new Image();
       img.onload = function() {
+        // 120px alcanzaba para los avatares chicos, pero el diario muestra la
+        // foto a ~170px y al descargarla en 2× necesita ~340 reales: se veía
+        // pixelada. A 400px son ~9 KB cada una (las 11 usan el 10% del
+        // documento de Firestore), así que el margen sobra.
+        const LADO = 400;
         const canvas = document.createElement('canvas');
-        canvas.width = 120; canvas.height = 120;
+        canvas.width = LADO; canvas.height = LADO;
         const ctx = canvas.getContext('2d');
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = 'high';
         const minDim = Math.min(img.width, img.height);
         const sx = (img.width - minDim) / 2;
-        const sy = (img.height - minDim) / 2;
-        ctx.drawImage(img, sx, sy, minDim, minDim, 0, 0, 120, 120);
-        setPlayerPhoto(entityName, canvas.toDataURL('image/jpeg', 0.82));
+        // Encuadre al tercio superior: en un retrato la cara está arriba del
+        // centro, y recortando por el medio quedaban cabezas cortadas.
+        const sy = Math.max(0, (img.height - minDim) * 0.30);
+        ctx.drawImage(img, sx, sy, minDim, minDim, 0, 0, LADO, LADO);
+        setPlayerPhoto(entityName, canvas.toDataURL('image/jpeg', 0.88));
         if (phase === 'f2') { renderF2RosterAdmin(); renderFase2(); }
         else if (phase === 'imp') { renderImpSetup(); }
         else { renderF1RosterAdmin(); renderFase1(); }
@@ -11953,11 +11969,20 @@ function renderDiario() {
     });
   }
 
+  // ¿Las fotos del campeón son de baja resolución? Se nota al descargar.
+  let avisoFotos = '';
+  try {
+    const chica = fotosCampeon.some(f => f.src && f.src.length < 6000);   // ~120px
+    if (chica) avisoFotos = '<div class="dia-aviso">💡 Las fotos del campeón son de baja ' +
+      'resolución. Volvé a subirlas desde el roster para que salgan nítidas.</div>';
+  } catch (e) {}
+
   root.innerHTML = `
     <div class="section-header">
       <span class="section-title"><span class="dot-indicator final"></span>El diario de mañana</span>
       <button class="dia-dl" onclick="descargarDiario()">⬇️ Descargar</button>
     </div>
+    ${avisoFotos}
     <div class="card" style="padding:0;overflow:hidden;margin-bottom:1.25rem">
       <div class="diario" id="diario-hoja">
         <div class="dia-cab">
@@ -12003,7 +12028,7 @@ function descargarDiario() {
     showToast('⏳', 'Armando la portada…', false);
     html2canvas(hoja, {
       backgroundColor: '#f4f1e8',
-      scale: Math.min(2, window.devicePixelRatio || 1) * 1.5,
+      scale: 3,                    // portada nítida para mandar al grupo
       useCORS: true,
       logging: false
     }).then(canvas => {
