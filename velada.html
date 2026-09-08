@@ -3413,6 +3413,27 @@ body.solo-impostor #tv-btn{ opacity:.42 }
 .dia-aviso{ font-size:11px; color:var(--gold); background:rgba(245,200,66,.1);
   border:1px solid rgba(245,200,66,.3); border-radius:10px;
   padding:.5rem .7rem; margin-bottom:.6rem; line-height:1.45 }
+
+/* ── Fotos para el periódico ── */
+.prensa-count{ font-size:11px; color:var(--muted); margin-bottom:.6rem }
+.prensa-grid{ display:grid; grid-template-columns:repeat(auto-fill,minmax(78px,1fr)); gap:.6rem }
+.pr-item{ text-align:center }
+.pr-box{ position:relative; aspect-ratio:4/5; border-radius:10px; overflow:hidden;
+  cursor:pointer; background:var(--surface2);
+  border:1.5px dashed var(--border2); transition:border-color .15s }
+.pr-box:hover{ border-color:var(--gold) }
+.pr-box.ok{ border-style:solid; border-color:var(--accent) }
+.pr-box img{ width:100%; height:100%; object-fit:cover; display:block }
+.pr-vacio{ display:flex; align-items:center; justify-content:center; height:100%;
+  font-size:20px; opacity:.5 }
+.pr-badge{ position:absolute; top:3px; right:3px; font-size:8px; font-weight:800;
+  letter-spacing:.05em; padding:1px 4px; border-radius:4px;
+  background:var(--accent); color:#0a0a0e }
+.pr-badge.baja{ background:rgba(245,200,66,.9); color:#0a0a0e }
+.pr-nom{ font-size:10.5px; font-weight:700; color:var(--text); margin-top:.25rem;
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap }
+.pr-del{ background:none; border:none; color:var(--danger); font-size:9px;
+  cursor:pointer; font-family:inherit; padding:1px }
 </style>
 <style>.hub-link{position:fixed;top:max(0.75rem,env(safe-area-inset-top));left:max(0.75rem,env(safe-area-inset-left));z-index:99999;font-size:11px;font-weight:700;color:rgba(240,239,232,0.7);background:rgba(10,10,14,0.6);border:1px solid rgba(255,255,255,0.1);border-radius:99px;padding:0.38rem 0.85rem;text-decoration:none;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);letter-spacing:0.04em;transition:color 0.15s,border-color 0.15s;white-space:nowrap}.hub-link:hover{color:#f0efe8;border-color:rgba(255,255,255,0.25)}body:has(.ceremony.show) .hub-link{display:none}</style></head>
 <body>
@@ -3967,6 +3988,8 @@ function resetRulesConfig() {
 function renderReglas() {
   const root = document.getElementById('reglas-root');
   if (!root) return;
+  // La grilla se pinta después de que el HTML del panel exista
+  setTimeout(() => { try { renderPrensaGrid(); } catch (e) {} }, 40);
 
   const rc = RULES_CONFIG;
   const editing = _rulesEditMode;
@@ -4209,6 +4232,17 @@ function renderReglas() {
             de <b>Guess Movies</b> y <b>100 Argentinos</b> en Equipo 1 / Equipo 2 y el marcador en 0.
           </div>
           <button class="final-end-btn" onclick="resetBuzzers()">↺ Restablecer buzzers (nombres + puntajes)</button>
+        </div>
+
+        <!-- ── FOTOS PARA EL PERIÓDICO ── -->
+        <div class="card" id="prensa-card">
+          <div class="control-panel-section-title">📰 Fotos para el periódico</div>
+          <p style="font-size:12.5px;color:var(--muted);line-height:1.55;margin-bottom:0.9rem">
+            Fotos en alta para la portada de <b>El Velado</b>. Son aparte de las de perfil:
+            acá conviene una foto vertical y bien iluminada, que se recorta sola en formato retrato.
+            Si alguien no tiene una cargada, el diario usa su foto de perfil.
+          </p>
+          <div id="prensa-grid"></div>
         </div>
 
         <!-- ── BACKUP DE LA NOCHE ── -->
@@ -8237,7 +8271,7 @@ document.getElementById('modal-bg').addEventListener('click', function(e) {
 
 // Claves con fotos/imágenes en base64: pesan mucho y no hacen falta para
 // recuperar puntajes rápido a mitad del evento.
-const BACKUP_HEAVY_KEYS = ['ndj_wall', 'ndj_photos', 'ndj_miis', 'ndj_producer_photo', 'ndj_foto_noche'];
+const BACKUP_HEAVY_KEYS = ['ndj_wall', 'ndj_photos', 'ndj_prensa_fotos', 'ndj_miis', 'ndj_producer_photo', 'ndj_foto_noche'];
 
 // Junta todo lo que esta app (y las páginas de juegos hermanas que comparten
 // origen/localStorage) tienen guardado. includeHeavy=false salta las fotos.
@@ -11953,6 +11987,101 @@ function armarDiario() {
   return { titular, bajada, notas: notas.slice(0, 3), fechaTxt, campeon };
 }
 
+
+// ── FOTOS PARA EL PERIÓDICO ──────────────────────────────────────────
+// Aparte de las de perfil: se guardan en alta y en formato retrato, porque el
+// diario las muestra grandes. Si falta alguna, cae en la foto de perfil.
+const PRENSA_KEY = 'ndj_prensa_fotos';
+let _prensaFotos = {};
+try { _prensaFotos = JSON.parse(localStorage.getItem(PRENSA_KEY) || '{}'); } catch (e) { _prensaFotos = {}; }
+
+function savePrensaFotos() {
+  const json = JSON.stringify(_prensaFotos);
+  try { localStorage.setItem(PRENSA_KEY, json); }
+  catch (e) { showToast('⚠️', 'No hay espacio local para más fotos', true); }
+  // Viajan con el resto para que la TV y el diario las tengan
+  if (window._fbReady && window._fbWrite) {
+    try { window._fbWrite('prensa', json); } catch (e) {}
+  }
+}
+
+// Devuelve la mejor foto disponible: primero la de prensa, si no la de perfil
+function fotoPrensa(nombre) {
+  return _prensaFotos[nombre] || _playerPhotos[nombre] || null;
+}
+
+function triggerPrensaFoto(nombre) {
+  const inp = document.createElement('input');
+  inp.type = 'file'; inp.accept = 'image/*';
+  inp.onchange = function () {
+    const file = inp.files && inp.files[0];
+    if (!file) return;
+    const r = new FileReader();
+    r.onload = function (e) {
+      const img = new Image();
+      img.onload = function () {
+        // Retrato 4:5 en alta: es la proporción con la que sale en el diario
+        const W = 720, H = 900;
+        const c = document.createElement('canvas');
+        c.width = W; c.height = H;
+        const ctx = c.getContext('2d');
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = 'high';
+        // Recorte centrado horizontal, al tercio superior en vertical
+        const escala = Math.max(W / img.width, H / img.height);
+        const dw = img.width * escala, dh = img.height * escala;
+        const dx = (W - dw) / 2;
+        const dy = Math.min(0, (H - dh) * 0.35);
+        ctx.drawImage(img, dx, dy, dw, dh);
+        _prensaFotos[nombre] = c.toDataURL('image/jpeg', 0.9);
+        savePrensaFotos();
+        renderPrensaGrid();
+        try { renderDiario(); } catch (err) {}
+        showToast('📰', 'Foto de ' + String(nombre).split(' ')[0] + ' lista para el diario', false);
+      };
+      img.onerror = () => showToast('⚠️', 'No se pudo leer la imagen', true);
+      img.src = e.target.result;
+    };
+    r.onerror = () => showToast('⚠️', 'No se pudo leer el archivo', true);
+    r.readAsDataURL(file);
+  };
+  inp.click();
+}
+
+function borrarPrensaFoto(nombre) {
+  delete _prensaFotos[nombre];
+  savePrensaFotos();
+  renderPrensaGrid();
+  try { renderDiario(); } catch (e) {}
+}
+
+function renderPrensaGrid() {
+  const el = document.getElementById('prensa-grid');
+  if (!el) return;
+  const cargadas = PLAYERS.filter(n => _prensaFotos[n]).length;
+  el.innerHTML = `
+    <div class="prensa-count">${cargadas} de ${PLAYERS.length} cargadas</div>
+    <div class="prensa-grid">
+      ${PLAYERS.map(n => {
+        const prensa = _prensaFotos[n];
+        const perfil = _playerPhotos[n];
+        const src = prensa || perfil;
+        const corta = perfil && !prensa && perfil.length < 6000;
+        return `<div class="pr-item">
+          <div class="pr-box${prensa ? ' ok' : ''}" onclick="triggerPrensaFoto('${String(n).replace(/'/g, "\\'")}')"
+               title="Tocá para elegir la foto de ${_escC(n)}">
+            ${src ? `<img src="${src}" alt="${_escC(n)}">`
+                  : `<div class="pr-vacio">📷</div>`}
+            ${prensa ? '<span class="pr-badge">HD</span>'
+                     : (corta ? '<span class="pr-badge baja">baja</span>' : '')}
+          </div>
+          <div class="pr-nom">${_escC(String(n).split(' ')[0])}</div>
+          ${prensa ? `<button class="pr-del" onclick="event.stopPropagation();borrarPrensaFoto('${String(n).replace(/'/g, "\\'")}')">✕ quitar</button>` : ''}
+        </div>`;
+      }).join('')}
+    </div>`;
+}
+
 function renderDiario() {
   const root = document.getElementById('diario-root');
   if (!root) return;
@@ -11964,17 +12093,20 @@ function renderDiario() {
   const fotosCampeon = [];
   if (d.campeon) {
     String(d.campeon).split('/').map(x => x.trim()).filter(Boolean).forEach(n => {
-      const f = _playerPhotos[n] || _playerPhotos[n.split(' ')[0]];
-      if (f) fotosCampeon.push({ src: f, nom: n.split(' ')[0] });
+      // Primero la foto de prensa (alta, vertical); si no hay, la de perfil
+      const f = fotoPrensa(n) || fotoPrensa(n.split(' ')[0]);
+      if (f) fotosCampeon.push({ src: f, nom: n.split(' ')[0],
+                                 hd: !!(_prensaFotos[n] || _prensaFotos[n.split(' ')[0]]) });
     });
   }
 
   // ¿Las fotos del campeón son de baja resolución? Se nota al descargar.
   let avisoFotos = '';
   try {
-    const chica = fotosCampeon.some(f => f.src && f.src.length < 6000);   // ~120px
-    if (chica) avisoFotos = '<div class="dia-aviso">💡 Las fotos del campeón son de baja ' +
-      'resolución. Volvé a subirlas desde el roster para que salgan nítidas.</div>';
+    const chica = fotosCampeon.some(f => !f.hd && f.src && f.src.length < 6000);
+    if (chica) avisoFotos = '<div class="dia-aviso">💡 El campeón no tiene foto de prensa. ' +
+      'Cargala en <b>Reglas → Panel de control → 📰 Fotos para el periódico</b> ' +
+      'para que salga nítida.</div>';
   } catch (e) {}
 
   root.innerHTML = `
@@ -19109,6 +19241,19 @@ function reapplyStateAndRerender() {
       localStorage.setItem('ndj_state', remote.data);
       markLocalTs('ndj_state_ts', remote.ts);
       if (applyPulledState(remote.data)) reapplyStateAndRerender();
+    }).catch(() => {});
+
+    // Fotos de prensa: si hay algo publicado, lo traemos
+    window._fbRead('prensa').then(data => {
+      if (!data) return;
+      try {
+        const o = JSON.parse(data);
+        if (o && typeof o === 'object') {
+          _prensaFotos = o;
+          try { localStorage.setItem(PRENSA_KEY, data); } catch (e) {}
+          try { renderPrensaGrid(); } catch (e) {}
+        }
+      } catch (e) {}
     }).catch(() => {});
 
     window._fbReadMeta('photos').then(remote => {
