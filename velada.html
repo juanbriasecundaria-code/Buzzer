@@ -11803,13 +11803,33 @@ function armarDiario() {
   const tercero = g(typeof TERCER_CONFIG  !== 'undefined' ? TERCER_CONFIG  : null);
 
   const corto = n => String(n || '').split('/').map(x => x.trim().split(' ')[0]).join(' y ');
-  const full  = n => (typeof FULL_NAMES !== 'undefined' && FULL_NAMES[n]) ? FULL_NAMES[n] : n;
+  // Nombre para escribir dentro de una oración. Los equipos vienen como
+  // "Mica / Juan", que leído en prosa queda pésimo: los pasamos a
+  // "el equipo de Mica y Juan". Los individuales usan su nombre completo.
+  const full = (n) => {
+    const raw = String(n || '');
+    if (!raw.includes('/')) {
+      return (typeof FULL_NAMES !== 'undefined' && FULL_NAMES[raw]) ? FULL_NAMES[raw] : raw;
+    }
+    const partes = raw.split('/').map(x => x.trim()).filter(Boolean)
+      .map(p => (typeof FULL_NAMES !== 'undefined' && FULL_NAMES[p]) ? FULL_NAMES[p] : p);
+    if (partes.length === 2) return 'el equipo de ' + partes[0] + ' y ' + partes[1];
+    return 'el equipo de ' + partes.join(', ');
+  };
 
   let nums = {}, motes = [], imp = null, timing = null;
   try { nums   = computeNightNumbers() || {}; } catch (e) {}
   try { const m = computeMotes(); motes = (m && m.motes) ? m.motes : (Array.isArray(m) ? m : []); } catch (e) {}
   try { imp    = computeImpostorSummary(); } catch (e) {}
   try { timing = computeEventTiming(); } catch (e) {}
+
+  // Contracción: "a el equipo" es incorrecto, va "al equipo".
+  const aFull = (n) => {
+    const t = full(n);
+    return t.startsWith('el ') ? 'al ' + t.slice(3) : 'a ' + t;
+  };
+  // Los nombres completos suelen terminar en punto ("Lara M."): evitamos "Lara M.."
+  const punto = (t) => t.endsWith('.') ? t : t + '.';
 
   // ── Titular ──
   // Los equipos son dos personas: "Mica y Juan se llevó la noche" queda mal.
@@ -11822,10 +11842,10 @@ function armarDiario() {
     const jornada = nums.partidos
       ? 'Tras una jornada de ' + nums.partidos + ' duelos, '
       : 'Al cabo de la velada, ';
-    bajada = jornada + full(campeon) +
-             (duo ? ' se consagraron campeones' : ' se consagró campeón') +
-             ' de La Velada del Año' +
-             (segundo ? ', dejando a ' + corto(segundo) + ' en el segundo puesto' : '') + '.';
+    // Ojo: acá el sujeto es "el equipo de X y Y", que es singular. El plural
+    // solo corresponde en el titular, donde el sujeto es "X y Y".
+    bajada = jornada + full(campeon) + ' se consagró campeón de La Velada del Año' +
+             (segundo ? ', dejando ' + aFull(segundo) + ' en el segundo puesto' : '') + '.';
   } else {
     // Todavía sin campeón cargado: titulamos con quien va puntero
     let lider = '';
@@ -11838,7 +11858,7 @@ function armarDiario() {
       ? corto(lider).toUpperCase() + (esDuo(lider) ? ' LIDERAN LA VELADA' : ' LIDERA LA VELADA')
       : 'LA VELADA EN MARCHA';
     bajada = lider
-      ? full(lider) + ' encabeza la tabla con la noche todavía en juego.'
+      ? full(lider) + ' encabeza la tabla con la noche todavía en juego.'   // "el equipo…" también encabeza, en singular
       : 'La jornada está en curso y el campeón aún no tiene nombre.';
   }
 
@@ -11865,7 +11885,7 @@ function armarDiario() {
       notas.push({
         vol: 'SOCIEDAD',
         tit: (m.emoji ? m.emoji + ' ' : '') + (m.title || m.name || 'Mención de la noche'),
-        txt: full(m.player) + (m.reason ? ' — ' + m.reason : '') + '.'
+        txt: punto(full(m.player) + (m.reason ? ' — ' + m.reason : ''))
       });
     }
   }
@@ -11874,7 +11894,7 @@ function armarDiario() {
     notas.push({
       vol: 'DEPORTES',
       tit: corto(tercero) + (esDuo(tercero) ? ' se quedaron con el bronce' : ' se quedó con el bronce'),
-      txt: 'El partido por el tercer puesto quedó en manos de ' + full(tercero) + '.'
+      txt: punto('El partido por el tercer puesto lo ganó ' + full(tercero))
     });
   }
 
@@ -11895,7 +11915,7 @@ function armarDiario() {
     notas.push({
       vol: 'ESPECTÁCULOS',
       tit: (m.emoji ? m.emoji + ' ' : '') + (m.title || m.name || 'Otra mención'),
-      txt: full(m.player) + (m.reason ? ' — ' + m.reason : '') + '.'
+      txt: punto(full(m.player) + (m.reason ? ' — ' + m.reason : ''))
     });
   }
 
