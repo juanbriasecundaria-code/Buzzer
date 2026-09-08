@@ -3245,6 +3245,82 @@ body.solo-impostor #tv-btn{ opacity:.42 }
 .sp-cancel{ width:100%; margin-top:.5rem; padding:.65rem; border-radius:var(--radius);
   border:1px solid var(--border2); background:transparent; color:var(--muted);
   font-family:inherit; font-size:12.5px; font-weight:700; cursor:pointer }
+
+/* ── Cuadro de la noche ── */
+.bk-card{ margin-bottom:1.25rem; padding:1rem .9rem }
+.especial-badge.prov{ background:rgba(245,200,66,.15); color:var(--gold) }
+.bk-llave{ padding:.85rem .8rem; border-radius:14px; background:var(--surface2);
+  border:1px solid var(--border); margin-bottom:.7rem }
+.bk-llave:last-of-type{ margin-bottom:0 }
+.bk-llave.destacada{ border-color:rgba(245,200,66,.4);
+  background:linear-gradient(160deg,rgba(245,200,66,.07),var(--surface2) 60%) }
+.bk-titulo{ font-size:11px; font-weight:800; letter-spacing:.14em;
+  text-transform:uppercase; color:var(--muted); margin-bottom:.6rem; text-align:center }
+.bk-llave.destacada .bk-titulo{ color:var(--gold) }
+
+.bk-par{ display:grid; grid-template-columns:1fr auto 1fr; gap:.5rem; align-items:stretch }
+.bk-slot{ display:flex; flex-direction:column; justify-content:center; gap:1px;
+  padding:.6rem .55rem; border-radius:11px; background:var(--surface);
+  border:1.5px solid var(--border2); min-width:0; text-align:center;
+  transition:border-color .25s, background .25s }
+.bk-slot.vacio{ border-style:dashed; opacity:.6 }
+.bk-slot.prov{ border-color:rgba(245,200,66,.3) }
+.bk-slot.gano{ border-color:var(--accent); background:rgba(200,240,96,.1) }
+.bk-lbl{ font-size:8.5px; font-weight:800; letter-spacing:.1em; text-transform:uppercase;
+  color:var(--muted) }
+.bk-nom{ font-size:13.5px; font-weight:800; color:var(--text); line-height:1.2;
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap }
+.bk-slot.gano .bk-nom{ color:var(--accent) }
+.bk-pts{ font-size:10px; color:var(--muted); font-weight:700 }
+.bk-vs{ display:flex; align-items:center; font-size:10px; font-weight:800;
+  color:var(--muted); letter-spacing:.1em; text-transform:uppercase }
+.bk-res{ margin-top:.55rem; text-align:center; font-size:12px; font-weight:800;
+  color:var(--text); padding:.4rem; border-radius:9px; background:rgba(255,255,255,.04) }
+.bk-res.campeon{ color:var(--gold); background:rgba(245,200,66,.12); font-size:13.5px }
+.bk-nota{ margin-top:.7rem; font-size:10.5px; color:var(--muted);
+  text-align:center; font-style:italic }
+
+/* ── Modo pánico ── */
+.panic-btn{ width:100%; padding:.7rem; margin-bottom:.75rem; border-radius:var(--radius);
+  border:1.5px solid rgba(255,95,95,.35); background:rgba(255,95,95,.07);
+  color:var(--danger); font-family:inherit; font-size:13px; font-weight:700;
+  cursor:pointer; transition:border-color .15s, background .15s }
+.panic-btn:hover{ border-color:var(--danger); background:rgba(255,95,95,.14) }
+
+.panic-ov{ position:fixed; inset:0; z-index:9600; display:none;
+  align-items:center; justify-content:center; padding:1.1rem;
+  background:rgba(6,6,10,.93); -webkit-backdrop-filter:blur(8px); backdrop-filter:blur(8px) }
+.panic-ov.show{ display:flex }
+.pn-box{ position:relative; width:100%; max-width:400px; max-height:92vh; overflow-y:auto;
+  background:var(--surface); border:1.5px solid var(--danger); border-radius:20px;
+  padding:1.6rem 1.3rem 1.2rem; text-align:center; box-shadow:0 20px 65px rgba(0,0,0,.7) }
+.pn-x{ position:absolute; top:.55rem; right:.7rem; background:none; border:none;
+  color:var(--muted); font-size:17px; cursor:pointer; padding:.2rem .4rem; font-family:inherit }
+.pn-emoji{ font-size:38px; line-height:1 }
+.pn-title{ font-size:20px; font-weight:900; color:var(--danger); margin-top:.25rem }
+.pn-sub{ font-size:12px; color:var(--muted); line-height:1.5; margin:.4rem 0 1rem }
+.pn-field{ text-align:left; margin-bottom:.65rem }
+.pn-field label{ display:block; font-size:10px; font-weight:800; letter-spacing:.08em;
+  text-transform:uppercase; color:var(--muted); margin-bottom:.25rem }
+.pn-field input{ width:100%; padding:.6rem; border-radius:var(--radius);
+  border:1px solid var(--border2); background:var(--surface2); color:var(--text);
+  font-size:16px; font-weight:800; font-family:inherit; text-align:center }
+.pn-preview{ background:var(--surface2); border-radius:13px; padding:.85rem; margin:.85rem 0 }
+.pn-big{ font-size:26px; font-weight:900; color:var(--gold); line-height:1 }
+.pn-small{ font-size:11px; color:var(--muted); margin-top:.2rem }
+.pn-bad{ font-size:12.5px; color:var(--danger); font-weight:700 }
+.pn-rows{ margin-top:.7rem; display:flex; flex-direction:column; gap:.3rem }
+.pn-rows>div{ display:flex; align-items:center; gap:.5rem; font-size:12px }
+.pn-rows span{ flex:1; text-align:left; color:var(--muted) }
+.pn-rows b{ color:var(--text); font-weight:800 }
+.pn-rows em{ font-style:normal; color:var(--danger); font-weight:800; font-size:11px }
+.pn-go{ width:100%; padding:.85rem; border-radius:var(--radius); border:none;
+  background:var(--danger); color:#fff; font-family:inherit; font-size:15px;
+  font-weight:900; cursor:pointer }
+.pn-undo{ width:100%; margin-top:.5rem; padding:.7rem; border-radius:var(--radius);
+  border:1px solid var(--border2); background:transparent; color:var(--muted);
+  font-family:inherit; font-size:13px; font-weight:700; cursor:pointer }
+.pn-nota{ font-size:10px; color:var(--muted); margin-top:.7rem }
 </style>
 <style>.hub-link{position:fixed;top:max(0.75rem,env(safe-area-inset-top));left:max(0.75rem,env(safe-area-inset-left));z-index:99999;font-size:11px;font-weight:700;color:rgba(240,239,232,0.7);background:rgba(10,10,14,0.6);border:1px solid rgba(255,255,255,0.1);border-radius:99px;padding:0.38rem 0.85rem;text-decoration:none;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);letter-spacing:0.04em;transition:color 0.15s,border-color 0.15s;white-space:nowrap}.hub-link:hover{color:#f0efe8;border-color:rgba(255,255,255,0.25)}body:has(.ceremony.show) .hub-link{display:none}</style></head>
 <body>
@@ -3402,6 +3478,7 @@ window.VarSwitch = (function () {
 <!-- ======================== FASE 1 ======================== -->
 <div class="page" id="page-fase1">
   <button class="round-intro-btn" onclick="showNextRoundIntro('f1')">📺 Anunciar la próxima ronda en pantalla</button>
+  <button class="panic-btn" onclick="openPanicMode()" title="Recortar el fixture para llegar con el horario">⏰ Modo pánico</button>
   <div id="bet-control-f1"></div>
   <div id="next-match-f1" style="margin-bottom:0.75rem"></div>
   <div id="my-next-f1" style="margin-bottom:0.75rem"></div>
@@ -3461,6 +3538,7 @@ window.VarSwitch = (function () {
 <!-- ======================== FASE 2 ======================== -->
 <div class="page" id="page-fase2">
   <button class="round-intro-btn" onclick="showNextRoundIntro('f2')">📺 Anunciar la próxima ronda en pantalla</button>
+  <button class="panic-btn" onclick="openPanicMode()" title="Recortar el fixture para llegar con el horario">⏰ Modo pánico</button>
   <div id="bet-control-f2"></div>
   <div id="next-match-f2" style="margin-bottom:0.75rem"></div>
   <div id="my-next-f2" style="margin-bottom:0.75rem"></div>
@@ -3518,6 +3596,7 @@ window.VarSwitch = (function () {
 
 <!-- ======================== FINAL ======================== -->
 <div class="page" id="page-final">
+  <div id="bracket-root"></div>
   <div id="final-root"></div>
   <div id="wall-panel"></div>
   <div id="final-root-2"></div>
@@ -11354,7 +11433,228 @@ function resetElencoEdits() {
   renderFinal();
 }
 
+
+// ── CUADRO DE LA FINAL ───────────────────────────────────────────────
+// Se completa solo: los clasificados salen de las tablas de cada fase y los
+// resultados de la tarjeta "Campeones de la noche". Sirve para que se entienda
+// cómo se llega al final, que hoy pasa de golpe.
+
+// ── MODO PÁNICO ──────────────────────────────────────────────────────
+// El horario siempre se estira. Esto calcula cuántas rondas entran en lo que
+// queda y recorta el fixture desde el final, sin tocar nunca lo ya jugado.
+// Guarda una copia para poder deshacerlo.
+const PANIC_BACKUP = 'ndj_panic_backup';
+
+function panicInfo(fase) {
+  const fx    = fase === 'f1' ? F1_FIXTURE : F2_FIXTURE;
+  const store = fase === 'f1' ? state.f1 : state.f2;
+  const rondas = [...new Set(fx.map(m => m[0]))].sort((a, b) => a - b);
+  const jugadas = rondas.filter(r =>
+    fx.some(m => m[0] === r && store[m[0] + '-' + m[1] + '-' + m[2]]));
+  const ultima = jugadas.length ? Math.max(...jugadas) : 0;
+  return { total: rondas.length, ultima, pendientes: rondas.length - ultima };
+}
+
+// Reparte el tiempo disponible entre las dos fases, garantizando al menos
+// una ronda de cada una si todavía quedaban pendientes.
+function panicPlan() {
+  const min = Math.max(5, parseInt((document.getElementById('panic-min') || {}).value || '60', 10));
+  const por = Math.max(5, parseInt((document.getElementById('panic-por') || {}).value || '14', 10));
+  const caben = Math.floor(min / por);
+
+  const f1 = panicInfo('f1'), f2 = panicInfo('f2');
+  let k1 = 0, k2 = 0, libres = caben;
+  if (f1.pendientes > 0 && libres > 0) { k1 = 1; libres--; }
+  if (f2.pendientes > 0 && libres > 0) { k2 = 1; libres--; }
+  while (libres > 0 && (k1 < f1.pendientes || k2 < f2.pendientes)) {
+    if (k1 < f1.pendientes && libres > 0) { k1++; libres--; }
+    if (k2 < f2.pendientes && libres > 0) { k2++; libres--; }
+  }
+  return { min, por, caben, f1, f2, k1, k2 };
+}
+
+function openPanicMode() {
+  const hayCopia = !!localStorage.getItem(PANIC_BACKUP);
+  let ov = document.getElementById('panic-ov');
+  if (!ov) {
+    ov = document.createElement('div');
+    ov.id = 'panic-ov'; ov.className = 'panic-ov';
+    document.body.appendChild(ov);
+  }
+  ov.innerHTML = `
+    <div class="pn-box">
+      <button class="pn-x" onclick="closePanic()" aria-label="Cerrar">✕</button>
+      <div class="pn-emoji">⏰</div>
+      <div class="pn-title">Modo pánico</div>
+      <div class="pn-sub">Decime cuánto tiempo te queda y recorto las rondas que no entran.</div>
+
+      <div class="pn-field">
+        <label>Minutos de juego que te quedan</label>
+        <input type="number" id="panic-min" value="60" min="5" max="300" step="5" oninput="updatePanicPreview()">
+      </div>
+      <div class="pn-field">
+        <label>Minutos por ronda (juego + cambio de mesa)</label>
+        <input type="number" id="panic-por" value="14" min="5" max="40" step="1" oninput="updatePanicPreview()">
+      </div>
+
+      <div class="pn-preview" id="panic-preview"></div>
+
+      <button class="pn-go" onclick="applyPanic()">✂️ Recortar el fixture</button>
+      ${hayCopia ? '<button class="pn-undo" onclick="undoPanic()">↺ Deshacer el último recorte</button>' : ''}
+      <div class="pn-nota">Nunca se borra nada que ya se haya jugado.</div>
+    </div>`;
+  ov.classList.add('show');
+  updatePanicPreview();
+}
+
+function closePanic() {
+  const ov = document.getElementById('panic-ov');
+  if (ov) ov.classList.remove('show');
+}
+
+function updatePanicPreview() {
+  const el = document.getElementById('panic-preview');
+  if (!el) return;
+  const p = panicPlan();
+  if (p.caben <= 0) { el.innerHTML = '<div class="pn-bad">No entra ninguna ronda con ese tiempo.</div>'; return; }
+  const corta1 = p.f1.pendientes - p.k1, corta2 = p.f2.pendientes - p.k2;
+  const fin = new Date(Date.now() + (p.k1 + p.k2) * p.por * 60000);
+  const hh = fin.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' });
+  el.innerHTML = `
+    <div class="pn-big">${p.k1 + p.k2} ronda${p.k1 + p.k2 === 1 ? '' : 's'}</div>
+    <div class="pn-small">entran en ${p.min} min · terminarías ~${hh}</div>
+    <div class="pn-rows">
+      <div><span>🎮 Fase 1</span><b>${p.k1} de ${p.f1.pendientes}</b>${corta1 > 0 ? `<em>−${corta1}</em>` : ''}</div>
+      <div><span>👥 Fase 2</span><b>${p.k2} de ${p.f2.pendientes}</b>${corta2 > 0 ? `<em>−${corta2}</em>` : ''}</div>
+    </div>`;
+}
+
+function applyPanic() {
+  const p = panicPlan();
+  if (p.caben <= 0) { showToast('⚠️', 'Poné más minutos', false); return; }
+  const corta = (p.f1.pendientes - p.k1) + (p.f2.pendientes - p.k2);
+  if (corta <= 0) { showToast('✓', 'Ya entra todo en ese tiempo', false); return; }
+  if (!confirm('Se van a eliminar ' + corta + ' ronda(s) del fixture.\n\nLo ya jugado no se toca y podés deshacerlo después.\n\n¿Seguimos?')) return;
+
+  try {
+    localStorage.setItem(PANIC_BACKUP, JSON.stringify({
+      f1: F1_FIXTURE, f2: F2_FIXTURE, byes2: F2_BYES, ts: Date.now()
+    }));
+  } catch (e) {}
+
+  const corte1 = p.f1.ultima + p.k1, corte2 = p.f2.ultima + p.k2;
+  F1_FIXTURE = F1_FIXTURE.filter(m => m[0] <= corte1);
+  F2_FIXTURE = F2_FIXTURE.filter(m => m[0] <= corte2);
+  F1_BYES = computeF1Byes(F1_FIXTURE, PLAYERS.length);
+
+  state.f1FixtureSnapshot = { fixture: F1_FIXTURE };
+  state.f2FixtureSnapshot = { fixture: F2_FIXTURE, byes: F2_BYES };
+  saveState();
+
+  closePanic();
+  renderFase1(); renderFase2();
+  showToast('✂️', 'Fixture recortado — ' + corta + ' ronda(s) menos', false);
+}
+
+function undoPanic() {
+  let bk = null;
+  try { bk = JSON.parse(localStorage.getItem(PANIC_BACKUP) || 'null'); } catch (e) {}
+  if (!bk) { showToast('⚠️', 'No hay recorte para deshacer', false); return; }
+  F1_FIXTURE = bk.f1;
+  F2_FIXTURE = bk.f2;
+  if (bk.byes2) F2_BYES = bk.byes2;
+  F1_BYES = computeF1Byes(F1_FIXTURE, PLAYERS.length);
+  state.f1FixtureSnapshot = { fixture: F1_FIXTURE };
+  state.f2FixtureSnapshot = { fixture: F2_FIXTURE, byes: F2_BYES };
+  saveState();
+  try { localStorage.removeItem(PANIC_BACKUP); } catch (e) {}
+  closePanic();
+  renderFase1(); renderFase2();
+  showToast('↺', 'Fixture restaurado', false);
+}
+
+function renderBracket() {
+  const root = document.getElementById('bracket-root');
+  if (!root) return;
+
+  let ppts, tpts;
+  try { ppts = getPlayerPoints(); tpts = getTeamPoints(); } catch (e) { root.innerHTML = ''; return; }
+
+  const sortedP = PLAYERS.map((n, i) => ({ n, t: ppts[i] ? ppts[i].total : 0 }))
+                         .sort((a, b) => b.t - a.t);
+  const sortedT = TEAMS.map((n, i) => ({ n, t: tpts[i] ? tpts[i].total : 0 }))
+                       .sort((a, b) => b.t - a.t);
+
+  // ¿Terminó cada fase? Mientras no termine, el clasificado es provisorio
+  const f1Fin = F1_FIXTURE.every(([r, a, b]) => state.f1[r + '-' + a + '-' + b]);
+  const f2Fin = F2_FIXTURE.every(([r, a, b]) => state.f2[r + '-' + a + '-' + b]);
+
+  const corto = n => String(n || '').split('/').map(x => x.trim().split(' ')[0]).join(' / ');
+
+  // Los dos que llegan a la final
+  const cA = sortedP[0] && sortedP[0].t > 0 ? sortedP[0] : null;
+  const cB = sortedT[0] && sortedT[0].t > 0 ? sortedT[0] : null;
+
+  // Los que juegan el tercer puesto (los segundos de cada fase)
+  const tA = sortedP[1] && sortedP[1].t > 0 ? sortedP[1] : null;
+  const tB = sortedT[1] && sortedT[1].t > 0 ? sortedT[1] : null;
+
+  const g = (cfg) => { try { return cfg && cfg.ganador ? cfg.ganador : ''; } catch (e) { return ''; } };
+  const campeon = g(typeof FINAL_CONFIG   !== 'undefined' ? FINAL_CONFIG   : null);
+  const segundo = g(typeof SEGUNDO_CONFIG !== 'undefined' ? SEGUNDO_CONFIG : null);
+  const tercero = g(typeof TERCER_CONFIG  !== 'undefined' ? TERCER_CONFIG  : null);
+  const cuarto  = g(typeof CUARTO_CONFIG  !== 'undefined' ? CUARTO_CONFIG  : null);
+
+  // Una ranura del cuadro: puede estar vacía, provisoria o confirmada
+  const slot = (ent, etiqueta, provisorio, ganador) => {
+    if (!ent) return `<div class="bk-slot vacio">
+        <span class="bk-lbl">${etiqueta}</span>
+        <span class="bk-nom">Por definir</span></div>`;
+    const esGanador = ganador && corto(ganador) === corto(ent.n);
+    return `<div class="bk-slot${esGanador ? ' gano' : ''}${provisorio ? ' prov' : ''}">
+      <span class="bk-lbl">${etiqueta}${provisorio ? ' · provisorio' : ''}</span>
+      <span class="bk-nom">${_escC(corto(ent.n))}</span>
+      <span class="bk-pts">${ent.t} pts</span>
+    </div>`;
+  };
+
+  const hayAlgo = cA || cB || tA || tB;
+  if (!hayAlgo) { root.innerHTML = ''; return; }
+
+  root.innerHTML = `
+    <div class="section-header">
+      <span class="section-title"><span class="dot-indicator final"></span>Cuadro de la noche</span>
+      ${(f1Fin && f2Fin) ? '<span class="especial-badge">definido</span>'
+                         : '<span class="especial-badge prov">en juego</span>'}
+    </div>
+    <div class="card bk-card">
+
+      <div class="bk-llave">
+        <div class="bk-titulo">🥉 Partido por el 3er puesto</div>
+        <div class="bk-par">
+          ${slot(tA, '2° Fase 1', !f1Fin, tercero)}
+          <div class="bk-vs">vs</div>
+          ${slot(tB, '2° Fase 2', !f2Fin, tercero)}
+        </div>
+        ${tercero ? `<div class="bk-res">🥉 ${_escC(corto(tercero))}${cuarto ? ` · 4° ${_escC(corto(cuarto))}` : ''}</div>` : ''}
+      </div>
+
+      <div class="bk-llave destacada">
+        <div class="bk-titulo">🏆 Gran final</div>
+        <div class="bk-par">
+          ${slot(cA, '1° Fase 1', !f1Fin, campeon)}
+          <div class="bk-vs">vs</div>
+          ${slot(cB, '1° Fase 2', !f2Fin, campeon)}
+        </div>
+        ${campeon ? `<div class="bk-res campeon">👑 ${_escC(corto(campeon))}${segundo ? ` · 2° ${_escC(corto(segundo))}` : ''}</div>` : ''}
+      </div>
+
+      ${(!f1Fin || !f2Fin) ? `<div class="bk-nota">Los clasificados se van actualizando con cada resultado.</div>` : ''}
+    </div>`;
+}
+
 function renderFinal() {
+  renderBracket();
   renderWallPanel();
   const root = document.getElementById('final-root');
   if (!root) return;
