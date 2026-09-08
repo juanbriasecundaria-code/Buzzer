@@ -3321,6 +3321,53 @@ body.solo-impostor #tv-btn{ opacity:.42 }
   border:1px solid var(--border2); background:transparent; color:var(--muted);
   font-family:inherit; font-size:13px; font-weight:700; cursor:pointer }
 .pn-nota{ font-size:10px; color:var(--muted); margin-top:.7rem }
+
+/* ── El diario de mañana ──────────────────────────────────────────────
+   Papel claro y tipografía con serifas: es lo único de toda la app que
+   rompe con la estética oscura, y esa es justamente la gracia. */
+.diario{ background:#f4f1e8; color:#16150f; padding:1.5rem 1.3rem 1.2rem;
+  font-family:Georgia,'Times New Roman',serif }
+.dia-cab{ text-align:center }
+.dia-nombre{ font-size:44px; font-size:clamp(32px,10vw,52px); font-weight:900; letter-spacing:.02em;
+  line-height:1; font-family:Georgia,'Times New Roman',serif }
+.dia-sub{ font-size:9.5px; letter-spacing:.14em; text-transform:uppercase;
+  color:#5a564a; margin-top:.4rem }
+.dia-regla{ height:3px; background:#16150f; margin:.7rem 0 1rem;
+  border-top:1px solid #16150f; border-bottom:1px solid #16150f; box-sizing:content-box }
+
+.dia-titular{ font-size:36px; font-size:clamp(26px,8.5vw,44px); font-weight:900; line-height:1.03;
+  letter-spacing:-.03em; text-align:center; margin-bottom:.7rem;
+  text-transform:uppercase }
+.dia-bajada{ font-size:13px; line-height:1.6; color:#2e2b22; text-align:center;
+  font-style:italic; padding:0 .3rem; border-bottom:1px solid #c9c3b2;
+  padding-bottom:.9rem; margin-bottom:.9rem }
+
+.dia-foto{ margin:0 0 1rem }
+.dia-foto img{ width:100%; max-height:230px; object-fit:cover; display:block;
+  filter:grayscale(1) contrast(1.08); border:1px solid #16150f }
+.dia-epigrafe{ font-size:9.5px; color:#5a564a; margin-top:.3rem; font-style:italic }
+
+.dia-notas{ display:grid; grid-template-columns:1fr; gap:0 }
+@media (min-width:560px){ .dia-notas{ grid-template-columns:1fr 1fr 1fr; gap:0 } }
+.dia-nota{ padding:.75rem 0; border-top:1px solid #c9c3b2 }
+@media (min-width:560px){
+  .dia-nota{ padding:.2rem .7rem; border-top:none; border-left:1px solid #c9c3b2 }
+  .dia-nota:first-child{ border-left:none; padding-left:0 }
+  .dia-nota:last-child{ padding-right:0 }
+}
+.dia-vol{ font-size:8.5px; font-weight:700; letter-spacing:.2em; text-transform:uppercase;
+  color:#8a3b2a; margin-bottom:.25rem }
+.dia-nt{ font-size:14px; font-weight:900; line-height:1.2; margin-bottom:.3rem }
+.dia-nx{ font-size:11.5px; line-height:1.55; color:#2e2b22 }
+
+.dia-pie{ margin-top:1rem; padding-top:.6rem; border-top:3px double #16150f;
+  font-size:9px; letter-spacing:.1em; text-transform:uppercase; color:#5a564a;
+  text-align:center }
+
+.dia-dl{ background:none; border:1px solid var(--border2); border-radius:99px;
+  color:var(--muted); font-family:inherit; font-size:11px; font-weight:700;
+  padding:.3rem .7rem; cursor:pointer }
+.dia-dl:hover{ border-color:var(--accent); color:var(--accent) }
 </style>
 <style>.hub-link{position:fixed;top:max(0.75rem,env(safe-area-inset-top));left:max(0.75rem,env(safe-area-inset-left));z-index:99999;font-size:11px;font-weight:700;color:rgba(240,239,232,0.7);background:rgba(10,10,14,0.6);border:1px solid rgba(255,255,255,0.1);border-radius:99px;padding:0.38rem 0.85rem;text-decoration:none;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);letter-spacing:0.04em;transition:color 0.15s,border-color 0.15s;white-space:nowrap}.hub-link:hover{color:#f0efe8;border-color:rgba(255,255,255,0.25)}body:has(.ceremony.show) .hub-link{display:none}</style></head>
 <body>
@@ -3597,6 +3644,7 @@ window.VarSwitch = (function () {
 <!-- ======================== FINAL ======================== -->
 <div class="page" id="page-final">
   <div id="bracket-root"></div>
+  <div id="diario-root"></div>
   <div id="final-root"></div>
   <div id="wall-panel"></div>
   <div id="final-root-2"></div>
@@ -5737,16 +5785,6 @@ function activateTab(tab) {
 let _miniOn = true;
 try { _miniOn = localStorage.getItem('ndj_mini_off') !== '1'; } catch (e) {}
 
-function miniPhase() {
-  const tab = document.querySelector('.nav-tab.active')?.dataset.tab;
-  if (tab === 'fase2') return 'f2';
-  if (tab === 'fase1' || tab === 'impostor') return 'f1';
-  // En Reglas o Final, mostramos la fase que todavía se está jugando
-  try {
-    const f1Pend = F1_FIXTURE.some(m => !state.f1[m[0] + '-' + m[1] + '-' + m[2]]);
-    return f1Pend ? 'f1' : 'f2';
-  } catch (e) { return 'f1'; }
-}
 
 function toggleMiniBoard() {
   _miniOn = !_miniOn;
@@ -5763,19 +5801,31 @@ function renderMiniBoard() {
     document.body.appendChild(el);
   }
 
+  // Solo en la pestaña Impostor. En Fase 1 y Fase 2 la tabla completa ya está
+  // en pantalla y esto la duplicaba en chiquito, tapando una esquina sin
+  // aportar nada. En el Impostor, en cambio, no hay tabla y la ronda es larga:
+  // ahí sí sirve tener a mano cómo viene el reparto.
+  const tabActual = document.querySelector('.nav-tab.active')?.dataset.tab;
+  if (tabActual !== 'impostor') { el.style.display = 'none'; return; }
+  el.style.display = '';
+
   if (!_miniOn) {
     el.className = 'mini-board collapsed';
     el.innerHTML = '<button class="mb-open" onclick="toggleMiniBoard()" title="Mostrar posiciones">🏆</button>';
     return;
   }
 
-  const ph = miniPhase();
-  const isF1 = ph === 'f1';
+  // Siempre Fase 1: el Impostor reparte puntos individuales, no de equipo
+  const isF1 = true;
   let pts = [], ents = [];
   try {
-    ents = isF1 ? PLAYERS : TEAMS;
-    pts  = isF1 ? getPlayerPoints() : getTeamPoints();
+    ents = PLAYERS;
+    pts  = getPlayerPoints();
   } catch (e) { return; }
+
+  // Sin puntos todavía no tiene nada que decir: mejor no ocupar lugar
+  const hayPuntos = pts.some(p => p && p.total > 0);
+  if (!hayPuntos) { el.style.display = 'none'; return; }
 
   const sorted = ents.map((n, i) => ({ n, i, t: pts[i] ? pts[i].total : 0 }))
                      .sort((a, b) => b.t - a.t);
@@ -5796,10 +5846,10 @@ function renderMiniBoard() {
     </div>`;
   }).join('');
 
-  el.className = 'mini-board ' + (isF1 ? 'ph-f1' : 'ph-f2');
+  el.className = 'mini-board ph-f1';
   el.innerHTML = `
     <div class="mb-head">
-      <span class="mb-tag">${isF1 ? '🎮 Fase 1' : '👥 Fase 2'}</span>
+      <span class="mb-tag">🎮 Tabla individual</span>
       <button class="mb-hide" onclick="toggleMiniBoard()" title="Ocultar" aria-label="Ocultar posiciones">−</button>
     </div>
     ${anyPts ? rows : '<div class="mb-empty">Sin puntos todavía</div>'}`;
@@ -6235,7 +6285,6 @@ function setVsJC(playerName, value) {
 // RENDER FASE 1
 // ============================================================
 function renderFase1() {
-  renderMiniBoard();
   renderF1RosterAdmin();
   renderBonusManualF1();
   renderBetControl();
@@ -6879,7 +6928,6 @@ function renderMyNext(phase) {
 }
 
 function renderFase2() {
-  renderMiniBoard();
   renderF2RosterAdmin();
   renderBetControlF2();
   renderComodinesPanel('f2');
@@ -8967,6 +9015,8 @@ function renderImpostor() {
   if (impGame.phase === 'cards') renderImpCards();
   else if (impGame.phase === 'result') renderImpResult();
   else renderImpSetup();
+  // El mini ranking vive en esta pestaña: se refresca con cada reparto
+  try { renderMiniBoard(); } catch (e) {}
 }
 
 // ---- helpers ----
@@ -11573,6 +11623,171 @@ function undoPanic() {
   showToast('↺', 'Fixture restaurado', false);
 }
 
+
+// ── DIARIO DEL DÍA SIGUIENTE ─────────────────────────────────────────
+// Portada de periódico armada con lo que pasó: titular para el campeón y
+// tres notas secundarias sacadas de los motes, el Impostor y los números.
+// Es lo que se manda al grupo al otro día.
+function armarDiario() {
+  const g = (cfg) => { try { return cfg && cfg.ganador ? cfg.ganador : ''; } catch (e) { return ''; } };
+  const campeon = g(typeof FINAL_CONFIG   !== 'undefined' ? FINAL_CONFIG   : null);
+  const segundo = g(typeof SEGUNDO_CONFIG !== 'undefined' ? SEGUNDO_CONFIG : null);
+  const tercero = g(typeof TERCER_CONFIG  !== 'undefined' ? TERCER_CONFIG  : null);
+
+  const corto = n => String(n || '').split('/').map(x => x.trim().split(' ')[0]).join(' y ');
+  const full  = n => (typeof FULL_NAMES !== 'undefined' && FULL_NAMES[n]) ? FULL_NAMES[n] : n;
+
+  let nums = {}, motes = [], imp = null, timing = null;
+  try { nums   = computeNightNumbers() || {}; } catch (e) {}
+  try { const m = computeMotes(); motes = (m && m.motes) ? m.motes : (Array.isArray(m) ? m : []); } catch (e) {}
+  try { imp    = computeImpostorSummary(); } catch (e) {}
+  try { timing = computeEventTiming(); } catch (e) {}
+
+  // ── Titular ──
+  let titular, bajada;
+  if (campeon) {
+    titular = corto(campeon).toUpperCase() + ' SE LLEVÓ LA NOCHE';
+    bajada = 'Tras una jornada de ' + (nums.partidos || 0) + ' duelos, ' +
+             full(campeon) + ' se consagró campeón de La Velada del Año' +
+             (segundo ? ', dejando a ' + corto(segundo) + ' en el segundo puesto' : '') + '.';
+  } else {
+    // Todavía sin campeón cargado: titulamos con quien va puntero
+    let lider = '';
+    try {
+      const p = getPlayerPoints();
+      const orden = PLAYERS.map((n, i) => ({ n, t: p[i] ? p[i].total : 0 })).sort((a, b) => b.t - a.t);
+      if (orden[0] && orden[0].t > 0) lider = orden[0].n;
+    } catch (e) {}
+    titular = lider ? corto(lider).toUpperCase() + ' LIDERA LA VELADA' : 'LA VELADA EN MARCHA';
+    bajada = lider
+      ? full(lider) + ' encabeza la tabla con la noche todavía en juego.'
+      : 'La jornada está en curso y el campeón aún no tiene nombre.';
+  }
+
+  // ── Notas secundarias: agarramos las tres más jugosas que haya ──
+  const notas = [];
+
+  if (imp && imp.topName) {
+    notas.push({
+      vol: 'POLICIALES',
+      tit: imp.topEscaped > imp.topCaught
+        ? corto(imp.topName) + ' burló a todos'
+        : 'Cayó ' + corto(imp.topName),
+      txt: full(imp.topName) + ' fue impostor ' + imp.topCount +
+           (imp.topCount === 1 ? ' vez' : ' veces') + ': lo descubrieron ' +
+           imp.topCaught + ' y zafó ' + imp.topEscaped + '.'
+    });
+  }
+
+  if (motes.length) {
+    const m = motes[0];
+    if (m && m.player) {
+      notas.push({
+        vol: 'SOCIEDAD',
+        tit: (m.emoji ? m.emoji + ' ' : '') + (m.title || m.name || 'Mención de la noche'),
+        txt: full(m.player) + (m.reason ? ' — ' + m.reason : '') + '.'
+      });
+    }
+  }
+
+  if (tercero) {
+    notas.push({
+      vol: 'DEPORTES',
+      tit: corto(tercero) + ' se quedó con el bronce',
+      txt: 'El partido por el tercer puesto quedó en manos de ' + full(tercero) + '.'
+    });
+  }
+
+  if (nums.partidos) {
+    const dur = timing && timing.durMin ? timing.durMin : null;
+    notas.push({
+      vol: 'NÚMEROS',
+      tit: nums.puntos + ' puntos en juego',
+      txt: 'Se jugaron ' + nums.partidos + ' duelos' +
+           (nums.empates ? ', con ' + nums.empates + ' empate' + (nums.empates === 1 ? '' : 's') : '') +
+           (nums.comodines ? ' y ' + nums.comodines + ' comodines girados' : '') +
+           (dur ? '. La velada duró ' + dur + ' minutos' : '') + '.'
+    });
+  }
+
+  if (motes.length > 1 && motes[1] && motes[1].player) {
+    const m = motes[1];
+    notas.push({
+      vol: 'ESPECTÁCULOS',
+      tit: (m.emoji ? m.emoji + ' ' : '') + (m.title || m.name || 'Otra mención'),
+      txt: full(m.player) + (m.reason ? ' — ' + m.reason : '') + '.'
+    });
+  }
+
+  // computeEventTiming ya devuelve la fecha formateada; si no hay datos
+  // todavía (noche sin resultados), usamos la de hoy.
+  const fechaTxt = (timing && timing.dateText)
+    ? timing.dateText
+    : new Date().toLocaleDateString('es-AR',
+        { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+
+  return { titular, bajada, notas: notas.slice(0, 3), fechaTxt, campeon };
+}
+
+function renderDiario() {
+  const root = document.getElementById('diario-root');
+  if (!root) return;
+  let d;
+  try { d = armarDiario(); } catch (e) { root.innerHTML = ''; return; }
+  if (!d) { root.innerHTML = ''; return; }
+
+  const fotoCampeon = d.campeon ? (_playerPhotos[d.campeon] ||
+    (String(d.campeon).split('/').map(x => x.trim())[0]
+      ? _playerPhotos[String(d.campeon).split('/').map(x => x.trim())[0]] : null)) : null;
+
+  root.innerHTML = `
+    <div class="section-header">
+      <span class="section-title"><span class="dot-indicator final"></span>El diario de mañana</span>
+      <button class="dia-dl" onclick="descargarDiario()">⬇️ Descargar</button>
+    </div>
+    <div class="card" style="padding:0;overflow:hidden;margin-bottom:1.25rem">
+      <div class="diario" id="diario-hoja">
+        <div class="dia-cab">
+          <div class="dia-nombre">EL VELADO</div>
+          <div class="dia-sub">Diario de La Velada del Año · ${_escC(d.fechaTxt)} · Edición única</div>
+        </div>
+        <div class="dia-regla"></div>
+
+        <div class="dia-titular">${_escC(d.titular)}</div>
+        <div class="dia-bajada">${_escC(d.bajada)}</div>
+
+        ${fotoCampeon ? `<div class="dia-foto"><img src="${fotoCampeon}" alt="El campeón">
+          <div class="dia-epigrafe">El campeón, anoche, tras la consagración.</div></div>` : ''}
+
+        <div class="dia-notas">
+          ${d.notas.map(n => `<div class="dia-nota">
+            <div class="dia-vol">${_escC(n.vol)}</div>
+            <div class="dia-nt">${_escC(n.tit)}</div>
+            <div class="dia-nx">${_escC(n.txt)}</div>
+          </div>`).join('')}
+        </div>
+
+        <div class="dia-pie">Redacción: la casa · Fotografía: el muro de la noche</div>
+      </div>
+    </div>`;
+}
+
+// Guarda la portada como imagen para mandarla al grupo
+function descargarDiario() {
+  const hoja = document.getElementById('diario-hoja');
+  if (!hoja) return;
+  if (typeof html2canvas === 'undefined') {
+    showToast('⚠️', 'Sacale una captura de pantalla al diario', false);
+    return;
+  }
+  html2canvas(hoja, { backgroundColor: '#f4f1e8', scale: 2 }).then(canvas => {
+    const a = document.createElement('a');
+    a.download = 'el-velado.png';
+    a.href = canvas.toDataURL('image/png');
+    a.click();
+  }).catch(() => showToast('⚠️', 'Sacale una captura de pantalla al diario', false));
+}
+
 function renderBracket() {
   const root = document.getElementById('bracket-root');
   if (!root) return;
@@ -11655,6 +11870,7 @@ function renderBracket() {
 
 function renderFinal() {
   renderBracket();
+  renderDiario();
   renderWallPanel();
   const root = document.getElementById('final-root');
   if (!root) return;
