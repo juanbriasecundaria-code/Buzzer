@@ -3089,6 +3089,11 @@ function startParticipant() {
   if (bc) bc.onmessage = (e) => onSync(typeof e.data === 'string' ? e.data : JSON.stringify(e.data));
   let j = null; try { j = localStorage.getItem(SYNC_KEY); } catch (e) {}
   if (j) onSync(j); else renderParticipant(null, null);
+
+  // Esta pantalla se sincroniza por localStorage con la del conductor, así que
+  // nunca conectaba Firebase: por eso los emojis que mandaban desde el buzzer
+  // no aparecían. Conectamos solo para escucharlos.
+  initFirebase();
 }
 
 function pName(snap, t) { return (snap && snap.names && snap.names[t]) || (t === 'a' ? 'Equipo 1' : 'Equipo 2'); }

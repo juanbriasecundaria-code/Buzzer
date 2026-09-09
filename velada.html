@@ -180,14 +180,35 @@
   /* Equipos de dos: avatares solapados en las tablas */
   .player-avatar-duo { display: inline-flex; align-items: center; flex-shrink: 0; }
   .player-avatar-duo > * { width: 24px; height: 24px; font-size: 10px; }
-  .player-avatar-duo > *:nth-child(2) { margin-left: -9px; }
-  .player-avatar-duo > *:nth-child(1) { z-index: 2; position: relative; }
+  /* Cada avatar a partir del segundo se monta sobre el anterior. Con
+     nth-child(2) el tercero de un equipo quedaba suelto y ensanchaba la fila. */
+  .player-avatar-duo > * + * { margin-left: -9px; }
+  .player-avatar-duo > *:nth-child(1) { z-index: 3; position: relative; }
+  .player-avatar-duo > *:nth-child(2) { z-index: 2; position: relative; }
+  .player-avatar-duo > *:nth-child(3) { z-index: 1; position: relative; }
+  /* Con 3 o más achicamos un poco para no empujar el nombre */
+  .player-avatar-duo:has(> :nth-child(3)) > * { width: 21px; height: 21px; font-size: 9px; }
 
   /* Equipos de dos: figuras abrazadas en los podios */
   .mii-duo { display: flex; align-items: flex-end; justify-content: center; }
   .mii-duo-fig { flex: 0 0 auto; display: flex; align-items: flex-end; }
   .mii-duo-l { margin-right: -11%; z-index: 2; }
   .mii-duo-r { margin-left: -11%; z-index: 1; }
+
+  /* Equipos de 3 o más: los del medio se solapan un poco menos y quedan
+     detrás, así el conjunto no se ensancha ni empuja lo que tiene al lado. */
+  .mii-duo-m { margin-left: -9%; margin-right: -9%; z-index: 0; }
+  .mii-grupo-3 .mii-duo-l { margin-right: -9%; }
+  .mii-grupo-3 .mii-duo-r { margin-left: -9%; }
+  .mii-grupo-4 .mii-duo-l,
+  .mii-grupo-4 .mii-duo-r,
+  .mii-grupo-4 .mii-duo-m { margin-left: -8%; margin-right: -8%; }
+  .mii-grupo-5 .mii-duo-l,
+  .mii-grupo-5 .mii-duo-r,
+  .mii-grupo-5 .mii-duo-m { margin-left: -7%; margin-right: -7%; }
+  /* El del medio queda apenas atrás para que se lea la profundidad */
+  .mii-duo-m > * { transform: translateY(4%); }
+
 
   /* Filtro "buscá tu nombre" (próximo partido personal) */
   .who-filter-select {
@@ -10474,19 +10495,37 @@ function entityPhotos(name) {
   const parts = entityMembers(name);
   if (parts.length > 1) {
     const teamPhoto = getPlayerPhoto(name);
-    return parts.map(p => getPlayerPhoto(p) || null).map((p, i) => p || (i === 0 ? teamPhoto : null));
+    // Una foto por integrante, sea cual sea la cantidad. Si a alguno le falta,
+    // el primero hereda la foto del equipo (si la hay) y el resto queda vacío.
+    return parts.map((p, i) => getPlayerPhoto(p) || (i === 0 ? teamPhoto : null) || null);
   }
   return [getPlayerPhoto(name) || null];
 }
-// Devuelve la figura (o el dúo abrazado) de una entidad, lista para insertar.
+// Devuelve la figura de una entidad: una sola, un dúo abrazado o un grupo.
+// Antes solo contemplaba 2 integrantes y el tercero de un equipo quedaba
+// afuera. Ahora dibuja a todos, achicando para que ocupen lo mismo.
 function entityFigureHtml(name, color, size, pose) {
   if (typeof miiFigureSVG !== 'function') return '';
   const parts = entityMembers(name);
+
   if (parts.length > 1) {
     const ph = entityPhotos(name);
-    return '<div class="mii-duo">'
-      + '<div class="mii-duo-fig mii-duo-l">' + miiFigureSVG(getEntityColor(parts[0]) || color, Math.round(size * 0.86), 'hug-right', ph[0]) + '</div>'
-      + '<div class="mii-duo-fig mii-duo-r">' + miiFigureSVG(getEntityColor(parts[1]) || color, Math.round(size * 0.86), 'hug-left',  ph[1]) + '</div>'
+    const n = parts.length;
+    // Con más integrantes cada figura se achica, así el conjunto mantiene
+    // el ancho de siempre y no descoloca podios ni tarjetas.
+    const escala = n === 2 ? 0.86 : (n === 3 ? 0.70 : 0.60);
+    const tam = Math.round(size * escala);
+    // Los de los extremos abrazan hacia adentro; los del medio quedan de frente
+    const poseDe = (i) => {
+      if (i === 0) return 'hug-right';
+      if (i === n - 1) return 'hug-left';
+      return 'victory';
+    };
+    return '<div class="mii-duo mii-grupo-' + Math.min(n, 5) + '">'
+      + parts.map((p, i) =>
+          '<div class="mii-duo-fig ' + (i === 0 ? 'mii-duo-l' : (i === n - 1 ? 'mii-duo-r' : 'mii-duo-m')) + '">'
+          + miiFigureSVG(getEntityColor(p) || color, tam, poseDe(i), ph[i])
+          + '</div>').join('')
       + '</div>';
   }
   return miiFigureSVG(color, size, pose, getPlayerPhoto(name));
@@ -10545,13 +10584,14 @@ function entityColor(name, idx) {
 function playerAvatarHtml(name, idx) {
   const parts = entityMembers(name);
   const color = entityColor(name, idx);
-  // Equipo de dos: dos avatares solapados
+  // Equipo: un avatar solapado por integrante (2, 3 o los que sean).
+  // Antes se dibujaban solo los dos primeros y el tercero desaparecía.
   if (parts.length > 1) {
     const ph = entityPhotos(name);
     const one = (p, m) => p
       ? `<img class="player-avatar-img" src="${p}" alt="">`
-      : `<div class="player-avatar-fallback" style="background:${color}">${(m.trim()[0] || '?').toUpperCase()}</div>`;
-    return `<span class="player-avatar-duo">${one(ph[0], parts[0])}${one(ph[1], parts[1])}</span>`;
+      : `<div class="player-avatar-fallback" style="background:${color}">${(String(m).trim()[0] || '?').toUpperCase()}</div>`;
+    return `<span class="player-avatar-duo">${parts.map((m, i) => one(ph[i], m)).join('')}</span>`;
   }
   const photo = getPlayerPhoto(name);
   if (photo) return `<img class="player-avatar-img" src="${photo}" alt="">`;
@@ -15849,13 +15889,30 @@ function openTVMode() {
   }
   /* Equipos de dos: avatares solapados en el ranking del TV */
   .tv-avatar-duo { display: inline-flex; align-items: center; flex-shrink: 0; }
-  .tv-avatar-duo > *:nth-child(2) { margin-left: -34%; }
-  .tv-avatar-duo > *:nth-child(1) { z-index: 2; position: relative; }
+  .tv-avatar-duo > * + * { margin-left: -34%; }
+  .tv-avatar-duo > *:nth-child(1) { z-index: 3; position: relative; }
+  .tv-avatar-duo > *:nth-child(2) { z-index: 2; position: relative; }
+  .tv-avatar-duo > *:nth-child(3) { z-index: 1; position: relative; }
   /* Equipos de dos: figuras abrazadas en el podio del TV */
   .mii-duo { display: flex; align-items: flex-end; justify-content: center; }
   .mii-duo-fig { flex: 0 0 auto; display: flex; align-items: flex-end; }
   .mii-duo-l { margin-right: -11%; z-index: 2; }
   .mii-duo-r { margin-left: -11%; z-index: 1; }
+
+  /* Equipos de 3 o más: los del medio se solapan un poco menos y quedan
+     detrás, así el conjunto no se ensancha ni empuja lo que tiene al lado. */
+  .mii-duo-m { margin-left: -9%; margin-right: -9%; z-index: 0; }
+  .mii-grupo-3 .mii-duo-l { margin-right: -9%; }
+  .mii-grupo-3 .mii-duo-r { margin-left: -9%; }
+  .mii-grupo-4 .mii-duo-l,
+  .mii-grupo-4 .mii-duo-r,
+  .mii-grupo-4 .mii-duo-m { margin-left: -8%; margin-right: -8%; }
+  .mii-grupo-5 .mii-duo-l,
+  .mii-grupo-5 .mii-duo-r,
+  .mii-grupo-5 .mii-duo-m { margin-left: -7%; margin-right: -7%; }
+  /* El del medio queda apenas atrás para que se lea la profundidad */
+  .mii-duo-m > * { transform: translateY(4%); }
+
   .tv-rank-pts {
     font-size: clamp(11px, 1.4vw, 19px);
     font-weight: 800;
@@ -16942,11 +16999,23 @@ function tvPhotosFor(name, photos) {
 function tvFigureHtml(name, color, size, pose, photos) {
   const parts = tvMembers(name);
   if (parts.length > 1) {
+    // Mismo criterio que en la app: dibujamos a todos los integrantes y
+    // achicamos según cuántos sean, para no descolocar el podio del TV.
     const ph = tvPhotosFor(name, photos);
-    const s2 = Math.round(size * 0.86);
-    return '<div class="mii-duo">'
-      + '<div class="mii-duo-fig mii-duo-l">' + miiFigureSVG(tvEntityColor(parts[0], 0) || color, s2, 'hug-right', ph[0]) + '</div>'
-      + '<div class="mii-duo-fig mii-duo-r">' + miiFigureSVG(tvEntityColor(parts[1], 1) || color, s2, 'hug-left',  ph[1]) + '</div>'
+    const n = parts.length;
+    const escala = n === 2 ? 0.86 : (n === 3 ? 0.70 : 0.60);
+    const s2 = Math.round(size * escala);
+    const poseDe = function(i) {
+      if (i === 0) return 'hug-right';
+      if (i === n - 1) return 'hug-left';
+      return 'victory';
+    };
+    return '<div class="mii-duo mii-grupo-' + Math.min(n, 5) + '">'
+      + parts.map(function(p, i) {
+          const cls = (i === 0 ? 'mii-duo-l' : (i === n - 1 ? 'mii-duo-r' : 'mii-duo-m'));
+          return '<div class="mii-duo-fig ' + cls + '">'
+            + miiFigureSVG(tvEntityColor(p, i) || color, s2, poseDe(i), ph[i]) + '</div>';
+        }).join('')
       + '</div>';
   }
   return miiFigureSVG(color, size, pose, photos[name] || null);
@@ -16960,7 +17029,9 @@ function tvAvatarHtml(name, idx, photos) {
       return p ? '<img class="tv-rank-avatar-img" src="' + p + '" alt="">'
                : '<div class="tv-rank-avatar-fallback" style="background:' + color + '">' + ((m.trim()[0] || '?').toUpperCase()) + '</div>';
     };
-    return '<span class="tv-avatar-duo">' + one(ph[0], parts[0]) + one(ph[1], parts[1]) + '</span>';
+    // Un avatar por integrante: antes se cortaba en dos y el tercero no salía
+    return '<span class="tv-avatar-duo">'
+      + parts.map(function(m, i){ return one(ph[i], m); }).join('') + '</span>';
   }
   const ph = photos[name] || null;
   return ph ? '<img class="tv-rank-avatar-img" src="' + ph + '" alt="">'
