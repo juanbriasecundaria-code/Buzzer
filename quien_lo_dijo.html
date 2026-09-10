@@ -364,8 +364,13 @@ body.vb-clean .vb-peek { display: flex; }
 .buzzer-photo-pop{position:fixed;inset:0;z-index:900;display:none;align-items:center;justify-content:center;pointer-events:none;background:radial-gradient(circle at 50% 45%,rgba(245,200,66,.16),transparent 60%)}
 .buzzer-photo-pop.show{display:flex}
 .bpp-card{display:flex;flex-direction:column;align-items:center;gap:.6rem;animation:bppPop .5s cubic-bezier(.2,1.4,.4,1)}
-.bpp-photo{width:min(46vw,220px);height:min(46vw,220px);border-radius:50%;object-fit:cover;border:5px solid var(--gold);box-shadow:0 0 40px rgba(245,200,66,.55),0 0 0 10px rgba(245,200,66,.12)}
-.bpp-fallback{width:min(46vw,220px);height:min(46vw,220px);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:min(18vw,86px);font-weight:900;background:var(--gold-dim);color:var(--gold);border:5px solid var(--gold)}
+.bpp-photos{display:flex;align-items:flex-end;gap:1rem;justify-content:center}
+.bpp-member{display:flex;flex-direction:column;align-items:center;position:relative}
+.bpp-photo{width:min(30vw,130px);height:min(30vw,130px);border-radius:50%;object-fit:cover;border:3px solid rgba(240,239,232,.35);opacity:.75;filter:grayscale(.15)}
+.bpp-fallback{width:min(30vw,130px);height:min(30vw,130px);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:min(12vw,54px);font-weight:900;background:var(--surface2);color:var(--muted);border:3px solid rgba(240,239,232,.25);opacity:.8}
+.bpp-photo.winner,.bpp-fallback.winner{width:min(46vw,220px);height:min(46vw,220px);border:5px solid var(--gold);opacity:1;filter:none;box-shadow:0 0 40px rgba(245,200,66,.55),0 0 0 10px rgba(245,200,66,.12)}
+.bpp-fallback.winner{background:var(--gold-dim);color:var(--gold);font-size:min(18vw,86px)}
+.bpp-crown{position:absolute;top:-10px;right:-6px;font-size:26px;filter:drop-shadow(0 2px 4px rgba(0,0,0,.5))}
 .bpp-name{font-size:clamp(20px,5vw,32px);font-weight:900;color:var(--gold);text-shadow:0 2px 12px rgba(0,0,0,.5);text-align:center}
 .bpp-team{font-size:14px;font-weight:700;color:var(--text);opacity:.85}
 @keyframes bppPop{0%{transform:scale(.4);opacity:0}60%{transform:scale(1.08);opacity:1}100%{transform:scale(1);opacity:1}}
@@ -1042,6 +1047,16 @@ function initFirebase(){
           if(_lastLiveState) renderPartCard(_lastLiveState);
         }
       });
+      // Buzzer: en esta pantalla (pensada para el TV) solo mostramos el pop
+      // grande con las fotos del equipo ganador, sin abrir el panel de asignación.
+      fbBuzzerRef.on('value', snap => {
+        const d = snap.val() || {};
+        const winner = d.winner || null;
+        if(!winner || !winner.name){ _lastPhotoPopName = null; return; }
+        const tIdx = nickToTeamIndex[winner.name];
+        const team = (typeof tIdx === 'number') ? teams.find(t => t.index === tIdx) : null;
+        showBuzzerPhotoPop(winner.name, team);
+      });
     }
     if(MODE==='conductor'){
       // Al iniciar como conductor: si hay mazo en la nube, mergeamos (nube tiene prioridad si es más nuevo)
@@ -1183,9 +1198,12 @@ function renderBuzzerBanner(){
   }
 }
 
-// Muestra la foto de perfil del ganador del buzzer en grande, a pantalla completa,
-// pensado para que se vea bien en el TV. Se dispara una sola vez por ganador
-// (se resetea desde applyBuzzerState cuando el buzzer vuelve a null).
+// Muestra las fotos de perfil de TODO el equipo del ganador del buzzer en
+// grande, a pantalla completa (pensado para el TV) — no solo la del que
+// apretó, ya que cada equipo son dos personas. La foto/inicial de quien
+// ganó el buzzer se destaca más grande con una coronita.
+// Se dispara una sola vez por ganador (se resetea desde applyBuzzerState /
+// el listener de participante cuando el buzzer vuelve a null).
 let _lastPhotoPopName = null;
 function showBuzzerPhotoPop(name, team){
   if(_lastPhotoPopName === name) return;
@@ -1197,11 +1215,19 @@ function showBuzzerPhotoPop(name, team){
     ov.className = 'buzzer-photo-pop';
     document.body.appendChild(ov);
   }
-  const photo = (window.qldPhotos || {})[name];
-  const initial = (String(name||'?').trim()[0]||'?').toUpperCase();
-  const photoHtml = photo ? `<img class="bpp-photo" src="${photo}" alt="">` : `<div class="bpp-fallback">${escapeHtml(initial)}</div>`;
+  const photos = window.qldPhotos || {};
+  const members = (team && team.members && team.members.length) ? team.members : [name];
+  const membersFull = (team && team.membersFull) ? team.membersFull : [];
+  const photosHtml = members.map((m, i) => {
+    const isWinner = m === name;
+    const photo = photos[m] || (membersFull[i] ? photos[membersFull[i]] : null);
+    const initial = (String(m||'?').trim()[0]||'?').toUpperCase();
+    const cls = isWinner ? ' winner' : '';
+    const pic = photo ? `<img class="bpp-photo${cls}" src="${photo}" alt="">` : `<div class="bpp-fallback${cls}">${escapeHtml(initial)}</div>`;
+    return `<div class="bpp-member">${pic}${isWinner ? '<div class="bpp-crown">🏆</div>' : ''}</div>`;
+  }).join('');
   const teamHtml = team ? `<div class="bpp-team">${escapeHtml(team.label)}</div>` : '';
-  ov.innerHTML = `<div class="bpp-card">${photoHtml}<div class="bpp-name">${escapeHtml(name)}</div>${teamHtml}</div>`;
+  ov.innerHTML = `<div class="bpp-card"><div class="bpp-photos">${photosHtml}</div><div class="bpp-name">${escapeHtml(name)}</div>${teamHtml}</div>`;
   ov.classList.remove('show'); void ov.offsetWidth; ov.classList.add('show');
   clearTimeout(ov._hideT);
   ov._hideT = setTimeout(()=>{ ov.classList.remove('show'); }, 2200);
