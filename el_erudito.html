@@ -320,6 +320,20 @@ function _onFbScriptError(){ window._fbScriptsDone = true; console.warn('[Fireba
   .reveal-overlay.open { display: flex; animation: rvFade 0.25s ease-out; }
   @keyframes rvFade { from { opacity: 0; } to { opacity: 1; } }
 
+  /* ── VS OVERLAY: cara a cara cuando ambos equipos cargaron su respuesta ── */
+  .vs-overlay { position: fixed; inset: 0; z-index: 850; display: none; align-items: stretch; justify-content: center; pointer-events: none; }
+  .vs-overlay.open { display: flex; animation: vsFadeOut 0.35s ease-out 1.55s forwards; }
+  .vs-side { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.5rem; overflow: hidden; }
+  .vs-side.a { background: linear-gradient(135deg, rgba(96,180,240,0.94), rgba(10,10,14,0.97)); animation: vsSlideL 0.45s cubic-bezier(0.2,0.9,0.3,1); }
+  .vs-side.b { background: linear-gradient(225deg, rgba(245,200,66,0.94), rgba(10,10,14,0.97)); animation: vsSlideR 0.45s cubic-bezier(0.2,0.9,0.3,1); }
+  .vs-name { font-size: clamp(20px,7vw,34px); font-weight: 900; color: #0a0a0e; text-align: center; padding: 0 1rem; text-shadow: 0 2px 10px rgba(255,255,255,0.25); }
+  .vs-tag { font-size: 11px; font-weight: 800; letter-spacing: 0.15em; text-transform: uppercase; color: rgba(10,10,14,0.7); }
+  .vs-mid { position: fixed; top: 50%; left: 50%; transform: translate(-50%,-50%); font-size: clamp(30px,10vw,54px); font-weight: 900; color: var(--text); text-shadow: 0 0 24px rgba(0,0,0,0.6); z-index: 2; animation: vsPop 0.5s cubic-bezier(0.2,1.6,0.3,1) 0.15s both; }
+  @keyframes vsSlideL { from { transform: translateX(-100%); } to { transform: translateX(0); } }
+  @keyframes vsSlideR { from { transform: translateX(100%); } to { transform: translateX(0); } }
+  @keyframes vsPop { 0% { transform: translate(-50%,-50%) scale(0); } 70% { transform: translate(-50%,-50%) scale(1.25); } 100% { transform: translate(-50%,-50%) scale(1); } }
+  @keyframes vsFadeOut { to { opacity: 0; visibility: hidden; } }
+
   .reveal-suspense {
     font-size: 13px; font-weight: 800; letter-spacing: 0.22em; text-transform: uppercase;
     color: var(--muted); min-height: 18px;
@@ -869,6 +883,7 @@ let myTeam = null;           // 'a' | 'b' | null
 let G = null;                // último snapshot del estado compartido
 let _prevPhase = null;
 let _revealAnimating = false;
+let _vsShown = false;        // controla que el "cara a cara" se muestre una sola vez por ronda
 
 const DEFAULT_STATE = {
   phase: 'answering',        // answering | correct_locked | revealed | finished
@@ -1006,6 +1021,7 @@ function handlePhaseChange(phase){
   if(phase === 'answering'){
     closeRevealOverlay();
     document.getElementById('win-overlay').classList.remove('open');
+    _vsShown = false; // nueva ronda: habilitamos que el VS se pueda volver a mostrar
     syncMyInputs();
   }
   if(phase === 'correct_locked'){
@@ -1058,6 +1074,7 @@ function refreshPhaseUI(){
     if(me.ready && other.ready){
       correctBtn.style.display = '';
       correctBtn.disabled = false;
+      if(!_vsShown){ _vsShown = true; showVsOverlay(); }
     }
   }
   else if(phase === 'correct_locked'){
@@ -1081,6 +1098,30 @@ function refreshPhaseUI(){
     input.disabled = true;
     readyBtn.disabled = true;
   }
+}
+
+// "Cara a cara" visual (split screen tipo VS) que aparece un instante en
+// cuanto los dos equipos cargaron su respuesta, antes de habilitar el botón
+// de cargar el correcto. Se ve en el celular de cada equipo.
+function _escVs(s){ return String(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function showVsOverlay(){
+  if(!G) return;
+  let ov = document.getElementById('vs-overlay');
+  if(!ov){
+    ov = document.createElement('div');
+    ov.id = 'vs-overlay';
+    ov.className = 'vs-overlay';
+    document.body.appendChild(ov);
+  }
+  const a = G.teams.a, b = G.teams.b;
+  ov.innerHTML =
+    `<div class="vs-side a"><div class="vs-tag">Equipo 1</div><div class="vs-name">${_escVs(a.name||'Equipo 1')}</div></div>` +
+    `<div class="vs-mid">VS</div>` +
+    `<div class="vs-side b"><div class="vs-tag">Equipo 2</div><div class="vs-name">${_escVs(b.name||'Equipo 2')}</div></div>`;
+  ov.classList.remove('open'); void ov.offsetWidth; ov.classList.add('open');
+  if(navigator.vibrate) navigator.vibrate(30);
+  clearTimeout(ov._hideT);
+  ov._hideT = setTimeout(()=>{ ov.classList.remove('open'); }, 1900);
 }
 
 function syncMyInputs(){

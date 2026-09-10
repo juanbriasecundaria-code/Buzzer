@@ -358,6 +358,17 @@ body.vb-clean .vb-peek { display: flex; }
 .buzzer-banner.won .bb-name{color:var(--gold)}
 .bb-reset{padding:.4rem .8rem;border-radius:99px;border:1px solid currentColor;background:transparent;color:inherit;font-family:inherit;font-size:11px;font-weight:800;cursor:pointer;flex-shrink:0}
 .bb-reset:hover{background:rgba(255,255,255,.05)}
+.bb-photo{width:40px;height:40px;border-radius:50%;object-fit:cover;flex-shrink:0;border:2px solid var(--gold);box-shadow:0 0 10px rgba(245,200,66,.5)}
+
+/* ── FOTO GRANDE AL GANAR EL BUZZER (pensado para la pantalla de TV) ── */
+.buzzer-photo-pop{position:fixed;inset:0;z-index:900;display:none;align-items:center;justify-content:center;pointer-events:none;background:radial-gradient(circle at 50% 45%,rgba(245,200,66,.16),transparent 60%)}
+.buzzer-photo-pop.show{display:flex}
+.bpp-card{display:flex;flex-direction:column;align-items:center;gap:.6rem;animation:bppPop .5s cubic-bezier(.2,1.4,.4,1)}
+.bpp-photo{width:min(46vw,220px);height:min(46vw,220px);border-radius:50%;object-fit:cover;border:5px solid var(--gold);box-shadow:0 0 40px rgba(245,200,66,.55),0 0 0 10px rgba(245,200,66,.12)}
+.bpp-fallback{width:min(46vw,220px);height:min(46vw,220px);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:min(18vw,86px);font-weight:900;background:var(--gold-dim);color:var(--gold);border:5px solid var(--gold)}
+.bpp-name{font-size:clamp(20px,5vw,32px);font-weight:900;color:var(--gold);text-shadow:0 2px 12px rgba(0,0,0,.5);text-align:center}
+.bpp-team{font-size:14px;font-weight:700;color:var(--text);opacity:.85}
+@keyframes bppPop{0%{transform:scale(.4);opacity:0}60%{transform:scale(1.08);opacity:1}100%{transform:scale(1);opacity:1}}
 @keyframes bbSlide{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:none}}
 @keyframes bbPulse{0%,100%{box-shadow:0 0 12px rgba(245,200,66,.25)}50%{box-shadow:0 0 24px rgba(245,200,66,.5)}}
 
@@ -1127,6 +1138,7 @@ function applyBuzzerState(d){
   const winner = d.winner || null;
   buzzerState = state;
   buzzerWinner = winner;
+  if(!winner) _lastPhotoPopName = null; // libera el próximo "pop" de foto cuando se reabre/cierra el buzzer
   renderBuzzerBanner();
   // Si hay ganador nuevo: abrir panel de asignación con el jugador y su equipo destacados
   if(winner && winner.name){
@@ -1148,8 +1160,11 @@ function renderBuzzerBanner(){
     const tIdx = nickToTeamIndex[buzzerWinner.name];
     const team = (typeof tIdx === 'number') ? teams.find(t => t.index === tIdx) : null;
     const nameLine = team ? `${escapeHtml(buzzerWinner.name)} <span style="opacity:.7;font-weight:600">(${escapeHtml(team.label)})</span>` : escapeHtml(buzzerWinner.name);
-    el.innerHTML = `<div class="bb-icon">🏆</div><div class="bb-body"><div class="bb-lbl">Buzzeó primero</div><div class="bb-name">${nameLine}</div></div><button class="bb-reset" onclick="fbOpenBuzzer()">Reabrir</button>`;
+    const winnerPhoto = (window.qldPhotos || {})[buzzerWinner.name];
+    const iconHtml = winnerPhoto ? `<img class="bb-photo" src="${winnerPhoto}" alt="">` : `<div class="bb-icon">🏆</div>`;
+    el.innerHTML = `${iconHtml}<div class="bb-body"><div class="bb-lbl">Buzzeó primero</div><div class="bb-name">${nameLine}</div></div><button class="bb-reset" onclick="fbOpenBuzzer()">Reabrir</button>`;
     el.className = 'buzzer-banner won';
+    showBuzzerPhotoPop(buzzerWinner.name, team);
     el.style.display = 'flex';
     if(btn){ btn.textContent = '🔓 Reabrir buzzer'; btn.classList.remove('primary'); btn.classList.add('danger'); }
   } else if(buzzerState === 'countdown'){
@@ -1166,6 +1181,30 @@ function renderBuzzerBanner(){
     el.style.display = 'none';
     if(btn){ btn.textContent = '🔔 Abrir buzzer'; btn.classList.add('primary'); btn.classList.remove('danger'); }
   }
+}
+
+// Muestra la foto de perfil del ganador del buzzer en grande, a pantalla completa,
+// pensado para que se vea bien en el TV. Se dispara una sola vez por ganador
+// (se resetea desde applyBuzzerState cuando el buzzer vuelve a null).
+let _lastPhotoPopName = null;
+function showBuzzerPhotoPop(name, team){
+  if(_lastPhotoPopName === name) return;
+  _lastPhotoPopName = name;
+  let ov = document.getElementById('buzzer-photo-pop');
+  if(!ov){
+    ov = document.createElement('div');
+    ov.id = 'buzzer-photo-pop';
+    ov.className = 'buzzer-photo-pop';
+    document.body.appendChild(ov);
+  }
+  const photo = (window.qldPhotos || {})[name];
+  const initial = (String(name||'?').trim()[0]||'?').toUpperCase();
+  const photoHtml = photo ? `<img class="bpp-photo" src="${photo}" alt="">` : `<div class="bpp-fallback">${escapeHtml(initial)}</div>`;
+  const teamHtml = team ? `<div class="bpp-team">${escapeHtml(team.label)}</div>` : '';
+  ov.innerHTML = `<div class="bpp-card">${photoHtml}<div class="bpp-name">${escapeHtml(name)}</div>${teamHtml}</div>`;
+  ov.classList.remove('show'); void ov.offsetWidth; ov.classList.add('show');
+  clearTimeout(ov._hideT);
+  ov._hideT = setTimeout(()=>{ ov.classList.remove('show'); }, 2200);
 }
 
 // Cuando llega un buzz: abrir el panel de asignación con el jugador y su equipo destacados

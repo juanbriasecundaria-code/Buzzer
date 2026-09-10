@@ -260,6 +260,8 @@
   .reveal-flash { position: fixed; inset: 0; z-index: 290; pointer-events: none; opacity: 0; background: radial-gradient(circle at 50% 42%, rgba(200,240,96,0.30), transparent 55%); }
   .reveal-flash.fire { animation: revealFlash 0.7s ease-out; }
   @keyframes revealFlash { 0% { opacity: 0; } 18% { opacity: 1; } 100% { opacity: 0; } }
+  .strike-flash { position: fixed; inset: 0; z-index: 290; pointer-events: none; opacity: 0; background: radial-gradient(circle at 50% 42%, rgba(255,95,95,0.38), transparent 55%); }
+  .strike-flash.fire { animation: revealFlash 0.7s ease-out; }
 
   /* ── SHEETS ── */
   .sheet-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.75); z-index: 400; display: none; align-items: flex-end; justify-content: center; padding: 1rem 1rem max(1rem, env(safe-area-inset-bottom)); }
@@ -805,6 +807,7 @@ body.vb-clean .vb-peek { display: flex; }
 
 <canvas id="pat-confetti"></canvas>
 <div class="reveal-flash" id="reveal-flash"></div>
+<div class="strike-flash" id="strike-flash"></div>
 
 <!-- ── PORTÓN DE MODOS ── -->
 <div class="mode-gate" id="mode-gate">
@@ -2022,10 +2025,15 @@ function doStrike() {
     return;
   }
   if (p === 'play') {
+    const hitLimit = round.strikes < 3 && round.strikes + 1 >= 3;
     round.strikes = Math.min(3, round.strikes + 1);
     renderStrikes(); playBuzzer();
     if (navigator.vibrate) navigator.vibrate([60, 40, 60]);
     syncUndoStrikeBtn();
+    if (hitLimit) {
+      setTimeout(() => { playFail(); fireStrikeFlash(); }, 220);
+      if (navigator.vibrate) navigator.vibrate([50, 60, 50, 60, 140]);
+    }
     if (round.strikes >= 3) setPhase('steal');
     return;
   }
@@ -2470,6 +2478,28 @@ function playBuzzer() {
     [150, 196].forEach(f => { const osc = ctx.createOscillator(); osc.type = 'square'; osc.frequency.value = f; const g = ctx.createGain(); g.gain.value = 0.5; osc.connect(g); g.connect(out); osc.start(now); osc.stop(now + dur); });
   } catch (e) {}
 }
+// "Ehh…" grave y descendente — se dispara cuando se agotan los 3 strikes y
+// el control pasa al otro equipo (robo), como en el programa real.
+function playFail() {
+  if (_sfxMuted) return;
+  try {
+    const ctx = _audioCtx; if (ctx.state === 'suspended') ctx.resume();
+    const now = ctx.currentTime;
+    [0, 0.3].forEach((t, i) => {
+      const osc = ctx.createOscillator(), g = ctx.createGain();
+      osc.type = 'sawtooth';
+      const start = now + t;
+      osc.frequency.setValueAtTime(220 - i * 20, start);
+      osc.frequency.exponentialRampToValueAtTime(90 - i * 10, start + 0.34);
+      osc.connect(g); g.connect(ctx.destination);
+      g.gain.setValueAtTime(0.0001, start);
+      g.gain.exponentialRampToValueAtTime(0.35, start + 0.03);
+      g.gain.exponentialRampToValueAtTime(0.0001, start + 0.36);
+      osc.start(start); osc.stop(start + 0.38);
+    });
+  } catch (e) {}
+}
+function fireStrikeFlash() { const f = document.getElementById('strike-flash'); if (!f) return; f.classList.remove('fire'); void f.offsetWidth; f.classList.add('fire'); }
 function playReady() {
   if (_sfxMuted) return;
   try {
@@ -3171,7 +3201,10 @@ function renderParticipant(snap, prev) {
         newly.forEach(i => { showAnswerFlash(i + 1, r.ans[i].v); });
         fireRevealFlash(); playDing();
       } else if (newly.length > 2) { playDing(); }
-      if (r.strikes > pr.strikes) playBuzzer();
+      if (r.strikes > pr.strikes) {
+        playBuzzer();
+        if (r.strikes >= 3 && pr.strikes < 3) setTimeout(() => { playFail(); fireStrikeFlash(); }, 220);
+      }
     }
   }
   if (snap && snap.win && (!prev || !prev.win)) { launchConfetti(); playDing(); }
