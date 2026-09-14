@@ -202,7 +202,8 @@ body.vb-clean .vb-peek { display: flex; }
 .gate-pass-btn{padding:.75rem 1rem;border-radius:var(--radius);border:none;background:var(--purple);color:#0f0f13;font-family:inherit;font-size:14px;font-weight:800;cursor:pointer}
 
 /* ── LAYOUT SCREENS ── */
-#conductor,#participant{display:none;min-height:100dvh;flex-direction:column;position:relative;z-index:1}
+#conductor{display:none;min-height:100dvh;flex-direction:column;position:relative;z-index:1}
+#participant{display:none;flex-direction:column;position:fixed;inset:0;overflow:hidden;z-index:1}
 #conductor.active,#participant.active{display:flex}
 
 /* ── SCORE BAR (todos-contra-todos) ── */
@@ -430,7 +431,7 @@ body.vb-clean .vb-peek { display: flex; }
     radial-gradient(90% 40% at 50% 108%,rgba(245,200,66,.07),transparent 60%),
     var(--bg);
 }
-.part-wrap{flex:1;display:flex;flex-direction:column;padding:0}
+.part-wrap{flex:1;display:flex;flex-direction:column;padding:0;transform-origin:top center;will-change:transform}
 .part-score-strip{position:sticky;top:0;z-index:10;background:rgba(14,14,20,.92);backdrop-filter:blur(10px);border-bottom:1px solid var(--border);padding:.6rem .5rem;overflow-x:auto}
 .part-score-strip::-webkit-scrollbar{display:none}
 .part-score-inner{display:flex;gap:.45rem;padding:0 .25rem 0 4.5rem;min-width:min-content}
@@ -1410,6 +1411,25 @@ function renderScores(){
     </button>`;
   }).join('');
 }
+// ── AUTOESCALADO DE LA PANTALLA DE PARTICIPANTES (evita scroll en TVs grandes) ──
+function fitParticipantWrap(){
+  const root = document.getElementById('participant');
+  const wrap = document.querySelector('#participant .part-wrap');
+  if(!root||!wrap||!root.classList.contains('active')) return;
+  // transform no afecta scrollHeight/clientHeight, así que se puede medir y
+  // aplicar en el mismo tick, sin resetear antes.
+  const availH = root.clientHeight;
+  const contentH = wrap.scrollHeight;
+  if(contentH > availH && availH > 0){
+    const scale = Math.max(0.55, (availH / contentH) * 0.97); // 3% de margen para TVs con overscan
+    wrap.style.transform = `scale(${scale})`;
+  } else {
+    wrap.style.transform = 'none';
+  }
+}
+window.addEventListener('resize', fitParticipantWrap);
+window.addEventListener('orientationchange', fitParticipantWrap);
+
 function renderPartScores(){
   const wrap = document.getElementById('part-score-inner');
   if(!wrap) return;
@@ -1425,6 +1445,7 @@ function renderPartScores(){
       <div class="part-chip-pts">${pts}</div>
     </div>`;
   }).join('');
+  fitParticipantWrap();
 }
 function quickAssignPrompt(teamIdx){
   const t = teams.find(x => x.index === teamIdx);
@@ -2180,6 +2201,7 @@ function renderPartCard(st){
     cont.innerHTML = `<div class="part-idle"><div class="part-idle-icon">🎤</div><div class="part-idle-text">Esperando al conductor…</div></div>`;
     _lastPartCardId = null;
     destroyPartPlayers();
+    fitParticipantWrap();
     return;
   }
   const c = st.card;
@@ -2205,6 +2227,7 @@ function renderPartCard(st){
     _lastVideoSyncTs = st.videoSync.ts;
     applyVideoSync(st.videoSync, c);
   }
+  fitParticipantWrap();
 }
 function renderPartText(c, st){
   const mount = document.getElementById('part-text-mount');
