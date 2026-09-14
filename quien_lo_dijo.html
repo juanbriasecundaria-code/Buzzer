@@ -442,6 +442,22 @@ body.vb-clean .vb-peek { display: flex; }
 .part-chip-pts{font-size:17px;font-weight:900;color:var(--text)}
 .part-chip.leader .part-chip-pts{color:var(--gold);text-shadow:0 0 12px rgba(245,200,66,.4)}
 .part-main{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:1.75rem 1.1rem;text-align:center;gap:1.1rem}
+
+/* En pantallas anchas (TV) el marcador pasa a una columna lateral izquierda,
+   en vez de una tira arriba que se solapa con la barra superior del HUB
+   y deja todo el costado izquierdo vacío. */
+@media (min-width:900px){
+  .part-wrap{flex-direction:row}
+  .part-score-strip{
+    position:static;flex:0 0 190px;
+    border-bottom:none;border-right:1px solid var(--border);
+    overflow-x:hidden;overflow-y:auto;
+    padding:calc(44px + env(safe-area-inset-top) + 1.1rem) .7rem 1rem;
+  }
+  .part-score-inner{flex-direction:column;padding:0;min-width:0;gap:.6rem}
+  .part-chip{width:100%;min-width:0}
+  .part-main{padding:1.75rem 1.75rem}
+}
 .part-idle{display:flex;flex-direction:column;align-items:center;gap:.7rem;color:var(--muted2)}
 .part-idle-icon{font-size:4rem;line-height:1;animation:auPulse 2s ease-in-out infinite;filter:drop-shadow(0 6px 18px rgba(192,96,232,.25))}
 .part-idle-text{font-size:15px;font-weight:700}
