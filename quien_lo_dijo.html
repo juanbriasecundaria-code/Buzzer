@@ -457,7 +457,7 @@ body.vb-clean .vb-peek { display: flex; }
   }
   .part-score-inner{flex:1;display:flex;flex-direction:column;justify-content:space-evenly;padding:0;min-width:0;gap:1.2rem}
   .part-chip{width:100%;min-width:0;padding:clamp(.9rem,2.2vw,1.9rem) clamp(1rem,2vw,1.6rem)}
-  .part-chip .team-avatar-img,.part-chip .team-avatar-fallback,.part-chip .team-avatar-duo{transform:scale(clamp(1.3,2.8vw,2.6));margin-bottom:clamp(.5rem,1.4vw,1.2rem)}
+  .part-chip .team-avatar-img,.part-chip .team-avatar-fallback,.part-chip .team-avatar-duo{margin-bottom:clamp(.5rem,1.4vw,1.2rem)}
   .part-chip-name{font-size:clamp(13px,1.8vw,22px)}
   .part-chip-pts{font-size:clamp(26px,4.4vw,56px)}
   .part-card{max-width:min(1000px, 58vw)}
@@ -1437,8 +1437,32 @@ function fitParticipantWrap(){
   const root = document.getElementById('participant');
   const wrap = document.querySelector('#participant .part-wrap');
   if(!root||!wrap||!root.classList.contains('active')) return;
-  // transform no afecta scrollHeight/clientHeight, así que se puede medir y
-  // aplicar en el mismo tick, sin resetear antes.
+  const main = document.getElementById('part-main');
+  const wide = window.innerWidth >= 900;
+
+  // En pantalla ancha (TV) el layout es de dos columnas: la barra de puntajes
+  // nunca se escala (si no, al achicar desde el centro quedan huecos a los
+  // costados). Sólo se achica el contenido central, y sólo si no entra.
+  if(wide){
+    wrap.style.transform = 'none';
+    if(main){
+      const availH = main.clientHeight;
+      const card = main.firstElementChild;
+      if(card){
+        card.style.transformOrigin = 'center center';
+        const contentH = main.scrollHeight;
+        if(contentH > availH && availH > 0){
+          card.style.transform = `scale(${Math.max(0.55, (availH/contentH)*0.97)})`;
+        } else {
+          card.style.transform = 'none';
+        }
+      }
+    }
+    return;
+  }
+
+  // Pantalla angosta (celular): se escala todo el bloque como antes.
+  if(main && main.firstElementChild) main.firstElementChild.style.transform = 'none';
   const availH = root.clientHeight;
   const contentH = wrap.scrollHeight;
   if(contentH > availH && availH > 0){
@@ -1448,7 +1472,7 @@ function fitParticipantWrap(){
     wrap.style.transform = 'none';
   }
 }
-window.addEventListener('resize', fitParticipantWrap);
+window.addEventListener('resize', () => { if(MODE === 'participant') renderPartScores(); fitParticipantWrap(); });
 window.addEventListener('orientationchange', fitParticipantWrap);
 
 function renderPartScores(){
@@ -1461,7 +1485,7 @@ function renderPartScores(){
     const leader = max > 0 && pts === max;
     const shortLabel = (t.members && t.members.length) ? t.members.join(' & ') : t.label;
     return `<div class="part-chip ${leader?'leader':''}" title="${escapeHtml(t.label)}">
-      ${teamAvatarHtml(t, 24)}
+      ${teamAvatarHtml(t, window.innerWidth >= 900 ? Math.round(Math.min(72, Math.max(34, window.innerWidth * 0.035))) : 24)}
       <div class="part-chip-name">${escapeHtml(shortLabel)}</div>
       <div class="part-chip-pts">${pts}</div>
     </div>`;
