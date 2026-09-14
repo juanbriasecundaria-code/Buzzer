@@ -453,9 +453,13 @@ body.vb-clean .vb-peek { display: flex; }
     border-bottom:none;border-right:1px solid var(--border);
     overflow-x:hidden;overflow-y:auto;
     padding:calc(44px + env(safe-area-inset-top) + 1.1rem) .7rem 1rem;
+    display:flex;flex-direction:column;
   }
-  .part-score-inner{flex-direction:column;padding:0;min-width:0;gap:.6rem}
-  .part-chip{width:100%;min-width:0}
+  .part-score-inner{flex:1;display:flex;flex-direction:column;justify-content:space-evenly;padding:0;min-width:0;gap:.8rem}
+  .part-chip{width:100%;min-width:0;padding:.75rem .8rem}
+  .part-chip .team-avatar-img,.part-chip .team-avatar-fallback,.part-chip .team-avatar-duo{transform:scale(1.15);margin-bottom:.4rem}
+  .part-chip-name{font-size:11px}
+  .part-chip-pts{font-size:22px}
   .part-main{padding:1.75rem 1.75rem}
 }
 .part-idle{display:flex;flex-direction:column;align-items:center;gap:.7rem;color:var(--muted2)}
