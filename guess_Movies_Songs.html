@@ -608,7 +608,17 @@ body.vb-clean .vb-peek { display: flex; }
 }
 
 </style>
-<style>.hub-link{position:fixed;top:0;left:max(.6rem,env(safe-area-inset-left));height:44px;margin-top:env(safe-area-inset-top);display:inline-flex;align-items:center;z-index:9992;font-size:11px;font-weight:700;color:rgba(240,239,232,0.7);background:transparent;border:none;padding:0 .3rem;text-decoration:none;letter-spacing:0.04em;transition:color 0.15s;white-space:nowrap}.hub-link:hover{color:#f0efe8}</style></head>
+<style>.hub-link{position:fixed;top:0;left:max(.6rem,env(safe-area-inset-left));height:44px;margin-top:env(safe-area-inset-top);display:inline-flex;align-items:center;z-index:9992;font-size:11px;font-weight:700;color:rgba(240,239,232,0.7);background:transparent;border:none;padding:0 .3rem;text-decoration:none;letter-spacing:0.04em;transition:color 0.15s;white-space:nowrap}.hub-link:hover{color:#f0efe8}
+/* En modo Participantes sobre pantalla ancha (TV) se oculta la barra superior
+   del HUB para ganar ese alto: la pantalla es sólo para mirar. */
+@media (min-width:900px){
+  body.gms-tv{padding-top:0}
+  body.gms-tv .velada-bar,
+  body.gms-tv .velada-bar-title,
+  body.gms-tv .velada-bar-dot,
+  body.gms-tv .hub-link{display:none}
+}
+</style></head>
 <body>
 <div class="velada-bar"></div>
 <div class="velada-bar-title"><span class="vb-icon">🎬</span>Guess Movie · Song</div>
@@ -1838,6 +1848,7 @@ function applyMode(m){
     });
   } else if(m==='participant'){
     document.getElementById('participant').classList.add('active');
+    document.body.classList.add('gms-tv');
   }
 }
 
