@@ -635,6 +635,16 @@ body { animation: appEnter .32s ease-out both; }
   .part-answer > div{flex:1 1 0;min-width:0;margin-top:0 !important;text-align:center}
   .part-answer .aq{font-size:clamp(10px, .65vw, 18px)}
   .part-answer .av{font-size:clamp(17px, 1.25vw, 34px);line-height:1.2}
+  /* Opciones: todas en una sola fila (aprovecha el ancho de la TV en vez de
+     apilarse de a dos y crecer hacia abajo). */
+  .part-opts{flex-wrap:nowrap;align-items:stretch;gap:.8rem}
+  .part-opt{flex:1 1 0;min-width:0;font-size:clamp(14px, 1.05vw, 26px)}
+  .part-opt.has-img .oi-img{max-height:26vh}
+  .part-opt.has-img .oi-lbl{font-size:clamp(13px, .95vw, 24px)}
+  /* Cuando la carta trae opciones con imagen, el medio de arriba se achica
+     para que la fila de opciones entre completa. */
+  .part-card:has(.part-opt.has-img) .part-media img,
+  .part-card:has(.part-opt.has-img) .part-media video{max-height:26vh}
   /* El contenido arranca arriba para no desperdiciar la franja superior. */
   .part-main{padding:1rem 1.75rem;overflow:hidden;justify-content:flex-start;gap:.8rem}
 }
