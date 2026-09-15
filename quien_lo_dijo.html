@@ -582,18 +582,28 @@ body { animation: appEnter .32s ease-out both; }
    en vez de una tira arriba que se solapa con la barra superior del HUB
    y deja todo el costado izquierdo vacío. */
 @media (min-width:900px){
+  /* En modo Participantes (TV) se oculta la barra superior del HUB para ganar
+     ese alto: la pantalla es sólo para mirar, no se navega desde ahí. */
+  body.qld-tv{padding-top:0}
+  body.qld-tv .velada-bar,
+  body.qld-tv .velada-bar-title,
+  body.qld-tv .velada-bar-dot,
+  body.qld-tv .hub-link,
+  body.qld-tv .fb-status{display:none}
   .part-wrap{flex-direction:row}
   .part-score-strip{
     position:static;flex:0 0 clamp(220px, 22vw, 480px);
     border-bottom:none;border-right:1px solid var(--border);
     overflow:hidden;
-    padding:calc(44px + env(safe-area-inset-top) + 1rem) 1.4rem 1rem;
+    padding:1rem 1.4rem 1rem;
     display:flex;flex-direction:column;
   }
   /* --qld-k lo calcula el JS (0.45–1) para que TODOS los equipos entren
      siempre en el alto disponible, sin scroll ni recortes. */
   .part-score-inner{flex:1;display:flex;flex-direction:column;justify-content:space-evenly;padding:0;min-width:0;gap:calc(1.1rem * var(--qld-k,1))}
-  .part-chip{width:100%;min-width:0;padding:calc(1.5rem * var(--qld-k,1)) calc(1.2rem * var(--qld-k,1))}
+  /* flex:0 0 auto es clave: sin esto el navegador encoge las tarjetas para
+     que "entren" y la medición del JS nunca detecta que sobra contenido. */
+  .part-chip{flex:0 0 auto;width:100%;min-width:0;padding:calc(1.5rem * var(--qld-k,1)) calc(1.2rem * var(--qld-k,1))}
   .part-chip .team-avatar-img,.part-chip .team-avatar-fallback{
     width:calc(64px * var(--qld-k,1)) !important;height:calc(64px * var(--qld-k,1)) !important;
     font-size:calc(27px * var(--qld-k,1)) !important;
@@ -1416,6 +1426,7 @@ function applyMode(m){
     setInterval(fbPushLive, 500);
   } else {
     document.getElementById('participant').classList.add('active');
+    document.body.classList.add('qld-tv');
     renderPartScores(); renderPartCard(null);
   }
 }
