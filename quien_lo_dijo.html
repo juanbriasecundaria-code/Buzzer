@@ -1441,6 +1441,23 @@ function renderScores(){
   }).join('');
 }
 // ── AJUSTE DE LA PANTALLA DE PARTICIPANTES (evita scroll/recortes en TVs) ──
+// Mide el alto REAL que ocupan los hijos de un contenedor flex. No se puede
+// usar scrollHeight: cuando el contenido está centrado y desborda, el
+// navegador no reporta la parte que se sale por arriba.
+function _flexContentHeight(el){
+  const gap = parseFloat(getComputedStyle(el).rowGap) || 0;
+  let total = 0, n = 0;
+  for(const ch of el.children){
+    if(ch.offsetParent === null && ch.offsetHeight === 0) continue;
+    total += ch.offsetHeight; n++;
+  }
+  return total + (n > 1 ? gap * (n - 1) : 0);
+}
+function _availHeight(el){
+  const cs = getComputedStyle(el);
+  return el.clientHeight - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom);
+}
+
 function fitParticipantWrap(){
   const root = document.getElementById('participant');
   const wrap = document.querySelector('#participant .part-wrap');
@@ -1453,37 +1470,30 @@ function fitParticipantWrap(){
   if(wide){
     wrap.style.transform = 'none';
 
-    // 1) Barra de equipos: se busca el factor más grande con el que TODOS
-    //    los equipos entren en el alto disponible. Dos pasadas alcanzan
-    //    porque los tamaños escalan de forma casi lineal con el factor.
+    // 1) Barra de equipos: busca el factor más grande con el que TODOS los
+    //    equipos entren en el alto disponible. Se re-mide en cada pasada
+    //    porque los tamaños no escalan de forma perfectamente lineal.
     if(strip && inner){
       let k = 1;
-      for(let i=0;i<2;i++){
-        root.style.setProperty('--qld-k', k);
-        const avail = strip.clientHeight
-          - parseFloat(getComputedStyle(strip).paddingTop)
-          - parseFloat(getComputedStyle(strip).paddingBottom);
-        const need = inner.scrollHeight;
-        if(need > avail && avail > 0){
-          k = Math.max(0.45, k * (avail / need) * 0.97);
-        } else break;
-      }
       root.style.setProperty('--qld-k', k);
+      for(let i = 0; i < 3; i++){
+        const avail = _availHeight(strip);
+        const need = _flexContentHeight(inner);
+        if(need <= avail || avail <= 0) break;
+        k = Math.max(0.4, k * (avail / need) * 0.96);
+        root.style.setProperty('--qld-k', k);
+      }
     }
 
-    // 2) Contenido central: se mide el alto real de la tarjeta (offsetHeight
-    //    no se ve afectado por transform) contra el espacio disponible.
+    // 2) Contenido central: se escala el bloque entero (insignia de categoría,
+    //    imagen y diálogo) desde el centro de su columna.
     if(main){
-      const card = main.firstElementChild;
-      if(card){
-        card.style.transformOrigin = 'center center';
-        card.style.transform = 'none';
-        const cs = getComputedStyle(main);
-        const avail = main.clientHeight - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom);
-        const need = card.offsetHeight;
-        if(need > avail && avail > 0){
-          card.style.transform = `scale(${Math.max(0.5, (avail/need) * 0.97)})`;
-        }
+      main.style.transformOrigin = 'center center';
+      main.style.transform = 'none';
+      const avail = _availHeight(main);
+      const need = _flexContentHeight(main);
+      if(need > avail && avail > 0){
+        main.style.transform = `scale(${Math.max(0.45, (avail / need) * 0.96)})`;
       }
     }
     return;
@@ -1491,12 +1501,11 @@ function fitParticipantWrap(){
 
   // Pantalla angosta (celular): se escala todo el bloque, como antes.
   root.style.removeProperty('--qld-k');
-  if(main && main.firstElementChild) main.firstElementChild.style.transform = 'none';
+  if(main) main.style.transform = 'none';
   const availH = root.clientHeight;
   const contentH = wrap.scrollHeight;
   if(contentH > availH && availH > 0){
-    const scale = Math.max(0.55, (availH / contentH) * 0.97);
-    wrap.style.transform = `scale(${scale})`;
+    wrap.style.transform = `scale(${Math.max(0.55, (availH / contentH) * 0.97)})`;
   } else {
     wrap.style.transform = 'none';
   }
@@ -2229,6 +2238,8 @@ function mountPartMedia(c){
     if(_pendingVideoSync){ applyVideoSync(_pendingVideoSync, c); _pendingVideoSync = null; }
   } else {
     mount.innerHTML = `<div class="part-media"><img src="${escapeHtml(src)}" alt=""></div>`;
+    const im = mount.querySelector('img');
+    if(im) im.addEventListener('load', fitParticipantWrap, { once:true });
   }
 }
 function applyVideoSync(sync, c){
