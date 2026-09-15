@@ -225,8 +225,11 @@ body.vb-clean .vb-peek { display: flex; }
 .team-avatar-fallback{border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-weight:800;background:var(--purple-dim);color:var(--purple);border:1.5px solid var(--border2)}
 .team-avatar-duo{display:inline-flex;align-items:center;flex-shrink:0}
 .team-avatar-duo>*{margin-bottom:0}
-.team-avatar-duo>*:nth-child(2){margin-left:-9px}
-.team-avatar-duo>*:nth-child(1){z-index:2;position:relative}
+.team-avatar-duo>*:not(:first-child){margin-left:-9px}
+.team-avatar-duo>*:nth-child(1){z-index:4;position:relative}
+.team-avatar-duo>*:nth-child(2){z-index:3;position:relative}
+.team-avatar-duo>*:nth-child(3){z-index:2;position:relative}
+.team-avatar-duo>*:nth-child(4){z-index:1;position:relative}
 .score-chip .team-avatar-img,.score-chip .team-avatar-fallback,.score-chip .team-avatar-duo{margin-bottom:.25rem}
 .part-chip .team-avatar-img,.part-chip .team-avatar-fallback,.part-chip .team-avatar-duo{margin-bottom:.25rem}
 .ed-item-icon.has-avatar{display:flex;align-items:center;justify-content:center;width:auto;min-width:32px}
@@ -1382,10 +1385,11 @@ function teamAvatarHtml(t, size){
   const members = (t.members && t.members.length) ? t.members : [t.label];
   const membersFull = (t.membersFull && t.membersFull.length) ? t.membersFull : [];
   if(members.length > 1){
-    const s2 = Math.round(size * 0.86);
+    // Con más integrantes, cada foto se achica un poco para que el grupo
+    // completo (2, 3 o más) siga entrando en el mismo ancho aproximado.
+    const s2 = Math.round(size * (members.length === 2 ? 0.86 : members.length === 3 ? 0.68 : 0.56));
     return `<div class="team-avatar-duo" style="height:${s2}px">`
-      + avatarPieceHtml(members[0], membersFull[0], s2)
-      + avatarPieceHtml(members[1], membersFull[1], s2)
+      + members.map((m, i) => avatarPieceHtml(m, membersFull[i], s2)).join('')
       + `</div>`;
   }
   return avatarPieceHtml(members[0], membersFull[0], size);
