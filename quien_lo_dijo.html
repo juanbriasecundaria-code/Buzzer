@@ -443,34 +443,6 @@ body.vb-clean .vb-peek { display: flex; }
 .part-chip.leader .part-chip-pts{color:var(--gold);text-shadow:0 0 12px rgba(245,200,66,.4)}
 .part-main{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:1.75rem 1.1rem;text-align:center;gap:1.1rem}
 
-/* En pantallas anchas (TV) el marcador pasa a una columna lateral izquierda,
-   en vez de una tira arriba que se solapa con la barra superior del HUB
-   y deja todo el costado izquierdo vacío. */
-@media (min-width:900px){
-  .part-wrap{flex-direction:row}
-  .part-score-strip{
-    position:static;flex:0 0 clamp(220px, 22vw, 480px);
-    border-bottom:none;border-right:1px solid var(--border);
-    overflow:hidden;
-    padding:calc(44px + env(safe-area-inset-top) + 1rem) 1.4rem 1rem;
-    display:flex;flex-direction:column;
-  }
-  /* --qld-k lo calcula el JS (0.45–1) para que TODOS los equipos entren
-     siempre en el alto disponible, sin scroll ni recortes. */
-  .part-score-inner{flex:1;display:flex;flex-direction:column;justify-content:space-evenly;padding:0;min-width:0;gap:calc(1.1rem * var(--qld-k,1))}
-  .part-chip{width:100%;min-width:0;padding:calc(1.5rem * var(--qld-k,1)) calc(1.2rem * var(--qld-k,1))}
-  .part-chip .team-avatar-img,.part-chip .team-avatar-fallback{
-    width:calc(64px * var(--qld-k,1)) !important;height:calc(64px * var(--qld-k,1)) !important;
-    font-size:calc(27px * var(--qld-k,1)) !important;
-  }
-  .part-chip .team-avatar-duo{height:auto !important}
-  .part-chip .team-avatar-img,.part-chip .team-avatar-fallback,.part-chip .team-avatar-duo{margin-bottom:calc(.8rem * var(--qld-k,1))}
-  .part-chip-name{font-size:calc(22px * var(--qld-k,1));line-height:1.2}
-  .part-chip-pts{font-size:calc(52px * var(--qld-k,1));line-height:1.1}
-  .part-card{max-width:min(1000px, 58vw)}
-  .part-media img,.part-media video{max-height:42vh}
-  .part-main{padding:1.5rem 1.75rem;overflow:hidden}
-}
 .part-idle{display:flex;flex-direction:column;align-items:center;gap:.7rem;color:var(--muted2)}
 .part-idle-icon{font-size:4rem;line-height:1;animation:auPulse 2s ease-in-out infinite;filter:drop-shadow(0 6px 18px rgba(192,96,232,.25))}
 .part-idle-text{font-size:15px;font-weight:700}
@@ -605,6 +577,37 @@ body.vb-clean .vb-peek { display: flex; }
 @keyframes appEnter { from { opacity: 0 } to { opacity: 1 } }
 body { animation: appEnter .32s ease-out both; }
 @media (prefers-reduced-motion: reduce) { body { animation: none } }
+
+/* En pantallas anchas (TV) el marcador pasa a una columna lateral izquierda,
+   en vez de una tira arriba que se solapa con la barra superior del HUB
+   y deja todo el costado izquierdo vacío. */
+@media (min-width:900px){
+  .part-wrap{flex-direction:row}
+  .part-score-strip{
+    position:static;flex:0 0 clamp(220px, 22vw, 480px);
+    border-bottom:none;border-right:1px solid var(--border);
+    overflow:hidden;
+    padding:calc(44px + env(safe-area-inset-top) + 1rem) 1.4rem 1rem;
+    display:flex;flex-direction:column;
+  }
+  /* --qld-k lo calcula el JS (0.45–1) para que TODOS los equipos entren
+     siempre en el alto disponible, sin scroll ni recortes. */
+  .part-score-inner{flex:1;display:flex;flex-direction:column;justify-content:space-evenly;padding:0;min-width:0;gap:calc(1.1rem * var(--qld-k,1))}
+  .part-chip{width:100%;min-width:0;padding:calc(1.5rem * var(--qld-k,1)) calc(1.2rem * var(--qld-k,1))}
+  .part-chip .team-avatar-img,.part-chip .team-avatar-fallback{
+    width:calc(64px * var(--qld-k,1)) !important;height:calc(64px * var(--qld-k,1)) !important;
+    font-size:calc(27px * var(--qld-k,1)) !important;
+  }
+  .part-chip .team-avatar-duo{height:auto !important}
+  .part-chip .team-avatar-img,.part-chip .team-avatar-fallback,.part-chip .team-avatar-duo{margin-bottom:calc(.8rem * var(--qld-k,1))}
+  .part-chip-name{font-size:calc(22px * var(--qld-k,1));line-height:1.2}
+  .part-chip-pts{font-size:calc(52px * var(--qld-k,1));line-height:1.1}
+  .part-card{max-width:min(1000px, 58vw)}
+  .part-media img,.part-media video{max-height:46vh}
+  /* El contenido arranca arriba (no centrado) para no desperdiciar la franja
+     superior y que el diálogo entre completo abajo. */
+  .part-main{padding:1rem 1.75rem 1rem;overflow:hidden;justify-content:flex-start;gap:.8rem}
+}
 </style>
 </head>
 <body>
@@ -1488,7 +1491,7 @@ function fitParticipantWrap(){
     // 2) Contenido central: se escala el bloque entero (insignia de categoría,
     //    imagen y diálogo) desde el centro de su columna.
     if(main){
-      main.style.transformOrigin = 'center center';
+      main.style.transformOrigin = 'top center';
       main.style.transform = 'none';
       const avail = _availHeight(main);
       const need = _flexContentHeight(main);
