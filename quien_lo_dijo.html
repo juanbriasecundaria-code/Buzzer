@@ -451,17 +451,25 @@ body.vb-clean .vb-peek { display: flex; }
   .part-score-strip{
     position:static;flex:0 0 clamp(220px, 22vw, 480px);
     border-bottom:none;border-right:1px solid var(--border);
-    overflow-x:hidden;overflow-y:auto;
-    padding:calc(44px + env(safe-area-inset-top) + 1.1rem) 1.6rem 1rem;
+    overflow:hidden;
+    padding:calc(44px + env(safe-area-inset-top) + 1rem) 1.4rem 1rem;
     display:flex;flex-direction:column;
   }
-  .part-score-inner{flex:1;display:flex;flex-direction:column;justify-content:space-evenly;padding:0;min-width:0;gap:1.2rem}
-  .part-chip{width:100%;min-width:0;padding:clamp(.9rem,2.2vw,1.9rem) clamp(1rem,2vw,1.6rem)}
-  .part-chip .team-avatar-img,.part-chip .team-avatar-fallback,.part-chip .team-avatar-duo{margin-bottom:clamp(.5rem,1.4vw,1.2rem)}
-  .part-chip-name{font-size:clamp(13px,1.8vw,22px)}
-  .part-chip-pts{font-size:clamp(26px,4.4vw,56px)}
+  /* --qld-k lo calcula el JS (0.45–1) para que TODOS los equipos entren
+     siempre en el alto disponible, sin scroll ni recortes. */
+  .part-score-inner{flex:1;display:flex;flex-direction:column;justify-content:space-evenly;padding:0;min-width:0;gap:calc(1.1rem * var(--qld-k,1))}
+  .part-chip{width:100%;min-width:0;padding:calc(1.5rem * var(--qld-k,1)) calc(1.2rem * var(--qld-k,1))}
+  .part-chip .team-avatar-img,.part-chip .team-avatar-fallback{
+    width:calc(64px * var(--qld-k,1)) !important;height:calc(64px * var(--qld-k,1)) !important;
+    font-size:calc(27px * var(--qld-k,1)) !important;
+  }
+  .part-chip .team-avatar-duo{height:auto !important}
+  .part-chip .team-avatar-img,.part-chip .team-avatar-fallback,.part-chip .team-avatar-duo{margin-bottom:calc(.8rem * var(--qld-k,1))}
+  .part-chip-name{font-size:calc(22px * var(--qld-k,1));line-height:1.2}
+  .part-chip-pts{font-size:calc(52px * var(--qld-k,1));line-height:1.1}
   .part-card{max-width:min(1000px, 58vw)}
-  .part-main{padding:1.75rem 1.75rem}
+  .part-media img,.part-media video{max-height:42vh}
+  .part-main{padding:1.5rem 1.75rem;overflow:hidden}
 }
 .part-idle{display:flex;flex-direction:column;align-items:center;gap:.7rem;color:var(--muted2)}
 .part-idle-icon{font-size:4rem;line-height:1;animation:auPulse 2s ease-in-out infinite;filter:drop-shadow(0 6px 18px rgba(192,96,232,.25))}
@@ -1432,41 +1440,62 @@ function renderScores(){
     </button>`;
   }).join('');
 }
-// ── AUTOESCALADO DE LA PANTALLA DE PARTICIPANTES (evita scroll en TVs grandes) ──
+// ── AJUSTE DE LA PANTALLA DE PARTICIPANTES (evita scroll/recortes en TVs) ──
 function fitParticipantWrap(){
   const root = document.getElementById('participant');
   const wrap = document.querySelector('#participant .part-wrap');
   if(!root||!wrap||!root.classList.contains('active')) return;
   const main = document.getElementById('part-main');
+  const strip = document.querySelector('#participant .part-score-strip');
+  const inner = document.getElementById('part-score-inner');
   const wide = window.innerWidth >= 900;
 
-  // En pantalla ancha (TV) el layout es de dos columnas: la barra de puntajes
-  // nunca se escala (si no, al achicar desde el centro quedan huecos a los
-  // costados). Sólo se achica el contenido central, y sólo si no entra.
   if(wide){
     wrap.style.transform = 'none';
+
+    // 1) Barra de equipos: se busca el factor más grande con el que TODOS
+    //    los equipos entren en el alto disponible. Dos pasadas alcanzan
+    //    porque los tamaños escalan de forma casi lineal con el factor.
+    if(strip && inner){
+      let k = 1;
+      for(let i=0;i<2;i++){
+        root.style.setProperty('--qld-k', k);
+        const avail = strip.clientHeight
+          - parseFloat(getComputedStyle(strip).paddingTop)
+          - parseFloat(getComputedStyle(strip).paddingBottom);
+        const need = inner.scrollHeight;
+        if(need > avail && avail > 0){
+          k = Math.max(0.45, k * (avail / need) * 0.97);
+        } else break;
+      }
+      root.style.setProperty('--qld-k', k);
+    }
+
+    // 2) Contenido central: se mide el alto real de la tarjeta (offsetHeight
+    //    no se ve afectado por transform) contra el espacio disponible.
     if(main){
-      const availH = main.clientHeight;
       const card = main.firstElementChild;
       if(card){
         card.style.transformOrigin = 'center center';
-        const contentH = main.scrollHeight;
-        if(contentH > availH && availH > 0){
-          card.style.transform = `scale(${Math.max(0.55, (availH/contentH)*0.97)})`;
-        } else {
-          card.style.transform = 'none';
+        card.style.transform = 'none';
+        const cs = getComputedStyle(main);
+        const avail = main.clientHeight - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom);
+        const need = card.offsetHeight;
+        if(need > avail && avail > 0){
+          card.style.transform = `scale(${Math.max(0.5, (avail/need) * 0.97)})`;
         }
       }
     }
     return;
   }
 
-  // Pantalla angosta (celular): se escala todo el bloque como antes.
+  // Pantalla angosta (celular): se escala todo el bloque, como antes.
+  root.style.removeProperty('--qld-k');
   if(main && main.firstElementChild) main.firstElementChild.style.transform = 'none';
   const availH = root.clientHeight;
   const contentH = wrap.scrollHeight;
   if(contentH > availH && availH > 0){
-    const scale = Math.max(0.55, (availH / contentH) * 0.97); // 3% de margen para TVs con overscan
+    const scale = Math.max(0.55, (availH / contentH) * 0.97);
     wrap.style.transform = `scale(${scale})`;
   } else {
     wrap.style.transform = 'none';
@@ -1485,7 +1514,7 @@ function renderPartScores(){
     const leader = max > 0 && pts === max;
     const shortLabel = (t.members && t.members.length) ? t.members.join(' & ') : t.label;
     return `<div class="part-chip ${leader?'leader':''}" title="${escapeHtml(t.label)}">
-      ${teamAvatarHtml(t, window.innerWidth >= 900 ? Math.round(Math.min(72, Math.max(34, window.innerWidth * 0.035))) : 24)}
+      ${teamAvatarHtml(t, 24)}
       <div class="part-chip-name">${escapeHtml(shortLabel)}</div>
       <div class="part-chip-pts">${pts}</div>
     </div>`;
