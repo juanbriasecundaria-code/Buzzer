@@ -590,33 +590,47 @@ body { animation: appEnter .32s ease-out both; }
   body.qld-tv .velada-bar-dot,
   body.qld-tv .hub-link,
   body.qld-tv .fb-status{display:none}
+
   .part-wrap{flex-direction:row}
   .part-score-strip{
-    position:static;flex:0 0 clamp(220px, 22vw, 480px);
+    position:static;flex:0 0 clamp(220px, 20vw, 760px);
     border-bottom:none;border-right:1px solid var(--border);
     overflow:hidden;
-    padding:1rem 1.4rem 1rem;
+    padding:.9rem 1.1rem;
     display:flex;flex-direction:column;
   }
-  /* --qld-k lo calcula el JS (0.45–1) para que TODOS los equipos entren
-     siempre en el alto disponible, sin scroll ni recortes. */
-  .part-score-inner{flex:1;display:flex;flex-direction:column;justify-content:space-evenly;padding:0;min-width:0;gap:calc(1.1rem * var(--qld-k,1))}
-  /* flex:0 0 auto es clave: sin esto el navegador encoge las tarjetas para
-     que "entren" y la medición del JS nunca detecta que sobra contenido. */
-  .part-chip{flex:0 0 auto;width:100%;min-width:0;padding:calc(1.5rem * var(--qld-k,1)) calc(1.2rem * var(--qld-k,1))}
-  .part-chip .team-avatar-img,.part-chip .team-avatar-fallback{
-    width:calc(64px * var(--qld-k,1)) !important;height:calc(64px * var(--qld-k,1)) !important;
-    font-size:calc(27px * var(--qld-k,1)) !important;
+  /* La columna se reparte en filas IGUALES (una por equipo). Así entran
+     siempre todos, sean 2 u 8, sin depender de ningún cálculo en JS. */
+  .part-score-inner{
+    flex:1;min-height:0;
+    display:grid;grid-auto-rows:1fr;gap:.6rem;padding:0;min-width:0;
   }
-  .part-chip .team-avatar-duo{height:auto !important}
-  .part-chip .team-avatar-img,.part-chip .team-avatar-fallback,.part-chip .team-avatar-duo{margin-bottom:calc(.8rem * var(--qld-k,1))}
-  .part-chip-name{font-size:calc(22px * var(--qld-k,1));line-height:1.2}
-  .part-chip-pts{font-size:calc(52px * var(--qld-k,1));line-height:1.1}
-  .part-card{max-width:min(1000px, 58vw)}
-  .part-media img,.part-media video{max-height:46vh}
-  /* El contenido arranca arriba (no centrado) para no desperdiciar la franja
-     superior y que el diálogo entre completo abajo. */
-  .part-main{padding:1rem 1.75rem 1rem;overflow:hidden;justify-content:flex-start;gap:.8rem}
+  /* Cada tarjeta se vuelve "contenedor": su contenido se mide en cqh, es
+     decir, en porcentaje del alto de la propia tarjeta. Si hay más equipos,
+     cada fila es más baja y todo el contenido se achica solo, en proporción. */
+  .part-chip{
+    container-type:size;
+    width:100%;min-width:0;min-height:0;height:100%;overflow:hidden;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;
+    padding:4cqh 8%;gap:3cqh;
+  }
+  .part-chip .team-avatar-img,.part-chip .team-avatar-fallback{
+    width:28cqh !important;height:28cqh !important;font-size:12cqh !important;
+  }
+  .part-chip .team-avatar-duo{height:auto !important;margin:0 !important}
+  .part-chip .team-avatar-img,.part-chip .team-avatar-fallback{margin:0 !important}
+  .part-chip-name{font-size:11cqh;line-height:1.1;margin:0}
+  .part-chip-pts{font-size:22cqh;line-height:1;margin:0}
+
+  .part-card{flex:0 0 auto;max-width:min(1500px, 60vw)}
+  .part-media img,.part-media video{max-height:44vh}
+  /* En 4K los tamaños tope en px quedan minúsculos: acá escalan con el ancho. */
+  .part-prompt{font-size:clamp(22px, 1.7vw, 48px)}
+  .part-dlg .dlg-bubble{font-size:clamp(18px, 1.35vw, 38px)}
+  .part-dlg .dlg-name{font-size:clamp(12px, .75vw, 22px)}
+  .part-cat{font-size:clamp(11px, .7vw, 20px);padding:.5rem 1.2rem}
+  /* El contenido arranca arriba para no desperdiciar la franja superior. */
+  .part-main{padding:1rem 1.75rem;overflow:hidden;justify-content:flex-start;gap:.8rem}
 }
 </style>
 </head>
@@ -1483,24 +1497,12 @@ function fitParticipantWrap(){
 
   if(wide){
     wrap.style.transform = 'none';
+    root.style.removeProperty('--qld-k');
+    // La barra de equipos ya no necesita JS: se reparte en filas iguales por
+    // CSS y cada tarjeta dimensiona su contenido según su propio alto.
 
-    // 1) Barra de equipos: busca el factor más grande con el que TODOS los
-    //    equipos entren en el alto disponible. Se re-mide en cada pasada
-    //    porque los tamaños no escalan de forma perfectamente lineal.
-    if(strip && inner){
-      let k = 1;
-      root.style.setProperty('--qld-k', k);
-      for(let i = 0; i < 3; i++){
-        const avail = _availHeight(strip);
-        const need = _flexContentHeight(inner);
-        if(need <= avail || avail <= 0) break;
-        k = Math.max(0.4, k * (avail / need) * 0.96);
-        root.style.setProperty('--qld-k', k);
-      }
-    }
-
-    // 2) Contenido central: se escala el bloque entero (insignia de categoría,
-    //    imagen y diálogo) desde el centro de su columna.
+    // Contenido central: se escala el bloque entero (insignia, imagen y
+    // diálogo) si no entrara en el alto disponible.
     if(main){
       main.style.transformOrigin = 'top center';
       main.style.transform = 'none';
