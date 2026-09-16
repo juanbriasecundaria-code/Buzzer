@@ -1923,5 +1923,25 @@ window.veladaConn = function(estado){
 };
 
 </script>
+<script>
+// ── Pantalla siempre encendida ─────────────────────────────────────────
+// Evita que el celular (o la notebook del TV) apague la pantalla mientras
+// la página está abierta. Si el navegador no lo soporta, no pasa nada.
+(function mantenerPantallaEncendida() {
+  if (!('wakeLock' in navigator)) return;
+  let lock = null;
+  async function pedir() {
+    if (document.visibilityState !== 'visible' || lock) return;
+    try {
+      lock = await navigator.wakeLock.request('screen');
+      lock.addEventListener('release', () => { lock = null; });
+    } catch (e) { lock = null; }
+  }
+  pedir();
+  document.addEventListener('visibilitychange', pedir);
+  // Algunos navegadores (Safari) solo lo dan después de un toque
+  ['pointerdown', 'keydown'].forEach(ev => document.addEventListener(ev, pedir, { passive: true }));
+})();
+</script>
 </body>
 </html>
