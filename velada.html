@@ -5267,9 +5267,11 @@ function addF2Team() {
   renderFase2();
 }
 
-// Editar el nombre de un equipo existente (guarda al salir del campo)
+// Editar el nombre de un equipo existente (guarda al salir del campo).
+// A diferencia de agregar/eliminar equipos, renombrar NO toca el fixture ni
+// los resultados, así que se permite siempre — incluso con la Fase 2 ya
+// arrancada y con resultados cargados.
 function saveF2TeamName(idx) {
-  if (!canEditF2()) return;
   const inp = document.getElementById('f2-name-' + idx);
   if (!inp) return;
   const val = inp.value.trim();
@@ -5320,14 +5322,10 @@ function renderF2RosterAdmin() {
   const el = document.getElementById('f2-roster-admin');
   if (!el) return;
 
-  if (!canEditF2()) {
-    el.innerHTML = `
-      <div class="card" style="margin-bottom:1.25rem;opacity:0.85">
-        <div style="font-size:12px;color:var(--muted)">🔒 El roster de Fase 2 (${TEAMS.length} equipos) quedó fijo: ya hay resultados cargados. Para modificarlo, primero usá "Reiniciar toda la noche" en Reglas.</div>
-      </div>
-    `;
-    return;
-  }
+  // Agregar/eliminar equipos rearma el fixture, así que eso sí se bloquea una
+  // vez que hay resultados cargados. Renombrar un equipo NO toca el fixture
+  // (ver saveF2TeamName), así que el campo de nombre queda siempre editable.
+  const locked = !canEditF2();
 
   const rows = TEAMS.map((t, i) => {
     // Un botón de foto por integrante del equipo
@@ -5343,6 +5341,9 @@ function renderF2RosterAdmin() {
     const photoBtn = `<span style="display:flex;gap:3px;flex-shrink:0">${photoBtns}</span>`;
     const f2Color = getEntityColor(t);
     const f2ColorBtn = `<button onclick="openColorPicker('${t.replace(/'/g,"\\'")}','f2',this)" title="Cambiar color" style="padding:0.45rem 0.5rem;border-radius:var(--radius);border:1px solid var(--border2);background:${f2Color||'var(--surface2)'};cursor:pointer;font-size:13px;line-height:1;min-width:30px;box-shadow:${f2Color?'0 0 8px '+f2Color+'66':'none'}">🎨</button>`;
+    const deleteBtn = locked
+      ? `<button disabled title="No se puede eliminar: ya hay resultados cargados" style="padding:0.45rem 0.6rem;border-radius:var(--radius);border:1px solid var(--border2);background:transparent;color:var(--muted);cursor:not-allowed;font-size:13px;line-height:1;opacity:0.4">✕</button>`
+      : `<button onclick="deleteF2Team(${i})" title="Eliminar equipo" style="padding:0.45rem 0.6rem;border-radius:var(--radius);border:1px solid rgba(255,95,95,0.3);background:rgba(255,95,95,0.08);color:var(--danger);cursor:pointer;font-size:13px;line-height:1">✕</button>`;
     return `
     <div style="display:flex;align-items:center;gap:0.4rem;margin-bottom:0.4rem">
       <span style="font-size:11px;font-weight:600;color:var(--info);min-width:18px;text-align:right">${i+1}</span>
@@ -5356,19 +5357,23 @@ function renderF2RosterAdmin() {
         onblur="saveF2TeamName(${i})"
         onkeydown="if(event.key==='Enter'){this.blur();}"
       >
-      <button onclick="deleteF2Team(${i})" title="Eliminar equipo" style="padding:0.45rem 0.6rem;border-radius:var(--radius);border:1px solid rgba(255,95,95,0.3);background:rgba(255,95,95,0.08);color:var(--danger);cursor:pointer;font-size:13px;line-height:1">✕</button>
+      ${deleteBtn}
     </div>
   `;}).join('');
+
+  const addSection = locked
+    ? `<div style="font-size:12px;color:var(--muted);margin-top:0.75rem;padding-top:0.75rem;border-top:0.5px solid var(--border)">🔒 Ya hay resultados de Fase 2 cargados: no se pueden agregar ni eliminar equipos (rearmaría el fixture). Los nombres sí se pueden seguir editando y se guardan solos.</div>`
+    : `<div style="display:flex;gap:0.5rem;margin-top:0.75rem;padding-top:0.75rem;border-top:0.5px solid var(--border)">
+        <input id="f2-new-team-input" type="text" placeholder="Nombre del equipo nuevo..." style="flex:1;padding:0.55rem 0.75rem;border-radius:var(--radius);border:1px solid var(--border2);background:var(--surface2);color:var(--text);font-size:13px" onkeydown="if(event.key==='Enter')addF2Team()">
+        <button class="btn" style="padding:0.55rem 1rem;white-space:nowrap;background:var(--accent-dim);border-color:var(--accent);color:var(--accent);font-weight:800" onclick="addF2Team()">+ Equipo</button>
+      </div>
+      <div style="font-size:11px;color:var(--muted);margin-top:0.5rem">Agregar o eliminar un equipo rearma el fixture. Editar el nombre no lo toca.</div>`;
 
   el.innerHTML = `
     <div class="card" style="margin-bottom:1.25rem">
       <div style="font-size:11px;font-weight:600;letter-spacing:0.07em;text-transform:uppercase;color:var(--muted);margin-bottom:0.75rem">Equipos (${TEAMS.length}) — tocá 📷 para agregar foto al podio</div>
       ${rows}
-      <div style="display:flex;gap:0.5rem;margin-top:0.75rem;padding-top:0.75rem;border-top:0.5px solid var(--border)">
-        <input id="f2-new-team-input" type="text" placeholder="Nombre del equipo nuevo..." style="flex:1;padding:0.55rem 0.75rem;border-radius:var(--radius);border:1px solid var(--border2);background:var(--surface2);color:var(--text);font-size:13px" onkeydown="if(event.key==='Enter')addF2Team()">
-        <button class="btn" style="padding:0.55rem 1rem;white-space:nowrap;background:var(--accent-dim);border-color:var(--accent);color:var(--accent);font-weight:800" onclick="addF2Team()">+ Equipo</button>
-      </div>
-      <div style="font-size:11px;color:var(--muted);margin-top:0.5rem">Agregar o eliminar un equipo rearma el fixture. Editar el nombre no lo toca.</div>
+      ${addSection}
     </div>
   `;
 }
@@ -7720,12 +7725,23 @@ function showRoundIntro(phase, round) {
     ? ((RULES_CONFIG && RULES_CONFIG.f1 && RULES_CONFIG.f1[gi]) ? RULES_CONFIG.f1[gi].icon : '🎮')
     : ((RULES_CONFIG && RULES_CONFIG.f2 && RULES_CONFIG.f2[gi]) ? RULES_CONFIG.f2[gi].icon : '🎲');
 
+  // También armamos los datos ya "planos" (texto escapado) para mandarle una
+  // copia idéntica a la ventana de TV — ver broadcastRoundIntro más abajo.
+  const cardsData = [];
   const cards = duels.map((m, k) => {
     const [r, a, b, g] = m;
     const done = !!store[r + '-' + a + '-' + b];
     const short = n => String(n || '?').split('/')[0].trim().split(' ')[0];
     const nA = isF1 ? short(ents[a]) : (ents[a] || '?');
     const nB = isF1 ? short(ents[b]) : (ents[b] || '?');
+    cardsData.push({
+      station: 'Mesa ' + (k + 1),
+      gameIcon: gameIcon(g),
+      gameName: _escC(gameName(g)),
+      nameA: _escC(nA),
+      nameB: _escC(nB),
+      done: done
+    });
     return `<div class="ri-card${done ? ' done' : ''}" style="animation-delay:${k * 90}ms">
       <div class="ri-station">Mesa ${k + 1}</div>
       <div class="ri-game">${gameIcon(g)} ${_escC(gameName(g))}</div>
@@ -7738,6 +7754,7 @@ function showRoundIntro(phase, round) {
   const playing = new Set();
   duels.forEach(m => { playing.add(m[1]); playing.add(m[2]); });
   const resting = ents.map((n, i) => i).filter(i => !playing.has(i)).map(i => ents[i]);
+  const restingNames = resting.map(n => _escC(String(n).split('/')[0].trim()));
 
   const ov = document.createElement('div');
   ov.className = 'round-intro';
@@ -7748,15 +7765,31 @@ function showRoundIntro(phase, round) {
       <div class="ri-sub">Cada uno a su mesa</div>
     </div>
     <div class="ri-grid">${cards}</div>
-    ${resting.length ? `<div class="ri-rest">😴 Descansa: <b>${_escC(resting.map(n => String(n).split('/')[0].trim()).join(', '))}</b></div>` : ''}
+    ${resting.length ? `<div class="ri-rest">😴 Descansa: <b>${restingNames.join(', ')}</b></div>` : ''}
     <button class="ri-close">Empezar la ronda →</button>`;
   document.body.appendChild(ov);
   requestAnimationFrame(() => ov.classList.add('show'));
 
-  const close = () => { ov.classList.remove('show'); setTimeout(() => ov.remove(), 350); };
+  // Replica el mismo anuncio en la ventana de TV, si está abierta.
+  broadcastRoundIntro({ type: 'show', phase: phase, round: round, cards: cardsData, resting: restingNames });
+
+  const close = () => {
+    ov.classList.remove('show'); setTimeout(() => ov.remove(), 350);
+    broadcastRoundIntro({ type: 'close' });
+  };
   ov.querySelector('.ri-close').onclick = close;
   ov.onclick = (e) => { if (e.target === ov) close(); };
   try { _resumeAudio(); if (typeof cerSndImpact === 'function') cerSndImpact(); } catch (e) {}
+}
+
+// Le avisa a la ventana del TV (si está abierta) para que muestre el mismo
+// anuncio de "próxima ronda" en la pantalla grande — misma idea que
+// broadcastRuleta/broadcastMote.
+function broadcastRoundIntro(payload) {
+  if (window._tvWin && !window._tvWin.closed) {
+    try { window._tvWin.postMessage({ type: 'ndj_roundintro', data: payload }, '*'); } catch(e) {}
+  }
+  if (window._bc) window._bc.postMessage({ key: 'ndj_roundintro', data: payload });
 }
 
 function showNextRoundIntro(phase) {
@@ -16505,6 +16538,34 @@ function openTVMode() {
   .f2  .tv-estado-pct { color: var(--info); }
   .qld .tv-estado-pct { color: var(--gold); }
   .tv-estado-pct.done { color: var(--success) !important; }
+
+  /* ── Anuncio de "próxima ronda" (replica del que ve el conductor) ── */
+  .round-intro{position:fixed;inset:0;z-index:9700;display:flex;flex-direction:column;
+    align-items:center;justify-content:center;gap:clamp(1rem,3vh,2rem);
+    padding:calc(2rem + env(safe-area-inset-top)) 1.25rem calc(2rem + env(safe-area-inset-bottom));
+    background:rgba(8,8,12,.97);backdrop-filter:blur(14px);
+    opacity:0;transition:opacity .35s ease;overflow-y:auto}
+  .round-intro.show{opacity:1}
+  .ri-head{text-align:center;flex-shrink:0}
+  .ri-eyebrow{font-size:clamp(9px,1.6vw,12px);font-weight:900;letter-spacing:.26em;
+    text-transform:uppercase;color:var(--muted)}
+  .ri-title{font-size:clamp(2rem,7vw,3.6rem);font-weight:900;letter-spacing:-.02em;
+    color:var(--accent);line-height:1.05;margin-top:.2rem}
+  .ri-sub{font-size:clamp(11px,2vw,15px);color:var(--muted);margin-top:.25rem}
+  .ri-grid{display:flex;flex-wrap:wrap;gap:.7rem;justify-content:center;
+    max-width:960px;width:100%}
+  .ri-card{flex:1 1 200px;max-width:260px;background:var(--surface);
+    border:1.5px solid var(--border2);border-radius:16px;padding:.9rem .8rem;text-align:center;
+    animation:riIn .5s cubic-bezier(.2,1.1,.35,1) both}
+  @keyframes riIn{from{opacity:0;transform:translateY(16px) scale(.96)}to{opacity:1;transform:none}}
+  .ri-card.done{opacity:.42}
+  .ri-station{font-size:9px;font-weight:900;letter-spacing:.2em;text-transform:uppercase;color:var(--muted)}
+  .ri-game{font-size:clamp(13px,2.2vw,17px);font-weight:800;color:var(--text);margin:.3rem 0 .5rem;line-height:1.15}
+  .ri-vs{display:flex;flex-direction:column;gap:.1rem;font-size:clamp(12px,2vw,15px);font-weight:700}
+  .ri-vs em{font-style:normal;font-size:10px;color:var(--muted);letter-spacing:.1em}
+  .ri-done{font-size:10px;color:var(--success);margin-top:.4rem;font-weight:700}
+  .ri-rest{font-size:12px;color:var(--muted);text-align:center}
+  .ri-rest b{color:var(--text)}
 </style>
 <style>.hub-link{position:fixed;top:max(0.75rem,env(safe-area-inset-top));left:max(0.75rem,env(safe-area-inset-left));z-index:99999;font-size:11px;font-weight:700;color:rgba(240,239,232,0.7);background:rgba(10,10,14,0.6);border:1px solid rgba(255,255,255,0.1);border-radius:99px;padding:0.38rem 0.85rem;text-decoration:none;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);letter-spacing:0.04em;transition:color 0.15s,border-color 0.15s;white-space:nowrap}.hub-link:hover{color:#f0efe8;border-color:rgba(255,255,255,0.25)}</style>
 <style>
@@ -18639,6 +18700,49 @@ function tvCloseMoteOverlay() {
   if (env) env.classList.remove('flipped');
 }
 
+// Replica en la TV el anuncio de "próxima ronda" que ve el conductor (mismas
+// clases .round-intro/.ri-* — ver broadcastRoundIntro en la ventana principal).
+// OJO: esta función vive dentro del template gigante de openTVMode(), que ya
+// está entre backticks — por eso acá abajo se arma el HTML a mano con '+' y
+// comillas simples en vez de template literals (backticks anidados cerrarían
+// el string de afuera antes de tiempo).
+function tvShowRoundIntro(payload) {
+  try {
+    var ov = document.getElementById('tv-round-intro');
+    if (!ov) {
+      ov = document.createElement('div');
+      ov.id = 'tv-round-intro';
+      ov.className = 'round-intro';
+      document.body.appendChild(ov);
+    }
+    var cardsHtml = (payload.cards || []).map(function(c, k) {
+      return '<div class="ri-card' + (c.done ? ' done' : '') + '" style="animation-delay:' + (k * 90) + 'ms">' +
+        '<div class="ri-station">' + c.station + '</div>' +
+        '<div class="ri-game">' + c.gameIcon + ' ' + c.gameName + '</div>' +
+        '<div class="ri-vs"><span>' + c.nameA + '</span><em>vs</em><span>' + c.nameB + '</span></div>' +
+        (c.done ? '<div class="ri-done">✓ ya jugado</div>' : '') +
+      '</div>';
+    }).join('');
+    var restHtml = (payload.resting && payload.resting.length)
+      ? '<div class="ri-rest">😴 Descansa: <b>' + payload.resting.join(', ') + '</b></div>'
+      : '';
+    ov.innerHTML =
+      '<div class="ri-head">' +
+        '<div class="ri-eyebrow">' + (payload.phase === 'f1' ? 'Fase 1 · Individual' : 'Fase 2 · Equipos') + '</div>' +
+        '<div class="ri-title">Ronda ' + payload.round + '</div>' +
+        '<div class="ri-sub">Cada uno a su mesa</div>' +
+      '</div>' +
+      '<div class="ri-grid">' + cardsHtml + '</div>' +
+      restHtml;
+    ov.classList.remove('show');
+    requestAnimationFrame(function() { ov.classList.add('show'); });
+  } catch (e) { console.warn('tvShowRoundIntro:', e); }
+}
+function tvCloseRoundIntro() {
+  var ov = document.getElementById('tv-round-intro');
+  if (ov) { ov.classList.remove('show'); setTimeout(function() { if (ov.parentNode) ov.remove(); }, 350); }
+}
+
 
 // ── REACCIÓN A LOS CAMBIOS DE PUNTAJE ────────────────────────────────
 // El TV se actualizaba en silencio; ahora marca visualmente quién sumó y
@@ -19019,6 +19123,11 @@ function renderTicker(state, PLAYERS, TEAMS) {
       else if (d && d.type === 'flip') tvFlipMote();
       else if (d && d.type === 'close') tvCloseMoteOverlay();
     }
+    if (e.data && e.data.type === 'ndj_roundintro') {
+      const d = e.data.data;
+      if (d && d.type === 'show') tvShowRoundIntro(d);
+      else if (d && d.type === 'close') tvCloseRoundIntro();
+    }
   });
 
   // ── 0b. Pull desde window.opener (solo si el origin lo permite) ──
@@ -19075,6 +19184,11 @@ function renderTicker(state, PLAYERS, TEAMS) {
         if (d && d.type === 'show') tvShowMote(d);
         else if (d && d.type === 'flip') tvFlipMote();
         else if (d && d.type === 'close') tvCloseMoteOverlay();
+      }
+      if (e.data && e.data.key === 'ndj_roundintro') {
+        const d = e.data.data;
+        if (d && d.type === 'show') tvShowRoundIntro(d);
+        else if (d && d.type === 'close') tvCloseRoundIntro();
       }
     };
   } catch(e) { console.warn('BroadcastChannel no disponible:', e); }
