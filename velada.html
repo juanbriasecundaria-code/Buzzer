@@ -10516,6 +10516,9 @@ function setPhotosSyncStatus(text, isError) {
 function savePlayerPhotos() {
   try {
     const json = JSON.stringify(_playerPhotos);
+    if (json.length > 1000000) {
+      setPhotosSyncStatus('⚠️ Las fotos superan el límite de la nube (1 MB). Borrá o volvé a cargar alguna.', true);
+    }
     localStorage.setItem('ndj_photos', json);
     markLocalTs('ndj_photos_ts', Date.now());
     // Antes esto era solo local — las fotos nunca llegaban de la PC al celular.
@@ -10925,7 +10928,10 @@ function triggerPhotoUpload(entityName, phase) {
         // centro, y recortando por el medio quedaban cabezas cortadas.
         const sy = Math.max(0, (img.height - minDim) * 0.30);
         ctx.drawImage(img, sx, sy, minDim, minDim, 0, 0, LADO, LADO);
-        setPlayerPhoto(entityName, canvas.toDataURL('image/jpeg', 0.88));
+        // Tope por foto: todas comparten un documento de Firestore de 1 MB
+        let q = 0.88, dataUrl = canvas.toDataURL('image/jpeg', q);
+        while (dataUrl.length > 38000 && q > 0.5) { q -= 0.06; dataUrl = canvas.toDataURL('image/jpeg', q); }
+        setPlayerPhoto(entityName, dataUrl);
         if (phase === 'f2') { renderF2RosterAdmin(); renderFase2(); }
         else if (phase === 'imp') { renderImpSetup(); }
         else { renderF1RosterAdmin(); renderFase1(); }
@@ -12233,11 +12239,40 @@ function savePrensaFotos() {
   const json = JSON.stringify(_prensaFotos);
   try { localStorage.setItem(PRENSA_KEY, json); }
   catch (e) { showToast('⚠️', 'No hay espacio local para más fotos', true); }
+  markLocalTs('ndj_prensa_ts', Date.now());
   // Viajan con el resto para que la TV y el diario las tengan
+  if (json.length > 1000000) {
+    showToast('⚠️', 'Las fotos del diario superan el límite de la nube: volvé a cargar las más pesadas', true);
+    return;
+  }
   if (window._fbReady && window._fbWrite) {
     try { window._fbWrite('prensa', json); } catch (e) {}
   }
 }
+
+// Las fotos de prensa cargadas con la versión anterior eran muy pesadas:
+// al abrir, se recomprimen una sola vez con el mismo criterio de arriba.
+(function recomprimirPrensaVieja() {
+  const pesadas = Object.keys(_prensaFotos).filter(k => String(_prensaFotos[k] || '').length > 75000);
+  if (!pesadas.length) return;
+  let pendientes = pesadas.length;
+  pesadas.forEach(k => {
+    const img = new Image();
+    img.onload = () => {
+      const c = document.createElement('canvas');
+      c.width = 600; c.height = 750;
+      const ctx = c.getContext('2d');
+      ctx.imageSmoothingQuality = 'high';
+      ctx.drawImage(img, 0, 0, 600, 750);
+      let q = 0.86, d = c.toDataURL('image/jpeg', q);
+      while (d.length > 75000 && q > 0.45) { q -= 0.08; d = c.toDataURL('image/jpeg', q); }
+      _prensaFotos[k] = d;
+      if (--pendientes === 0) setTimeout(savePrensaFotos, 15000); // espera a Firebase
+    };
+    img.onerror = () => { if (--pendientes === 0) setTimeout(savePrensaFotos, 15000); };
+    img.src = _prensaFotos[k];
+  });
+})();
 
 // Devuelve la mejor foto disponible: primero la de prensa, si no la de perfil
 function fotoPrensa(nombre) {
@@ -12255,7 +12290,7 @@ function triggerPrensaFoto(nombre) {
       const img = new Image();
       img.onload = function () {
         // Retrato 4:5 en alta: es la proporción con la que sale en el diario
-        const W = 720, H = 900;
+        const W = 600, H = 750;
         const c = document.createElement('canvas');
         c.width = W; c.height = H;
         const ctx = c.getContext('2d');
@@ -12267,7 +12302,13 @@ function triggerPrensaFoto(nombre) {
         const dx = (W - dw) / 2;
         const dy = Math.min(0, (H - dh) * 0.35);
         ctx.drawImage(img, dx, dy, dw, dh);
-        _prensaFotos[nombre] = c.toDataURL('image/jpeg', 0.9);
+        // Todas las fotos de prensa viajan en UN documento de Firestore (tope
+        // 1 MB). A 720×900 y 0.9 cada una pesaba ~200 KB y con 5 o 6 cargadas
+        // la nube rechazaba la escritura en silencio. Ahora cada una se ajusta
+        // a ~75 KB, así entran todas con margen.
+        let q = 0.86, dataUrl = c.toDataURL('image/jpeg', q);
+        while (dataUrl.length > 75000 && q > 0.45) { q -= 0.08; dataUrl = c.toDataURL('image/jpeg', q); }
+        _prensaFotos[nombre] = dataUrl;
         savePrensaFotos();
         renderPrensaGrid();
         try { renderDiario(); } catch (err) {}
@@ -19654,10 +19695,24 @@ function reapplyStateAndRerender() {
     }).catch(() => {});
 
     // Fotos de prensa: si hay algo publicado, lo traemos
-    window._fbRead('prensa').then(data => {
-      if (!data) return;
+    // Con marca de tiempo, igual que state y photos: antes la copia de la nube
+    // pisaba siempre a la local, y si la última subida había fallado (por
+    // tamaño) al recargar desaparecían las fotos recién cargadas.
+    window._fbReadMeta('prensa').then(remote => {
+      if (!remote || !remote.data) return;
+      const tsLocal = localTs('ndj_prensa_ts');
+      if (remote.ts <= tsLocal) return;
+      let data = remote.data;
       try {
-        const o = JSON.parse(data);
+        let o = JSON.parse(data);
+        // Primera vez con esta versión (sin marca local): se unen ambas copias,
+        // así no se pierden fotos que nunca llegaron a subir.
+        if (!tsLocal && o && typeof o === 'object' && Object.keys(_prensaFotos).length) {
+          o = Object.assign({}, o, _prensaFotos);
+          data = JSON.stringify(o);
+          setTimeout(savePrensaFotos, 1500);
+        }
+        markLocalTs('ndj_prensa_ts', remote.ts);
         if (o && typeof o === 'object') {
           _prensaFotos = o;
           try { localStorage.setItem(PRENSA_KEY, data); } catch (e) {}
