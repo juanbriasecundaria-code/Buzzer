@@ -5715,6 +5715,10 @@ function saveState() {
       window._pushQldTeams();
     }
   } catch (e) {}
+  // Totales finales calculados con la MISMA cuenta que la tabla de la app
+  // (overrides de celda, Impostor completo, ¿Quién lo dijo?, apuestas...).
+  // El Modo TV y los celulares los usan tal cual en vez de recalcular.
+  try { state.liveTotals = computeLiveTotals(); } catch (e) {}
   const json = JSON.stringify(state);
   // Si el almacenamiento local está lleno (pasa con muchas fotos cargadas),
   // setItem lanza y ANTES eso cortaba la función entera: no llegaba nada a la
@@ -5738,8 +5742,44 @@ function saveState() {
   // Backup BroadcastChannel
   if (window._bc) window._bc.postMessage({ key: 'ndj_state', data: json });
   // Celular → TV / PC → celular: Firebase
-  if (window._fbReady) window._fbWrite('state', json);
+  if (window._fbReady) {
+    window._fbWrite('state', json);
+    try { window._ltCloudSig = JSON.stringify(state.liveTotals || null); } catch (e) {}
+  }
 }
+
+function computeLiveTotals() {
+  const f1 = {}, f2 = {};
+  getPlayerPoints().forEach((p, i) => { if (PLAYERS[i] != null) f1[PLAYERS[i]] = p.total; });
+  getTeamPoints().forEach((p, i) => { if (TEAMS[i] != null) f2[TEAMS[i]] = p.total; });
+  return { f1, f2 };
+}
+// Si los totales cambian sin pasar por saveState (llega el resultado de
+// "¿Quién lo dijo?", se editan reglas, etc.), se republican solos.
+// A la TV de esta PC va al instante; a la nube recién después de que la app
+// terminó de traer el estado remoto al abrir, para no pisarlo con uno viejo.
+const _ltBoot = Date.now();
+setInterval(() => {
+  try {
+    if (typeof state === 'undefined' || !state) return;
+    const lt = computeLiveTotals();
+    const sig = JSON.stringify(lt);
+    if (sig !== JSON.stringify(state.liveTotals || null)) {
+      state.liveTotals = lt;
+      const json = JSON.stringify(state);
+      try { localStorage.setItem('ndj_state', json); } catch (e) {}
+      window._ndjState = json;
+      if (window._tvWin && !window._tvWin.closed) {
+        try { window._tvWin.postMessage({ type: 'ndj_state', data: json }, '*'); } catch (e) {}
+      }
+      if (window._bc) window._bc.postMessage({ key: 'ndj_state', data: json });
+    }
+    if (window._fbReady && Date.now() - _ltBoot > 12000 && window._ltCloudSig !== sig) {
+      window._ltCloudSig = sig;
+      window._fbWrite('state', JSON.stringify(state));
+    }
+  } catch (e) {}
+}, 1500);
 
 // Helpers de "última escritura gana" para lo que se sincroniza contra Firebase
 // comparando marcas de tiempo (usado por state y fotos — ver más abajo).
@@ -15966,7 +16006,8 @@ function openTVMode() {
      nth-last-child en vez de nth-child: así el z-index decreciente
      funciona para cualquier cantidad de integrantes, no solo hasta 3. */
   .tv-avatar-duo { display: inline-flex; align-items: center; flex-shrink: 0; }
-  .tv-avatar-duo > * + * { margin-left: -34%; }
+  .tv-avatar-duo > * + * { margin-left: calc(clamp(16px,1.9vw,27px) * -0.38); }
+  .tv-avatar-duo > * { box-shadow: 0 0 0 2px var(--bg, #0f0f13); }
   .tv-avatar-duo > * { position: relative; }
   .tv-avatar-duo > *:nth-last-child(1) { z-index: 1; }
   .tv-avatar-duo > *:nth-last-child(2) { z-index: 2; }
@@ -17261,7 +17302,21 @@ function miiFigureSVG(color, size, pose, photoDataUrl) {
   return '<svg width="'+s+'" height="'+s+'" viewBox="0 0 '+s+' '+s+'" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">'+aL+aR+torsoEl+legLEl+legREl+sL+sR+neckEl+headEl+'</svg>';
 }
 
+// Totales oficiales publicados por la app principal (state.liveTotals).
+// Devuelve null si no hay dato para ese nombre → se usa el cálculo local.
+function tvLiveTotal(state, phase, name) {
+  const lt = state && state.liveTotals && state.liveTotals[phase];
+  if (!lt || !Object.prototype.hasOwnProperty.call(lt, name)) return null;
+  const v = Number(lt[name]);
+  return isFinite(v) ? v : null;
+}
 function getPoints(type, state, PLAYERS, TEAMS) {
+  const pts = _getPointsLocal(type, state, PLAYERS, TEAMS);
+  const names = type === 'f1' ? PLAYERS : TEAMS;
+  pts.forEach((p, i) => { const v = tvLiveTotal(state, type, names[i]); if (v !== null) p.total = v; });
+  return pts;
+}
+function _getPointsLocal(type, state, PLAYERS, TEAMS) {
   // Reglas sembradas desde el padre (o localStorage si está disponible)
   const RC = getTVRules();
 
@@ -17505,6 +17560,19 @@ function buildEvoSeries(mode, state, PLAYERS, TEAMS) {
 
   // Punto final: sumar extras (bonus, comodines, impostor, etc.)
   const lastRun = steps.length ? Object.assign({}, steps[steps.length - 1]) : (() => { const z = {}; names.forEach(n => z[n] = 0); return z; })();
+  // Con totales oficiales disponibles, los extras son la diferencia exacta
+  // entre lo que suman los duelos y el total de la tabla.
+  names.forEach(n => {
+    let target = null;
+    if (mode === 'f2') target = tvLiveTotal(state, 'f2', n);
+    else if (mode === 'total') {
+      const a = tvLiveTotal(state, 'f1', n);
+      const t = teamOfPlayer[n] !== undefined ? TEAMS[teamOfPlayer[n]] : null;
+      const b = t != null ? tvLiveTotal(state, 'f2', t) : 0;
+      if (a !== null && b !== null) target = a + b;
+    } else target = tvLiveTotal(state, 'f1', n);
+    if (target !== null) extras[n] = target - (lastRun[n] || 0);
+  });
   const hasExtras = Object.values(extras).some(v => v);
   if (hasExtras) {
     names.forEach(n => lastRun[n] = (lastRun[n] || 0) + (extras[n] || 0));
@@ -17821,7 +17889,7 @@ function renderTV() {
   window._tvLastPhotos  = photos;
   // Cambió algo real → cortamos el modo "mientras tanto" y buscamos logros nuevos
   try {
-    const sig = JSON.stringify([state.f1, state.f2, (state.impostor || {}).rounds, state.comodines, state.comodinesF2]);
+    const sig = JSON.stringify([state.f1, state.f2, (state.impostor || {}).rounds, state.comodines, state.comodinesF2, state.liveTotals]);
     if (sig !== window._tvLastSig) {
       window._tvLastSig = sig;
       _idleLastChange = Date.now();

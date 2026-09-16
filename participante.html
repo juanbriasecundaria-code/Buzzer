@@ -790,7 +790,20 @@ function wireAccordions() {
 function gameNameF1(idx) { return (latestRules && latestRules.f1 && latestRules.f1[idx]) ? latestRules.f1[idx].name : (GAMES_F1_DEFAULT[idx] || '?'); }
 function gameNameF2(idx) { return (latestRules && latestRules.f2 && latestRules.f2[idx]) ? latestRules.f2[idx].name : (GAMES_F2_DEFAULT[idx] || '?'); }
 
+// Totales oficiales publicados por velada.html (misma cuenta que su tabla)
+function liveTotal(type, name) {
+  const lt = latestState && latestState.liveTotals && latestState.liveTotals[type];
+  if (!lt || !Object.prototype.hasOwnProperty.call(lt, name)) return null;
+  const v = Number(lt[name]);
+  return isFinite(v) ? v : null;
+}
 function getPoints(type) {
+  const pts = _getPointsLocal(type);
+  const names = type === 'f1' ? PLAYERS : TEAMS;
+  pts.forEach((p, i) => { const v = liveTotal(type, names[i]); if (v !== null) p.total = v; });
+  return pts;
+}
+function _getPointsLocal(type) {
   const RC = latestRules;
   const entities = type === 'f1' ? PLAYERS : TEAMS;
   const fixture = type === 'f1' ? F1_FIXTURE : F2_FIXTURE;
@@ -2960,6 +2973,17 @@ function buildEvoSeriesGuest(mode) {
   }
 
   const lastRun = steps.length ? Object.assign({}, steps[steps.length - 1]) : (() => { const z = {}; names.forEach(n => z[n] = 0); return z; })();
+  names.forEach(n => {
+    let target = null;
+    if (mode === 'f2') target = liveTotal('f2', n);
+    else if (mode === 'total') {
+      const a = liveTotal('f1', n);
+      const t = teamOfPlayer[n] !== undefined ? TEAMS[teamOfPlayer[n]] : null;
+      const b = t != null ? liveTotal('f2', t) : 0;
+      if (a !== null && b !== null) target = a + b;
+    } else target = liveTotal('f1', n);
+    if (target !== null) extras[n] = target - (lastRun[n] || 0);
+  });
   const hasExtras = Object.values(extras).some(v => v);
   if (hasExtras) { names.forEach(n => lastRun[n] = (lastRun[n] || 0) + (extras[n] || 0)); steps.push(lastRun); }
 
