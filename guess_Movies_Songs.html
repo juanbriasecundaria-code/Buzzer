@@ -27,8 +27,8 @@ function _onFbScriptLoad(){
 }
 function _onFbScriptError(){ window._fbScriptsDone = true; console.warn('[Firebase] script load failed — running offline'); if(window._fbReadyCb) window._fbReadyCb(); }
 </script>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js" onload="_onFbScriptLoad()" onerror="_onFbScriptError()"></script>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js" onload="_onFbScriptLoad()" onerror="_onFbScriptError()"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js" onload="_onFbScriptLoad()" onerror="_onFbScriptError()"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js" onload="_onFbScriptLoad()" onerror="_onFbScriptError()"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 :root{
@@ -1084,7 +1084,7 @@ function initFirebase(){
     return;
   }
   try{
-    if(!firebase.apps.length) firebase.initializeApp(FB_CFG);
+    if(!firebase.apps.some(a => a.name === '[DEFAULT]')) firebase.initializeApp(FB_CFG);
     fbDb = firebase.database();
     fbRef = fbDb.ref('velada/buzzer');
     fbDeckRef = fbDb.ref('velada/deck');

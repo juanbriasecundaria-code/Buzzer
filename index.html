@@ -22,8 +22,8 @@ window._fbScriptsLoaded=0;window._fbScriptsDone=false;
 function _onFbLoad(){window._fbScriptsLoaded++;if(window._fbScriptsLoaded>=2){window._fbScriptsDone=true;if(window._fbReadyCb)window._fbReadyCb();}}
 function _onFbError(){window._fbScriptsDone=true;window._fbError='No se pudo cargar Firebase. Verificá tu conexión a internet.';if(typeof showError==='function')showError(window._fbError);if(window._fbReadyCb)window._fbReadyCb();}
 </script>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js" onload="_onFbLoad()" onerror="_onFbError()"></script>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js" onload="_onFbLoad()" onerror="_onFbError()"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js" onload="_onFbLoad()" onerror="_onFbError()"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js" onload="_onFbLoad()" onerror="_onFbError()"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 :root{
@@ -648,7 +648,7 @@ function initFirebase(cb){
   if(!window._fbScriptsDone){ window._fbReadyCb=()=>initFirebase(cb); return; }
   if(typeof firebase==='undefined'){ showError('Firebase no disponible. Verificá tu conexión.'); return; }
   try{
-    if(!firebase.apps.length) firebase.initializeApp(FB_CFG);
+    if(!firebase.apps.some(a => a.name === '[DEFAULT]')) firebase.initializeApp(FB_CFG);
     fbDb = firebase.database();
     fbInited = true;
     // Todos los dispositivos calculan el countdown contra el reloj del
@@ -1519,8 +1519,8 @@ function checkPw(){
      'ndj/photos' que arma velada.html). En vivo, sin depender de reabrir
      velada.html — igual que participante.html. ── -->
 <script type="module">
-import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
-import { getFirestore, doc, onSnapshot } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+// Mismo SDK que el resto de la página (compat 10.12): antes este bloque
+// cargaba además el SDK modular, o sea dos Firebase en el mismo celular.
 const photosFbConfig = {
   apiKey: "AIzaSyB-1B426OH2ZYKHT1n8VVzmv0h_10186Zo",
   authDomain: "cumple-598e7.firebaseapp.com",
@@ -1529,19 +1529,36 @@ const photosFbConfig = {
   messagingSenderId: "92890914103",
   appId: "1:92890914103:web:ab78f983eee410e6eb8eb2"
 };
-const photosApp = initializeApp(photosFbConfig, 'photos');
-const photosDb = getFirestore(photosApp);
-window.qldPhotos = {};
-onSnapshot(doc(photosDb, 'ndj', 'photos'), (snap) => {
-  if (!snap.exists()) return;
-  try {
-    const o = JSON.parse(snap.data().data);
-    if (o && typeof o === 'object') {
-      window.qldPhotos = o;
-      if (typeof window.onQldPhotosUpdate === 'function') window.onQldPhotosUpdate();
+window.qldPhotos = window.qldPhotos || {};
+(async function fotosDePerfil() {
+  const V = 'https://www.gstatic.com/firebasejs/10.12.0/';
+  const esperar = ms => new Promise(r => setTimeout(r, ms));
+  async function asegurar(listo, src) {
+    if (listo()) return;
+    // Si la página ya lo está cargando (mismo src), no se inyecta otra vez
+    if (!document.querySelector('script[src="' + src + '"]')) {
+      const s = document.createElement('script'); s.src = src; document.head.appendChild(s);
     }
-  } catch (e) { console.warn('Error al parsear fotos:', e); }
-}, (err) => console.warn('Firebase onSnapshot error (photos):', err));
+    for (let i = 0; i < 300; i++) { if (listo()) return; await esperar(100); }
+    throw new Error('No cargó ' + src);
+  }
+  try {
+    await asegurar(() => window.firebase && firebase.initializeApp, V + 'firebase-app-compat.js');
+    await asegurar(() => window.firebase && firebase.firestore, V + 'firebase-firestore-compat.js');
+    let app;
+    try { app = firebase.app('photos'); } catch (e) { app = firebase.initializeApp(photosFbConfig, 'photos'); }
+    app.firestore().collection('ndj').doc('photos').onSnapshot((snap) => {
+      if (!snap.exists) return;
+      try {
+        const o = JSON.parse(snap.data().data);
+        if (o && typeof o === 'object') {
+          window.qldPhotos = o;
+          if (typeof window.onQldPhotosUpdate === 'function') window.onQldPhotosUpdate();
+        }
+      } catch (e) { console.warn('Error al parsear fotos:', e); }
+    }, (err) => console.warn('Firebase onSnapshot error (photos):', err));
+  } catch (e) { console.warn('Fotos de perfil sin conexión:', e); }
+})();
 </script>
 </body>
 </html>

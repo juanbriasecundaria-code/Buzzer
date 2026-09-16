@@ -1089,8 +1089,8 @@ window.VarSwitch = (function () {
       const _connDot = document.getElementById('velada-conn-dot');
       try {
         if (typeof firebase === 'undefined' || !firebase.database) {
-          await loadScript('https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js');
-          await loadScript('https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js');
+          await loadScript('https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js');
+          await loadScript('https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js');
         }
         let app;
         try { app = firebase.app('varcfg'); } catch (e) { app = firebase.initializeApp(CFG, 'varcfg'); }
@@ -2455,8 +2455,8 @@ document.addEventListener('keydown', function(e) {
 <!-- ── FOTOS DE PERFIL: conexión directa a Firestore (mismo proyecto y documento
      'ndj/photos' que arma velada.html), igual que en quien_lo_dijo.html/participante.html. ── -->
 <script type="module">
-import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
-import { getFirestore, doc, onSnapshot } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+// Mismo SDK que el resto de la página (compat 10.12): antes este bloque
+// cargaba además el SDK modular, o sea dos Firebase en el mismo celular.
 const photosFbConfig = {
   apiKey: "AIzaSyB-1B426OH2ZYKHT1n8VVzmv0h_10186Zo",
   authDomain: "cumple-598e7.firebaseapp.com",
@@ -2465,19 +2465,36 @@ const photosFbConfig = {
   messagingSenderId: "92890914103",
   appId: "1:92890914103:web:ab78f983eee410e6eb8eb2"
 };
-const photosApp = initializeApp(photosFbConfig, 'photos');
-const photosDb = getFirestore(photosApp);
-window.qldPhotos = {};
-onSnapshot(doc(photosDb, 'ndj', 'photos'), (snap) => {
-  if (!snap.exists()) return;
-  try {
-    const o = JSON.parse(snap.data().data);
-    if (o && typeof o === 'object') {
-      window.qldPhotos = o;
-      if (typeof window.onQldPhotosUpdate === 'function') window.onQldPhotosUpdate();
+window.qldPhotos = window.qldPhotos || {};
+(async function fotosDePerfil() {
+  const V = 'https://www.gstatic.com/firebasejs/10.12.0/';
+  const esperar = ms => new Promise(r => setTimeout(r, ms));
+  async function asegurar(listo, src) {
+    if (listo()) return;
+    // Si la página ya lo está cargando (mismo src), no se inyecta otra vez
+    if (!document.querySelector('script[src="' + src + '"]')) {
+      const s = document.createElement('script'); s.src = src; document.head.appendChild(s);
     }
-  } catch (e) { console.warn('Error al parsear fotos:', e); }
-}, (err) => console.warn('Firebase onSnapshot error (photos):', err));
+    for (let i = 0; i < 300; i++) { if (listo()) return; await esperar(100); }
+    throw new Error('No cargó ' + src);
+  }
+  try {
+    await asegurar(() => window.firebase && firebase.initializeApp, V + 'firebase-app-compat.js');
+    await asegurar(() => window.firebase && firebase.firestore, V + 'firebase-firestore-compat.js');
+    let app;
+    try { app = firebase.app('photos'); } catch (e) { app = firebase.initializeApp(photosFbConfig, 'photos'); }
+    app.firestore().collection('ndj').doc('photos').onSnapshot((snap) => {
+      if (!snap.exists) return;
+      try {
+        const o = JSON.parse(snap.data().data);
+        if (o && typeof o === 'object') {
+          window.qldPhotos = o;
+          if (typeof window.onQldPhotosUpdate === 'function') window.onQldPhotosUpdate();
+        }
+      } catch (e) { console.warn('Error al parsear fotos:', e); }
+    }, (err) => console.warn('Firebase onSnapshot error (photos):', err));
+  } catch (e) { console.warn('Fotos de perfil sin conexión:', e); }
+})();
 </script>
 <script>
 // Avatar reutilizable: foto real si está cargada en Firestore, si no un círculo con la inicial.
