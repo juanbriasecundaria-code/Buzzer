@@ -2385,6 +2385,33 @@
     background: linear-gradient(to top, rgba(0,0,0,0.8), transparent);
     font-size: 9px; font-weight: 700; color: #fff; letter-spacing: 0.05em;
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  /* ── Opciones de juego del 3er puesto (pósters para mostrar a los jugadores) ── */
+  .tj-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(108px,1fr));gap:0.6rem}
+  .tj-card{position:relative;border:1px solid var(--border2);border-radius:var(--radius);overflow:hidden;background:var(--surface2);transition:transform .12s ease,border-color .12s ease}
+  .tj-card.pick{cursor:pointer}
+  .tj-card.pick:hover{transform:translateY(-2px);border-color:var(--accent)}
+  .tj-card.sel{border-color:var(--accent);box-shadow:inset 0 0 0 1.5px var(--accent)}
+  .tj-card.sel .tj-name{color:var(--accent)}
+  .tj-thumb{width:100%;aspect-ratio:3/4;object-fit:cover;display:block;background:#111}
+  .tj-thumb.ph{display:flex;align-items:center;justify-content:center;font-size:26px;color:var(--muted)}
+  .tj-name{padding:7px 7px;font-size:11.5px;font-weight:600;line-height:1.3;color:var(--text);text-align:center;word-break:break-word}
+  .tj-badge-sel{position:absolute;top:6px;left:6px;background:var(--accent);color:#111;font-size:10px;font-weight:800;border-radius:99px;padding:2px 7px}
+  .tj-row{display:flex;gap:0.6rem;align-items:flex-start;margin-bottom:0.55rem;padding:0.55rem;border:1px solid var(--border);border-radius:var(--radius);background:var(--surface2)}
+  .tj-row-thumb{flex:0 0 54px;width:54px;height:72px;border-radius:8px;overflow:hidden;border:1px dashed var(--border2);background:var(--surface);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:17px;color:var(--muted);text-align:center;line-height:1.1}
+  .tj-row-thumb img{width:100%;height:100%;object-fit:cover}
+  .tj-row-fields{flex:1;min-width:0;display:flex;flex-direction:column;gap:0.35rem}
+  .tj-row-del{flex:0 0 auto;width:26px;height:26px;border-radius:50%;border:1px solid var(--border2);background:var(--surface);color:var(--muted);font-size:13px;line-height:1;cursor:pointer}
+  .tj-mini{font-size:11px;color:var(--muted);line-height:1.5}
+  .tj-open-btn{width:100%;margin-top:0.85rem;padding:0.8rem;border-radius:var(--radius);border:1.5px dashed var(--accent,#c8f060);background:var(--accent-dim,rgba(200,240,96,.13));color:var(--accent,#c8f060);cursor:pointer;font-size:13.5px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:0.5rem}
+  /* Pantalla completa para mostrarles las opciones */
+  .tj-overlay{position:fixed;inset:0;background:rgba(8,8,10,.97);z-index:9999;display:none;flex-direction:column;padding:1.2rem;overflow:auto;-webkit-overflow-scrolling:touch}
+  .tj-overlay.show{display:flex}
+  .tj-ov-head{display:flex;align-items:flex-start;justify-content:space-between;gap:1rem;margin-bottom:1.1rem}
+  .tj-ov-title{font-size:20px;font-weight:700;color:var(--text)}
+  .tj-ov-close{flex:0 0 auto;border:1px solid var(--border2);background:var(--surface2);color:var(--text);border-radius:99px;padding:7px 15px;font-size:13px;cursor:pointer}
+  .tj-ov-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:1rem}
+  .tj-ov-grid .tj-name{font-size:13.5px;padding:9px 8px}
+
   /* Fotos del podio en los créditos (1er/2do de la Final, 3er/4to del juego x el 3er puesto) */
   .cr-podio-fotos-row { display: flex; gap: 1.3rem; justify-content: center; flex-wrap: wrap; margin: 0.7rem auto 0; max-width: 640px; }
   .cr-podio-foto { display: flex; flex-direction: column; align-items: center; }
@@ -11396,6 +11423,7 @@ const TERCER_CONFIG_DEFAULT = {
   nota: 'El 2° de la fase individual elige compañero (no puede ser alguien que juegue la final). Pelea contra el 2° equipo de la fase grupal.',
   companero: '',
   ganador: '',
+  opciones: [],   // [{id, nombre, img}] — juegos entre los que eligen, con póster
 };
 let TERCER_CONFIG = null;
 let _tercerEditMode = false;
@@ -11406,9 +11434,17 @@ function loadTercerConfig() {
     if (s) TERCER_CONFIG = Object.assign({}, TERCER_CONFIG_DEFAULT, JSON.parse(s));
     else TERCER_CONFIG = Object.assign({}, TERCER_CONFIG_DEFAULT);
   } catch(e) { TERCER_CONFIG = Object.assign({}, TERCER_CONFIG_DEFAULT); }
+  if (!Array.isArray(TERCER_CONFIG.opciones)) TERCER_CONFIG.opciones = [];
 }
 function saveTercerConfig() {
-  localStorage.setItem('ndj_tercer_config', JSON.stringify(TERCER_CONFIG));
+  try {
+    localStorage.setItem('ndj_tercer_config', JSON.stringify(TERCER_CONFIG));
+    return true;
+  } catch (e) {
+    // Sin espacio: casi siempre por imágenes muy pesadas o demasiadas.
+    showToast('⚠️', 'No hay espacio para guardar. Borrá alguna imagen o usá un link en vez de subir el archivo.', false);
+    return false;
+  }
 }
 function toggleTercerEdit() {
   _tercerEditMode = !_tercerEditMode;
@@ -11430,6 +11466,206 @@ function saveTercerEdits() {
   showToast('🥉', '3er puesto guardado', false);
   renderFinal();
 }
+
+// ============================================================
+// OPCIONES DE JUEGO DEL 3ER PUESTO (lista ilimitada, con póster)
+// Sirven para mostrarles las opciones en pantalla: ven la imagen,
+// dicen cuál quieren, y tocás la que eligieron.
+// ============================================================
+let _tercerOptTarget = null;
+const _escT = (v) => String(v == null ? '' : v)
+  .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+
+function tercerOpciones() {
+  if (!TERCER_CONFIG) return [];
+  if (!Array.isArray(TERCER_CONFIG.opciones)) TERCER_CONFIG.opciones = [];
+  return TERCER_CONFIG.opciones;
+}
+function _tercerOptId() {
+  return 'o' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+}
+function tercerOpcionAdd(nombre) {
+  tercerOpciones().push({ id: _tercerOptId(), nombre: nombre || '', img: '' });
+  saveTercerConfig();
+  renderTercerOpcionesEditor();
+}
+function tercerOpcionDel(id) {
+  TERCER_CONFIG.opciones = tercerOpciones().filter(o => o.id !== id);
+  saveTercerConfig();
+  renderTercerOpcionesEditor();
+}
+function tercerOpcionSetNombre(id, v) {
+  const o = tercerOpciones().find(x => x.id === id);
+  if (!o) return;
+  o.nombre = String(v || '').trim();
+  saveTercerConfig();
+}
+function tercerOpcionSetUrl(id, v) {
+  const o = tercerOpciones().find(x => x.id === id);
+  if (!o) return;
+  const val = String(v || '').trim();
+  if (o.img === val) return;
+  o.img = val;
+  saveTercerConfig();
+  renderTercerOpcionesEditor();
+}
+function tercerOpcionQuitarImg(id) {
+  const o = tercerOpciones().find(x => x.id === id);
+  if (!o) return;
+  o.img = '';
+  saveTercerConfig();
+  renderTercerOpcionesEditor();
+}
+function tercerOpcionPickFile(id) {
+  _tercerOptTarget = id;
+  const inp = document.getElementById('tercer-opt-file');
+  if (inp) { inp.value = ''; inp.click(); }
+}
+// Achica y comprime la imagen antes de guardarla, para que entren muchas.
+function _tercerCompressImg(file, cb) {
+  const fr = new FileReader();
+  fr.onload = () => {
+    const img = new Image();
+    img.onload = () => {
+      try {
+        const MAX = 520;
+        let w = img.naturalWidth || img.width, h = img.naturalHeight || img.height;
+        const sc = Math.min(1, MAX / Math.max(w, h));
+        w = Math.max(1, Math.round(w * sc));
+        h = Math.max(1, Math.round(h * sc));
+        const c = document.createElement('canvas');
+        c.width = w; c.height = h;
+        const ctx = c.getContext('2d');
+        ctx.fillStyle = '#111';
+        ctx.fillRect(0, 0, w, h);
+        ctx.drawImage(img, 0, 0, w, h);
+        cb(c.toDataURL('image/jpeg', 0.72));
+      } catch (e) { cb(null); }
+    };
+    img.onerror = () => cb(null);
+    img.src = fr.result;
+  };
+  fr.onerror = () => cb(null);
+  fr.readAsDataURL(file);
+}
+function tercerOpcionFileChosen(input) {
+  const f = input && input.files && input.files[0];
+  const id = _tercerOptTarget;
+  if (!f || !id) return;
+  _tercerCompressImg(f, (dataUrl) => {
+    if (!dataUrl) { showToast('⚠️', 'No se pudo leer esa imagen', false); return; }
+    const o = tercerOpciones().find(x => x.id === id);
+    if (!o) return;
+    const prev = o.img;
+    o.img = dataUrl;
+    if (!saveTercerConfig()) o.img = prev;   // no entró: se deja como estaba
+    renderTercerOpcionesEditor();
+  });
+}
+// Convierte el texto del campo "Formato" (lista separada por guiones) en opciones.
+function tercerImportarDesdeFormato() {
+  const txt = (document.getElementById('tercer-edit-formato')?.value ?? TERCER_CONFIG.formato ?? '');
+  const partes = String(txt)
+    .split(/\r?\n|\s+[-–—·•]\s+/)
+    .map(t => t.replace(/^[\s\-–—·•]+/, '').replace(/[\s.;]+$/, '').trim())
+    .filter(t => t.length > 1);
+  if (!partes.length) { showToast('⚠️', 'No encontré una lista de juegos en el formato', false); return; }
+  const ya = tercerOpciones().map(o => o.nombre.toLowerCase());
+  let n = 0;
+  partes.forEach(p => {
+    if (ya.includes(p.toLowerCase())) return;
+    tercerOpciones().push({ id: _tercerOptId(), nombre: p, img: '' });
+    ya.push(p.toLowerCase());
+    n++;
+  });
+  saveTercerConfig();
+  renderTercerOpcionesEditor();
+  showToast('🎮', n ? ('Agregué ' + n + ' juego' + (n > 1 ? 's' : '')) : 'Ya estaban todos cargados', false);
+}
+// Tarjeta de un juego (póster + nombre). pick = se puede tocar para elegirlo.
+function tercerOpcionCardHtml(o, pick) {
+  const elegida = !!(TERCER_CONFIG.juego && o.nombre && TERCER_CONFIG.juego.trim().toLowerCase() === o.nombre.trim().toLowerCase());
+  const img = o.img
+    ? `<img class="tj-thumb" src="${_escT(o.img)}" alt="${_escT(o.nombre)}" loading="lazy">`
+    : `<div class="tj-thumb ph">🎮</div>`;
+  const nombre = o.nombre ? _escC(o.nombre) : '<span style="color:var(--muted);font-weight:500">Sin nombre</span>';
+  return `<div class="tj-card ${pick ? 'pick' : ''} ${elegida ? 'sel' : ''}" ${pick ? `onclick="tercerElegirJuego('${o.id}')"` : ''}>
+    ${elegida ? '<span class="tj-badge-sel">ELEGIDO</span>' : ''}
+    ${img}
+    <div class="tj-name">${nombre}</div>
+  </div>`;
+}
+function tercerOpcionesGridHtml(pick) {
+  const ops = tercerOpciones();
+  if (!ops.length) return '';
+  return `<div class="tj-grid">${ops.map(o => tercerOpcionCardHtml(o, pick)).join('')}</div>`;
+}
+// Editor (dentro de "Configuración de la final")
+function renderTercerOpcionesEditor() {
+  const cont = document.getElementById('tercer-opciones-editor');
+  if (!cont) return;
+  const ops = tercerOpciones();
+  cont.innerHTML = ops.length ? ops.map(o => `
+    <div class="tj-row">
+      <div class="tj-row-thumb" onclick="tercerOpcionPickFile('${o.id}')" title="Subir póster o captura">
+        ${o.img ? `<img src="${_escT(o.img)}" alt="">` : '＋'}
+      </div>
+      <div class="tj-row-fields">
+        <input class="final-edit-input" placeholder="Nombre del juego…" value="${_escT(o.nombre)}"
+               onchange="tercerOpcionSetNombre('${o.id}', this.value)">
+        <input class="final-edit-input" style="font-size:12px" placeholder="…o pegá el link de una imagen (https://…)"
+               value="${o.img && o.img.slice(0,5) !== 'data:' ? _escT(o.img) : ''}"
+               onchange="tercerOpcionSetUrl('${o.id}', this.value)">
+        <div class="tj-mini">
+          ${o.img ? `<span style="color:var(--accent)">✓ con imagen</span> · <a href="javascript:void(0)" style="color:var(--muted);text-decoration:underline" onclick="tercerOpcionQuitarImg('${o.id}')">quitar imagen</a>` : 'Tocá el recuadro para subir el póster'}
+        </div>
+      </div>
+      <button class="tj-row-del" onclick="tercerOpcionDel('${o.id}')" title="Borrar">✕</button>
+    </div>`).join('')
+    : '<div class="tj-mini" style="padding:0.5rem 0">Todavía no cargaste ningún juego.</div>';
+}
+// Pantalla completa para mostrarles las opciones
+function openTercerGallery() {
+  let ov = document.getElementById('tercer-gallery');
+  if (!ov) {
+    ov = document.createElement('div');
+    ov.id = 'tercer-gallery';
+    ov.className = 'tj-overlay';
+    document.body.appendChild(ov);
+  }
+  const ops = tercerOpciones();
+  ov.innerHTML = `
+    <div class="tj-ov-head">
+      <div>
+        <div class="tj-ov-title">🥉 Juego por el 3er puesto</div>
+        <div class="tj-mini">${ops.length} opciones — cuando digan cuál quieren, tocala para dejarla marcada.</div>
+      </div>
+      <button class="tj-ov-close" onclick="closeTercerGallery()">✕ Cerrar</button>
+    </div>
+    <div class="tj-ov-grid">${ops.map(o => tercerOpcionCardHtml(o, true)).join('')}</div>`;
+  ov.classList.add('show');
+  document.body.style.overflow = 'hidden';
+}
+function closeTercerGallery() {
+  const ov = document.getElementById('tercer-gallery');
+  if (ov) ov.classList.remove('show');
+  document.body.style.overflow = '';
+}
+function tercerElegirJuego(id) {
+  const o = tercerOpciones().find(x => x.id === id);
+  if (!o) return;
+  const nombre = (o.nombre || '').trim();
+  if (!nombre) { showToast('⚠️', 'Ponele nombre a ese juego para poder elegirlo', false); return; }
+  // Tocar el que ya está elegido lo des-elige.
+  TERCER_CONFIG.juego = (TERCER_CONFIG.juego || '').trim().toLowerCase() === nombre.toLowerCase() ? '' : nombre;
+  saveTercerConfig();
+  if (document.getElementById('tercer-gallery')?.classList.contains('show')) openTercerGallery();
+  showToast('🥉', TERCER_CONFIG.juego ? ('Juego del 3er puesto: ' + nombre) : 'Juego sin definir', false);
+  renderFinal();
+}
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') closeTercerGallery();
+});
 
 // ============================================================
 // 2DO PUESTO (solo el nombre del ganador, para los créditos)
@@ -12570,12 +12806,27 @@ function renderFinal() {
       <label class="final-edit-label">Nota al pie (debajo de clasificados)</label>
       <input class="final-edit-input" id="tercer-edit-nota" value="${tc.nota.replace(/"/g,'&quot;')}">
     </div>
+    <div class="final-edit-field">
+      <label class="final-edit-label">Opciones de juego (con póster)</label>
+      <div class="tj-mini" style="margin-bottom:0.6rem">Agregá todas las que quieras — no hay límite. La imagen se achica sola y queda guardada en este dispositivo.</div>
+      <div id="tercer-opciones-editor"></div>
+      <div style="display:flex;gap:0.5rem;margin-top:0.6rem;flex-wrap:wrap">
+        <button class="final-edit-save" style="flex:1 1 150px" onclick="tercerOpcionAdd()">＋ Agregar juego</button>
+        <button class="final-edit-save" style="flex:0 1 auto;background:var(--surface2);color:var(--muted);border:1.5px solid var(--border2)" onclick="tercerImportarDesdeFormato()">⇩ Importar del formato</button>
+      </div>
+      <input type="file" id="tercer-opt-file" accept="image/*" style="display:none" onchange="tercerOpcionFileChosen(this)">
+    </div>
     <button class="final-edit-save" onclick="saveTercerEdits()">Guardar cambios</button>
   ` : `
     <div class="rule-label" style="margin-top:0">Juego</div>
     <div style="margin-bottom:0.9rem">${tercerJuegoDisplay}</div>
     <div class="rule-label">Formato</div>
     <p style="font-size:13px;line-height:1.6;color:var(--text);margin-bottom:0.9rem">${tc.formato}</p>
+    ${tercerOpciones().length ? `
+      <div class="rule-label">Opciones</div>
+      ${tercerOpcionesGridHtml(true)}
+      <button class="tj-open-btn" onclick="openTercerGallery()">🖥️ Mostrar las ${tercerOpciones().length} opciones en pantalla</button>
+      <div style="height:0.9rem"></div>` : ''}
     <div class="rule-label">Puntos</div>
     <p style="font-size:13px;line-height:1.6;color:var(--text)">${tc.puntos}</p>
   `;
@@ -12606,7 +12857,8 @@ function renderFinal() {
       <div style="font-size:15px;font-weight:600;margin-bottom:${tc.juego ? '0.5rem' : '1rem'}"><span class="dot-indicator" style="background:#cd7f32;box-shadow:0 0 8px rgba(205,127,50,0.6)"></span>Clasificados al 3er puesto</div>
       ${tc.juego ? `<div style="margin-bottom:1rem"><span class="match-game-badge" style="font-size:12px;padding:3px 10px;border-radius:99px;background:var(--accent-dim,rgba(200,240,96,.13));color:var(--accent);font-weight:600">🥉 ${tc.juego}</span></div>` : ''}
       <div class="final-players">${tercerClasificadosHtml}${companeroHtml}</div>
-      <div style="font-size:12px;color:var(--muted);padding-top:0.75rem;border-top:0.5px solid var(--border)">${tc.nota}</div>
+      ${tercerOpciones().length ? `<button class="tj-open-btn" onclick="openTercerGallery()">🎮 Ver las ${tercerOpciones().length} opciones de juego</button>` : ''}
+      <div style="font-size:12px;color:var(--muted);padding-top:0.75rem;border-top:0.5px solid var(--border);margin-top:0.85rem">${tc.nota}</div>
     </div>
 
     <!-- CAMPEONES (carga directa para los créditos) -->
@@ -12763,6 +13015,9 @@ function renderFinal() {
   if (finalConfigPanel) {
     finalConfigPanel.addEventListener('toggle', () => { _finalConfigPanelOpen = finalConfigPanel.open; });
   }
+
+  // Editor de opciones de juego del 3er puesto (solo existe en modo edición)
+  renderTercerOpcionesEditor();
 
   // Store motes for reveal
   window._motesData = motes;
