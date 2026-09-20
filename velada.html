@@ -4945,16 +4945,18 @@ try { VarSwitch.onChange(renderVarToggle); } catch (e) {}
 // ============================================================
 const PLAYERS = [
   'Risu','Totti','Thiago','Mica',
-  'Valentín','Laza','Lara','Martin',
+  'Valentín','Laza','Lara','Martín',
   'Cori','Flor','Tomás'
 ];
 
+// Los equipos usan los MISMOS apodos que la Fase 1, así las tablas de Fase 1,
+// Fase 2 y la presentación de la apertura dicen todas lo mismo.
 const TEAMS = [
-  'Martín H. / Valentín A.',
-  'Lázaro G. / Tomás P.',
-  'Thiago C. / Lara M.',
+  'Martín / Valentín',
+  'Laza / Tomás',
+  'Thiago / Lara',
   'Totti / Risu',
-  'Coral O. / Florencia L.'
+  'Cori / Flor / Mica'
 ];
 
 const GAMES_F1 = ['Curling','100 Argentinos Dicen','UNO','Palabras a Tiempo','Carrera de Mentes','Spot It'];
@@ -4970,7 +4972,7 @@ const FULL_NAMES = {
   'Valentín': 'Valentín A.',
   'Laza':     'Lázaro G.',
   'Lara':     'Lara M.',
-  'Martin':   'Martín H.',
+  'Martín':   'Martín H.',
   'Cori':     'Coral O.',
   'Flor':     'Florencia L.',
   'Tomás':    'Tomás P.',
@@ -4980,8 +4982,13 @@ const FULL_NAMES = {
 // apodo de Fase 1), usando FULL_NAMES para pasar de apodo a nombre completo.
 // Se usa para las apuestas de Fase 2: el punto de un acierto va al equipo del apostador.
 function teamIndexForPlayer(playerName) {
-  const full = FULL_NAMES[playerName] || playerName;
-  return TEAMS.findIndex(t => t.includes(full));
+  const nick = String(playerName || '').trim().toLowerCase();
+  if (!nick) return -1;
+  const full = String(FULL_NAMES[playerName] || '').trim().toLowerCase();
+  return TEAMS.findIndex(t => entityMembers(t).some(m => {
+    const mm = m.trim().toLowerCase();
+    return mm === nick || (full && mm === full);
+  }));
 }
 
 // Color por índice de juego (bg, color) — 6 colores distintos por fase
@@ -14367,6 +14374,18 @@ function _runCeremony(opts) {
   const nombreDe  = (i) => flat[i].name;
   const DIVIDER_MS = 1500;   // cartel que separa un acto del siguiente
   const dividers = groups.length - 1;
+  // Peso de cada tarjeta: por defecto todas duran lo mismo, pero un acto puede
+  // pedir que algunas se queden más (ej: la revelación de un equipo).
+  const pesoDe = (i) => {
+    const g = grupoDe(i);
+    return (typeof g.weightFn === 'function') ? Math.max(.2, g.weightFn(flat[i].ii, nombreDe(i))) : 1;
+  };
+  const pesoTotal = flat.reduce((s2, _, i) => s2 + pesoDe(i), 0);
+  let baseUnitMs = null;   // ms por unidad de peso (se fija con applyBudget)
+  function applyBudget(totalMs) {
+    if (!(totalMs > 0) || !pesoTotal) return;
+    baseUnitMs = totalMs / pesoTotal;
+  }
 
   if (typeof forceHideSplash === 'function') forceHideSplash();
   _resumeAudio();
@@ -14398,14 +14417,13 @@ function _runCeremony(opts) {
       // Con tráiler, el cálculo se hace al terminar el montaje (ver arrancarTarjetas).
       if (!opts.trailer) {
         const rem = (typeof ceremonyTrackRemainingSec === 'function') ? ceremonyTrackRemainingSec() : null;
-        if (rem && rem > 2) applyCardTiming(((rem * 1000) - introDelayMs - (dividers * DIVIDER_MS)) / items.length);
+        if (rem && rem > 2) applyBudget((rem * 1000) - introDelayMs - (dividers * DIVIDER_MS));
       }
     } else {
       startCeremonyTrack(music, (durationSec) => {
         if (durationSec == null) return; // sin música o no se pudo leer: se queda con el ritmo por defecto
         const usableSec   = Math.max(0, durationSec - (music.startAt || 0));
-        const cardMs = ((usableSec * 1000) - introDelayMs - (dividers * DIVIDER_MS)) / items.length;
-        applyCardTiming(cardMs);
+        applyBudget((usableSec * 1000) - introDelayMs - (dividers * DIVIDER_MS));
       });
     }
   }
@@ -14450,6 +14468,7 @@ function _runCeremony(opts) {
 
   function showItem(i) {
     clearPhaseTimers();
+    if (baseUnitMs) applyCardTiming(baseUnitMs * pesoDe(i));
     phase = 1;
     hint.style.opacity = '0';
 
@@ -14459,11 +14478,14 @@ function _runCeremony(opts) {
     const label = g.labelFn(flat[i].ii, g.items.length);
     const fig   = g.figFn(name, color, flat[i].ii);
     const parts = String(name).split('/').map(function(s) { return s.trim(); }).filter(Boolean);
-    const fullName = (typeof FULL_NAMES !== 'undefined' && FULL_NAMES[name]) ? FULL_NAMES[name] : name;
+    // La apertura usa los apodos (los mismos que las tablas de Fase 1 y 2);
+    // los créditos siguen usando los nombres completos.
+    const conApodos = (opts.nombres === 'nick');
+    const nombreMostrado = (x) => (!conApodos && typeof FULL_NAMES !== 'undefined' && FULL_NAMES[x]) ? FULL_NAMES[x] : x;
+    const fullName = nombreMostrado(name);
     const namesHtml = parts.length > 1
       ? parts.map(function(p) {
-          const fn2 = (typeof FULL_NAMES !== 'undefined' && FULL_NAMES[p]) ? FULL_NAMES[p] : p;
-          return '<div class="op-member">' + _escC(fn2) + '</div>';
+          return '<div class="op-member">' + _escC(nombreMostrado(p)) + '</div>';
         }).join('<div class="op-amp">&amp;</div>')
       : '<div class="op-member">' + _escC(fullName) + '</div>';
 
@@ -14643,14 +14665,17 @@ function _runCeremony(opts) {
   function arrancarTarjetas() {
     // El ritmo se calcula ACÁ, no al montar: si hubo tráiler, ya se comió su
     // parte de la canción y lo que importa es lo que queda.
-    if (music && musicAlreadyPlaying) {
+    if (opts.totalMs) {
+      // Duración fija: la presentación dura lo que tiene que durar, sin
+      // depender de cuánto mida el mp3.
+      applyBudget(opts.totalMs - introDelayGlobal - (dividers * DIVIDER_MS));
+    } else if (music && musicAlreadyPlaying) {
       const rem = (typeof ceremonyTrackRemainingSec === 'function') ? ceremonyTrackRemainingSec() : null;
       if (rem && rem > 2) {
-        applyCardTiming(((rem * 1000) - introDelayGlobal - (dividers * DIVIDER_MS)) / items.length);
+        applyBudget((rem * 1000) - introDelayGlobal - (dividers * DIVIDER_MS));
       } else if (opts.trailer) {
         // Sin mp3 legible: se reparte el presupuesto fijo para llegar a 1:30.
-        const resto = APERTURA_TOTAL_MS - trailerPlanMs() - introDelayGlobal - (dividers * DIVIDER_MS);
-        applyCardTiming(resto / items.length);
+        applyBudget(APERTURA_TOTAL_MS - trailerPlanMs() - introDelayGlobal - (dividers * DIVIDER_MS));
       }
     }
     const introEl = stage.querySelector('#op-intro-el');
@@ -14822,6 +14847,11 @@ function _trailerClear() { _trailerTimers.forEach(t => clearTimeout(t)); _traile
 // Si hay mp3, manda la duración real del archivo; esto es el respaldo.
 const APERTURA_TOTAL_MS = 90000;   // 1:30 de punta a punta
 
+// Duraciones fijas de cada tramo. Mandan estas, no el mp3: si la canción es
+// más larga o más corta, se acomoda ella (el fade del final la resuelve).
+const APERTURA_TRAILER_MS      = 40000;   // montaje de juegos + final
+const APERTURA_PRESENTACION_MS = 56000;   // concursantes + equipos, exacto
+
 // Pulso del tráiler: los cortes caen en el beat del tema, no cada tanto.
 // Seven Nation Army ronda los 124 BPM en las dos versiones.
 const TRAILER_BPM = 124;
@@ -14854,6 +14884,14 @@ function buildTrailerPlan() {
   pasos.push({ t: 'black', beats: 1 });
   pasos.push({ t: 'end', beats: 6 });                // placa "ESTA NOCHE"
 
+  const base = pasos.reduce((s, p) => s + p.beats, 0);
+  // Se estira el plan hasta llenar la duración pedida, pero siempre en
+  // múltiplos de medio beat: los cortes siguen cayendo en el pulso del tema.
+  const objetivo = Math.max(base, Math.round((APERTURA_TRAILER_MS / TRAILER_BEAT_MS) * 2) / 2);
+  const factor = objetivo / base;
+  if (factor > 1.01) {
+    pasos.forEach(p => { p.beats = Math.max(1, Math.round(p.beats * factor * 2) / 2); });
+  }
   const beats = pasos.reduce((s, p) => s + p.beats, 0);
   return { pasos, beatMs: TRAILER_BEAT_MS, totalMs: Math.round(beats * TRAILER_BEAT_MS) };
 }
@@ -14987,30 +15025,13 @@ function runTrailer(done, host) {
 function openVelada() {
   runPlacaClasificacion(() => {
     startCeremonyTrack(CEREMONY_MUSIC.apertura);
-    const actos = [];
-    if (PLAYERS.length) actos.push({
-      items: PLAYERS,
-      title: 'Los concursantes',
-      eyebrow: 'Fase 1 · Clasificación individual',
-      labelFn: (i, total) => `Concursante ${i + 1} de ${total}`,
-      colorFn: (i) => entityColor(PLAYERS[i], i),
-      figFn: (name, color, i) => {
-        const photo = (typeof getPlayerPhoto === 'function') ? getPlayerPhoto(name) : null;
-        return (typeof miiFigureSVG === 'function') ? miiFigureSVG(color, 230, i % 2 ? 'side' : 'victory', photo) : '';
-      },
-    });
-    if (TEAMS.length) actos.push({
-      items: TEAMS,
-      title: 'Los equipos',
-      eyebrow: 'Fase 2 · Clasificación grupal',
-      labelFn: (i, total) => `Equipo ${i + 1} de ${total}`,
-      colorFn: (i) => entityColor(TEAMS[i], i),
-      figFn: _teamFigureHtml,
-    });
-    if (!actos.length) { stopCeremonyTrack(800); return; }
+    const orden = _ordenApertura();
+    if (!orden.items.length) { stopCeremonyTrack(800); return; }
     _runCeremony({
-      groups: actos,
+      groups: [orden],
+      nombres: 'nick',   // mismos nombres que las tablas de Fase 1 y Fase 2
       trailer: true,     // el montaje de los 12 juegos corre dentro de esta misma corrida
+      totalMs: APERTURA_PRESENTACION_MS,
       finishTitle: '¡Que empiece<br>La Velada!',
       finishBtn: 'Entrar ▶',
       confetti: true,
@@ -15019,6 +15040,72 @@ function openVelada() {
       sfx: false,
     });
   });
+}
+
+// Apodo con el que figura alguien en PLAYERS. Los equipos ya usan apodos,
+// pero si alguno quedó escrito con el nombre completo ("Martín H."), se
+// traduce igual a través de FULL_NAMES.
+function _nickDe(quien) {
+  const f = String(quien || '').trim().toLowerCase();
+  if (!f) return null;
+  const directo = (PLAYERS || []).find(n => String(n).trim().toLowerCase() === f);
+  if (directo) return directo;
+  if (typeof FULL_NAMES !== 'undefined') {
+    for (const nick in FULL_NAMES) {
+      if (String(FULL_NAMES[nick]).trim().toLowerCase() === f) return nick;
+    }
+  }
+  return null;
+}
+
+// Orden de la apertura: los integrantes de un equipo entran uno por uno como
+// individuales y, apenas pasó el último, aparece el equipo que arman. Cinco
+// bloques, cada uno cerrando con su revelación. Los que no estén en ningún
+// equipo se presentan al principio, para que la corrida termine en un equipo.
+function _ordenApertura() {
+  const items = [], tipos = [];
+  const usados = new Set();
+  const bloques = [];
+
+  (TEAMS || []).forEach((t, ti) => {
+    const nicks = entityMembers(t).map(_nickDe).filter(Boolean);
+    nicks.forEach(n => usados.add(n));
+    bloques.push({ equipo: t, ti, nicks });
+  });
+  const sueltos = (PLAYERS || []).filter(n => !usados.has(n));
+
+  sueltos.forEach(n => { items.push(n); tipos.push({ k: 'p' }); });
+  bloques.forEach(b => {
+    b.nicks.forEach(n => { items.push(n); tipos.push({ k: 'p' }); });
+    items.push(b.equipo); tipos.push({ k: 't', ti: b.ti });
+  });
+
+  const totalP = items.filter((_, i) => tipos[i].k === 'p').length;
+  const totalT = items.filter((_, i) => tipos[i].k === 't').length;
+  let nP = 0;
+
+  return {
+    items,
+    title: 'Los concursantes',
+    eyebrow: 'Fase 1 individual · Fase 2 en parejas',
+    // La numeración corre por separado: los concursantes del 1 al N, los
+    // equipos del 1 al 5.
+    labelFn: (i) => {
+      const t = tipos[i];
+      if (t.k === 't') return `Equipo ${t.ti + 1} de ${totalT}`;
+      nP = items.slice(0, i + 1).filter((_, j) => tipos[j].k === 'p').length;
+      return `Concursante ${nP} de ${totalP}`;
+    },
+    colorFn: (i) => entityColor(items[i], i),
+    figFn: (name, color, i) => (tipos[i].k === 't')
+      ? _teamFigureHtml(name, color, i)
+      : ((typeof miiFigureSVG === 'function')
+          ? miiFigureSVG(color, 230, i % 2 ? 'side' : 'victory',
+              (typeof getPlayerPhoto === 'function') ? getPlayerPhoto(name) : null)
+          : ''),
+    // El equipo se queda más tiempo: es el remate de cada bloque.
+    weightFn: (i) => (tipos[i].k === 't' ? 1.5 : 1),
+  };
 }
 
 // Figura de un equipo: si son varios, entran abrazados.
