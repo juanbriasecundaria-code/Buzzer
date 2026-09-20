@@ -2386,6 +2386,13 @@
     font-size: 9px; font-weight: 700; color: #fff; letter-spacing: 0.05em;
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   /* ── Opciones de juego del 3er puesto (pósters para mostrar a los jugadores) ── */
+  /* Póster del juego elegido dentro de la pestaña Final / 3er puesto */
+  .fn-game-row{display:flex;align-items:center;gap:0.7rem;flex-wrap:wrap}
+  .fn-game-poster{width:64px;height:64px;flex:0 0 auto;border-radius:12px;overflow:hidden;
+    background:var(--surface2);border:1px solid var(--border2)}
+  .fn-game-poster.gold{border-color:rgba(245,200,66,0.45)}
+  .fn-game-poster.bronze{border-color:rgba(205,127,50,0.45)}
+  .fn-game-poster img{width:100%;height:100%;object-fit:cover;display:block}
   .tj-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(108px,1fr));gap:0.6rem}
   .tj-card{position:relative;border:1px solid var(--border2);border-radius:var(--radius);overflow:hidden;background:var(--surface2);transition:transform .12s ease,border-color .12s ease}
   .tj-card.pick{cursor:pointer}
@@ -2430,6 +2437,17 @@
   .cr-game-item { font-size: clamp(1.05rem, 4vw, 1.4rem); line-height: 1.3;
     display: flex; align-items: center; gap: 0.5rem; }
   .cr-game-item .cr-game-icon { font-size: 1.15em; }
+  /* Con pósters cargados, la lista se alinea a la izquierda (como el elenco):
+     miniatura + nombre, todos los nombres arrancando en la misma columna. */
+  .cr-games.with-posters { align-items: flex-start; width: min(92%, 380px); margin: 0 auto; gap: 0.7rem; }
+  .cr-games.with-posters .cr-game-item { width: 100%; gap: 0.75rem; }
+  .cr-games.with-posters .cr-game-icon { width: 38px; text-align: center; flex-shrink: 0; }
+  .cr-game-thumb { width: 38px; height: 38px; flex-shrink: 0; border-radius: 9px; overflow: hidden;
+    background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.14);
+    display: inline-flex; align-items: center; justify-content: center; }
+  .cr-game-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .cr-game-thumb.ph::after { content: '🎲'; font-size: 18px; }
+  .cr-game-label { text-align: left; }
   .cr-mote { font-size: clamp(1rem, 3.8vw, 1.3rem); margin: 0.35rem 0; }
   .cr-mote b { color: var(--gold); font-weight: 700; }
 
@@ -11487,17 +11505,106 @@ function crPosterHtml(src, tono) {
   return `<div class="cr-game-poster ${tono || ''}"><img src="${_escT(src)}" alt="" onerror="this.parentNode.remove()"></div>`;
 }
 
-// Póster a mostrar para un juego: primero el cargado a mano, y si no hay,
-// se busca por nombre entre las opciones del 3er puesto (que ya tienen imagen).
+// ── PÓSTERS DE LOS JUEGOS ───────────────────────────────────────────────────
+// Mapa nombre del juego → imagen. Se usa en la lista "Los juegos" de los
+// créditos y como respaldo para la final / el 3er puesto. Si un juego no tiene
+// póster cargado, queda como estaba: solo el ícono y el nombre.
+let GAME_POSTERS = {};
+function loadGamePosters() {
+  try { GAME_POSTERS = JSON.parse(localStorage.getItem('ndj_game_posters') || '{}') || {}; }
+  catch (e) { GAME_POSTERS = {}; }
+}
+function saveGamePosters() {
+  try { localStorage.setItem('ndj_game_posters', JSON.stringify(GAME_POSTERS)); return true; }
+  catch (e) { showToast('⚠️', 'No entró: ya no hay lugar para más pósters', false); return false; }
+}
+// Todos los juegos de la noche, en el mismo orden que salen en los créditos.
+function allGameNames() {
+  const arr = [];
+  if (typeof GAMES_F1 !== 'undefined') arr.push(...GAMES_F1);
+  arr.push('Impostor');
+  if (typeof GAMES_F2 !== 'undefined') arr.push(...GAMES_F2);
+  arr.push('¿Quién lo dijo?');
+  return [...new Set(arr)];
+}
+
+// Póster a mostrar para un juego: primero el cargado a mano para ese lugar,
+// después el del juego (mapa de arriba), y por último el de las opciones del
+// 3er puesto (que ya tienen imagen).
 function gamePosterFor(nombre, explicito) {
   if (explicito) return explicito;
-  const n = String(nombre == null ? '' : nombre).trim().toLowerCase();
+  const raw = String(nombre == null ? '' : nombre).trim();
+  const n = raw.toLowerCase();
   if (!n) return '';
   try {
+    if (GAME_POSTERS && GAME_POSTERS[raw]) return GAME_POSTERS[raw];
+    const hit = Object.keys(GAME_POSTERS || {}).find(k => k.trim().toLowerCase() === n);
+    if (hit) return GAME_POSTERS[hit];
     const ops = (typeof tercerOpciones === 'function') ? tercerOpciones() : [];
     const o = ops.find(x => x && x.img && String(x.nombre || '').trim().toLowerCase() === n);
     return o ? o.img : '';
   } catch (e) { return ''; }
+}
+
+// ── Editor de pósters de los juegos (dentro de ⚙️ Configuración de la final) ──
+let _gamePosterTarget = null;
+function gamePosterPickFile(name) {
+  _gamePosterTarget = name;
+  const inp = document.getElementById('game-poster-file');
+  if (inp) { inp.value = ''; inp.click(); }
+}
+function gamePosterFileChosen(input) {
+  const f = input && input.files && input.files[0];
+  const name = _gamePosterTarget;
+  if (!f || !name) return;
+  _tercerCompressImg(f, (dataUrl) => {
+    if (!dataUrl) { showToast('⚠️', 'No se pudo leer esa imagen', false); return; }
+    const prev = GAME_POSTERS[name];
+    GAME_POSTERS[name] = dataUrl;
+    if (!saveGamePosters()) { if (prev) GAME_POSTERS[name] = prev; else delete GAME_POSTERS[name]; }
+    renderGamePostersEditor();
+  });
+}
+function gamePosterSetUrl(name, v) {
+  const url = (v || '').trim();
+  if (url && !/^https?:\/\//i.test(url)) { showToast('⚠️', 'Pegá un link que arranque con https://', false); return; }
+  if (url) GAME_POSTERS[name] = url; else delete GAME_POSTERS[name];
+  saveGamePosters();
+  renderGamePostersEditor();
+}
+function gamePosterQuitar(name) {
+  delete GAME_POSTERS[name];
+  saveGamePosters();
+  renderGamePostersEditor();
+}
+function renderGamePostersEditor() {
+  const cont = document.getElementById('game-posters-editor');
+  if (!cont) return;
+  const cargados = allGameNames().filter(n => GAME_POSTERS[n]).length;
+  cont.innerHTML = `
+    <div class="tj-mini" style="padding:0 0 0.7rem">
+      ${cargados} de ${allGameNames().length} juegos con póster. Los que no tengan quedan con el emoji de siempre.
+    </div>
+    ${allGameNames().map((n, i) => {
+      const img = GAME_POSTERS[n] || '';
+      return `<div class="tj-row">
+        <div class="tj-row-thumb" onclick="gamePosterPickFile('${_escJs(n)}')" title="Subir póster o captura">
+          ${img ? `<img src="${_escT(img)}" alt="">` : '＋'}
+        </div>
+        <div class="tj-row-fields">
+          <div style="font-size:13.5px;font-weight:600;color:var(--text);margin-bottom:0.3rem">${_escC(n)}</div>
+          <input class="final-edit-input" style="font-size:12px" placeholder="…o pegá el link de una imagen (https://…)"
+                 value="${img && img.slice(0,5) !== 'data:' ? _escT(img) : ''}"
+                 onchange="gamePosterSetUrl('${_escJs(n)}', this.value)">
+          <div class="tj-mini">
+            ${img
+              ? `<span style="color:var(--accent)">✓ con póster</span> · <a href="javascript:void(0)" style="color:var(--muted);text-decoration:underline" onclick="gamePosterQuitar('${_escJs(n)}')">quitar</a>`
+              : 'Tocá el recuadro para subir el póster'}
+          </div>
+        </div>
+      </div>`;
+    }).join('')}
+    <input type="file" id="game-poster-file" accept="image/*" style="display:none" onchange="gamePosterFileChosen(this)">`;
 }
 
 // ============================================================
@@ -11561,6 +11668,11 @@ function saveTercerEdits() {
 // ============================================================
 let _tercerOptTarget = null;
 const _escT = (v) => String(v == null ? '' : v)
+  .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+// Para meter un nombre adentro de un onclick="...('aca')": hay juegos con
+// apóstrofe (Time's Up) que si no rompen el atributo.
+const _escJs = (v) => String(v == null ? '' : v)
+  .replace(/\\/g,'\\\\').replace(/'/g,"\\'")
   .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 
 function tercerOpciones() {
@@ -12790,8 +12902,12 @@ function renderFinal() {
     ? `<div class="final-edit-bar active"><span>✏️ Modo edición activo</span><button class="final-edit-toggle" onclick="toggleFinalEdit()">Terminar</button></div>`
     : `<div class="final-edit-bar"><span>⚙️ Podés editar el juego, formato y descripción de la final</span><button class="final-edit-toggle" onclick="toggleFinalEdit()">Editar</button></div>`;
 
+  const finalPosterSrc = fc.juego ? gamePosterFor(fc.juego, fc.poster) : '';
   const juegoDisplay = fc.juego
-    ? `<span class="match-game-badge" style="font-size:12px;padding:3px 10px;border-radius:99px;background:var(--gold-dim);color:var(--gold);font-weight:600">🏆 ${fc.juego}</span>`
+    ? `<div class="fn-game-row">
+         ${finalPosterSrc ? `<div class="fn-game-poster gold"><img src="${_escT(finalPosterSrc)}" alt="" onerror="this.parentNode.remove()"></div>` : ''}
+         <span class="match-game-badge" style="font-size:12px;padding:3px 10px;border-radius:99px;background:var(--gold-dim);color:var(--gold);font-weight:600">🏆 ${fc.juego}</span>
+       </div>`
     : `<span style="font-size:12px;color:var(--muted);font-style:italic">Sin definir — editá para agregar el juego</span>`;
 
   const formatoSection = _finalEditMode ? `
@@ -12869,8 +12985,12 @@ function renderFinal() {
        </div>`
     : '';
 
+  const tercerPosterSrc = tc.juego ? gamePosterFor(tc.juego, '') : '';
   const tercerJuegoDisplay = tc.juego
-    ? `<span class="match-game-badge" style="font-size:12px;padding:3px 10px;border-radius:99px;background:var(--accent-dim,rgba(200,240,96,.13));color:var(--accent);font-weight:600">🥉 ${tc.juego}</span>`
+    ? `<div class="fn-game-row">
+         ${tercerPosterSrc ? `<div class="fn-game-poster bronze"><img src="${_escT(tercerPosterSrc)}" alt="" onerror="this.parentNode.remove()"></div>` : ''}
+         <span class="match-game-badge" style="font-size:12px;padding:3px 10px;border-radius:99px;background:var(--accent-dim,rgba(200,240,96,.13));color:var(--accent);font-weight:600">🥉 ${tc.juego}</span>
+       </div>`
     : `<span style="font-size:12px;color:var(--muted);font-style:italic">Sin definir — editá para agregar el juego</span>`;
 
   const tercerEditBar = _tercerEditMode
@@ -13008,6 +13128,13 @@ function renderFinal() {
           ${tercerFormatoSection}
         </div>
 
+        <!-- PÓSTERS DE LOS JUEGOS (salen en la lista "Los juegos" de los créditos) -->
+        <div class="card">
+          <div style="font-size:15px;font-weight:600;margin-bottom:0.3rem"><span class="dot-indicator final"></span>Pósters de los juegos</div>
+          <div style="font-size:12px;color:var(--muted);margin-bottom:1rem;line-height:1.5">Opcional. El que tenga póster lo muestra a la izquierda del nombre en los créditos; el que no, queda con su emoji.</div>
+          <div id="game-posters-editor"></div>
+        </div>
+
         <!-- ELENCO (editable, base = fase 1) -->
         <div class="card">
           <div style="font-size:15px;font-weight:600;margin-bottom:0.3rem"><span class="dot-indicator final"></span>Elenco</div>
@@ -13110,6 +13237,8 @@ function renderFinal() {
 
   // Editor de opciones de juego del 3er puesto (solo existe en modo edición)
   renderTercerOpcionesEditor();
+  // Editor de pósters de los juegos (lista "Los juegos" de los créditos)
+  renderGamePostersEditor();
 
   // Store motes for reveal
   window._motesData = motes;
@@ -13471,9 +13600,17 @@ function rollCredits() {
   allGames.push('Impostor');
   if (typeof GAMES_F2 !== 'undefined') allGames.push(...GAMES_F2);
   allGames.push('¿Quién lo dijo?');
-  const games = [...new Set(allGames)].map(g => {
+  // Si el juego tiene póster cargado, va una miniatura a la izquierda del
+  // nombre (mismo lugar que el avatar de los jugadores). Si no, queda el emoji.
+  const listaJuegos = [...new Set(allGames)];
+  const hayPosters = listaJuegos.some(g => gamePosterFor(g, ''));
+  const games = listaJuegos.map(g => {
     const meta = gameMeta[g] || { icon: '🎲', color: 'var(--text)' };
-    return `<div class="cr-game-item" style="color:${meta.color}"><span class="cr-game-icon">${meta.icon}</span>${esc(g)}</div>`;
+    const poster = gamePosterFor(g, '');
+    const thumb = poster
+      ? `<span class="cr-game-thumb"><img src="${_escT(poster)}" alt="" onerror="this.parentNode.classList.add('ph');this.remove()"></span>`
+      : `<span class="cr-game-icon">${meta.icon}</span>`;
+    return `<div class="cr-game-item" style="color:${meta.color}">${thumb}<span class="cr-game-label">${esc(g)}</span></div>`;
   }).join('');
 
   let motesHtml = '';
@@ -13693,7 +13830,7 @@ function rollCredits() {
         <div class="cr-block">
           <div class="cr-divider"></div>
           <div class="cr-role role-games">Los juegos</div>
-          <div class="cr-games">${games}</div>
+          <div class="cr-games${hayPosters ? ' with-posters' : ''}">${games}</div>
         </div>
         ${numbersHtml}
         ${impostorHtml}
@@ -16044,6 +16181,7 @@ loadRulesConfig();
 loadComodinesConfig();
 loadFinalConfig();
 loadTercerConfig();
+loadGamePosters();
 loadSegundoConfig();
 loadCuartoConfig();
 loadElencoConfig();
