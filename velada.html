@@ -2582,38 +2582,85 @@ body.started .velada-bg-scrim { display: block; }
 }
 
 /* ============================================================
-   TRÁILER DE LA NOCHE — montaje rápido con los 12 juegos.
-   Va entre la placa y la presentación, sobre la intro de la canción.
+   TRÁILER DE LA NOCHE — montaje a pulso con los 12 juegos y la final.
+   Cortes en el beat, cartelones entre fases, negro antes del golpe final
+   y tres tipos de plano rotando para que no sea un catálogo.
    ============================================================ */
-.tr-overlay{position:fixed;inset:0;z-index:9700;background:#07070b;display:flex;
-  align-items:center;justify-content:center;overflow:hidden;opacity:0;transition:opacity .35s ease}
+.tr-overlay{position:fixed;inset:0;z-index:9700;background:#07070b;overflow:hidden;
+  opacity:0;transition:opacity .35s ease}
 .tr-overlay.on{opacity:1}
 .tr-overlay.out{opacity:0;transition:opacity .6s ease}
 /* Como capa del escenario de la ceremonia: cubre el overlay, no la pantalla */
 .tr-layer{position:absolute;inset:0;z-index:8;background:#07070b}
-.tr-shot{position:relative;width:min(54vw,620px);max-height:76vh;display:flex;
-  flex-direction:column;align-items:center;gap:min(2.4vh,22px)}
-.tr-frame{width:100%;aspect-ratio:16/10;border-radius:min(2vw,18px);overflow:hidden;
-  background:#111;border:1px solid rgba(255,255,255,.14);display:flex;align-items:center;
-  justify-content:center;box-shadow:0 30px 90px rgba(0,0,0,.7)}
-.tr-frame img{width:100%;height:100%;object-fit:cover;display:block}
-.tr-frame .tr-emoji{font-size:min(18vw,190px);line-height:1;filter:drop-shadow(0 12px 34px rgba(0,0,0,.6))}
-.tr-name{font-family:system-ui,-apple-system,sans-serif;font-weight:800;letter-spacing:-.01em;
-  color:#f0efe8;font-size:clamp(1.3rem,3.6vw,2.6rem);text-align:center;line-height:1.15}
-.tr-shot.go{animation:trShot .42s cubic-bezier(.16,.9,.3,1)}
-.tr-shot.go .tr-frame{animation:trZoom 1s ease-out}
-@keyframes trShot{from{opacity:0;transform:scale(1.06)}to{opacity:1;transform:scale(1)}}
-@keyframes trZoom{from{transform:scale(1.07)}to{transform:scale(1)}}
-.tr-flash{position:absolute;inset:0;background:#fff;opacity:0;pointer-events:none}
-.tr-flash.go{animation:trFlash .22s ease-out}
-@keyframes trFlash{0%{opacity:.5}100%{opacity:0}}
-.tr-end{text-align:center;font-family:system-ui,-apple-system,sans-serif;padding:2rem}
-.tr-end .tr-kicker{font-size:clamp(11px,1.6vw,14px);letter-spacing:.36em;text-transform:uppercase;
-  color:var(--gold,#f5c842);opacity:0;animation:trUp .6s ease .05s forwards}
-.tr-end .tr-big{margin-top:.6rem;font-size:clamp(2.4rem,9vw,6rem);font-weight:900;letter-spacing:-.03em;
-  color:#f0efe8;opacity:0;animation:trUp .7s cubic-bezier(.16,.9,.3,1) .28s forwards}
-@keyframes trUp{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:translateY(0)}}
-.tr-skip{position:absolute;right:2.5vw;bottom:2.5vh;z-index:2;border:0;background:transparent;
+
+.tr-stage{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+  overflow:hidden}
+.tr-stage.go{animation:trShot .34s cubic-bezier(.16,.9,.3,1)}
+@keyframes trShot{from{opacity:0}to{opacity:1}}
+
+/* Imagen del juego (póster o color de fase con el emoji) */
+.tr-media{position:relative;overflow:hidden;background:#0d0d12}
+.tr-media .tr-img{width:100%;height:100%;object-fit:cover;display:block}
+.tr-media.tr-noimg .tr-img{display:none}
+.tr-tint{width:100%;height:100%;display:flex;align-items:center;justify-content:center}
+.tr-tint .tr-emoji{font-size:min(22vw,230px);line-height:1;
+  filter:drop-shadow(0 14px 38px rgba(0,0,0,.55))}
+
+/* Plano 1 — a sangre: el póster ocupa todo, el nombre abajo a la izquierda */
+.tr-mode-bleed .tr-media{position:absolute;inset:0}
+.tr-mode-bleed .tr-media::after{content:'';position:absolute;inset:0;
+  background:linear-gradient(to top,rgba(7,7,11,.92) 0%,rgba(7,7,11,.35) 34%,rgba(7,7,11,0) 62%)}
+.tr-mode-bleed .tr-cap{position:absolute;left:min(6vw,64px);right:min(6vw,64px);
+  bottom:min(9vh,80px);z-index:2;text-align:left}
+.tr-stage.go .tr-media .tr-img,.tr-stage.go .tr-tint{animation:trZoom 3.2s ease-out both}
+@keyframes trZoom{from{transform:scale(1.09)}to{transform:scale(1)}}
+
+/* Plano 2 — con marco, el clásico */
+.tr-mode-frame .tr-shot{display:flex;flex-direction:column;align-items:center;
+  gap:min(2.4vh,22px);width:min(52vw,600px)}
+.tr-mode-frame .tr-frame{width:100%;aspect-ratio:16/10;border-radius:min(2vw,18px);
+  border:1px solid rgba(255,255,255,.14);box-shadow:0 30px 90px rgba(0,0,0,.7)}
+.tr-mode-frame .tr-name{text-align:center}
+
+/* Plano 3 — nombre gigante encima del póster */
+.tr-mode-over .tr-media{position:absolute;inset:0}
+.tr-mode-over .tr-media::after{content:'';position:absolute;inset:0;background:rgba(7,7,11,.5)}
+.tr-overname{position:relative;z-index:2;font-family:system-ui,-apple-system,sans-serif;
+  font-weight:900;letter-spacing:-.03em;text-transform:uppercase;color:#fff;
+  font-size:clamp(2rem,8.5vw,6rem);line-height:.95;text-align:center;padding:0 5vw;
+  text-shadow:0 10px 50px rgba(0,0,0,.8)}
+
+/* Nombre del juego (planos 1 y 2) */
+.tr-name{font-family:system-ui,-apple-system,sans-serif;font-weight:800;letter-spacing:-.015em;
+  color:#f0efe8;font-size:clamp(1.4rem,4.4vw,3.2rem);line-height:1.1;
+  text-shadow:0 6px 30px rgba(0,0,0,.6)}
+
+/* Cartelones y placa final */
+.tr-mode-title{background:#07070b}
+.tr-card-title{text-align:center;font-family:system-ui,-apple-system,sans-serif;padding:2rem}
+.tr-kicker{font-size:clamp(11px,1.7vw,15px);letter-spacing:.36em;text-transform:uppercase;
+  color:#9a9a9a;margin-bottom:.6rem}
+.tr-kicker.gold{color:var(--gold,#f5c842)}
+.tr-card-title .tr-big{font-size:clamp(2.2rem,8vw,5.4rem);font-weight:900;letter-spacing:-.03em;
+  color:#f0efe8;line-height:1}
+.tr-card-title .tr-big.tr-huge{font-size:clamp(2.6rem,11vw,7.5rem);
+  background:linear-gradient(105deg,var(--accent,#c8f060),#eaffa0 42%,var(--gold,#f5c842));
+  -webkit-background-clip:text;background-clip:text;color:transparent;-webkit-text-fill-color:transparent}
+.tr-card-title .tr-sub{margin-top:.55rem;font-size:clamp(.95rem,2.4vw,1.5rem);font-weight:600;
+  color:#9a9a9a;letter-spacing:.02em}
+.tr-stage.go .tr-card-title{animation:trUp .5s cubic-bezier(.16,.9,.3,1) both}
+@keyframes trUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+
+/* La final: marco dorado apenas insinuado */
+.tr-mode-final .tr-cap{text-align:center;left:0;right:0;bottom:min(11vh,100px)}
+.tr-mode-final .tr-name{font-size:clamp(1.8rem,6vw,4.2rem);color:var(--gold,#f5c842)}
+
+/* Flash blanco entre corte y corte */
+.tr-flash{position:absolute;inset:0;background:#fff;opacity:0;pointer-events:none;z-index:3}
+.tr-flash.go{animation:trFlash .2s ease-out}
+@keyframes trFlash{0%{opacity:.42}100%{opacity:0}}
+
+.tr-skip{position:absolute;right:2.5vw;bottom:2.5vh;z-index:4;border:0;background:transparent;
   color:#8a8a8a;font-family:system-ui,-apple-system,sans-serif;font-size:12px;letter-spacing:.04em;cursor:pointer}
 @media (prefers-reduced-motion: reduce){ .tr-overlay *{animation:none!important} }
 
@@ -4485,7 +4532,7 @@ function renderReglas() {
             <button onclick="openPlayerCeremony()" style="padding:0.4rem 0.8rem;border-radius:99px;border:1px solid var(--border2);background:transparent;color:var(--muted);font-size:11.5px;font-family:inherit;cursor:pointer">ensayar concursantes</button>
             <button onclick="openCeremony()" style="padding:0.4rem 0.8rem;border-radius:99px;border:1px solid var(--border2);background:transparent;color:var(--muted);font-size:11.5px;font-family:inherit;cursor:pointer">ensayar equipos</button>
             <button onclick="runPlacaClasificacion()" style="padding:0.4rem 0.8rem;border-radius:99px;border:1px solid var(--border2);background:transparent;color:var(--muted);font-size:11.5px;font-family:inherit;cursor:pointer">ensayar placa</button>
-            <button onclick="runTrailer(null,null,APERTURA_TRAILER_MS)" style="padding:0.4rem 0.8rem;border-radius:99px;border:1px solid var(--border2);background:transparent;color:var(--muted);font-size:11.5px;font-family:inherit;cursor:pointer">ensayar tráiler</button>
+            <button onclick="runTrailer()" style="padding:0.4rem 0.8rem;border-radius:99px;border:1px solid var(--border2);background:transparent;color:var(--muted);font-size:11.5px;font-family:inherit;cursor:pointer">ensayar tráiler</button>
           </div>
         </div>
 
@@ -14602,7 +14649,7 @@ function _runCeremony(opts) {
         applyCardTiming(((rem * 1000) - introDelayGlobal - (dividers * DIVIDER_MS)) / items.length);
       } else if (opts.trailer) {
         // Sin mp3 legible: se reparte el presupuesto fijo para llegar a 1:30.
-        const resto = APERTURA_TOTAL_MS - APERTURA_TRAILER_MS - introDelayGlobal - (dividers * DIVIDER_MS);
+        const resto = APERTURA_TOTAL_MS - trailerPlanMs() - introDelayGlobal - (dividers * DIVIDER_MS);
         applyCardTiming(resto / items.length);
       }
     }
@@ -14611,7 +14658,7 @@ function _runCeremony(opts) {
     _openingTimer = setTimeout(advance, reduce ? 200 : 1000);
   }
 
-  if (opts.trailer) runTrailer(arrancarTarjetas, overlay, APERTURA_TRAILER_MS);
+  if (opts.trailer) runTrailer(arrancarTarjetas, overlay);
   else arrancarTarjetas();
 }
 
@@ -14770,20 +14817,64 @@ function ceremonyTrackRemainingSec() {
 let _trailerTimers = [];
 function _trailerClear() { _trailerTimers.forEach(t => clearTimeout(t)); _trailerTimers = []; }
 
-// Plan de tiempos de la apertura completa (placa aparte): el tráiler y las
-// tarjetas se reparten este presupuesto. Si hay mp3, manda la duración real
-// del archivo; estos números son el respaldo para cuando no está.
-const APERTURA_TOTAL_MS   = 90000;   // 1:30 de punta a punta
-const APERTURA_TRAILER_MS = 24000;   // lo que dura el montaje de los 12 juegos
+// Plan de tiempos de la apertura completa (placa aparte). El tráiler define
+// su propio largo (ver buildTrailerPlan) y las tarjetas se reparten el resto.
+// Si hay mp3, manda la duración real del archivo; esto es el respaldo.
+const APERTURA_TOTAL_MS = 90000;   // 1:30 de punta a punta
 
-function runTrailer(done, host, totalMs) {
+// Pulso del tráiler: los cortes caen en el beat del tema, no cada tanto.
+// Seven Nation Army ronda los 124 BPM en las dos versiones.
+const TRAILER_BPM = 124;
+const TRAILER_BEAT_MS = Math.round(60000 / TRAILER_BPM);   // ≈ 484ms
+
+// Estructura del tráiler, medida en beats. No es una lista de juegos: abre,
+// presenta cada fase, acelera, frena en seco con un negro y recién ahí muestra
+// la final. Cada paso dura un múltiplo del pulso.
+function buildTrailerPlan() {
+  const f1 = (typeof GAMES_F1 !== 'undefined') ? [...GAMES_F1] : [];
+  const f2 = (typeof GAMES_F2 !== 'undefined') ? [...GAMES_F2] : [];
+  const finalJuego = (typeof FINAL_CONFIG !== 'undefined' && FINAL_CONFIG && FINAL_CONFIG.juego) ? FINAL_CONFIG.juego : '';
+  const pasos = [];
+  let variante = 0;   // rota el tipo de plano para que no sean todos iguales
+
+  pasos.push({ t: 'title', big: 'UNA NOCHE', sub: 'Doce juegos', beats: 4 });
+  if (f1.length) {
+    pasos.push({ t: 'title', big: 'FASE 1', sub: 'Todos contra todos', beats: 3, fase: 1 });
+    const ritmo = [3, 3, 3, 2, 2, 2];
+    f1.forEach((g, i) => pasos.push({ t: 'game', g, fase: 1, beats: ritmo[i] != null ? ritmo[i] : 2, plano: (variante++) % 3 }));
+  }
+  if (f2.length) {
+    pasos.push({ t: 'title', big: 'FASE 2', sub: 'En parejas', beats: 3, fase: 2 });
+    const ritmo = [3, 2, 2, 2, 2, 2];
+    f2.forEach((g, i) => pasos.push({ t: 'game', g, fase: 2, beats: ritmo[i] != null ? ritmo[i] : 2, plano: (variante++) % 3 }));
+  }
+  pasos.push({ t: 'title', big: 'UN SOLO CAMPEÓN', beats: 4 });
+  pasos.push({ t: 'black', beats: 1.5 });            // el silencio antes del golpe
+  if (finalJuego) pasos.push({ t: 'final', g: finalJuego, beats: 6 });
+  pasos.push({ t: 'black', beats: 1 });
+  pasos.push({ t: 'end', beats: 6 });                // placa "ESTA NOCHE"
+
+  const beats = pasos.reduce((s, p) => s + p.beats, 0);
+  return { pasos, beatMs: TRAILER_BEAT_MS, totalMs: Math.round(beats * TRAILER_BEAT_MS) };
+}
+function trailerPlanMs() {
+  try { return buildTrailerPlan().totalMs; } catch (e) { return 26000; }
+}
+
+// Color de respaldo de un juego sin póster: en vez de un emoji flotando sobre
+// negro (que se ve como un hueco), un fondo del color de su fase.
+function _trailerTint(fase) {
+  return fase === 2
+    ? 'linear-gradient(150deg,#123049,#0b1c2c)'
+    : 'linear-gradient(150deg,#2b3a12,#141d08)';
+}
+
+function runTrailer(done, host) {
   _trailerClear();
   const reduce = _prefersReduce();
-  const juegos = [];
-  if (typeof GAMES_F1 !== 'undefined') juegos.push(...GAMES_F1);
-  if (typeof GAMES_F2 !== 'undefined') juegos.push(...GAMES_F2);
-  const lista = [...new Set(juegos)];
-  if (!lista.length) { if (done) done(); return; }
+  const plan = buildTrailerPlan();
+  const pasos = plan.pasos;
+  if (!pasos.length) { if (done) done(); return; }
 
   // Con host, el tráiler es una capa DENTRO del escenario de la ceremonia:
   // cuando termina se desvanece y abajo ya está la presentación esperando,
@@ -14791,30 +14882,13 @@ function runTrailer(done, host, totalMs) {
   const ov = document.createElement('div');
   ov.className = host ? 'tr-overlay tr-layer' : 'tr-overlay';
   ov.innerHTML = `
-    <div class="tr-shot" id="tr-shot">
-      <div class="tr-frame" id="tr-frame"></div>
-      <div class="tr-name" id="tr-name"></div>
-    </div>
+    <div class="tr-stage" id="tr-stage"></div>
     <div class="tr-flash" id="tr-flash" aria-hidden="true"></div>
     <button class="tr-skip">saltear ▸</button>`;
   (host || document.body).appendChild(ov);
 
-  const shot  = ov.querySelector('#tr-shot');
-  const frame = ov.querySelector('#tr-frame');
-  const nameEl= ov.querySelector('#tr-name');
+  const stage = ov.querySelector('#tr-stage');
   const flash = ov.querySelector('#tr-flash');
-
-  // Reparto del presupuesto: entrada, montaje y placa final.
-  const total   = Math.max(8000, totalMs || APERTURA_TRAILER_MS);
-  const LEAD_MS = 400;
-  const END_MS  = Math.min(3200, Math.round(total * 0.14));
-  const monta   = Math.max(2000, total - LEAD_MS - END_MS);
-  const media   = monta / lista.length;
-  // El montaje acelera: los primeros planos respiran, los últimos se atropellan.
-  const durDe = (i) => {
-    const t = lista.length > 1 ? (i / (lista.length - 1)) : 0;
-    return Math.round(media * (1.22 + (0.78 - 1.22) * t));
-  };
 
   let terminado = false;
   const cerrar = () => {
@@ -14826,46 +14900,82 @@ function runTrailer(done, host, totalMs) {
   };
   ov.addEventListener('click', cerrar);
 
+  // Imagen del juego: póster si tiene, si no el emoji sobre el color de la fase.
+  function medioHtml(nombre, fase) {
+    const poster = (typeof gamePosterFor === 'function') ? gamePosterFor(nombre, '') : '';
+    const icono = (typeof gameIconFor === 'function') ? gameIconFor(nombre) : '🎲';
+    if (poster) return `<img class="tr-img" src="${_escT(poster)}" alt="" onerror="this.closest('.tr-media').classList.add('tr-noimg')">`;
+    return `<div class="tr-tint" style="background:${_trailerTint(fase)}"><span class="tr-emoji">${icono}</span></div>`;
+  }
+
+  function pintar(p) {
+    stage.className = 'tr-stage';
+    if (p.t === 'black') { stage.innerHTML = ''; return; }
+
+    if (p.t === 'title') {
+      stage.classList.add('tr-mode-title');
+      stage.innerHTML = `<div class="tr-card-title">
+          <div class="tr-big">${_escC(p.big)}</div>
+          ${p.sub ? `<div class="tr-sub">${_escC(p.sub)}</div>` : ''}
+        </div>`;
+      return;
+    }
+
+    if (p.t === 'end') {
+      stage.classList.add('tr-mode-title');
+      stage.innerHTML = `<div class="tr-card-title">
+          <div class="tr-kicker">La Velada del Año</div>
+          <div class="tr-big tr-huge">ESTA NOCHE</div>
+        </div>`;
+      return;
+    }
+
+    if (p.t === 'final') {
+      stage.classList.add('tr-mode-bleed', 'tr-mode-final');
+      stage.innerHTML = `<div class="tr-media">${medioHtml(p.g, 0)}</div>
+        <div class="tr-cap">
+          <div class="tr-kicker gold">La gran final</div>
+          <div class="tr-name">${_escC(p.g)}</div>
+        </div>`;
+      return;
+    }
+
+    // Juego: tres tipos de plano rotando (a sangre / con marco / nombre encima)
+    if (p.plano === 0) {
+      stage.classList.add('tr-mode-bleed');
+      stage.innerHTML = `<div class="tr-media">${medioHtml(p.g, p.fase)}</div>
+        <div class="tr-cap"><div class="tr-name">${_escC(p.g)}</div></div>`;
+    } else if (p.plano === 1) {
+      stage.classList.add('tr-mode-frame');
+      stage.innerHTML = `<div class="tr-shot">
+          <div class="tr-frame tr-media">${medioHtml(p.g, p.fase)}</div>
+          <div class="tr-name">${_escC(p.g)}</div>
+        </div>`;
+    } else {
+      stage.classList.add('tr-mode-over');
+      stage.innerHTML = `<div class="tr-media">${medioHtml(p.g, p.fase)}</div>
+        <div class="tr-overname">${_escC(p.g)}</div>`;
+    }
+  }
+
   let i = 0;
   function corte() {
     if (terminado) return;
-    if (i >= lista.length) { placaFinal(); return; }
-    const g = lista[i];
-    const poster = (typeof gamePosterFor === 'function') ? gamePosterFor(g, '') : '';
-    const icono = gameIconFor(g);
-    frame.innerHTML = '';
-    if (poster) {
-      const im = document.createElement('img');
-      im.alt = '';
-      // Si el póster no carga (link roto), cae al emoji sin cortar el montaje.
-      im.onerror = () => { frame.innerHTML = `<div class="tr-emoji">${icono}</div>`; };
-      im.src = poster;
-      frame.appendChild(im);
-    } else {
-      frame.innerHTML = `<div class="tr-emoji">${icono}</div>`;
+    if (i >= pasos.length) { cerrar(); return; }
+    const p = pasos[i];
+    pintar(p);
+    stage.classList.remove('go'); void stage.offsetWidth; stage.classList.add('go');
+    if (p.t !== 'black' && !reduce) {
+      flash.classList.remove('go'); void flash.offsetWidth; flash.classList.add('go');
     }
-    nameEl.textContent = g;
-    shot.classList.remove('go'); void shot.offsetWidth; shot.classList.add('go');
-    flash.classList.remove('go'); void flash.offsetWidth; flash.classList.add('go');
-    const d = durDe(i);
+    const d = Math.round(p.beats * plan.beatMs);
     i++;
-    _trailerTimers.push(setTimeout(corte, reduce ? 260 : d));
-  }
-
-  function placaFinal() {
-    shot.remove();
-    flash.classList.remove('go'); void flash.offsetWidth; flash.classList.add('go');
-    const end = document.createElement('div');
-    end.className = 'tr-end';
-    end.innerHTML = `<div class="tr-kicker">Doce juegos · Una sola noche</div>
-                     <div class="tr-big">ESTA NOCHE</div>`;
-    ov.insertBefore(end, ov.firstChild);
-    _trailerTimers.push(setTimeout(cerrar, reduce ? 500 : END_MS));
+    _trailerTimers.push(setTimeout(corte, reduce ? 220 : d));
   }
 
   requestAnimationFrame(() => {
     ov.classList.add('on');
-    _trailerTimers.push(setTimeout(corte, reduce ? 100 : LEAD_MS));
+    _trailerTimers.push(setTimeout(corte, reduce ? 80 : 240));
   });
 }
 
