@@ -2418,6 +2418,14 @@
   .cr-podio-foto .cr-photo-frame { width: min(52vw, 230px); padding: 9px 9px 32px 9px; transform: rotate(-1deg); margin: 0; }
   .cr-podio-foto:nth-child(2) .cr-photo-frame { transform: rotate(1deg); }
   .cr-podio-foto .cr-photo-cap { font-size: 13px; bottom: 8px; }
+  /* Póster del juego de la final / del 3er puesto en los créditos */
+  .cr-game-poster { width: min(48vw, 220px); margin: 0.7rem auto 0.6rem; border-radius: 14px;
+    overflow: hidden; background: #111; border: 1px solid rgba(255,255,255,0.14);
+    box-shadow: 0 14px 40px rgba(0,0,0,0.6); }
+  .cr-game-poster.gold { border-color: rgba(245,200,66,0.45); box-shadow: 0 14px 44px rgba(245,200,66,0.18), 0 14px 40px rgba(0,0,0,0.6); }
+  .cr-game-poster.bronze { border-color: rgba(205,127,50,0.45); box-shadow: 0 14px 44px rgba(205,127,50,0.18), 0 14px 40px rgba(0,0,0,0.6); }
+  .cr-game-poster img { display: block; width: 100%; height: auto; }
+
   .cr-games { display: flex; flex-direction: column; align-items: center; gap: 0.55rem; }
   .cr-game-item { font-size: clamp(1.05rem, 4vw, 1.4rem); line-height: 1.3;
     display: flex; align-items: center; gap: 0.5rem; }
@@ -11353,6 +11361,7 @@ const FINAL_CONFIG_DEFAULT = {
   nota: 'El formato de la final lo define el organizador. Sugerencias: trivia con buzzer, Kahoot, Carrera de Mentes grupal o desafío especial.',
   ganador: '',
   companero: '',
+  poster: '',   // póster/captura del juego de la final (aparece en los créditos)
 };
 let FINAL_CONFIG = null;
 let _finalEditMode = false;
@@ -11411,6 +11420,84 @@ function saveFinalEdits() {
   _finalEditMode = false;
   showToast('✓', 'Final guardada', false);
   renderFinal();
+}
+
+// ── PÓSTER DEL JUEGO DE LA FINAL ──────────────────────────────────────────
+// El 3er puesto ya elige entre juegos con póster (TERCER_CONFIG.opciones).
+// La final se define a dedo, así que le damos su propio póster: se sube acá
+// y sale en los créditos junto al nombre del juego.
+function finalPosterRowHtml() {
+  const p = (FINAL_CONFIG && FINAL_CONFIG.poster) || '';
+  return `
+    <div class="tj-row-thumb" onclick="finalPosterPickFile()" title="Subir póster o captura">
+      ${p ? `<img src="${_escT(p)}" alt="">` : '＋'}
+    </div>
+    <div class="tj-row-fields">
+      <input class="final-edit-input" style="font-size:12px" placeholder="…o pegá el link de una imagen (https://…)"
+             value="${p && p.slice(0,5) !== 'data:' ? _escT(p) : ''}"
+             onchange="finalPosterSetUrl(this.value)">
+      <div class="tj-mini">
+        ${p
+          ? `<span style="color:var(--accent)">✓ con póster</span> · <a href="javascript:void(0)" style="color:var(--muted);text-decoration:underline" onclick="finalPosterQuitar()">quitar</a>`
+          : 'Tocá el recuadro para subir el póster. Sale en los créditos junto al nombre.'}
+      </div>
+    </div>`;
+}
+// Refresca solo la fila del póster: así no se pierde lo que estés tipeando
+// en los otros campos del formulario de la final.
+function _finalPosterRefreshRow() {
+  const row = document.getElementById('final-poster-row');
+  if (row) row.innerHTML = finalPosterRowHtml();
+}
+function finalPosterPickFile() {
+  const inp = document.getElementById('final-poster-file');
+  if (inp) { inp.value = ''; inp.click(); }
+}
+function finalPosterFileChosen(input) {
+  const f = input && input.files && input.files[0];
+  if (!f) return;
+  _tercerCompressImg(f, (dataUrl) => {
+    if (!dataUrl) { showToast('⚠️', 'No se pudo leer esa imagen', false); return; }
+    const prev = FINAL_CONFIG.poster;
+    FINAL_CONFIG.poster = dataUrl;
+    try { saveFinalConfig(); } catch (e) {
+      FINAL_CONFIG.poster = prev;
+      showToast('⚠️', 'No entró: la imagen es muy pesada', false);
+    }
+    _finalPosterRefreshRow();
+  });
+}
+function finalPosterSetUrl(v) {
+  const url = (v || '').trim();
+  if (url && !/^https?:\/\//i.test(url)) { showToast('⚠️', 'Pegá un link que arranque con https://', false); return; }
+  FINAL_CONFIG.poster = url;
+  saveFinalConfig();
+  _finalPosterRefreshRow();
+}
+function finalPosterQuitar() {
+  FINAL_CONFIG.poster = '';
+  saveFinalConfig();
+  _finalPosterRefreshRow();
+}
+
+// Marco del póster para los créditos. Si no hay imagen no dibuja nada, así
+// los créditos quedan exactamente como antes (solo el nombre del juego).
+function crPosterHtml(src, tono) {
+  if (!src) return '';
+  return `<div class="cr-game-poster ${tono || ''}"><img src="${_escT(src)}" alt="" onerror="this.parentNode.remove()"></div>`;
+}
+
+// Póster a mostrar para un juego: primero el cargado a mano, y si no hay,
+// se busca por nombre entre las opciones del 3er puesto (que ya tienen imagen).
+function gamePosterFor(nombre, explicito) {
+  if (explicito) return explicito;
+  const n = String(nombre == null ? '' : nombre).trim().toLowerCase();
+  if (!n) return '';
+  try {
+    const ops = (typeof tercerOpciones === 'function') ? tercerOpciones() : [];
+    const o = ops.find(x => x && x.img && String(x.nombre || '').trim().toLowerCase() === n);
+    return o ? o.img : '';
+  } catch (e) { return ''; }
 }
 
 // ============================================================
@@ -12717,6 +12804,11 @@ function renderFinal() {
       <input class="final-edit-input" id="final-edit-juego" placeholder="ej: Carrera de Mentes, Kahoot, Trivia…" value="${(fc.juego||'').replace(/"/g,'&quot;')}">
     </div>
     <div class="final-edit-field">
+      <label class="final-edit-label">Póster del juego de la final</label>
+      <div class="tj-row" id="final-poster-row" style="border:0;padding:0">${finalPosterRowHtml()}</div>
+      <input type="file" id="final-poster-file" accept="image/*" style="display:none" onchange="finalPosterFileChosen(this)">
+    </div>
+    <div class="final-edit-field">
       <label class="final-edit-label">Formato de la final</label>
       <textarea class="final-edit-textarea" id="final-edit-formato">${fc.formato}</textarea>
     </div>
@@ -13445,7 +13537,7 @@ function rollCredits() {
 
   const finalGame = (FINAL_CONFIG && (FINAL_CONFIG.juego || FINAL_CONFIG.ganador))
     ? `<div class="cr-block"><div class="cr-divider"></div>`
-      + (FINAL_CONFIG.juego ? `<div class="cr-role role-final">La gran final</div><div class="cr-name" style="color:var(--gold)">🏆 ${esc(FINAL_CONFIG.juego)}</div>` : '')
+      + (FINAL_CONFIG.juego ? `<div class="cr-role role-final">La gran final</div>${crPosterHtml(gamePosterFor(FINAL_CONFIG.juego, FINAL_CONFIG.poster), 'gold')}<div class="cr-name" style="color:var(--gold)">🏆 ${esc(FINAL_CONFIG.juego)}</div>` : '')
       + (FINAL_CONFIG.ganador ? `<div class="cr-role role-final" style="margin-top:0.6rem">Campeón de la gran final</div><div class="cr-champ-av">${playerAvatarHtml(FINAL_CONFIG.ganador, 0)}</div><div class="cr-name champ" style="color:var(--gold)">🏆 ${esc(FINAL_CONFIG.ganador)}</div>` : '')
       + `</div>`
     : '';
@@ -13456,7 +13548,7 @@ function rollCredits() {
 
   const tercerGame = (typeof TERCER_CONFIG !== 'undefined' && TERCER_CONFIG && (TERCER_CONFIG.juego || TERCER_CONFIG.ganador))
     ? `<div class="cr-block">`
-      + (TERCER_CONFIG.juego ? `<div class="cr-role role-final">Disputa por el 3er puesto</div><div class="cr-name" style="color:#cd7f32">🥉 ${esc(TERCER_CONFIG.juego)}</div>` : '')
+      + (TERCER_CONFIG.juego ? `<div class="cr-role role-final">Disputa por el 3er puesto</div>${crPosterHtml(gamePosterFor(TERCER_CONFIG.juego, ''), 'bronze')}<div class="cr-name" style="color:#cd7f32">🥉 ${esc(TERCER_CONFIG.juego)}</div>` : '')
       + (TERCER_CONFIG.ganador ? `<div class="cr-role role-final" style="margin-top:0.6rem">Ganador del 3er puesto</div><div class="cr-champ-av">${playerAvatarHtml(TERCER_CONFIG.ganador, 0)}</div><div class="cr-name champ" style="color:#cd7f32">🥉 ${esc(TERCER_CONFIG.ganador)}</div>` : '')
       + `</div>`
     : '';
