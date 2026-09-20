@@ -2582,6 +2582,87 @@ body.started .velada-bg-scrim { display: block; }
 }
 
 /* ============================================================
+   PLACA DE CLASIFICACIÓN — la que abre la noche, estilo INCAA.
+   Overlay propio (z-index arriba de las ceremonias) que se monta,
+   corre solo y se desmonta llamando a su callback.
+   ============================================================ */
+.pc-overlay{position:fixed;inset:0;z-index:9700;background:#000;display:flex;
+  align-items:center;justify-content:center;overflow:hidden;opacity:0;
+  transition:opacity .45s ease;font-family:Georgia,'Times New Roman',serif}
+.pc-overlay.on{opacity:1}
+.pc-overlay.out{opacity:0;transition:opacity .6s ease}
+/* Fondo gris claro que "prende" después del negro */
+.pc-bg{position:absolute;inset:0;background:#f0f0f0;opacity:0;transition:opacity .7s ease}
+.pc-overlay.lit .pc-bg{opacity:1}
+/* Barras grises que cruzan el fondo (el detalle que le da movimiento) */
+.pc-bars{position:absolute;inset:0;overflow:hidden}
+.pc-bars i{position:absolute;height:1.7vmin;background:#dcdcdc;border-radius:1px;opacity:0;
+  transform:translateX(-120%)}
+.pc-overlay.lit .pc-bars i{animation:pcBar 1.5s cubic-bezier(.16,.9,.3,1) forwards}
+.pc-bars i:nth-child(1){top:36%;left:-30%;width:34%;animation-delay:.05s}
+.pc-bars i:nth-child(2){top:62%;left:-20%;width:58%;height:2.4vmin;animation-delay:.18s}
+.pc-bars i:nth-child(3){top:79%;right:-30%;left:auto;width:40%;height:2vmin;animation-delay:.3s;transform:translateX(120%)}
+.pc-bars i:nth-child(4){top:24%;right:-24%;left:auto;width:26%;animation-delay:.42s;transform:translateX(120%)}
+@keyframes pcBar{to{opacity:1;transform:translateX(0)}}
+/* Tarjeta central */
+.pc-card{position:relative;width:min(68vw,760px);opacity:0;transform:scale(.97);
+  transition:opacity .5s ease,transform .5s cubic-bezier(.16,.9,.3,1)}
+.pc-overlay.lit .pc-card{opacity:1;transform:scale(1)}
+.pc-main{display:flex;align-items:stretch;background:#e5e5e5;overflow:hidden;position:relative}
+.pc-g{flex:0 0 22%;background:#92be1e;display:flex;align-items:center;justify-content:center;
+  overflow:hidden;position:relative}
+.pc-g span{color:#fff;font-size:min(13vw,140px);line-height:.85;font-weight:400;
+  transform:scale(2.4);opacity:.35;transition:transform .9s cubic-bezier(.16,.9,.3,1),opacity .9s ease}
+.pc-overlay.lit .pc-g span{transform:scale(1);opacity:1}
+.pc-label{flex:1;display:flex;flex-direction:column;justify-content:center;
+  padding:min(4vw,42px) min(3vw,32px);gap:.1em;overflow:hidden}
+.pc-label b{display:block;color:#92be1e;font-family:inherit;font-weight:700;letter-spacing:.01em;
+  font-size:min(4.6vw,50px);line-height:1.08;opacity:0;transform:translateX(38%)}
+.pc-overlay.lit .pc-label b{animation:pcSlide .75s cubic-bezier(.16,.9,.3,1) forwards}
+.pc-label b:nth-child(1){animation-delay:.28s}
+.pc-label b:nth-child(2){animation-delay:.44s;align-self:flex-end}
+@keyframes pcSlide{to{opacity:1;transform:translateX(0)}}
+/* Barra azul con la bajada + claqueta */
+.pc-bar{background:#2a2e44;display:flex;align-items:center;justify-content:space-between;
+  padding:min(1.6vw,17px) min(2.4vw,26px);overflow:hidden}
+.pc-bar em{font-style:normal;color:#fff;font-family:system-ui,-apple-system,sans-serif;
+  font-weight:600;font-size:min(2.1vw,23px);letter-spacing:.01em;
+  clip-path:inset(0 100% 0 0)}
+.pc-overlay.lit .pc-bar em{animation:pcWipe .9s cubic-bezier(.2,.8,.3,1) .95s forwards}
+@keyframes pcWipe{to{clip-path:inset(0 0 0 0)}}
+.pc-bar i{font-style:normal;font-size:min(2.4vw,26px);opacity:0;transition:opacity .5s ease 1.4s}
+.pc-overlay.lit .pc-bar i{opacity:1}
+/* Brillo diagonal que barre la tarjeta */
+.pc-shine{position:absolute;inset:0;pointer-events:none;overflow:hidden}
+.pc-shine::after{content:'';position:absolute;top:-60%;left:-60%;width:40%;height:220%;
+  background:linear-gradient(90deg,rgba(255,255,255,0) 0%,rgba(255,255,255,.55) 50%,rgba(255,255,255,0) 100%);
+  transform:rotate(18deg) translateX(-260%)}
+.pc-overlay.lit .pc-shine::after{animation:pcShine 1.1s ease-in-out 1.75s}
+@keyframes pcShine{to{transform:rotate(18deg) translateX(560%)}}
+/* Franja inferior con el texto legal y el sello */
+.pc-foot{position:absolute;left:0;right:0;bottom:12%;background:#2a2e49;
+  display:flex;align-items:center;justify-content:space-between;gap:2vw;
+  padding:min(2.2vw,24px) min(6vw,70px);opacity:0;transform:translateY(40%)}
+.pc-overlay.lit .pc-foot{animation:pcFoot .8s cubic-bezier(.16,.9,.3,1) 1.15s forwards}
+@keyframes pcFoot{to{opacity:1;transform:translateY(0)}}
+.pc-foot p{margin:0;color:#fff;font-family:system-ui,-apple-system,sans-serif;
+  font-size:min(1.65vw,18px);line-height:1.55;max-width:70%}
+.pc-seal{text-align:center;color:#fff;opacity:0;transition:opacity .7s ease 2.1s;flex:0 0 auto}
+.pc-overlay.lit .pc-seal{opacity:1}
+.pc-seal b{display:block;font-size:min(2.1vw,23px);letter-spacing:.14em;font-weight:400}
+.pc-seal small{display:block;font-size:min(.85vw,10px);letter-spacing:.06em;opacity:.75;
+  font-family:system-ui,-apple-system,sans-serif;line-height:1.35;margin-top:.25em}
+.pc-skip{position:absolute;right:2.5vw;bottom:2.5vh;z-index:2;border:0;background:transparent;
+  color:#9a9a9a;font-family:system-ui,-apple-system,sans-serif;font-size:12px;letter-spacing:.04em;
+  cursor:pointer;opacity:0;transition:opacity .4s ease 2.6s}
+.pc-overlay.lit .pc-skip{opacity:.65}
+.pc-skip:hover{opacity:1}
+@media (prefers-reduced-motion: reduce){
+  .pc-overlay *,.pc-overlay *::after{animation:none!important;transition:none!important;
+    opacity:1!important;transform:none!important;clip-path:none!important}
+}
+
+/* ============================================================
    CEREMONIAS — apertura (presentación de equipos) + podio final
    Comparten el overlay .ceremony. z-index 9500 (debajo del confetti
    9999, para que el confetti se vea por encima).
@@ -4342,14 +4423,14 @@ function renderReglas() {
         <span class="rule-chevron">▾</span>
       </summary>
       <div class="control-panel-body">
-        <div class="card" style="text-align:center;border-color:rgba(96,180,240,0.3)">
-          <div style="font-size:13px;color:var(--muted);margin-bottom:0.9rem">Presentá uno por uno a los concursantes de la Fase 1.</div>
-          <button class="final-end-btn" style="border-color:rgba(96,180,240,0.6);color:var(--info)" onclick="openPlayerCeremony()">🎤 Presentar a los concursantes</button>
-        </div>
-
         <div class="card" style="text-align:center;border-color:rgba(245,200,66,0.3)">
-          <div style="font-size:13px;color:var(--muted);margin-bottom:0.9rem">Antes de arrancar, presentá a los equipos en pantalla grande.</div>
-          <button class="final-end-btn" onclick="openCeremony()">🎤 Presentar a los equipos</button>
+          <div style="font-size:13px;color:var(--muted);margin-bottom:0.9rem">La apertura completa, de corrido: placa de clasificación, los concursantes de la Fase 1 y después los equipos de la Fase 2.</div>
+          <button class="final-end-btn" onclick="openVelada()">🎬 Abrir la velada</button>
+          <div style="margin-top:0.9rem;display:flex;gap:0.5rem;justify-content:center;flex-wrap:wrap">
+            <button onclick="openPlayerCeremony()" style="padding:0.4rem 0.8rem;border-radius:99px;border:1px solid var(--border2);background:transparent;color:var(--muted);font-size:11.5px;font-family:inherit;cursor:pointer">ensayar concursantes</button>
+            <button onclick="openCeremony()" style="padding:0.4rem 0.8rem;border-radius:99px;border:1px solid var(--border2);background:transparent;color:var(--muted);font-size:11.5px;font-family:inherit;cursor:pointer">ensayar equipos</button>
+            <button onclick="runPlacaClasificacion()" style="padding:0.4rem 0.8rem;border-radius:99px;border:1px solid var(--border2);background:transparent;color:var(--muted);font-size:11.5px;font-family:inherit;cursor:pointer">ensayar placa</button>
+          </div>
         </div>
 
         <div style="display:flex;gap:0.6rem;flex-wrap:wrap">
@@ -14153,7 +14234,7 @@ function _driftBitsHtml() {
   return out;
 }
 
-function _runCeremony({ items, title, eyebrow, labelFn, colorFn, figFn, finishTitle, finishBtn, confetti, music, sfx }) {
+function _runCeremony({ items, title, eyebrow, labelFn, colorFn, figFn, finishTitle, finishBtn, confetti, music, sfx, onFinish }) {
   const overlay = document.getElementById('opening');
   if (!overlay || !items.length) return;
   if (typeof forceHideSplash === 'function') forceHideSplash();
@@ -14362,7 +14443,13 @@ function _runCeremony({ items, title, eyebrow, labelFn, colorFn, figFn, finishTi
       + '<button class="op-cta" id="op-cta-btn">' + finishBtn + '</button>';
     stage.appendChild(outro);
     const ctaBtn = stage.querySelector('#op-cta-btn');
-    if (ctaBtn) ctaBtn.onclick = function(e) { e.stopPropagation(); closeCeremony('opening'); };
+    if (ctaBtn) ctaBtn.onclick = function(e) {
+      e.stopPropagation();
+      // Con onFinish, el botón encadena el acto siguiente en vez de cerrar
+      // (apertura unificada: concursantes → equipos).
+      if (typeof onFinish === 'function') { onFinish(); return; }
+      closeCeremony('opening');
+    };
     prog.classList.add('done');
     if (!reduce && useSfx) cerSndFinale();
     if (!reduce && confetti && typeof launchConfetti === 'function') launchConfetti('opening');
@@ -14385,6 +14472,139 @@ function _runCeremony({ items, title, eyebrow, labelFn, colorFn, figFn, finishTi
   };
 
   _openingTimer = setTimeout(advance, reduce ? 200 : 1000);
+}
+
+// ============================================================
+// PLACA DE CLASIFICACIÓN — lo primero que se ve de la noche.
+// Calca la placa del INCAA: barras que cruzan, el bloque verde con la G,
+// "AUDIENCIA GENERAL" entrando desde la derecha, la bajada que se revela,
+// el brillo que barre y el sello que aparece último. Corre sola y llama a
+// done(). Se puede saltear con un click.
+// ============================================================
+const PLACA_TEXTO = {
+  letra: 'G',
+  linea1: 'AUDIENCIA',
+  linea2: 'GENERAL',
+  bajada: 'Todas las edades permitidas',
+  legal: 'Esta velada ha sido calificada por el Instituto Nacional de Juegos y Artes Competitivas conforme ley 23.052 y decretos reglamentarios.',
+  sello: 'INJAC',
+  selloSub: 'INSTITUTO NACIONAL DE<br>JUEGOS Y ARTES COMPETITIVAS',
+};
+const PLACA_HOLD_MS = 6200;   // cuánto queda en pantalla una vez armada
+
+let _placaEl = null, _placaTimers = [];
+function _placaClear() {
+  _placaTimers.forEach(t => clearTimeout(t));
+  _placaTimers = [];
+}
+function runPlacaClasificacion(done) {
+  _placaClear();
+  if (_placaEl) { _placaEl.remove(); _placaEl = null; }
+  const reduce = _prefersReduce();
+  const ov = document.createElement('div');
+  ov.className = 'pc-overlay';
+  ov.innerHTML = `
+    <div class="pc-bg"></div>
+    <div class="pc-bars" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
+    <div class="pc-card">
+      <div class="pc-main">
+        <div class="pc-g"><span>${_escC(PLACA_TEXTO.letra)}</span></div>
+        <div class="pc-label"><b>${_escC(PLACA_TEXTO.linea1)}</b><b>${_escC(PLACA_TEXTO.linea2)}</b></div>
+        <div class="pc-shine" aria-hidden="true"></div>
+      </div>
+      <div class="pc-bar"><em>${_escC(PLACA_TEXTO.bajada)}</em><i>🎬</i></div>
+    </div>
+    <div class="pc-foot">
+      <p>${_escC(PLACA_TEXTO.legal)}</p>
+      <div class="pc-seal"><b>${_escC(PLACA_TEXTO.sello)}</b><small>${PLACA_TEXTO.selloSub}</small></div>
+    </div>
+    <button class="pc-skip">saltear ▸</button>`;
+  document.body.appendChild(ov);
+  _placaEl = ov;
+
+  let cerrada = false;
+  const cerrar = () => {
+    if (cerrada) return;
+    cerrada = true;
+    _placaClear();
+    ov.classList.add('out');
+    ov.classList.remove('on');
+    setTimeout(() => {
+      ov.remove();
+      if (_placaEl === ov) _placaEl = null;
+      if (typeof done === 'function') done();
+    }, reduce ? 0 : 620);
+  };
+  ov.addEventListener('click', cerrar);
+  ov.querySelector('.pc-skip').addEventListener('click', (e) => { e.stopPropagation(); cerrar(); });
+
+  // negro → gris → la placa se arma sola → se va
+  requestAnimationFrame(() => {
+    ov.classList.add('on');
+    _placaTimers.push(setTimeout(() => ov.classList.add('lit'), reduce ? 0 : 420));
+    _placaTimers.push(setTimeout(cerrar, reduce ? 1200 : PLACA_HOLD_MS));
+  });
+}
+
+// Cartel corto entre actos (el que anuncia a los equipos). Mismo overlay,
+// versión mínima: sobre negro, sin música, para que el cambio de canción
+// caiga sobre un corte y no en el aire.
+function runPlacaActo(eyebrow, titulo, done) {
+  _placaClear();
+  const reduce = _prefersReduce();
+  const ov = document.createElement('div');
+  ov.className = 'pc-overlay on';
+  ov.style.background = '#07070b';
+  ov.innerHTML = `
+    <div style="text-align:center;font-family:system-ui,-apple-system,sans-serif;padding:2rem">
+      <div style="font-size:clamp(11px,1.6vw,14px);letter-spacing:.34em;text-transform:uppercase;
+                  color:var(--gold,#f5c842);opacity:0;animation:pcFoot .6s ease .1s forwards">${_escC(eyebrow)}</div>
+      <div style="margin-top:.7rem;font-size:clamp(2rem,7vw,4.6rem);font-weight:800;letter-spacing:-.02em;
+                  color:var(--text,#f0efe8);opacity:0;animation:pcFoot .7s cubic-bezier(.16,.9,.3,1) .35s forwards">${_escC(titulo)}</div>
+    </div>`;
+  document.body.appendChild(ov);
+  _placaEl = ov;
+  const cerrar = () => {
+    _placaClear();
+    ov.classList.add('out');
+    setTimeout(() => {
+      ov.remove();
+      if (_placaEl === ov) _placaEl = null;
+      if (typeof done === 'function') done();
+    }, reduce ? 0 : 620);
+  };
+  ov.addEventListener('click', cerrar);
+  _placaTimers.push(setTimeout(cerrar, reduce ? 600 : 2100));
+}
+
+// ── APERTURA UNIFICADA: placa → concursantes → equipos ──
+// Un solo botón para toda la apertura. Cada acto mantiene su propia canción
+// (Seven Nation Army / Song 2) y el corte entre temas queda tapado por el
+// cartel de acto, así el cambio suena a quiebre y no a error.
+function openVelada() {
+  runPlacaClasificacion(() => {
+    if (!PLAYERS.length) { openCeremony(); return; }
+    _runCeremony({
+      items: PLAYERS,
+      title: 'Los concursantes',
+      eyebrow: 'Fase 1 · Clasificación individual',
+      labelFn: (i, total) => `Concursante ${i + 1} de ${total}`,
+      colorFn: (i) => entityColor(PLAYERS[i], i),
+      figFn: (name, color, i) => {
+        const photo = (typeof getPlayerPhoto === 'function') ? getPlayerPhoto(name) : null;
+        return (typeof miiFigureSVG === 'function') ? miiFigureSVG(color, 230, i % 2 ? 'side' : 'victory', photo) : '';
+      },
+      finishTitle: 'Y ahora…<br>los equipos',
+      finishBtn: 'Seguir ▶',
+      confetti: false,   // el confeti se guarda para el cierre del segundo acto
+      music: CEREMONY_MUSIC.players,
+      sfx: false,
+      onFinish: () => {
+        if (!TEAMS.length) { closeCeremony('opening'); return; }
+        runPlacaActo('Fase 2 · Clasificación grupal', 'Los equipos', () => openCeremony());
+      },
+    });
+  });
 }
 
 // ── APERTURA: cada equipo entra con su color, uno por uno ──
