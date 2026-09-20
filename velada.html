@@ -2588,7 +2588,9 @@ body.started .velada-bg-scrim { display: block; }
 .tr-overlay{position:fixed;inset:0;z-index:9700;background:#07070b;display:flex;
   align-items:center;justify-content:center;overflow:hidden;opacity:0;transition:opacity .35s ease}
 .tr-overlay.on{opacity:1}
-.tr-overlay.out{opacity:0;transition:opacity .5s ease}
+.tr-overlay.out{opacity:0;transition:opacity .6s ease}
+/* Como capa del escenario de la ceremonia: cubre el overlay, no la pantalla */
+.tr-layer{position:absolute;inset:0;z-index:8;background:#07070b}
 .tr-shot{position:relative;width:min(54vw,620px);max-height:76vh;display:flex;
   flex-direction:column;align-items:center;gap:min(2.4vh,22px)}
 .tr-frame{width:100%;aspect-ratio:16/10;border-radius:min(2vw,18px);overflow:hidden;
@@ -4483,7 +4485,7 @@ function renderReglas() {
             <button onclick="openPlayerCeremony()" style="padding:0.4rem 0.8rem;border-radius:99px;border:1px solid var(--border2);background:transparent;color:var(--muted);font-size:11.5px;font-family:inherit;cursor:pointer">ensayar concursantes</button>
             <button onclick="openCeremony()" style="padding:0.4rem 0.8rem;border-radius:99px;border:1px solid var(--border2);background:transparent;color:var(--muted);font-size:11.5px;font-family:inherit;cursor:pointer">ensayar equipos</button>
             <button onclick="runPlacaClasificacion()" style="padding:0.4rem 0.8rem;border-radius:99px;border:1px solid var(--border2);background:transparent;color:var(--muted);font-size:11.5px;font-family:inherit;cursor:pointer">ensayar placa</button>
-            <button onclick="runTrailer()" style="padding:0.4rem 0.8rem;border-radius:99px;border:1px solid var(--border2);background:transparent;color:var(--muted);font-size:11.5px;font-family:inherit;cursor:pointer">ensayar tráiler</button>
+            <button onclick="runTrailer(null,null,APERTURA_TRAILER_MS)" style="padding:0.4rem 0.8rem;border-radius:99px;border:1px solid var(--border2);background:transparent;color:var(--muted);font-size:11.5px;font-family:inherit;cursor:pointer">ensayar tráiler</button>
           </div>
         </div>
 
@@ -14342,13 +14344,15 @@ function _runCeremony(opts) {
   }
   applyCardTiming(DEFAULT_CARD_MS); // ritmo clásico hasta que (si hay música) sepamos la duración real
 
+  const introDelayGlobal = reduce ? 200 : 1000;
   if (music) {
-    const introDelayMs = reduce ? 200 : 1000; // el mismo delay del primer "advance" de más abajo
+    const introDelayMs = introDelayGlobal; // el mismo delay del primer "advance" de más abajo
     if (musicAlreadyPlaying) {
-      // La canción ya viene sonando (arrancó con el tráiler): las tarjetas se
-      // reparten sobre lo que le queda, no sobre su duración total.
-      const rem = (typeof ceremonyTrackRemainingSec === 'function') ? ceremonyTrackRemainingSec() : null;
-      if (rem && rem > 2) applyCardTiming(((rem * 1000) - introDelayMs - (dividers * DIVIDER_MS)) / items.length);
+      // Con tráiler, el cálculo se hace al terminar el montaje (ver arrancarTarjetas).
+      if (!opts.trailer) {
+        const rem = (typeof ceremonyTrackRemainingSec === 'function') ? ceremonyTrackRemainingSec() : null;
+        if (rem && rem > 2) applyCardTiming(((rem * 1000) - introDelayMs - (dividers * DIVIDER_MS)) / items.length);
+      }
     } else {
       startCeremonyTrack(music, (durationSec) => {
         if (durationSec == null) return; // sin música o no se pudo leer: se queda con el ritmo por defecto
@@ -14586,7 +14590,29 @@ function _runCeremony(opts) {
     skipToFull();
   };
 
-  _openingTimer = setTimeout(advance, reduce ? 200 : 1000);
+  // Arranque: si la apertura trae tráiler, el montaje corre como una capa
+  // encima de este mismo escenario y recién cuando se desvanece empiezan las
+  // tarjetas. Así no hay cierre ni apertura en el medio: es todo una toma.
+  function arrancarTarjetas() {
+    // El ritmo se calcula ACÁ, no al montar: si hubo tráiler, ya se comió su
+    // parte de la canción y lo que importa es lo que queda.
+    if (music && musicAlreadyPlaying) {
+      const rem = (typeof ceremonyTrackRemainingSec === 'function') ? ceremonyTrackRemainingSec() : null;
+      if (rem && rem > 2) {
+        applyCardTiming(((rem * 1000) - introDelayGlobal - (dividers * DIVIDER_MS)) / items.length);
+      } else if (opts.trailer) {
+        // Sin mp3 legible: se reparte el presupuesto fijo para llegar a 1:30.
+        const resto = APERTURA_TOTAL_MS - APERTURA_TRAILER_MS - introDelayGlobal - (dividers * DIVIDER_MS);
+        applyCardTiming(resto / items.length);
+      }
+    }
+    const introEl = stage.querySelector('#op-intro-el');
+    if (introEl && !reduce) { introEl.style.animation = 'none'; void introEl.offsetWidth; introEl.style.animation = ''; }
+    _openingTimer = setTimeout(advance, reduce ? 200 : 1000);
+  }
+
+  if (opts.trailer) runTrailer(arrancarTarjetas, overlay, APERTURA_TRAILER_MS);
+  else arrancarTarjetas();
 }
 
 // ============================================================
@@ -14664,13 +14690,16 @@ function runPlacaClasificacion(done) {
     if (cerrada) return;
     cerrada = true;
     _placaClear();
+    // done() se llama AL EMPEZAR el fundido, no al terminar: así lo que sigue
+    // ya está montado debajo y la placa se disuelve sobre la escena siguiente
+    // en vez de dejar un negro en el medio.
+    if (typeof done === 'function') done();
     ov.classList.add('out');
     ov.classList.remove('on');
     setTimeout(() => {
       ov.remove();
       if (_placaEl === ov) _placaEl = null;
-      if (typeof done === 'function') done();
-    }, reduce ? 0 : 620);
+    }, reduce ? 0 : 700);
   };
   ov.addEventListener('click', cerrar);
   ov.querySelector('.pc-skip').addEventListener('click', (e) => { e.stopPropagation(); cerrar(); });
@@ -14741,7 +14770,13 @@ function ceremonyTrackRemainingSec() {
 let _trailerTimers = [];
 function _trailerClear() { _trailerTimers.forEach(t => clearTimeout(t)); _trailerTimers = []; }
 
-function runTrailer(done) {
+// Plan de tiempos de la apertura completa (placa aparte): el tráiler y las
+// tarjetas se reparten este presupuesto. Si hay mp3, manda la duración real
+// del archivo; estos números son el respaldo para cuando no está.
+const APERTURA_TOTAL_MS   = 90000;   // 1:30 de punta a punta
+const APERTURA_TRAILER_MS = 24000;   // lo que dura el montaje de los 12 juegos
+
+function runTrailer(done, host, totalMs) {
   _trailerClear();
   const reduce = _prefersReduce();
   const juegos = [];
@@ -14750,8 +14785,11 @@ function runTrailer(done) {
   const lista = [...new Set(juegos)];
   if (!lista.length) { if (done) done(); return; }
 
+  // Con host, el tráiler es una capa DENTRO del escenario de la ceremonia:
+  // cuando termina se desvanece y abajo ya está la presentación esperando,
+  // sin pantallazo negro ni sensación de que son dos cosas distintas.
   const ov = document.createElement('div');
-  ov.className = 'tr-overlay';
+  ov.className = host ? 'tr-overlay tr-layer' : 'tr-overlay';
   ov.innerHTML = `
     <div class="tr-shot" id="tr-shot">
       <div class="tr-frame" id="tr-frame"></div>
@@ -14759,12 +14797,24 @@ function runTrailer(done) {
     </div>
     <div class="tr-flash" id="tr-flash" aria-hidden="true"></div>
     <button class="tr-skip">saltear ▸</button>`;
-  document.body.appendChild(ov);
+  (host || document.body).appendChild(ov);
 
   const shot  = ov.querySelector('#tr-shot');
   const frame = ov.querySelector('#tr-frame');
   const nameEl= ov.querySelector('#tr-name');
   const flash = ov.querySelector('#tr-flash');
+
+  // Reparto del presupuesto: entrada, montaje y placa final.
+  const total   = Math.max(8000, totalMs || APERTURA_TRAILER_MS);
+  const LEAD_MS = 400;
+  const END_MS  = Math.min(3200, Math.round(total * 0.14));
+  const monta   = Math.max(2000, total - LEAD_MS - END_MS);
+  const media   = monta / lista.length;
+  // El montaje acelera: los primeros planos respiran, los últimos se atropellan.
+  const durDe = (i) => {
+    const t = lista.length > 1 ? (i / (lista.length - 1)) : 0;
+    return Math.round(media * (1.22 + (0.78 - 1.22) * t));
+  };
 
   let terminado = false;
   const cerrar = () => {
@@ -14772,13 +14822,9 @@ function runTrailer(done) {
     terminado = true;
     _trailerClear();
     ov.classList.add('out');
-    setTimeout(() => { ov.remove(); if (done) done(); }, reduce ? 0 : 520);
+    setTimeout(() => { ov.remove(); if (done) done(); }, reduce ? 0 : 600);
   };
   ov.addEventListener('click', cerrar);
-
-  // El montaje acelera: los primeros planos respiran, los últimos se atropellan.
-  const T_IN = 760, T_OUT = 330;
-  const durDe = (i) => Math.round(T_IN + (T_OUT - T_IN) * (i / Math.max(1, lista.length - 1)));
 
   let i = 0;
   function corte() {
@@ -14814,12 +14860,12 @@ function runTrailer(done) {
     end.innerHTML = `<div class="tr-kicker">Doce juegos · Una sola noche</div>
                      <div class="tr-big">ESTA NOCHE</div>`;
     ov.insertBefore(end, ov.firstChild);
-    _trailerTimers.push(setTimeout(cerrar, reduce ? 500 : 2100));
+    _trailerTimers.push(setTimeout(cerrar, reduce ? 500 : END_MS));
   }
 
   requestAnimationFrame(() => {
     ov.classList.add('on');
-    _trailerTimers.push(setTimeout(corte, reduce ? 100 : 380));
+    _trailerTimers.push(setTimeout(corte, reduce ? 100 : LEAD_MS));
   });
 }
 
@@ -14831,37 +14877,36 @@ function runTrailer(done) {
 function openVelada() {
   runPlacaClasificacion(() => {
     startCeremonyTrack(CEREMONY_MUSIC.apertura);
-    runTrailer(() => {
-      const actos = [];
-      if (PLAYERS.length) actos.push({
-        items: PLAYERS,
-        title: 'Los concursantes',
-        eyebrow: 'Fase 1 · Clasificación individual',
-        labelFn: (i, total) => `Concursante ${i + 1} de ${total}`,
-        colorFn: (i) => entityColor(PLAYERS[i], i),
-        figFn: (name, color, i) => {
-          const photo = (typeof getPlayerPhoto === 'function') ? getPlayerPhoto(name) : null;
-          return (typeof miiFigureSVG === 'function') ? miiFigureSVG(color, 230, i % 2 ? 'side' : 'victory', photo) : '';
-        },
-      });
-      if (TEAMS.length) actos.push({
-        items: TEAMS,
-        title: 'Los equipos',
-        eyebrow: 'Fase 2 · Clasificación grupal',
-        labelFn: (i, total) => `Equipo ${i + 1} de ${total}`,
-        colorFn: (i) => entityColor(TEAMS[i], i),
-        figFn: _teamFigureHtml,
-      });
-      if (!actos.length) { stopCeremonyTrack(800); return; }
-      _runCeremony({
-        groups: actos,
-        finishTitle: '¡Que empiece<br>La Velada!',
-        finishBtn: 'Entrar ▶',
-        confetti: true,
-        music: CEREMONY_MUSIC.apertura,
-        musicAlreadyPlaying: true,
-        sfx: false,
-      });
+    const actos = [];
+    if (PLAYERS.length) actos.push({
+      items: PLAYERS,
+      title: 'Los concursantes',
+      eyebrow: 'Fase 1 · Clasificación individual',
+      labelFn: (i, total) => `Concursante ${i + 1} de ${total}`,
+      colorFn: (i) => entityColor(PLAYERS[i], i),
+      figFn: (name, color, i) => {
+        const photo = (typeof getPlayerPhoto === 'function') ? getPlayerPhoto(name) : null;
+        return (typeof miiFigureSVG === 'function') ? miiFigureSVG(color, 230, i % 2 ? 'side' : 'victory', photo) : '';
+      },
+    });
+    if (TEAMS.length) actos.push({
+      items: TEAMS,
+      title: 'Los equipos',
+      eyebrow: 'Fase 2 · Clasificación grupal',
+      labelFn: (i, total) => `Equipo ${i + 1} de ${total}`,
+      colorFn: (i) => entityColor(TEAMS[i], i),
+      figFn: _teamFigureHtml,
+    });
+    if (!actos.length) { stopCeremonyTrack(800); return; }
+    _runCeremony({
+      groups: actos,
+      trailer: true,     // el montaje de los 12 juegos corre dentro de esta misma corrida
+      finishTitle: '¡Que empiece<br>La Velada!',
+      finishBtn: 'Entrar ▶',
+      confetti: true,
+      music: CEREMONY_MUSIC.apertura,
+      musicAlreadyPlaying: true,
+      sfx: false,
     });
   });
 }
