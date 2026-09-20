@@ -3070,6 +3070,22 @@ body.started .velada-bg-scrim { display: block; }
 }
 .op-rail.all-in.wrap-rows .op-playercard { width: 100%; }
 
+/* Grilla final agrupada por equipo: las tarjetas individuales de cada
+   equipo quedan juntas, con un rótulo "Equipo N" arriba — sin tarjeta
+   combinada aparte. */
+.op-rail.all-in.grouped {
+  display: flex; flex-wrap: wrap;
+  justify-content: center; align-items: flex-start;
+  gap: clamp(12px, 2.6vw, 24px) clamp(6px, 1.6vw, 14px);
+  overflow: visible;
+}
+.op-team-group { display: flex; flex-direction: column; align-items: center; }
+.op-team-group-label {
+  font-size: 10px; font-weight: 900; letter-spacing: 0.12em; text-transform: uppercase;
+  color: var(--accent); margin-bottom: 0.35rem; white-space: nowrap;
+}
+.op-team-group-cards { display: flex; gap: clamp(4px, 1vw, 8px); }
+
 .op-pcard-top { display: flex; align-items: flex-start; justify-content: space-between; width: 100%; margin-bottom: 0.2rem; position: relative; z-index: 2; }
 .op-pcard-badge { font-size: 9px; font-weight: 900; letter-spacing: 0.2em; text-transform: uppercase;
   color: color-mix(in srgb, var(--team) 25%, white 70%); opacity: 0.9; max-width: 55%; line-height: 1.3; }
@@ -14590,14 +14606,49 @@ function _runCeremony(opts) {
       rail.classList.add('all-in');
       rail.querySelectorAll('.op-playercard').forEach(function(c) { c.classList.remove('past'); });
       rail.scrollLeft = 0;
-      // Con muchos participantes, repartimos las tarjetas en varias filas
-      // en vez de una sola fila larga (ej: 10 → 5 arriba y 5 abajo).
-      const n = items.length;
-      const rows = n > 12 ? 3 : (n > 6 ? 2 : 1);
-      const cols = Math.ceil(n / rows);
-      rail.classList.toggle('wrap-rows', rows > 1);
-      if (rows > 1) rail.style.setProperty('--allin-cols', cols);
-      else rail.style.removeProperty('--allin-cols');
+
+      // Si el grupo trae teamIdxOf (apertura unificada), las tarjetas de
+      // cada equipo se agrupan juntas con un rótulo "Equipo N" arriba, en
+      // vez de mostrar una tarjeta combinada aparte.
+      const teamIdxOf = groups[0] && groups[0].teamIdxOf;
+      if (teamIdxOf && teamIdxOf.length === items.length) {
+        rail.classList.add('grouped');
+        rail.classList.remove('wrap-rows');
+        rail.style.removeProperty('--allin-cols');
+        const cards = Array.from(rail.children);
+        rail.innerHTML = '';
+        let i = 0;
+        while (i < cards.length) {
+          const ti = teamIdxOf[i];
+          if (ti == null || ti < 0) {
+            rail.appendChild(cards[i]);
+            i++;
+            continue;
+          }
+          const grupoCards = [];
+          while (i < cards.length && teamIdxOf[i] === ti) { grupoCards.push(cards[i]); i++; }
+          const wrap = document.createElement('div');
+          wrap.className = 'op-team-group';
+          const label = document.createElement('div');
+          label.className = 'op-team-group-label';
+          label.textContent = 'Equipo ' + (ti + 1);
+          const inner = document.createElement('div');
+          inner.className = 'op-team-group-cards';
+          grupoCards.forEach(function(c) { inner.appendChild(c); });
+          wrap.appendChild(label);
+          wrap.appendChild(inner);
+          rail.appendChild(wrap);
+        }
+      } else {
+        // Con muchos participantes, repartimos las tarjetas en varias filas
+        // en vez de una sola fila larga (ej: 10 → 5 arriba y 5 abajo).
+        const n = items.length;
+        const rows = n > 12 ? 3 : (n > 6 ? 2 : 1);
+        const cols = Math.ceil(n / rows);
+        rail.classList.toggle('wrap-rows', rows > 1);
+        if (rows > 1) rail.style.setProperty('--allin-cols', cols);
+        else rail.style.removeProperty('--allin-cols');
+      }
     }
     const outro = document.createElement('div');
     outro.className = 'op-outro';
@@ -15063,7 +15114,7 @@ function _nickDe(quien) {
 // bloques, cada uno cerrando con su revelación. Los que no estén en ningún
 // equipo se presentan al principio, para que la corrida termine en un equipo.
 function _ordenApertura() {
-  const items = [], tipos = [];
+  const items = [], teamIdxOf = [];
   const usados = new Set();
   const bloques = [];
 
@@ -15074,37 +15125,28 @@ function _ordenApertura() {
   });
   const sueltos = (PLAYERS || []).filter(n => !usados.has(n));
 
-  sueltos.forEach(n => { items.push(n); tipos.push({ k: 'p' }); });
+  // Ya no se agrega una tarjeta combinada del equipo al final del bloque:
+  // solo entran los jugadores, uno por uno. teamIdxOf guarda a qué equipo
+  // pertenece cada tarjeta (o -1 si no tiene equipo), para que la grilla
+  // final los agrupe bajo un rótulo "Equipo N".
+  sueltos.forEach(n => { items.push(n); teamIdxOf.push(-1); });
   bloques.forEach(b => {
-    b.nicks.forEach(n => { items.push(n); tipos.push({ k: 'p' }); });
-    items.push(b.equipo); tipos.push({ k: 't', ti: b.ti });
+    b.nicks.forEach(n => { items.push(n); teamIdxOf.push(b.ti); });
   });
 
-  const totalP = items.filter((_, i) => tipos[i].k === 'p').length;
-  const totalT = items.filter((_, i) => tipos[i].k === 't').length;
-  let nP = 0;
+  const total = items.length;
 
   return {
     items,
     title: 'Los concursantes',
     eyebrow: 'Fase 1 individual · Fase 2 en parejas',
-    // La numeración corre por separado: los concursantes del 1 al N, los
-    // equipos del 1 al 5.
-    labelFn: (i) => {
-      const t = tipos[i];
-      if (t.k === 't') return `Equipo ${t.ti + 1} de ${totalT}`;
-      nP = items.slice(0, i + 1).filter((_, j) => tipos[j].k === 'p').length;
-      return `Concursante ${nP} de ${totalP}`;
-    },
+    labelFn: (i, tot) => `Concursante ${i + 1} de ${tot || total}`,
     colorFn: (i) => entityColor(items[i], i),
-    figFn: (name, color, i) => (tipos[i].k === 't')
-      ? _teamFigureHtml(name, color, i)
-      : ((typeof miiFigureSVG === 'function')
-          ? miiFigureSVG(color, 230, i % 2 ? 'side' : 'victory',
-              (typeof getPlayerPhoto === 'function') ? getPlayerPhoto(name) : null)
-          : ''),
-    // El equipo se queda más tiempo: es el remate de cada bloque.
-    weightFn: (i) => (tipos[i].k === 't' ? 1.5 : 1),
+    figFn: (name, color, i) => (typeof miiFigureSVG === 'function')
+      ? miiFigureSVG(color, 230, i % 2 ? 'side' : 'victory',
+          (typeof getPlayerPhoto === 'function') ? getPlayerPhoto(name) : null)
+      : '',
+    teamIdxOf,
   };
 }
 
