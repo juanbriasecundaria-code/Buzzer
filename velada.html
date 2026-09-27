@@ -7776,9 +7776,49 @@ function previewPts(phase, g, winner, bonus) {
   return winPts + (bonus ? bonusPts : 0);
 }
 
-function openAutoResultadosModal() {
+async function openAutoResultadosModal() {
+  const bg = document.getElementById('auto-modal-bg');
+  bg.classList.add('open');
+  document.getElementById('auto-modal-body').textContent = 'Leyendo marcadores actuales…';
+  if (window._rtdb) {
+    try {
+      // El botón del organizador es el único corte: congela una foto de cada
+      // marcador digital pendiente. Los juegos nunca escriben resultados finales.
+      const [liveSnap, resultSnap] = await Promise.all([
+        window._rtdb.ref('velada/enVivo').once('value'),
+        window._rtdb.ref('velada/resultados').once('value')
+      ]);
+      const live = liveSnap.val() || {};
+      const results = resultSnap.val() || {};
+      const updates = {};
+      const valid = new Set();
+      ['f1','f2'].forEach(phase => {
+        const fixture = phase === 'f1' ? F1_FIXTURE : F2_FIXTURE;
+        const games = phase === 'f1' ? GAMES_F1 : GAMES_F2;
+        fixture.forEach(([r,a,b,g]) => {
+          const gid = BuzzerRounds.gameId(games[g]);
+          if (gid) valid.add(phase+'-'+r+'-'+a+'-'+b+':'+gid);
+        });
+      });
+      Object.keys(live).forEach(id => {
+        const d = live[id], m = d && d.marcador;
+        if (results[id] || !d || d.matchId !== id || !valid.has(id+':'+d.game) ||
+            !m || !Number.isFinite(m.a) || !Number.isFinite(m.b)) return;
+        updates[id] = {winner:m.a>m.b?'a':m.b>m.a?'b':'empate',
+          marcador:{a:m.a,b:m.b},bonusInfo:d.bonusInfo||{},t:Date.now()};
+      });
+      if (Object.keys(updates).length) {
+        await window._rtdb.ref('velada/resultados').update(updates);
+        Object.assign(results,updates);
+      }
+      window._autoResultados = results;
+    } catch(e) {
+      console.warn('No se pudieron leer los marcadores en vivo',e);
+      showToast('⚠️','No se pudieron leer los marcadores; podés cargarlos a mano',false);
+    }
+  }
+  if (!bg.classList.contains('open')) return;
   _autoModalState = { rows: computeAutoResultadosRows(), manual: {} };
-  document.getElementById('auto-modal-bg').classList.add('open');
   renderAutoResultadosModal();
 }
 

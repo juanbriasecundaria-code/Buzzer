@@ -618,7 +618,7 @@ body.vb-clean .vb-peek { display: flex; }
   body.gms-tv .velada-bar-dot,
   body.gms-tv .hub-link{display:none}
 }
-</style><script src="buzzer-rounds.js"></script>
+</style><script src="buzzer-rounds.js"></script><script src="auto-live.js"></script>
 <script src="round-host.js"></script>
 <script src="guess-rounds.js"></script>
 </head>
@@ -1091,6 +1091,9 @@ function initFirebase(){
     fbDb = firebase.database();
     fbRef = fbDb.ref('velada/buzzer');
     connectGuessRound(fbRef);
+    if(MODE==='conductor') BuzzerAutoLive.start({db:fbDb,game:'movies',legacyPath:'velada/buzzer',
+      getMatch:()=>window.currentFixtureMatch&&window.currentFixtureMatch(),
+      getScore:()=>({a:scoreA||0,b:scoreB||0})});
     fbDeckRef = fbDb.ref('velada/deck');
     fbStateRef = fbDb.ref('velada/live');
     if(window.initReactions) initReactions();   // emojis de los invitados

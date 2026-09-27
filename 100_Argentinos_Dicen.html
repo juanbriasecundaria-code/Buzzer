@@ -782,7 +782,7 @@ body.vb-clean .vb-peek { display: flex; }
 }
 
 </style>
-<style>.hub-link{position:fixed;top:0;left:max(.6rem,env(safe-area-inset-left));height:44px;margin-top:env(safe-area-inset-top);display:inline-flex;align-items:center;z-index:9992;font-size:11px;font-weight:700;color:rgba(240,239,232,0.7);background:transparent;border:none;padding:0 .3rem;text-decoration:none;letter-spacing:0.04em;transition:color 0.15s;white-space:nowrap}.hub-link:hover{color:#f0efe8}</style><script src="buzzer-rounds.js"></script>
+<style>.hub-link{position:fixed;top:0;left:max(.6rem,env(safe-area-inset-left));height:44px;margin-top:env(safe-area-inset-top);display:inline-flex;align-items:center;z-index:9992;font-size:11px;font-weight:700;color:rgba(240,239,232,0.7);background:transparent;border:none;padding:0 .3rem;text-decoration:none;letter-spacing:0.04em;transition:color 0.15s;white-space:nowrap}.hub-link:hover{color:#f0efe8}</style><script src="buzzer-rounds.js"></script><script src="auto-live.js"></script>
 <script src="round-host.js"></script>
 <script src="argentinos-rounds.js"></script>
 </head>
@@ -2583,11 +2583,15 @@ function newMatch() {
 const FM_TIME = 25;    // segundos por jugador en la fase oral
 const FM_Q_COUNT = 7;  // preguntas por turno
 let fm = null;
+let fmLiveWinner = null;
+let fmDuelScore = null;
 
 function shuffle(arr) { const a = arr.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }
 
 function fmStart() {
   if (FM_BANK.length === 0) { alert('No hay preguntas de Dinero Rápido.'); return; }
+  fmLiveWinner = null;
+  fmDuelScore = {a:score.a||0,b:score.b||0};
   fm = { stage: 'setup', order: null, ci: 0, results: { a: null, b: null } };
   document.getElementById('fm-overlay').classList.add('open');
   document.getElementById('fm-overlay').scrollTop = 0;
@@ -2848,6 +2852,7 @@ function fmRender() {
     const tb = fm.results.b ? fm.results.b.total : 0;
     let winner = null;
     if (ta > tb) winner = 'a'; else if (tb > ta) winner = 'b';
+    else winner = (fmDuelScore && fmDuelScore.b > fmDuelScore.a) ? 'b' : 'a'; // desempate por duelo normal
     if (winner) { launchConfetti(); playDing(); if (navigator.vibrate) navigator.vibrate([60,40,60,40,120]); }
     else { playBuzzer(); }
     const aWin = winner === 'a', bWin = winner === 'b';
@@ -2885,6 +2890,7 @@ function fmFinishTeam() {
 // Sumar +1 al ganador de la ronda final y cerrar
 function fmAwardAndClose(team) {
   if (team === 'a' || team === 'b') addPoint(team, 1);
+  fmLiveWinner = team;
   fmClose();
   if ((team === 'a' || team === 'b') && targetScore > 0 && score[team] >= targetScore) setTimeout(() => showWin(team), 300);
 }
@@ -2929,6 +2935,11 @@ function initFirebase(){
     fbDb = firebase.database();
     fbRef = fbDb.ref('argentinos/buzzer');
     connectArgentinosRound(fbRef);  // ruta exclusiva para este juego
+    BuzzerAutoLive.start({db:fbDb,game:'argentinos',legacyPath:'argentinos/buzzer',
+      getMatch:()=>window.currentFixtureMatch&&window.currentFixtureMatch(),
+      getScore:()=>({a:fmDuelScore ? fmDuelScore.a : score.a||0,b:fmDuelScore ? fmDuelScore.b : score.b||0,
+        bonusInfo:{dineroRapidoWinner:fmLiveWinner || (fm && fm.stage==='final' && fm.results.a && fm.results.b ?
+          (fm.results.a.total>fm.results.b.total?'a':fm.results.b.total>fm.results.a.total?'b':(fmDuelScore && fmDuelScore.b>fmDuelScore.a?'b':'a')) : null)}})});
     fbInited = true;
     if(window.initReactions) initReactions();   // emojis de los invitados
     fbDb.ref('.info/connected').on('value', snap => {

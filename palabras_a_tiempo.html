@@ -1009,7 +1009,7 @@ body.vb-clean .vb-peek { display: flex; }
   font-size:10px;font-weight:800;color:var(--muted);letter-spacing:.1em;
   text-transform:uppercase;margin:0 .5rem}
 </style>
-<style>.hub-link{position:fixed;top:0;left:max(.6rem,env(safe-area-inset-left));height:44px;margin-top:env(safe-area-inset-top);display:inline-flex;align-items:center;z-index:9992;font-size:11px;font-weight:700;color:rgba(240,239,232,0.7);background:transparent;border:none;padding:0 .3rem;text-decoration:none;letter-spacing:0.04em;transition:color 0.15s;white-space:nowrap}.hub-link:hover{color:#f0efe8}</style><script src="buzzer-rounds.js"></script>
+<style>.hub-link{position:fixed;top:0;left:max(.6rem,env(safe-area-inset-left));height:44px;margin-top:env(safe-area-inset-top);display:inline-flex;align-items:center;z-index:9992;font-size:11px;font-weight:700;color:rgba(240,239,232,0.7);background:transparent;border:none;padding:0 .3rem;text-decoration:none;letter-spacing:0.04em;transition:color 0.15s;white-space:nowrap}.hub-link:hover{color:#f0efe8}</style><script src="buzzer-rounds.js"></script><script src="auto-live.js"></script>
 <script src="round-host.js"></script>
 </head>
 <body>
@@ -1262,8 +1262,6 @@ window.VarSwitch = (function () {
   </div>
 
   <div class="footer-links">
-    <button class="reset-link" onclick="finalizarPartida()">🏁 finalizar y enviar</button>
-    <span class="footer-sep">·</span>
     <button class="reset-link" onclick="openDeckEditor()">✏️ editar mazo</button>
     <span class="footer-sep">·</span>
     <button class="reset-link" onclick="openPinConfig()">🔒 PIN</button>
@@ -2215,42 +2213,19 @@ function resetAll() {
   });
 }
 
-// ── FINALIZAR PARTIDA (envía el resultado a velada/resultados/<matchId>) ──
-// Reglas de bonus para "Palabras a Tiempo": ganar sin perder ninguna
-// categoría, o por 2+ de diferencia (esto último lo decide velada.html con
-// el marcador final; acá solo mandamos si el ganador no perdió ninguna).
+// El organizador captura el marcador desde velada.html; cada cambio se publica en vivo.
 function computeBonusInfo() {
-  const sinPerderA = roundsLog.every(r => r.winner !== 'b');
-  const sinPerderB = roundsLog.every(r => r.winner !== 'a');
-  return { sinPerderRonda: { a: sinPerderA, b: sinPerderB } };
-}
-
-function finalizarPartida() {
-  closeCurrentRound(); // computa la última categoría jugada antes de cortar
-  saveState();
-  const match = window._palabrasCurrentMatch;
-  if (!match || !match.active) {
-    alert('Esta pantalla todavía no tiene un cruce del fixture asignado (modo manual/sin conexión).\n\nAnotá el marcador (' + score.a + ' - ' + score.b + ') y cargalo a mano desde el panel del organizador.');
-    return;
+  const log = roundsLog.slice();
+  if (selectedCat && roundBaseline) {
+    const da = (score.a || 0) - roundBaseline.a, db = (score.b || 0) - roundBaseline.b;
+    if (da || db) log.push({ winner: da > db ? 'a' : db > da ? 'b' : 'empate' });
   }
-  customConfirm('¿Finalizar esta partida y enviar el resultado (' + score.a + ' - ' + score.b + ')?\n\nNo vas a poder seguir sumando puntos para este cruce.', () => {
-    const winner = score.a > score.b ? 'a' : (score.b > score.a ? 'b' : 'empate');
-    const payload = {
-      winner,
-      marcador: { a: score.a || 0, b: score.b || 0 },
-      bonusInfo: computeBonusInfo(),
-      t: Date.now()
-    };
-    const matchId = match.phase + '-' + match.key;
-    if (!window._palabrasDb) {
-      alert('Sin conexión con Firebase — anotá el marcador (' + score.a + ' - ' + score.b + ') y cargalo a mano desde el panel del organizador.');
-      return;
-    }
-    window._palabrasDb.ref('velada/resultados/' + matchId).set(payload)
-      .then(() => { if (navigator.vibrate) navigator.vibrate([30, 60, 30]); })
-      .catch(e => { alert('No se pudo enviar el resultado: ' + e.message + '\n\nAnotalo a mano desde el panel del organizador.'); });
-  });
+  return { sinPerderRonda: { a: log.every(r => r.winner !== 'b'), b: log.every(r => r.winner !== 'a') } };
 }
+window.addEventListener('palabras-db-ready', () => BuzzerAutoLive.start({
+  db:window._palabrasDb,game:'palabras',getMatch:()=>window._palabrasCurrentMatch,
+  getScore:()=>({a:score.a||0,b:score.b||0,bonusInfo:computeBonusInfo()})
+}));
 
 // ── INIT ─────────────────────────────────────
 loadState();
