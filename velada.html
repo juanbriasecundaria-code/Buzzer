@@ -1460,6 +1460,12 @@
   }
   .podio-foto-btn:hover { color: var(--text); border-color: var(--gold); }
   .podio-foto-btn.podio-foto-del { display: none; color: var(--danger); border-color: rgba(255,95,95,0.25); }
+  .podio-foto-status { color: var(--muted); font-size: 11px; text-align: center; line-height: 1.4; min-height: 1.4em; }
+  .podio-map { margin-top: 1rem; border: 1px solid var(--border2); border-radius: 12px; background: var(--surface); }
+  .podio-map summary { cursor: pointer; padding: .85rem 1rem; color: var(--gold); font-weight: 700; font-size: 13px; }
+  .podio-map-list { max-height: 320px; overflow-y: auto; padding: 0 1rem .8rem; }
+  .podio-map-row { display: grid; grid-template-columns: 105px 1fr; gap: .6rem; padding: .43rem 0; border-top: 1px solid var(--border2); font-size: 12px; line-height: 1.4; }
+  .podio-map-row code { color: var(--gold); }
 
   /* MOTES DE LA NOCHE */
   .mote-item {
@@ -11315,6 +11321,7 @@ function podioFotoSlotHtml(slot) {
       <button class="podio-foto-btn" onclick="event.stopPropagation();document.getElementById('podio-file-${slot.key}').click()">Subir foto</button>
       <button class="podio-foto-btn podio-foto-del" id="podio-del-${slot.key}" onclick="event.stopPropagation();podioFotoDelete('${slot.key}')">Quitar</button>
     </div>
+    <div class="podio-foto-status" id="podio-status-${slot.key}"></div>
     <input type="file" id="podio-file-${slot.key}" accept="image/*" style="display:none" onchange="podioFotoLoad('${slot.key}', this)">
   </div>`;
 }
@@ -12649,19 +12656,16 @@ function saveCuartoConfig() {
 // ============================================================
 // FOTOS DEL PODIO — auto-carga desde GitHub según el equipo ganador
 // ============================================================
-// Cada equipo de TEAMS tiene una foto pre-cargada en el repo, nombrada por
-// su posición en el array (TEAMS[0] -> equipo1.jpg, TEAMS[1] -> equipo2.jpg...).
-// Si el ganador de un puesto es exactamente uno de esos equipos, se arma la
-// URL sola. Si es una dupla armada con compañero invitado (no está en TEAMS),
-// no hay foto para matchear y queda para subir a mano como antes.
+// Los cinco equipos originales y las 51 duplas tienen una numeración fija.
+// Solo se publican en GitHub las fotos de los cuatro equipos que salen en el podio.
 const PODIO_FOTO_BASE_URL = 'https://raw.githubusercontent.com/juanbriasecundaria-code/Buzzer/main/';
 
 function teamPhotoUrl(name) {
   if (!name) return null;
-  const fixed = ['Martín / Valentín','Laza / Tomás','Thiago / Lara','Totti / Risu','Cori / Flor / Mica'];
-  const idx = fixed.indexOf(name.trim());
-  if (idx >= 0) return PODIO_FOTO_BASE_URL + 'equipo' + (idx + 1) + '.jpg';
   if (!window.VeladaDuplas) return null;
+  const fixed = VeladaDuplas.mapping().slice(0, 5);
+  const idx = fixed.findIndex(row => row.names.join(' / ').toLocaleLowerCase('es') === name.trim().toLocaleLowerCase('es'));
+  if (idx >= 0) return PODIO_FOTO_BASE_URL + fixed[idx].file;
   const pair = VeladaDuplas.pair(name);
   const file = pair && VeladaDuplas.filename(pair);
   return file ? PODIO_FOTO_BASE_URL + file : null;
@@ -12673,7 +12677,7 @@ function podioRemotePhotoExists(url) {
     const timer = setTimeout(() => { img.onload = img.onerror = null; resolve(false); }, 4000);
     img.onload = () => { clearTimeout(timer); resolve(true); };
     img.onerror = () => { clearTimeout(timer); resolve(false); };
-    img.src = url;
+    img.src = url + '?check=' + Date.now();
   });
 }
 
@@ -12700,17 +12704,13 @@ async function autoAssignPodioFotos() {
     const oldAuto = auto[slotKey] ||
       (typeof data[slotKey] === 'string' && data[slotKey].startsWith(PODIO_FOTO_BASE_URL));
     if (data[slotKey] && !oldAuto) continue; // foto subida a mano: se conserva
-    if (auto[slotKey] === name && data[slotKey] && data[slotKey].startsWith(PODIO_FOTO_BASE_URL)) continue;
-    let image = teamPhotoUrl(name);
-    const pair = window.VeladaDuplas && VeladaDuplas.pair(name);
-    if (pair && image && !(await podioRemotePhotoExists(image))) image = null;
-    if (!image && auto[slotKey] === name && data[slotKey]) image = data[slotKey];
-    if (!image && pair) {
-      try { image = await VeladaDuplas.compose(pair); }
-      catch (e) { showToast('⚠️', e.message, false); }
+    const url = teamPhotoUrl(name);
+    const exists = url && await podioRemotePhotoExists(url);
+    const image = exists ? url + '?v=' + Date.now() : null;
+    if (image && (auto[slotKey] !== name || !data[slotKey] || !data[slotKey].startsWith(url))) {
+      data[slotKey] = image; auto[slotKey] = name; changed = true;
     }
-    if (image) { data[slotKey] = image; auto[slotKey] = name; changed = true; }
-    else if (oldAuto) { delete data[slotKey]; delete auto[slotKey]; changed = true; }
+    else if (!image && oldAuto) { delete data[slotKey]; delete auto[slotKey]; changed = true; }
   }
 
   if (changed) {
@@ -12719,6 +12719,7 @@ async function autoAssignPodioFotos() {
       localStorage.setItem(KEY_AUTO, JSON.stringify(auto));
     } catch(e) { console.warn('podio fotos: storage full', e); }
   }
+  return changed;
 }
 
 // Guarda los tres puestos desde la card directa del cierre
@@ -14037,11 +14038,14 @@ function renderFinal() {
     <!-- FOTOS DEL PODIO -->
     <div class="fn-section" style="margin-top:1.75rem">
       <div class="fotos-group-title">Fotos del podio</div>
-      <p style="font-size:11px;color:var(--muted);line-height:1.5;margin:.45rem 0 .8rem">Los cinco equipos originales conservan equipo1.jpg a equipo5.jpg. Las otras 51 duplas siguen con equipo6.jpg a equipo56.jpg; el archivo equipos.csv indica quién está en cada foto.</p>
-      <button id="duplas-descargar" class="final-end-btn" style="width:100%;margin-bottom:1rem;border-color:var(--gold);color:var(--gold)" onclick="VeladaDuplas.downloadAll()">⬇️ Descargar equipo6.jpg a equipo56.jpg</button>
+      <p style="font-size:11px;color:var(--muted);line-height:1.5;margin:.45rem 0 .8rem">Subí a GitHub las fotos de los cuatro equipos que ocupen estos puestos. Nombrá cada archivo según la lista de abajo (por ejemplo, equipo6.jpg). Al guardar los ganadores o abrir esta pestaña, se buscarán sus fotos.</p>
       <div class="podio-fotos-grid">
         ${PODIO_FOTO_SLOTS.map(podioFotoSlotHtml).join('')}
       </div>
+      <details class="podio-map">
+        <summary>Ver equipos 1 al 56 y sus nombres de archivo</summary>
+        <div class="podio-map-list">${VeladaDuplas.mapping().map(row => `<div class="podio-map-row"><code>${row.file}</code><span>${row.names.map(escHtmlName).join(' / ')}</span></div>`).join('')}</div>
+      </details>
     </div>
   `;
 
@@ -18194,21 +18198,37 @@ document.addEventListener('keydown', function(e) {
   }
   function podioFotosRestore() {
     const data = loadPodioFotos();
+    const winners = {
+      finalPrimero: FINAL_CONFIG && FINAL_CONFIG.ganador,
+      finalSegundo: SEGUNDO_CONFIG && SEGUNDO_CONFIG.ganador,
+      tercerPrimero: TERCER_CONFIG && TERCER_CONFIG.ganador,
+      tercerSegundo: CUARTO_CONFIG && CUARTO_CONFIG.ganador
+    };
     (typeof PODIO_FOTO_SLOTS !== 'undefined' ? PODIO_FOTO_SLOTS : []).forEach(function(slot) {
       const img  = document.getElementById('podio-img-' + slot.key);
       const hint = document.getElementById('podio-hint-' + slot.key);
       const del  = document.getElementById('podio-del-' + slot.key);
+      const status = document.getElementById('podio-status-' + slot.key);
       if (!img) return;
       const saved = data[slot.key];
       if (saved) {
         img.src = saved; img.style.display = 'block';
         if (hint) hint.style.display = 'none';
         if (del)  del.style.display = 'block';
+        if (status) status.textContent = '';
       } else {
         img.src = ''; img.style.display = 'none';
         if (hint) hint.style.display = 'block';
         if (del)  del.style.display = 'none';
+        const url = teamPhotoUrl(winners[slot.key]);
+        if (status) status.textContent = url ? 'Pendiente en GitHub: ' + url.split('/').pop() :
+          (winners[slot.key] ? 'Este nombre no figura en la lista de equipos' : 'Elegí el equipo de este puesto');
       }
+      img.onerror = function() {
+        img.style.display = 'none';
+        if (hint) hint.style.display = 'block';
+        if (status) status.textContent = 'No se pudo cargar la foto. Revisá el JPG en GitHub.';
+      };
     });
   }
 
@@ -18252,13 +18272,21 @@ document.addEventListener('keydown', function(e) {
   // Hook renderFinal para restaurar las fotos del podio al (re)dibujar la pestaña
   const _orig = window.renderFinal;
   if (typeof _orig === 'function') {
+    let refreshing = false;
     window.renderFinal = function() {
       _orig.apply(this, arguments);
-      setTimeout(podioFotosRestore, 0);
+      setTimeout(async function() {
+        podioFotosRestore();
+        if (refreshing) return;
+        refreshing = true;
+        try {
+          await autoAssignPodioFotos();
+          podioFotosRestore();
+        } finally { refreshing = false; }
+      }, 0);
     };
   }
 })();
 </script>
 <script src="ensayo-guiado.js"></script>
-<script src="vendor/jszip.min.js"></script>
 <script src="duplas-fotos.js"></script>

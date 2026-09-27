@@ -1,4 +1,4 @@
-/* Todas las duplas posibles usan las fotos individuales ya cargadas en La Velada. */
+/* Numeración estable de los equipos para las fotos publicadas en GitHub. */
 (function (root) {
   'use strict';
   const clean = s => String(s || '').trim();
@@ -36,65 +36,5 @@
   function mapping() {
     return fixed.map((names, i) => ({ names, file: 'equipo' + (i + 1) + '.jpg' })).concat(all());
   }
-  function photo(name) {
-    return (typeof _prensaFotos !== 'undefined' && _prensaFotos[name]) || getPlayerPhoto(name);
-  }
-  function loadImage(src) {
-    return new Promise((resolve, reject) => {
-      const img = new Image();
-      img.onload = () => resolve(img);
-      img.onerror = () => reject(new Error('No se pudo abrir la foto'));
-      img.src = src;
-    });
-  }
-  function cover(ctx, img, x, y, w, h) {
-    const iw = img.naturalWidth || img.width, ih = img.naturalHeight || img.height;
-    const scale = Math.max(w / iw, h / ih);
-    const sw = w / scale, sh = h / scale;
-    ctx.drawImage(img, (iw - sw) / 2, (ih - sh) * .28, sw, sh, x, y, w, h);
-  }
-  async function compose(names) {
-    const missing = names.filter(n => !photo(n));
-    if (missing.length) throw new Error('Faltan fotos individuales de ' + missing.join(' y '));
-    const images = await Promise.all(names.map(n => loadImage(photo(n))));
-    const canvas = document.createElement('canvas');
-    canvas.width = 900; canvas.height = 900;
-    const ctx = canvas.getContext('2d');
-    ctx.fillStyle = '#171720'; ctx.fillRect(0, 0, 900, 900);
-    cover(ctx, images[0], 0, 0, 449, 900);
-    cover(ctx, images[1], 451, 0, 449, 900);
-    ctx.fillStyle = '#f5c842'; ctx.fillRect(449, 0, 2, 900);
-    return canvas.toDataURL('image/jpeg', .86);
-  }
-  async function downloadAll() {
-    const missing = roster.filter(n => !photo(n));
-    if (missing.length) {
-      showToast('⚠️', 'Faltan fotos individuales: ' + missing.join(', '), false);
-      return;
-    }
-    if (!root.JSZip) { showToast('⚠️', 'No se pudo abrir el generador ZIP', false); return; }
-    const button = document.getElementById('duplas-descargar');
-    if (button) button.disabled = true;
-    try {
-      const zip = new JSZip();
-      const rows = all();
-      for (let i = 0; i < rows.length; i++) {
-        const item = rows[i];
-        const jpeg = await compose(item.names);
-        zip.file(item.file, jpeg.slice(jpeg.indexOf(',') + 1), { base64: true });
-        if (button) button.textContent = `Preparando ${i + 1}/${rows.length}…`;
-      }
-      zip.file('equipos.csv', 'archivo,integrante_1,integrante_2,integrante_3\n' + mapping().map(r =>
-        [r.file, r.names[0] || '', r.names[1] || '', r.names[2] || '']
-          .map(v => '"' + v.replace(/"/g, '""') + '"').join(',')).join('\n'));
-      const blob = await zip.generateAsync({ type: 'blob', compression: 'DEFLATE', compressionOptions: { level: 5 } });
-      const url = URL.createObjectURL(blob), a = document.createElement('a');
-      a.href = url; a.download = 'la-velada-equipos-6-a-56.zip';
-      document.body.appendChild(a); a.click(); a.remove();
-      setTimeout(() => URL.revokeObjectURL(url), 10000);
-      showToast('✓', '51 fotos JPG (equipo6 a equipo56) descargadas', false);
-    } catch (e) { showToast('⚠️', e.message || 'No se pudieron armar las duplas', false); }
-    finally { if (button) { button.disabled = false; button.textContent = '⬇️ Descargar equipo6.jpg a equipo56.jpg'; } }
-  }
-  root.VeladaDuplas = { pair, all, mapping, filename, photo, compose, downloadAll };
+  root.VeladaDuplas = { pair, all, mapping, filename };
 })(window);
