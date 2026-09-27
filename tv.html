@@ -1000,7 +1000,7 @@
     text-shadow:0 0 18px rgba(245,200,66,0.5);
   }
   .tv-ruleta-wheel-area{
-    position:relative; width:min(42vw,58vh); aspect-ratio:1/1;
+    position:relative; width:min(52vw,65vh); aspect-ratio:1/1;
   }
   .tv-ruleta-pointer{
     position:absolute; top:-3%; left:50%; transform:translateX(-50%); z-index:3;
@@ -1021,7 +1021,7 @@
     background:#0f0f14;
   }
   .tv-ruleta-hub{
-    position:absolute; top:50%; left:50%; width:15%; height:15%;
+    position:absolute; top:50%; left:50%; width:13%; height:13%;
     transform:translate(-50%,-50%); border-radius:50%; z-index:2;
     background:radial-gradient(circle at 35% 30%, #2b2b38, #0c0c10);
     box-shadow:0 0 0 3px rgba(245,200,66,0.4), inset 0 2px 8px rgba(0,0,0,0.6);
@@ -1029,7 +1029,7 @@
     font-size:clamp(18px,2.2vw,32px);
   }
   .tv-ruleta-result-name{
-    font-size:clamp(24px,3.4vw,48px); font-weight:900; color:var(--text);
+    font-size:clamp(28px,4vw,56px); font-weight:900; color:var(--gold); overflow-wrap:anywhere; max-width:80vw;
     opacity:0; transform:translateY(10px); transition:opacity .4s, transform .4s;
     text-shadow:0 2px 14px rgba(0,0,0,0.5);
   }
@@ -2972,9 +2972,9 @@ function tvBuildRuletaWheelSVG(names) {
   const n = names.length;
   const cx = 100, cy = 100, r = 96;
   const seg = 360 / n;
-  const palette = ['#1b1b26', '#241a0c'];
-  const fontSize = n > 10 ? 8 : n > 7 ? 9 : n > 5 ? 10.5 : 12;
-  const textR = r * 0.62;
+  const palette = ['#272b42', '#592438', '#213d4a', '#654019'];
+  const fontSize = n > 12 ? 9.5 : n > 9 ? 11 : n > 7 ? 12 : n > 5 ? 13 : 15;
+  const textR = r * 0.65;
   const pt = function (radius, angleDeg) {
     const rad = angleDeg * Math.PI / 180;
     return { x: cx + radius * Math.sin(rad), y: cy - radius * Math.cos(rad) };
@@ -2990,12 +2990,12 @@ function tvBuildRuletaWheelSVG(names) {
     const fill = palette[i % palette.length];
     paths += '<path d="M ' + cx + ' ' + cy + ' L ' + p1.x.toFixed(2) + ' ' + p1.y.toFixed(2)
       + ' A ' + r + ' ' + r + ' 0 ' + largeArc + ' 1 ' + p2.x.toFixed(2) + ' ' + p2.y.toFixed(2)
-      + ' Z" fill="' + fill + '" stroke="rgba(245,200,66,0.35)" stroke-width="0.8"/>';
+      + ' Z" fill="' + fill + '" stroke="rgba(255,224,143,0.65)" stroke-width="0.9"/>';
     const tp = pt(textR, mid);
     const short = esc(String(names[i]).split(' ')[0]);
-    texts += '<text x="' + tp.x.toFixed(2) + '" y="' + tp.y.toFixed(2) + '" transform="rotate(' + mid.toFixed(2)
+    texts += '<text x="' + tp.x.toFixed(2) + '" y="' + tp.y.toFixed(2) + '" transform="rotate(' + (mid > 90 && mid < 270 ? mid + 180 : mid).toFixed(2)
       + ' ' + tp.x.toFixed(2) + ' ' + tp.y.toFixed(2) + ')" text-anchor="middle" dominant-baseline="middle" '
-      + 'style="font-size:' + fontSize + 'px;font-weight:800;fill:#f0efe8;letter-spacing:0.2px">' + short + '</text>';
+      + 'style="font-size:' + fontSize + 'px;font-weight:900;fill:#fff9ed;paint-order:stroke;stroke:rgba(0,0,0,0.55);stroke-width:1.5px;stroke-linejoin:round;letter-spacing:0.1px">' + short + '</text>';
   }
   return '<circle cx="' + cx + '" cy="' + cy + '" r="' + r + '" fill="none" stroke="rgba(245,200,66,0.5)" stroke-width="1.5"/>'
     + paths + texts;
@@ -3053,7 +3053,7 @@ function tvShowRuleta(payload) {
     });
 
     setTimeout(function () {
-      nameEl.textContent = String(roster[idx]).split(' ')[0];
+      nameEl.textContent = String(roster[idx]);
       nameEl.classList.add('show');
       if (payload.como) {
         setTimeout(function () { tvShowRuletaCard(payload.como); }, 550);
