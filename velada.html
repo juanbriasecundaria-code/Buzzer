@@ -11262,8 +11262,35 @@ function escHtmlName(s) {
 // si alguien ganó individualmente, se carga a mano en el campo de texto
 // de abajo. Las fotos de cada integrante (si ya están cargadas) se arman
 // solas vía entityPhotos/playerAvatarHtml.
-function championCandidates() {
-  return TEAMS.filter(name => entityMembers(name).length > 1);
+function championCandidates(inputId) {
+  const candidates = TEAMS.filter(name => entityMembers(name).length > 1);
+  // La persona clasificada en Fase 1 compite con el compañero que eligió.
+  // Su dupla también debe poder elegirse como ganadora o subcampeona.
+  const third = inputId === 'campeon-tercer-input' || inputId === 'campeon-cuarto-input';
+  const cfg = third ? TERCER_CONFIG : FINAL_CONFIG;
+  try {
+    const teamPts = getTeamPoints();
+    const rankedTeams = TEAMS.map((n, i) => ({ n, p: teamPts[i] ? teamPts[i].total : 0 }))
+      .sort((a, b) => b.p - a.p);
+    const qualifiedTeam = rankedTeams[third ? 1 : 0];
+    const members = qualifiedTeam ? entityMembers(qualifiedTeam.n) : [];
+    // Si el equipo grupal tiene 3+, se eligen los dos representantes del 2v2.
+    if (members.length > 2) members.forEach((a, i) => members.slice(i + 1).forEach(b => {
+      const duo = a + ' / ' + b;
+      if (!candidates.includes(duo)) candidates.push(duo);
+    }));
+    const pts = getPlayerPoints();
+    const ranked = PLAYERS.map((n, i) => ({ n, p: pts[i] ? pts[i].total : 0 }))
+      .sort((a, b) => b.p - a.p);
+    const finalist = ranked[third ? 1 : 0];
+    const partner = cfg && cfg.companero && PLAYERS.find(n =>
+      n.toLocaleLowerCase('es') === cfg.companero.trim().toLocaleLowerCase('es'));
+    if (finalist && partner && finalist.n !== partner) {
+      const duo = finalist.n + ' / ' + partner;
+      if (!candidates.some(n => n === duo)) candidates.push(duo);
+    }
+  } catch (e) {}
+  return candidates;
 }
 
 // ── FOTOS DEL PODIO (1er/2do puesto de la final y del juego x el 3er puesto) ──
@@ -11295,7 +11322,7 @@ function podioFotoSlotHtml(slot) {
 // Selector visual (con foto) para elegir el campeón de la gran final / 3er puesto.
 // inputId = id del <input> oculto/de texto donde se guarda el nombre elegido.
 function champPickerHtml(inputId, selected) {
-  let cands = championCandidates();
+  let cands = championCandidates(inputId);
   if (!cands.length) return `<div class="champ-picker-none">Todavía no hay jugadores cargados.</div>`;
   // Orden por puntaje actual (de mayor a menor) — el candidato más lógico
   // aparece primero, sobre todo útil con roster grande.
@@ -12631,17 +12658,34 @@ const PODIO_FOTO_BASE_URL = 'https://raw.githubusercontent.com/juanbriasecundari
 
 function teamPhotoUrl(name) {
   if (!name) return null;
-  const idx = TEAMS.indexOf(name.trim());
-  if (idx === -1) return null;
-  return PODIO_FOTO_BASE_URL + 'equipo' + (idx + 1) + '.jpg';
+  const fixed = ['Martín / Valentín','Laza / Tomás','Thiago / Lara','Totti / Risu','Cori / Flor / Mica'];
+  const idx = fixed.indexOf(name.trim());
+  if (idx >= 0) return PODIO_FOTO_BASE_URL + 'equipo' + (idx + 1) + '.jpg';
+  if (!window.VeladaDuplas) return null;
+  const pair = VeladaDuplas.pair(name);
+  const file = pair && VeladaDuplas.filename(pair);
+  return file ? PODIO_FOTO_BASE_URL + file : null;
+}
+
+function podioRemotePhotoExists(url) {
+  return new Promise(resolve => {
+    const img = new Image();
+    const timer = setTimeout(() => { img.onload = img.onerror = null; resolve(false); }, 4000);
+    img.onload = () => { clearTimeout(timer); resolve(true); };
+    img.onerror = () => { clearTimeout(timer); resolve(false); };
+    img.src = url;
+  });
 }
 
 // Completa los 4 slots de "Fotos del podio" con la foto del equipo
 // correspondiente, sin pisar una foto que ya se haya subido a mano.
-function autoAssignPodioFotos() {
+async function autoAssignPodioFotos() {
   const KEY_PODIO = 'ndj_podio_fotos';
+  const KEY_AUTO = 'ndj_podio_fotos_auto';
   let data;
   try { data = JSON.parse(localStorage.getItem(KEY_PODIO) || '{}') || {}; } catch(e) { data = {}; }
+  let auto;
+  try { auto = JSON.parse(localStorage.getItem(KEY_AUTO) || '{}') || {}; } catch(e) { auto = {}; }
 
   const mapping = {
     finalPrimero:  FINAL_CONFIG   && FINAL_CONFIG.ganador,
@@ -12651,21 +12695,34 @@ function autoAssignPodioFotos() {
   };
 
   let changed = false;
-  Object.keys(mapping).forEach(slotKey => {
-    if (data[slotKey]) return; // ya hay una foto (manual o automática) — no se pisa
-    const url = teamPhotoUrl(mapping[slotKey]);
-    if (!url) return;
-    data[slotKey] = url;
-    changed = true;
-  });
+  for (const slotKey of Object.keys(mapping)) {
+    const name = String(mapping[slotKey] || '').trim();
+    const oldAuto = auto[slotKey] ||
+      (typeof data[slotKey] === 'string' && data[slotKey].startsWith(PODIO_FOTO_BASE_URL));
+    if (data[slotKey] && !oldAuto) continue; // foto subida a mano: se conserva
+    if (auto[slotKey] === name && data[slotKey] && data[slotKey].startsWith(PODIO_FOTO_BASE_URL)) continue;
+    let image = teamPhotoUrl(name);
+    const pair = window.VeladaDuplas && VeladaDuplas.pair(name);
+    if (pair && image && !(await podioRemotePhotoExists(image))) image = null;
+    if (!image && auto[slotKey] === name && data[slotKey]) image = data[slotKey];
+    if (!image && pair) {
+      try { image = await VeladaDuplas.compose(pair); }
+      catch (e) { showToast('⚠️', e.message, false); }
+    }
+    if (image) { data[slotKey] = image; auto[slotKey] = name; changed = true; }
+    else if (oldAuto) { delete data[slotKey]; delete auto[slotKey]; changed = true; }
+  }
 
   if (changed) {
-    try { localStorage.setItem(KEY_PODIO, JSON.stringify(data)); } catch(e) { console.warn('podio fotos: storage full', e); }
+    try {
+      localStorage.setItem(KEY_PODIO, JSON.stringify(data));
+      localStorage.setItem(KEY_AUTO, JSON.stringify(auto));
+    } catch(e) { console.warn('podio fotos: storage full', e); }
   }
 }
 
 // Guarda los tres puestos desde la card directa del cierre
-function saveCampeones() {
+async function saveCampeones() {
   const cf = document.getElementById('campeon-final-input')?.value?.trim();
   const cs = document.getElementById('campeon-segundo-input')?.value?.trim();
   const ct = document.getElementById('campeon-tercer-input')?.value?.trim();
@@ -12674,7 +12731,7 @@ function saveCampeones() {
   if (typeof SEGUNDO_CONFIG !== 'undefined' && SEGUNDO_CONFIG) { SEGUNDO_CONFIG.ganador = (cs || ''); saveSegundoConfig(); }
   if (typeof TERCER_CONFIG !== 'undefined' && TERCER_CONFIG) { TERCER_CONFIG.ganador = (ct || ''); saveTercerConfig(); }
   if (typeof CUARTO_CONFIG !== 'undefined' && CUARTO_CONFIG) { CUARTO_CONFIG.ganador = (cq || ''); saveCuartoConfig(); }
-  if (typeof autoAssignPodioFotos === 'function') autoAssignPodioFotos();
+  if (typeof autoAssignPodioFotos === 'function') await autoAssignPodioFotos();
   showToast('🏆', 'Campeones guardados', false);
   renderFinal();
 }
@@ -13866,7 +13923,7 @@ function renderFinal() {
     <!-- CAMPEONES (carga directa para los créditos) -->
     <div class="card">
       <div style="font-size:15px;font-weight:600;margin-bottom:0.3rem"><span class="dot-indicator" style="background:var(--gold);box-shadow:0 0 8px rgba(245,200,66,0.6)"></span>Campeones de la noche</div>
-      <div style="font-size:12px;color:var(--muted);margin-bottom:1rem;line-height:1.5">Tocá quién ganó cada partido. Su foto va a aparecer también en los créditos del cierre.</div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:1rem;line-height:1.5">Tocá quién ganó cada partido. Si el equipo clasificado tiene tres integrantes, elegí la pareja que jugó el 2v2. Su foto va a aparecer también en los créditos del cierre.</div>
       <div class="final-edit-field">
         <label class="final-edit-label">🏆 Campeón de la gran final</label>
         ${champPickerHtml('campeon-final-input', FINAL_CONFIG && FINAL_CONFIG.ganador)}
@@ -13980,6 +14037,8 @@ function renderFinal() {
     <!-- FOTOS DEL PODIO -->
     <div class="fn-section" style="margin-top:1.75rem">
       <div class="fotos-group-title">Fotos del podio</div>
+      <p style="font-size:11px;color:var(--muted);line-height:1.5;margin:.45rem 0 .8rem">Los cinco equipos originales conservan equipo1.jpg a equipo5.jpg. Las otras 51 duplas siguen con equipo6.jpg a equipo56.jpg; el archivo equipos.csv indica quién está en cada foto.</p>
+      <button id="duplas-descargar" class="final-end-btn" style="width:100%;margin-bottom:1rem;border-color:var(--gold);color:var(--gold)" onclick="VeladaDuplas.downloadAll()">⬇️ Descargar equipo6.jpg a equipo56.jpg</button>
       <div class="podio-fotos-grid">
         ${PODIO_FOTO_SLOTS.map(podioFotoSlotHtml).join('')}
       </div>
@@ -18126,6 +18185,13 @@ document.addEventListener('keydown', function(e) {
   function savePodioFotos(data) {
     try { localStorage.setItem(KEY_PODIO, JSON.stringify(data)); } catch(e) { console.warn('podio fotos: storage full', e); }
   }
+  function markPodioManual(slotKey) {
+    try {
+      const auto = JSON.parse(localStorage.getItem('ndj_podio_fotos_auto') || '{}') || {};
+      delete auto[slotKey];
+      localStorage.setItem('ndj_podio_fotos_auto', JSON.stringify(auto));
+    } catch (e) {}
+  }
   function podioFotosRestore() {
     const data = loadPodioFotos();
     (typeof PODIO_FOTO_SLOTS !== 'undefined' ? PODIO_FOTO_SLOTS : []).forEach(function(slot) {
@@ -18156,6 +18222,7 @@ document.addEventListener('keydown', function(e) {
         if (!dataUrl) return;
         const data = loadPodioFotos();
         data[slotKey] = dataUrl;
+        markPodioManual(slotKey);
         savePodioFotos(data);
         podioFotosRestore();
       });
@@ -18164,6 +18231,7 @@ document.addEventListener('keydown', function(e) {
       reader.onload = function(e) {
         const data = loadPodioFotos();
         data[slotKey] = e.target.result;
+        markPodioManual(slotKey);
         savePodioFotos(data);
         podioFotosRestore();
       };
@@ -18174,6 +18242,7 @@ document.addEventListener('keydown', function(e) {
   window.podioFotoDelete = function(slotKey) {
     const data = loadPodioFotos();
     delete data[slotKey];
+    markPodioManual(slotKey);
     savePodioFotos(data);
     podioFotosRestore();
     const fileInp = document.getElementById('podio-file-' + slotKey);
@@ -18191,3 +18260,5 @@ document.addEventListener('keydown', function(e) {
 })();
 </script>
 <script src="ensayo-guiado.js"></script>
+<script src="vendor/jszip.min.js"></script>
+<script src="duplas-fotos.js"></script>
