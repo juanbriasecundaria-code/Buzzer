@@ -42,7 +42,10 @@
     }
     db.ref('.info/connected').on('value',s=>{connected=!!s.val();status.dataset.connected=String(connected);});
     db.ref('velada/fixture').on('value',s=>{fixture=s.val();choose();},()=>{status.textContent='Sin fixture: usá el modo manual del juego.';});
-    db.ref('velada/resultados').on('value',s=>{results=s.val()||{};choose();},()=>{results={};status.textContent='Sin resultados remotos: cargá el resultado a mano en velada.';});
+    db.ref('velada/resultados').on('value',s=>{results=s.val()||{};choose();},()=>{
+      results=null;selected=null;
+      status.textContent='Sin resultados remotos: cargá el resultado a mano en velada.';
+    });
     setInterval(()=>{
       if(!connected)return;
       const match=options.getMatch() || (selected && selected.match);

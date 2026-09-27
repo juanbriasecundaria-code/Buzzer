@@ -6047,7 +6047,11 @@ function syncFixtureToFirebase() {
     const firma = JSON.stringify({ f1: payload.f1, f2: payload.f2 });
     if (firma === window._fixtureFirma) return; // no cambió nada, no re-escribir
     window._fixtureFirma = firma;
-    window._rtdb.ref('velada/fixture').set(payload);
+    Promise.resolve(window._rtdb.ref('velada/fixture').set(payload)).catch(e => {
+      if (window._fixtureFirma === firma) window._fixtureFirma = null;
+      console.warn('No se pudo publicar el fixture a Firebase', e);
+      showToast('⚠️', 'No se pudo publicar el fixture; comprobá la conexión y los permisos', false);
+    });
   } catch (e) { console.warn('No se pudo publicar el fixture a Firebase', e); }
 }
 
@@ -6105,7 +6109,7 @@ function markLocalTs(key, ts) {
     const V = 'https://www.gstatic.com/firebasejs/10.12.0/';
     const { initializeApp } = await import(V + 'firebase-app.js');
     const { getFirestore, doc, setDoc, getDoc } = await import(V + 'firebase-firestore.js');
-    const { getDatabase, ref: dbRef, onValue, set: dbSet, update: dbUpdate } = await import(V + 'firebase-database.js');
+    const { getDatabase, ref: dbRef, onValue, get: dbGet, set: dbSet, update: dbUpdate } = await import(V + 'firebase-database.js');
 
     const firebaseConfig = {
       apiKey: "AIzaSyB-1B426OH2ZYKHT1n8VVzmv0h_10186Zo",
@@ -6134,6 +6138,7 @@ function markLocalTs(key, ts) {
     window._rtdb = {
       ref: (path) => ({
         on: (ev, cb) => onValue(dbRef(rtdb, path), cb),
+        once: (ev) => ev === 'value' ? dbGet(dbRef(rtdb, path)) : Promise.reject(new Error('Evento no admitido: ' + ev)),
         set: (v) => dbSet(dbRef(rtdb, path), v),
         update: (v) => dbUpdate(dbRef(rtdb, path), v)
       })
@@ -7814,6 +7819,7 @@ async function openAutoResultadosModal() {
       window._autoResultados = results;
     } catch(e) {
       console.warn('No se pudieron leer los marcadores en vivo',e);
+      window._autoResultados = {};
       showToast('⚠️','No se pudieron leer los marcadores; podés cargarlos a mano',false);
     }
   }

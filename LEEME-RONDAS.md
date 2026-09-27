@@ -29,6 +29,14 @@ Los nombres y equipos se toman del fixture en el momento de activación. Si los 
 
 Se usa la conexión Firebase ya existente. Los celulares necesitan leer los nodos del juego y el panel necesita publicar la ronda. Si las reglas actuales restringen las rutas nuevas, el administrador deberá habilitar los permisos apropiados para `velada/palabras` y la publicación del fixture en los nodos existentes; no se incluyeron ni cambiaron reglas de seguridad.
 
-Pruebas realizadas: sintaxis JavaScript; armado de cruces individuales y por equipos; rechazo de participante ajeno, lado incorrecto y cruce vencido; un solo ganador; navegación móvil; desconexión; transición de ronda; respuestas de Erudito; publicación desde el fixture; conservación de metadatos y cancelación de cuentas regresivas anteriores en Guess y 100 Argentinos. Pruebas de navegador con Firebase simulado y sin escrituras en la base real.
+Pruebas anteriores declaradas: sintaxis JavaScript; armado de cruces individuales y por equipos; rechazo de participante ajeno, lado incorrecto y cruce vencido; un solo ganador; navegación móvil; desconexión; transición de ronda; respuestas de Erudito; publicación desde el fixture; conservación de metadatos y cancelación de cuentas regresivas anteriores en Guess y 100 Argentinos. Esas pruebas anteriores no equivalen a una prueba de punta a punta con Firebase real.
+
+## Verificación de la captura automática (27/09/2026)
+
+Se corrigió el adaptador Firebase del panel para que pueda leer los marcadores con `once('value')`: antes esa operación faltaba y el botón **Cargar resultados automáticamente** caía siempre en la carga manual. También se evita reutilizar resultados automáticos viejos si falla la lectura, se impide asignar el siguiente cruce si falla la lectura de resultados y se vuelve a intentar publicar el fixture cuando una escritura es rechazada.
+
+Pruebas ejecutadas con base simulada: asignación del primer cruce, marcador en vivo, captura al abrir el modal, bonus de Guess, avance al segundo cruce cuando el primero ya tiene resultado, empate, puntos generales, los dos destinatarios posibles de Dinero Rápido y carga manual tras un error de lectura. Pasaron las comprobaciones de sintaxis de los archivos `.js`.
+
+**Pendiente para usar en el evento:** prueba real con el Firebase configurado, sus reglas y dos dispositivos; comprobar el resultado final en la tabla. Si Firebase se corta durante El Erudito, la pantalla no ofrece una partida local equivalente: habrá que llevar el marcador por separado y cargar el cruce manualmente desde `velada.html`. La prueba simulada no valida la latencia ni los permisos reales.
 
 Antes del evento, probá una ronda con el panel y dos celulares conectados a tu Firebase real. La publicación, reglas de acceso y latencia reales no se validaron desde aquí.
