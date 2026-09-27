@@ -12,7 +12,7 @@
   async function publish(phase,matches,button,wholeRound){
     if(busy) return;
     const db=window._rtdb;
-    if(!db || !db.ref('').update){showToast('⚠️','Todavía no hay conexión. Probá de nuevo en unos segundos.',false);return;}
+    if(!db || !db.ref().update){showToast('⚠️','Todavía no hay conexión. Probá de nuevo en unos segundos.',false);return;}
     const context=ctx(phase), filtered=matches.filter(m=>BuzzerRounds.gameId(context.games[m[3]]));
     if(!filtered.length){showToast('ℹ️','No hay juegos vinculados en esa ronda.',false);return;}
     const games=filtered.map(m=>BuzzerRounds.gameId(context.games[m[3]]));
@@ -33,7 +33,7 @@
         updates[p+'/fixture']={active:false,id:token+'-closed',round:filtered[0][0],phase};
         if(game==='movies' || game==='argentinos'){updates[p+'/state']='locked';updates[p+'/winner']=null;}
       });
-      await db.ref('').update(updates);
+      await db.ref().update(updates);
       showToast('🔔','Ronda '+filtered[0][0]+' publicada. Los celulares ya pueden elegir su nombre.',false);
     }catch(e){showToast('⚠️','No se pudo activar: '+e.message,false);}
     finally{busy=false;if(button)button.disabled=false;}
