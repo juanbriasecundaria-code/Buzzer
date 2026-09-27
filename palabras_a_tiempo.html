@@ -1262,6 +1262,8 @@ window.VarSwitch = (function () {
   </div>
 
   <div class="footer-links">
+    <button class="reset-link" onclick="finalizarPartida()">🏁 finalizar y enviar</button>
+    <span class="footer-sep">·</span>
     <button class="reset-link" onclick="openDeckEditor()">✏️ editar mazo</button>
     <span class="footer-sep">·</span>
     <button class="reset-link" onclick="openPinConfig()">🔒 PIN</button>
@@ -1405,6 +1407,8 @@ const SK_DECK     = 'pat_deck';
 const SK_SCORE    = 'pat_score';
 const SK_NAMES    = 'pat_names';
 const SK_VAR      = 'pat_var';
+const SK_ROUNDS     = 'pat_rounds';      // historial de categorías jugadas (para el bonus)
+const SK_ROUND_BASE = 'pat_round_base';  // puntaje al momento de revelar la categoría actual
 
 let usedCats    = new Set();
 let selectedCat = null;
@@ -1415,6 +1419,8 @@ let score       = { a: 0, b: 0 };
 let teamNames   = { a: 'Equipo 1', b: 'Equipo 2' };
 let varUses     = { a: 3, b: 3 };  // chances de VAR por equipo
 let _varTeam    = null;             // equipo que pidió el VAR activo
+let roundsLog     = []; // [{cat, deltaA, deltaB, winner:'a'|'b'|'empate'}] — 1 entrada por categoría jugada
+let roundBaseline = null; // {a,b}: puntaje al momento de revelar la categoría en curso
 
 // ── MAZO ─────────────────────────────────────
 function loadDeck() {
@@ -1449,6 +1455,10 @@ function loadState() {
     if (nm) teamNames = Object.assign({ a: 'Equipo 1', b: 'Equipo 2' }, JSON.parse(nm));
     const vr = localStorage.getItem(SK_VAR);
     if (vr) varUses = Object.assign({ a: 3, b: 3 }, JSON.parse(vr));
+    const rl = localStorage.getItem(SK_ROUNDS);
+    if (rl) roundsLog = JSON.parse(rl) || [];
+    const rb = localStorage.getItem(SK_ROUND_BASE);
+    if (rb) roundBaseline = JSON.parse(rb);
   } catch(e) {}
 }
 function saveState() {
@@ -1458,6 +1468,24 @@ function saveState() {
     : localStorage.removeItem(SK_SELECTED);
   localStorage.setItem(SK_COMODIN, JSON.stringify(comodinUsed));
   localStorage.setItem(SK_VAR, JSON.stringify(varUses));
+  localStorage.setItem(SK_ROUNDS, JSON.stringify(roundsLog));
+  roundBaseline
+    ? localStorage.setItem(SK_ROUND_BASE, JSON.stringify(roundBaseline))
+    : localStorage.removeItem(SK_ROUND_BASE);
+}
+
+// ── TRACKING DE RONDAS (categoría = "ronda", para el bonus de "ganó sin
+// perder ninguna") ───────────────────────────────────────────────────
+// Cierra la categoría en curso comparando el puntaje contra el que había
+// cuando se reveló. Si nadie sumó nada, no cuenta como ronda jugada.
+function closeCurrentRound() {
+  if (!selectedCat || !roundBaseline) return;
+  const deltaA = (score.a || 0) - roundBaseline.a;
+  const deltaB = (score.b || 0) - roundBaseline.b;
+  roundBaseline = null;
+  if (deltaA === 0 && deltaB === 0) return;
+  const winner = deltaA > deltaB ? 'a' : (deltaB > deltaA ? 'b' : 'empate');
+  roundsLog.push({ cat: selectedCat, deltaA, deltaB, winner });
 }
 
 // ── MARCADOR / NOMBRES ───────────────────────
@@ -1714,7 +1742,9 @@ function launchRoulette(pool, winnerIdx, winner) {
         });
 
         // Commit the result
+        closeCurrentRound(); // cierra la categoría anterior (si había) antes de pisarla
         selectedCat = winner;
+        roundBaseline = { a: score.a || 0, b: score.b || 0 };
         usedCats.add(winner);
         saveState();
 
@@ -2175,11 +2205,50 @@ function resetAll() {
   _varTeam    = null;
   isSpinning  = false;
   score       = { a: 0, b: 0 };
+  roundsLog     = [];
+  roundBaseline = null;
   saveScore();
   saveState();
   syncUI();
   syncScoreUI();
   if (navigator.vibrate) navigator.vibrate(25);
+  });
+}
+
+// ── FINALIZAR PARTIDA (envía el resultado a velada/resultados/<matchId>) ──
+// Reglas de bonus para "Palabras a Tiempo": ganar sin perder ninguna
+// categoría, o por 2+ de diferencia (esto último lo decide velada.html con
+// el marcador final; acá solo mandamos si el ganador no perdió ninguna).
+function computeBonusInfo() {
+  const sinPerderA = roundsLog.every(r => r.winner !== 'b');
+  const sinPerderB = roundsLog.every(r => r.winner !== 'a');
+  return { sinPerderRonda: { a: sinPerderA, b: sinPerderB } };
+}
+
+function finalizarPartida() {
+  closeCurrentRound(); // computa la última categoría jugada antes de cortar
+  saveState();
+  const match = window._palabrasCurrentMatch;
+  if (!match || !match.active) {
+    alert('Esta pantalla todavía no tiene un cruce del fixture asignado (modo manual/sin conexión).\n\nAnotá el marcador (' + score.a + ' - ' + score.b + ') y cargalo a mano desde el panel del organizador.');
+    return;
+  }
+  customConfirm('¿Finalizar esta partida y enviar el resultado (' + score.a + ' - ' + score.b + ')?\n\nNo vas a poder seguir sumando puntos para este cruce.', () => {
+    const winner = score.a > score.b ? 'a' : (score.b > score.a ? 'b' : 'empate');
+    const payload = {
+      winner,
+      marcador: { a: score.a || 0, b: score.b || 0 },
+      bonusInfo: computeBonusInfo(),
+      t: Date.now()
+    };
+    const matchId = match.phase + '-' + match.key;
+    if (!window._palabrasDb) {
+      alert('Sin conexión con Firebase — anotá el marcador (' + score.a + ' - ' + score.b + ') y cargalo a mano desde el panel del organizador.');
+      return;
+    }
+    window._palabrasDb.ref('velada/resultados/' + matchId).set(payload)
+      .then(() => { if (navigator.vibrate) navigator.vibrate([30, 60, 30]); })
+      .catch(e => { alert('No se pudo enviar el resultado: ' + e.message + '\n\nAnotalo a mano desde el panel del organizador.'); });
   });
 }
 
