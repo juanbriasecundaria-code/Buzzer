@@ -7,7 +7,13 @@
   document.getElementById('ts-section-label').before(box);
   function managed(){return !!BuzzerRounds.paths[currentGame];}
   const oldPhotos=window.onQldPhotosUpdate;
-  window.onQldPhotosUpdate=function(){if(!managed()&&oldPhotos)oldPhotos();};
+  window.onQldPhotosUpdate=function(){if(managed())render();else if(oldPhotos)oldPhotos();};
+  function avatarHtml(name){
+    const photo=(window.qldPhotos||{})[name];
+    if(photo) return '<img src="'+photo+'" alt="" style="width:46px;height:46px;border-radius:50%;object-fit:cover;flex-shrink:0;border:1.5px solid var(--border2,#444)">';
+    const initial=(String(name||'?').trim()[0]||'?').toUpperCase();
+    return '<div style="width:46px;height:46px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:800;background:rgba(192,96,232,.22);border:1.5px solid var(--purple,#c060e8);color:var(--purple,#c060e8)">'+initial+'</div>';
+  }
   function hideTransient(){['bz-record','bz-verdict','bz-early'].forEach(id=>{const e=document.getElementById(id);if(e)e.classList.remove('show');});}
   function clear(){
     hideTransient();
@@ -30,6 +36,7 @@
     (match.players||[]).forEach(p=>{
       const button=document.createElement('button');button.className='team-btn team-'+p.side;
       button.style.cssText='display:flex;flex-direction:column;gap:5px;align-items:center';
+      button.insertAdjacentHTML('beforeend',avatarHtml(p.name));
       const n=document.createElement('span');n.textContent=p.name;button.append(n);
       if(match.phase==='f2'){
         const team=document.createElement('small');team.style.cssText='font-size:11px;opacity:.65';team.textContent=p.teamLabel;button.append(team);

@@ -2,8 +2,7 @@
 (function(){
   let busy=false;
   window.buzzerMatchButton=function(phase,index,game){
-    if(!BuzzerRounds.gameId(game)) return '';
-    return '<button class="fixture-edit-toggle" style="margin:4px 0 10px" onclick="activateBuzzerMatch(\''+phase+'\','+index+',this)">▶ Activar este cruce</button>';
+    return ''; // Se activa todo desde "Activar ronda N"; el botón por cruce quedó sin uso.
   };
   window.buzzerRoundButton=function(phase,round){
     return '<button class="fixture-edit-toggle" style="margin-left:10px" onclick="activateBuzzerRound(\''+phase+'\','+round+',this)">▶ Activar ronda '+round+'</button>';
