@@ -387,6 +387,7 @@ body { animation: appEnter .32s ease-out both; }
 .skip-splash #splash{display:none!important}
 
 </style>
+<script src="buzzer-rounds.js"></script>
 </head>
 <body>
 <script>if(new URLSearchParams(location.search).get('hub')) document.documentElement.classList.add('skip-splash');</script>
@@ -447,22 +448,22 @@ body { animation: appEnter .32s ease-out both; }
   <!-- Submenú MINIJUEGOS -->
   <div class="submenu sm-mini">
     <div class="submenu-head"><span class="sm-ic">🎲</span><span class="sm-tx">Complementos</span><span class="sm-line"></span></div>
-    <a class="game-btn game-tiempo" href="palabras_a_tiempo.html">
+    <button class="game-btn game-tiempo" onclick="selectGame('palabras')">
       <span class="game-btn-icon">⏱️</span>
       <div class="game-btn-info">
         <span class="game-btn-name">Palabras a Tiempo</span>
         <span class="game-btn-sub">Palabras por categoría contra reloj</span>
       </div>
       <span class="game-arrow">›</span>
-    </a>
-    <a class="game-btn game-erudito" href="el_erudito.html">
+    </button>
+    <button class="game-btn game-erudito" onclick="selectGame('erudito')">
       <span class="game-btn-icon">🧠</span>
       <div class="game-btn-info">
         <span class="game-btn-name">El Erudito</span>
         <span class="game-btn-sub">Preguntas de aproximación numérica</span>
       </div>
       <span class="game-arrow">›</span>
-    </a>
+    </button>
     <!-- El Impostor vive dentro de velada.html, que está protegida por
          contraseña: pasamos por el mismo modal y después saltamos a su pestaña. -->
     <!-- Entra directo: el Impostor se juega en grupo y no expone puntajes ni
@@ -532,7 +533,7 @@ body { animation: appEnter .32s ease-out both; }
 
 <!-- ③ PANTALLA DE BUZZER -->
 <div class="screen" id="buzz-screen" style="position:relative">
-  <button class="back-btn" onclick="goBack('team')">← Cambiar equipo</button>
+  <button class="back-btn" onclick="goBack('team')">← Cambiar participante</button>
   <div class="bz-game-tag" id="bz-game-tag">Guess Movies &amp; Songs</div>
   <div class="bz-team-name" id="bz-team-name">🔵 Equipo 1</div>
   <div class="bz-status" id="bz-status">Esperando al conductor…</div>
@@ -587,12 +588,16 @@ const FB_CFG = {
 
 // Ruta en Firebase según el juego
 const GAME_PATHS = {
+  palabras:   'velada/palabras',
+  erudito:    'velada/erudito',
   movies:     'velada/buzzer',
   argentinos: 'argentinos/buzzer',
   quien:      'velada/qld/buzzer'
 };
 
 const GAME_META = {
+  palabras:   { icon:'⏱️', name:'Palabras a Tiempo' },
+  erudito:    { icon:'🧠', name:'El Erudito' },
   movies:     { icon:'🎬', name:'Guess Movies & Songs' },
   argentinos: { icon:'🎤', name:'100 Argentinos Dicen' },
   quien:      { icon:'🗣️', name:'¿Quién lo dijo?', individual:true }
@@ -1510,8 +1515,8 @@ function checkPw(){
   const p = new URLSearchParams(window.location.search);
   const g = p.get('game'), t = p.get('team');
   if(g && GAME_PATHS[g]){
-    selectGame(g);
-    if(t==='a'||t==='b') setTimeout(()=>selectTeam(t), 800);
+    window.addEventListener('load',()=>selectGame(g),{once:true});
+    // Se elige el participante del cruce activo, no un equipo por URL.
   }
 })();
 </script>
@@ -1580,5 +1585,6 @@ window.qldPhotos = window.qldPhotos || {};
   ['pointerdown', 'keydown'].forEach(ev => document.addEventListener(ev, pedir, { passive: true }));
 })();
 </script>
+<script src="hub-rounds.js"></script>
 </body>
 </html>

@@ -1009,7 +1009,9 @@ body.vb-clean .vb-peek { display: flex; }
   font-size:10px;font-weight:800;color:var(--muted);letter-spacing:.1em;
   text-transform:uppercase;margin:0 .5rem}
 </style>
-<style>.hub-link{position:fixed;top:0;left:max(.6rem,env(safe-area-inset-left));height:44px;margin-top:env(safe-area-inset-top);display:inline-flex;align-items:center;z-index:9992;font-size:11px;font-weight:700;color:rgba(240,239,232,0.7);background:transparent;border:none;padding:0 .3rem;text-decoration:none;letter-spacing:0.04em;transition:color 0.15s;white-space:nowrap}.hub-link:hover{color:#f0efe8}</style></head>
+<style>.hub-link{position:fixed;top:0;left:max(.6rem,env(safe-area-inset-left));height:44px;margin-top:env(safe-area-inset-top);display:inline-flex;align-items:center;z-index:9992;font-size:11px;font-weight:700;color:rgba(240,239,232,0.7);background:transparent;border:none;padding:0 .3rem;text-decoration:none;letter-spacing:0.04em;transition:color 0.15s;white-space:nowrap}.hub-link:hover{color:#f0efe8}</style><script src="buzzer-rounds.js"></script>
+<script src="round-host.js"></script>
+</head>
 <body>
 <!-- ══════════════════════════════════════════════════════════════════
      INTERRUPTOR GLOBAL DEL VAR
@@ -1095,6 +1097,8 @@ window.VarSwitch = (function () {
         let app;
         try { app = firebase.app('varcfg'); } catch (e) { app = firebase.initializeApp(CFG, 'varcfg'); }
         attachRef(app.database().ref(RTDB_PATH));
+        window._palabrasDb=app.database();
+        window.dispatchEvent(new Event('palabras-db-ready'));
         if (_connDot) _connDot.classList.add('on');
       } catch (e) {
         console.warn('VarSwitch: sin sincronización remota, se usa localStorage', e);
@@ -2656,5 +2660,6 @@ window.veladaConn = function(estado){
   ['pointerdown', 'keydown'].forEach(ev => document.addEventListener(ev, pedir, { passive: true }));
 })();
 </script>
+<script src="palabras-rounds.js"></script>
 </body>
 </html>

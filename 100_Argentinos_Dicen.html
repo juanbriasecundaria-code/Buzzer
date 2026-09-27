@@ -782,7 +782,10 @@ body.vb-clean .vb-peek { display: flex; }
 }
 
 </style>
-<style>.hub-link{position:fixed;top:0;left:max(.6rem,env(safe-area-inset-left));height:44px;margin-top:env(safe-area-inset-top);display:inline-flex;align-items:center;z-index:9992;font-size:11px;font-weight:700;color:rgba(240,239,232,0.7);background:transparent;border:none;padding:0 .3rem;text-decoration:none;letter-spacing:0.04em;transition:color 0.15s;white-space:nowrap}.hub-link:hover{color:#f0efe8}</style></head>
+<style>.hub-link{position:fixed;top:0;left:max(.6rem,env(safe-area-inset-left));height:44px;margin-top:env(safe-area-inset-top);display:inline-flex;align-items:center;z-index:9992;font-size:11px;font-weight:700;color:rgba(240,239,232,0.7);background:transparent;border:none;padding:0 .3rem;text-decoration:none;letter-spacing:0.04em;transition:color 0.15s;white-space:nowrap}.hub-link:hover{color:#f0efe8}</style><script src="buzzer-rounds.js"></script>
+<script src="round-host.js"></script>
+<script src="argentinos-rounds.js"></script>
+</head>
 <body>
 <div class="velada-bar"></div>
 <div class="velada-bar-title"><span class="vb-icon">🪄</span>100 Argentinos Dicen</div>
@@ -1492,6 +1495,7 @@ function setSizeTemp(team, n) {
 }
 function closeNameEditor() { _pendingSizes = null; document.getElementById('names-overlay').classList.remove('open'); }
 function saveNames() {
+  if(window.currentFixtureMatch && currentFixtureMatch()?.active){showToast('Los nombres se cambian desde el fixture');return;}
   const a = (document.getElementById('name-input-a').value || '').trim();
   const b = (document.getElementById('name-input-b').value || '').trim();
   teamNames.a = a || 'Equipo 1'; teamNames.b = b || 'Equipo 2';
@@ -2923,7 +2927,8 @@ function initFirebase(){
   try{
     if(!firebase.apps.some(a => a.name === '[DEFAULT]')) firebase.initializeApp(FB_CFG);
     fbDb = firebase.database();
-    fbRef = fbDb.ref('argentinos/buzzer');  // ruta exclusiva para este juego
+    fbRef = fbDb.ref('argentinos/buzzer');
+    connectArgentinosRound(fbRef);  // ruta exclusiva para este juego
     fbInited = true;
     if(window.initReactions) initReactions();   // emojis de los invitados
     fbDb.ref('.info/connected').on('value', snap => {

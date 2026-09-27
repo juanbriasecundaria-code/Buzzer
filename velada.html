@@ -3792,7 +3792,9 @@ body.solo-impostor #tv-btn{ opacity:.42 }
 .pr-del{ background:none; border:none; color:var(--danger); font-size:9px;
   cursor:pointer; font-family:inherit; padding:1px }
 </style>
-<style>.hub-link{position:fixed;top:max(0.75rem,env(safe-area-inset-top));left:max(0.75rem,env(safe-area-inset-left));z-index:99999;font-size:11px;font-weight:700;color:rgba(240,239,232,0.7);background:rgba(10,10,14,0.6);border:1px solid rgba(255,255,255,0.1);border-radius:99px;padding:0.38rem 0.85rem;text-decoration:none;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);letter-spacing:0.04em;transition:color 0.15s,border-color 0.15s;white-space:nowrap}.hub-link:hover{color:#f0efe8;border-color:rgba(255,255,255,0.25)}body:has(.ceremony.show) .hub-link{display:none}</style></head>
+<style>.hub-link{position:fixed;top:max(0.75rem,env(safe-area-inset-top));left:max(0.75rem,env(safe-area-inset-left));z-index:99999;font-size:11px;font-weight:700;color:rgba(240,239,232,0.7);background:rgba(10,10,14,0.6);border:1px solid rgba(255,255,255,0.1);border-radius:99px;padding:0.38rem 0.85rem;text-decoration:none;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);letter-spacing:0.04em;transition:color 0.15s,border-color 0.15s;white-space:nowrap}.hub-link:hover{color:#f0efe8;border-color:rgba(255,255,255,0.25)}body:has(.ceremony.show) .hub-link{display:none}</style><script src="buzzer-rounds.js"></script>
+<script src="velada-rounds.js"></script>
+</head>
 <body>
 <script>window.VAR_SWITCH_MANUAL = true;</script>
 <!-- ══════════════════════════════════════════════════════════════════
@@ -6063,7 +6065,7 @@ function markLocalTs(key, ts) {
     const V = 'https://www.gstatic.com/firebasejs/10.12.0/';
     const { initializeApp } = await import(V + 'firebase-app.js');
     const { getFirestore, doc, setDoc, getDoc } = await import(V + 'firebase-firestore.js');
-    const { getDatabase, ref: dbRef, onValue, set: dbSet } = await import(V + 'firebase-database.js');
+    const { getDatabase, ref: dbRef, onValue, set: dbSet, update: dbUpdate } = await import(V + 'firebase-database.js');
 
     const firebaseConfig = {
       apiKey: "AIzaSyB-1B426OH2ZYKHT1n8VVzmv0h_10186Zo",
@@ -6092,7 +6094,8 @@ function markLocalTs(key, ts) {
     window._rtdb = {
       ref: (path) => ({
         on: (ev, cb) => onValue(dbRef(rtdb, path), cb),
-        set: (v) => dbSet(dbRef(rtdb, path), v)
+        set: (v) => dbSet(dbRef(rtdb, path), v),
+        update: (v) => dbUpdate(dbRef(rtdb, path), v)
       })
     };
 
@@ -6211,13 +6214,13 @@ function markLocalTs(key, ts) {
 function resetBuzzers(){
   const db = window._qldDb;
   if(!db){ showToast('⚠️', 'Todavía no hay conexión con los buzzers — probá en unos segundos', false); return; }
-  if(!confirm('¿Restablecer los buzzers?\n\n· Nombres → Equipo 1 / Equipo 2\n· Puntajes → 0\n\nAfecta a Guess Movies & Songs y 100 Argentinos Dicen.\nNo toca ¿Quién lo dijo? ni el ranking de la velada.')) return;
+  if(!confirm('¿Restablecer los buzzers?\n\n· Se desactiva el cruce actual (hay que activarlo de nuevo desde el fixture)\n· Puntajes → 0\n\nAfecta a Guess Movies & Songs y 100 Argentinos Dicen.\nNo toca ¿Quién lo dijo? ni el ranking de la velada.')) return;
   const ts = Date.now();
   const payload = { state:'locked', winner:null, blocked:null, names:{ a:'Equipo 1', b:'Equipo 2' }, reset: ts };
   let ok = 0, fail = 0;
   ['velada/buzzer', 'argentinos/buzzer'].forEach(p => {
     db.ref(p).set(payload)
-      .then(() => { ok++; if(ok + fail === 2) showToast('↺', 'Buzzers restablecidos — Equipo 1 / Equipo 2, marcador en 0', false); })
+      .then(() => { ok++; if(ok + fail === 2) showToast('↺', 'Buzzers restablecidos. Activá un cruce desde el fixture.', false); })
       .catch(e => { fail++; console.warn('reset', p, e); showToast('⚠️', 'No se pudo restablecer ' + p, false); });
   });
 }
@@ -6725,7 +6728,7 @@ function renderFixtureF1() {
           return `<span class="bye-tag">😴 Descansa: ${PLAYERS[idx]}${missingTxt}</span>`;
         }).join(' ')
       : '';
-    html += `<div class="fixture-round"><div class="round-label">Ronda ${r} ${byeTag}</div>`;
+    html += `<div class="fixture-round"><div class="round-label">Ronda ${r} ${byeTag} ${buzzerRoundButton('f1',r)}</div>`;
 
     matches.forEach(([round, a, b, g]) => {
       const key = `${round}-${a}-${b}`;
@@ -6764,7 +6767,7 @@ function renderFixtureF1() {
           <span class="match-game-badge" style="background:${gbg};color:${gcol};font-weight:600">${game}</span>
           <span class="match-players">${pA.split(' ')[0]} vs ${pB.split(' ')[0]}</span>
           <span class="match-result ${res ? 'set' : ''}">${res ? resultText : 'Cargar'}</span>
-        </div>`;
+        </div>${buzzerMatchButton('f1',matchIdx,game)}`;
       }
     });
     html += '</div>';
@@ -7311,7 +7314,7 @@ function renderFixtureF2() {
           return `<span class="bye-tag">😴 Descansa: ${name}${missingTxt}</span>`;
         }).join(' ')
       : '';
-    html += `<div class="fixture-round"><div class="round-label">Ronda ${r} ${byeTag}</div>`;
+    html += `<div class="fixture-round"><div class="round-label">Ronda ${r} ${byeTag} ${buzzerRoundButton('f2',r)}</div>`;
     matches.forEach(([round, a, b, g]) => {
       const key = `${round}-${a}-${b}`;
       const res = state.f2[key];
@@ -7349,7 +7352,7 @@ function renderFixtureF2() {
           <span class="match-game-badge" style="background:${gbg};color:${gcol};font-weight:600">${game}</span>
           <span class="match-players" style="font-size:12px">${tA.split('/')[0].trim()} vs ${tB.split('/')[0].trim()}</span>
           <span class="match-result ${res ? 'set' : ''}">${res ? resultText : 'Cargar'}</span>
-        </div>`;
+        </div>${buzzerMatchButton('f2',matchIdx,game)}`;
       }
     });
     html += '</div>';

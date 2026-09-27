@@ -619,6 +619,9 @@ body.vb-clean .vb-peek { display: flex; }
   text-transform:uppercase;margin:0 .5rem}
 </style>
 <style>.hub-link{position:fixed;top:0;left:max(.6rem,env(safe-area-inset-left));height:44px;margin-top:env(safe-area-inset-top);display:inline-flex;align-items:center;z-index:9992;font-size:11px;font-weight:700;color:rgba(240,239,232,0.7);background:transparent;border:none;padding:0 .3rem;text-decoration:none;letter-spacing:0.04em;transition:color 0.15s;white-space:nowrap}.hub-link:hover{color:#f0efe8}</style>
+<script src="buzzer-rounds.js"></script>
+<script src="round-host.js"></script>
+<script src="erudito-rounds.js"></script>
 </head>
 <body>
 
@@ -678,7 +681,7 @@ body.vb-clean .vb-peek { display: flex; }
 
 <!-- ② JUEGO -->
 <div class="screen pad" id="screen-game">
-  <a class="back-link" href="#" onclick="leaveGame(event)">← Cambiar equipo</a>
+  <a class="back-link" href="#" onclick="leaveGame(event)">← Cambiar participante</a>
   <div class="config-link" id="config-gear" onclick="openConfig()">⚙️</div>
 
   <div class="er-header">
@@ -909,6 +912,7 @@ function initFirebase(){
     if(!firebase.apps.some(a => a.name === '[DEFAULT]')) firebase.initializeApp(FB_CFG);
     fbDb = firebase.database();
     fbRef = fbDb.ref(FB_PATH);
+    connectEruditoRound(fbRef);
     fbInited = true;
     fbDb.ref('.info/connected').on('value', snap=>{
       const ok = snap.val();
@@ -922,6 +926,7 @@ function initFirebase(){
       G = snap.val();
       if(!G){ G = JSON.parse(JSON.stringify(DEFAULT_STATE)); }
       onState();
+      if(window.syncEruditoRound)syncEruditoRound();
     }, e=>{ setFbStatus('error', 'Error: '+e.message); });
     console.log('[Firebase] Erudito init OK');
   }catch(e){
@@ -982,7 +987,7 @@ function onState(){
   bumpScore('a', a.score||0);
   bumpScore('b', b.score||0);
   _setText('sb-target', 'a ' + (G.limit||7));
-  _setText('round-counter', 'Ronda ' + (G.round||1));
+  _setText('round-counter', 'Pregunta ' + (G.round||1));
 
   // Marca de "vos sos este equipo"
   document.getElementById('sb-team-a').classList.toggle('you', myTeam==='a');
@@ -1647,7 +1652,7 @@ function dismissSplash(){
   setTimeout(()=>{
     // entrar a selección de equipo (o reconectar al equipo guardado)
     let saved = null;
-    try { saved = localStorage.getItem('erudito_team'); } catch(e){}
+    // La identidad debe elegirse para el cruce activo, no restaurarse por lado.
     if(saved === 'a' || saved === 'b'){
       myTeam = saved;
       showScreen('game');

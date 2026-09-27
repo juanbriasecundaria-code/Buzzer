@@ -618,7 +618,10 @@ body.vb-clean .vb-peek { display: flex; }
   body.gms-tv .velada-bar-dot,
   body.gms-tv .hub-link{display:none}
 }
-</style></head>
+</style><script src="buzzer-rounds.js"></script>
+<script src="round-host.js"></script>
+<script src="guess-rounds.js"></script>
+</head>
 <body>
 <div class="velada-bar"></div>
 <div class="velada-bar-title"><span class="vb-icon">🎬</span>Guess Movie · Song</div>
@@ -1087,6 +1090,7 @@ function initFirebase(){
     if(!firebase.apps.some(a => a.name === '[DEFAULT]')) firebase.initializeApp(FB_CFG);
     fbDb = firebase.database();
     fbRef = fbDb.ref('velada/buzzer');
+    connectGuessRound(fbRef);
     fbDeckRef = fbDb.ref('velada/deck');
     fbStateRef = fbDb.ref('velada/live');
     if(window.initReactions) initReactions();   // emojis de los invitados
@@ -1155,6 +1159,7 @@ function startCondListener(){
   let _lastReset = null; // el primer snapshot solo se registra, no se aplica
   fbRef.on('value', snap=>{
     const d = snap.val() || {};
+    if(d.fixture && d.fixture.active)d.names=d.fixture.names;
     // ── Orden de reset mandada desde velada.html ──
     const rTs = d.reset || 0;
     if(_lastReset === null){ _lastReset = rTs; }
@@ -1823,7 +1828,7 @@ function applyMode(m){
     startCondListener();
     syncMuteBtns();
     initShortcutsDock();
-    if(fbRef){ fbRef.child('names').set({a:nameA,b:nameB}); fbLock(); }
+    if(fbRef) fbLock();
     setFbStatus('ready','🔒 Bloqueado — mostrá la carta para habilitar');
     // 1. Cargar desde IndexedDB (tiene las imágenes locales pesadas)
     loadDeckIDB().then(foundIDB=>{
@@ -3085,7 +3090,7 @@ function ytIdFromUrl(url){if(!url)return'';url=url.trim();const m=url.match(/(?:
 // ─── NAME EDITOR ─────────────────────────────────────────────────
 function openNameEditor(){document.getElementById('ni-a').value=nameA;document.getElementById('ni-b').value=nameB;document.getElementById('name-ov').classList.add('open');}
 function closeNameEditor(){document.getElementById('name-ov').classList.remove('open');}
-function saveNames(){nameA=document.getElementById('ni-a').value.trim()||'Equipo 1';nameB=document.getElementById('ni-b').value.trim()||'Equipo 2';_saveNames();syncNamesUI();syncPhaseUI();closeNameEditor();if(fbRef)fbRef.child('names').set({a:nameA,b:nameB});sendState();}
+function saveNames(){if(window.currentFixtureMatch && currentFixtureMatch()?.active){showToast('Los nombres se cambian desde el fixture');return;}nameA=document.getElementById('ni-a').value.trim()||'Equipo 1';nameB=document.getElementById('ni-b').value.trim()||'Equipo 2';_saveNames();syncNamesUI();syncPhaseUI();closeNameEditor();if(fbRef)fbRef.child('names').set({a:nameA,b:nameB});sendState();}
 
 // ─── URL PARAM AUTO-MODE ─────────────────────────────────────────
 // (El modo buzzer por URL se movió al index.html universal.)
