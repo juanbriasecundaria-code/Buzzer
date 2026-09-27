@@ -4122,6 +4122,13 @@ window.VarSwitch = (function () {
 </div>
 
 <!-- ======================== MODAL ======================== -->
+<div class="modal-bg" id="ensayo-modal-bg" role="dialog" aria-modal="true" aria-label="Ensayo guiado">
+  <div class="modal" style="max-width:720px;width:96vw;max-height:90vh;overflow-y:auto">
+    <div class="modal-title">🧪 Ensayo guiado</div>
+    <div id="ensayo-modal-body"></div>
+    <div class="modal-actions"><button class="btn btn-ghost" onclick="closeEnsayoGuiado()">Cerrar</button></div>
+  </div>
+</div>
 <div class="modal-bg" id="modal-bg">
   <div class="modal">
     <div class="modal-title" id="modal-title">Cargar resultado</div>
@@ -6061,6 +6068,7 @@ function saveState() {
   // (overrides de celda, Impostor completo, ¿Quién lo dijo?, apuestas...).
   // El Modo TV y los celulares los usan tal cual en vez de recalcular.
   try { state.liveTotals = computeLiveTotals(); } catch (e) {}
+  if (FINAL_CONFIG && TERCER_CONFIG) state.finalPublic = finalPublicSnapshot();
   const json = JSON.stringify(state);
   // Si el almacenamiento local está lleno (pasa con muchas fotos cargadas),
   // setItem lanza y ANTES eso cortaba la función entera: no llegaba nada a la
@@ -6089,7 +6097,6 @@ function saveState() {
     try { window._ltCloudSig = JSON.stringify(state.liveTotals || null); } catch (e) {}
   }
   syncFixtureToFirebase();
-  publishFinalPublic();
 }
 
 // ============================================================
@@ -6219,10 +6226,10 @@ function markLocalTs(key, ts) {
       try {
         await escribir(key, value);
       } catch (e) {
-        console.warn('Firebase write error:', e);
+        console.warn('Firebase write error (ndj/' + key + '):', e);
         if (e && e.code === 'permission-denied' && !_avisoPermiso) {
           _avisoPermiso = true;
-          try { showToast('⚠️', 'La nube rechazó el guardado: revisá las reglas de Firebase', false); } catch (e2) {}
+          try { showToast('⚠️', 'Firebase rechazó ndj/' + key + ': revisá las reglas de ese documento', false); } catch (e2) {}
         }
         throw e;
       }
@@ -6248,7 +6255,6 @@ function markLocalTs(key, ts) {
       return null;
     };
     window._fbReady = true;
-    try { publishFinalPublic(); } catch (e) { console.warn('Cuadro final:', e); }
     console.log('Firebase listo ✓');
   `;
   document.head.appendChild(script);
@@ -12677,24 +12683,18 @@ function saveCuartoConfig() {
   publishFinalPublic();
 }
 
-// Datos livianos del cuadro para el celular; los pósters y fotos quedan locales.
-let _finalPublicSignature = '';
-let _finalPublishQueue = Promise.resolve();
-function publishFinalPublic() {
-  if (!window._fbReady || !window._fbWrite || !FINAL_CONFIG || !TERCER_CONFIG) return;
-  const data = {
+// El cuadro viaja junto al estado existente, sin crear otro documento con reglas distintas.
+function finalPublicSnapshot() {
+  return {
     final: { companero: FINAL_CONFIG.companero || '', duplaEquipo: FINAL_CONFIG.duplaEquipo || '', juego: FINAL_CONFIG.juego || '',
       ganador: FINAL_CONFIG.ganador || '', segundo: SEGUNDO_CONFIG?.ganador || '' },
     tercero: { companero: TERCER_CONFIG.companero || '', duplaEquipo: TERCER_CONFIG.duplaEquipo || '', juego: TERCER_CONFIG.juego || '',
       ganador: TERCER_CONFIG.ganador || '', cuarto: CUARTO_CONFIG?.ganador || '' }
   };
-  const json = JSON.stringify(data);
-  if (json === _finalPublicSignature) return;
-  _finalPublicSignature = json;
-  _finalPublishQueue = _finalPublishQueue.catch(() => {}).then(() => window._fbWrite('finalPublic', json)).catch(e => {
-    if (_finalPublicSignature === json) _finalPublicSignature = '';
-    console.warn('No se pudo publicar el cuadro final:', e);
-  });
+}
+function publishFinalPublic() {
+  if (!FINAL_CONFIG || !TERCER_CONFIG) return;
+  saveState();
 }
 
 // ============================================================
@@ -17333,15 +17333,6 @@ function openMotesRevealWindow() {
   <div id="done-screen">
     <div class="big">✉️ Eso es todo</div>
     <div style="color:var(--muted);font-size:clamp(14px,1.6vw,18px)">Ya se revelaron todos los motes de la noche.</div>
-</div>
-
-<!-- El ensayo solo lee el estado; sus botones de juego reutilizan los flujos existentes. -->
-<div class="modal-bg" id="ensayo-modal-bg" role="dialog" aria-modal="true" aria-label="Ensayo guiado">
-  <div class="modal" style="max-width:720px;width:96vw;max-height:90vh;overflow-y:auto">
-    <div class="modal-title">🧪 Ensayo guiado</div>
-    <div id="ensayo-modal-body"></div>
-    <div class="modal-actions"><button class="btn btn-ghost" onclick="closeEnsayoGuiado()">Cerrar</button></div>
-  </div>
 </div>
 
 <script>

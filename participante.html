@@ -155,7 +155,11 @@
   .pa-duo { display: inline-flex; align-items: center; flex-shrink: 0; }
   .pa-duo > *:nth-child(2) { margin-left: -8px; }
   .pa-duo > *:nth-child(1) { z-index: 1; position: relative; }
-  .ranking-name { display: inline-flex; align-items: center; gap: 0.5rem; }
+  .ranking-name { display: inline-flex; align-items: center; gap: 0.5rem; min-width: 0; }
+  .ranking-you { display: inline-block; margin-left: .2rem; padding: .12rem .35rem;
+    border-radius: 99px; background: rgba(200,240,96,.16); color: var(--accent);
+    font: 800 9px var(--font-head); letter-spacing: .05em; vertical-align: middle; white-space: nowrap; }
+  .card.f2 .ranking-you { background: rgba(96,180,240,.16); color: var(--info); }
   .gh-eyebrow { font-family: var(--font-head); font-size: 11.5px; font-weight: 700; letter-spacing: 0.22em; text-transform: uppercase; color: var(--muted); margin-bottom: 0.4rem; }
   .gh-title { font-family: var(--font-head); font-size: 26px; font-weight: 700; color: var(--accent); letter-spacing: -0.01em; text-shadow: 0 0 24px var(--accent-glow); }
 
@@ -245,12 +249,14 @@
   .gh-toggle::-webkit-details-marker { display: none; }
   .gh-toggle-arrow { transition: transform 0.18s var(--ease); color: var(--muted); font-size: 11px; }
   .gh-toggle.open .gh-toggle-arrow, details[open] > .gh-toggle .gh-toggle-arrow { transform: rotate(90deg); color: var(--accent); }
-  .ranking { width: 100%; border-collapse: collapse; margin-top: 0.75rem; }
+  .ranking { width: 100%; border-collapse: separate; border-spacing: 0; margin-top: 0.75rem; }
   .ranking th { font-family: var(--font-head); font-size: 10.5px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); text-align: left; padding: 0.5rem 0.5rem; border-bottom: 1px solid var(--border); }
   .ranking td { padding: 0.6rem 0.5rem; border-bottom: 1px solid var(--border); font-size: 13px; }
   .ranking tr:last-child td { border-bottom: none; }
-  .ranking tr.me td { background: var(--accent-dim); font-weight: 700; box-shadow: inset 2px 0 0 var(--accent); }
-  .card.f2 .ranking tr.me td { background: var(--info-dim); box-shadow: inset 2px 0 0 var(--info); }
+  .ranking tr.me td { background: var(--accent-dim); font-weight: 700; box-shadow: none; border-bottom-color: transparent; }
+  .card.f2 .ranking tr.me td { background: var(--info-dim); }
+  .ranking tr.me td:first-child { border-radius: 9px 0 0 9px; }
+  .ranking tr.me td:last-child { border-radius: 0 9px 9px 0; }
   .ranking tr:nth-child(1) td.pos::before { content: '🥇 '; }
   .ranking tr:nth-child(2) td.pos::before { content: '🥈 '; }
   .ranking tr:nth-child(3) td.pos::before { content: '🥉 '; }
@@ -770,15 +776,7 @@ async function saveBetAtomically(type, key, myName, pick) {
   });
 }
 
-// ── Roster / fixtures por defecto (se pisan si el organizador editó el roster) ──
-const PLAYERS_DEFAULT = ['Risu','Totti','Thiago','Mica','Valentín','Laza','Lara','Martín','Cori','Flor','Tomás'];
-const TEAMS_DEFAULT = [
-  'Martín / Valentín',
-  'Laza / Tomás',
-  'Thiago / Lara',
-  'Totti / Risu',
-  'Cori / Flor / Mica'
-];
+// ── Roster / fixture: llegan del conductor, nunca de una lista local fija. ──
 const FULL_NAMES = {
   'Risu':'Risu','Totti':'Totti','Thiago':'Thiago C.','Mica':'Micaela B.','Valentín':'Valentín A.',
   'Laza':'Lázaro G.','Lara':'Lara M.','Martín':'Martín H.','Cori':'Coral O.','Flor':'Florencia L.','Tomás':'Tomás P.'
@@ -787,8 +785,8 @@ const GAMES_F1_DEFAULT = ['Curling','100 Argentinos Dicen','UNO','Palabras a Tie
 const GAMES_F2_DEFAULT = ['Mario Party',"Time's Up",'Beer Pong','Guess Movie/Song','El Erudito','Jenga'];
 
 // Fixture: [ronda, idxA, idxB, idxJuego], siempre publicado por el conductor.
-let PLAYERS = PLAYERS_DEFAULT.slice();
-let TEAMS = TEAMS_DEFAULT.slice();
+let PLAYERS = [];
+let TEAMS = [];
 // No inventar cruces antes de recibir el fixture real del conductor.
 let F1_FIXTURE = [];
 let F2_FIXTURE = [];
@@ -864,7 +862,7 @@ function findNextMatch(type, idx) {
   if (!pending.length) return null;
   const [r, a, b, g] = pending[0];
   const oppIdx = a === idx ? b : a;
-  const oppName = type === 'f1' ? entities[oppIdx].split(' ')[0] : entities[oppIdx].split('/')[0].trim();
+  const oppName = entities[oppIdx];
   const game = type === 'f1' ? gameNameF1(g) : gameNameF2(g);
   return { round: r, oppName, game, key: r + '-' + a + '-' + b, phase: type };
 }
@@ -879,7 +877,7 @@ function findLastMatch(type, idx) {
   const [r, a, b, g] = done[0];
   const res = store[r + '-' + a + '-' + b];
   const oppIdx = a === idx ? b : a;
-  const oppName = type === 'f1' ? entities[oppIdx].split(' ')[0] : entities[oppIdx].split('/')[0].trim();
+  const oppName = entities[oppIdx];
   const game = type === 'f1' ? gameNameF1(g) : gameNameF2(g);
   if (res.winner === 'empate') return { result: 'empate', oppName, game };
   const won = res.winner === idx;
@@ -1511,7 +1509,7 @@ function renderPhaseCard(type, myIdx, myName) {
   const next = findNextMatch(type, myIdx);
   const last = findLastMatch(type, myIdx);
   const label = isF1 ? 'Fase 1 · Individual' : 'Fase 2 · Equipos';
-  const displayName = isF1 ? mine.n.split(' ')[0] : mine.n;
+  const displayName = mine.n;
 
   let matchesHtml = '';
   if (next) {
@@ -1527,7 +1525,7 @@ function renderPhaseCard(type, myIdx, myName) {
   const rankingRows = list.map((e, i) => `
     <tr class="${e.i === myIdx ? 'me' : ''}">
       <td class="pos">${ordinal(i + 1)}</td>
-      <td><span class="ranking-name">${avatarHtml(e.n, 24)}<span>${escapeHtml(isF1 ? e.n.split(' ')[0] : e.n)}</span></span></td>
+      <td><span class="ranking-name">${avatarHtml(e.n, 24)}<span>${escapeHtml(e.n)}${e.i === myIdx ? '<span class="ranking-you">VOS</span>' : ''}</span></span></td>
       <td class="pts">${e.total}</td>
     </tr>`).join('');
 
@@ -3166,14 +3164,14 @@ function renderVivo() {
     const medal = i === 0 ? '🥇' : i === 1 ? '🥈' : '🥉';
     return `<div class="gh-pod-row p${i + 1}">
       <span class="gh-pod-medal">${medal}</span>
-      <span class="gh-pod-name">${avatarHtml(e.n, 30)}<span>${escapeHtml(isF1 ? shortName(e.n, true) : e.n)}</span></span>
+      <span class="gh-pod-name">${avatarHtml(e.n, 30)}<span>${escapeHtml(e.n)}</span></span>
       <span class="gh-pod-pts">${e.total}</span>
     </div>`;
   }).join('');
 
   const restHtml = rest.map((e, i) => `
     <tr><td class="pos">${ordinal(i + 4)}</td>
-    <td><span class="ranking-name">${avatarHtml(e.n, 22)}<span>${escapeHtml(isF1 ? shortName(e.n, true) : e.n)}</span></span></td>
+    <td><span class="ranking-name">${avatarHtml(e.n, 22)}<span>${escapeHtml(e.n)}</span></span></td>
     <td class="pts">${e.total}</td></tr>`).join('');
 
   // Cada fila de resultado usa las mismas clases que "Próximo/Último resultado"
@@ -3282,6 +3280,11 @@ function startRelator() {
 
 function render() {
   if (!ready) { document.getElementById('app').innerHTML = '<div class="gh-loading">Cargando…</div>'; return; }
+  if (!PLAYERS.length || !TEAMS.length) {
+    document.getElementById('tabbar').classList.add('hidden');
+    document.getElementById('app').innerHTML = '<div class="gh-loading">Esperando los nombres de Fase 1 y Fase 2 publicados por el conductor…</div>';
+    return;
+  }
   const who = localStorage.getItem('ndj_guest_who');
   const tabbar = document.getElementById('tabbar');
   if (who && PLAYERS.includes(who)) {
@@ -3310,7 +3313,8 @@ onSnapshot(doc(db, 'ndj', 'state'), { includeMetadataChanges: true }, (snap) => 
       const parsed = Object.assign({ f1: {}, f2: {}, impostor: { rounds: [] } }, JSON.parse(raw));
       latestState = parsed;
       if (Array.isArray(parsed.playersSnapshot) && parsed.playersSnapshot.length) PLAYERS = parsed.playersSnapshot.slice();
-      if (parsed.teamsSnapshot) TEAMS = parsed.teamsSnapshot.slice();
+      if (Array.isArray(parsed.teamsSnapshot) && parsed.teamsSnapshot.length) TEAMS = parsed.teamsSnapshot.slice();
+      latestFinal = parsed.finalPublic || { final: {}, tercero: {} };
       F1_FIXTURE = Array.isArray(parsed.f1FixtureSnapshot?.fixture) ? parsed.f1FixtureSnapshot.fixture : [];
       F2_FIXTURE = Array.isArray(parsed.f2FixtureSnapshot?.fixture) ? parsed.f2FixtureSnapshot.fixture : [];
     } catch (e) { console.warn('Error al parsear estado:', e); }
@@ -3334,12 +3338,6 @@ onSnapshot(doc(db, 'ndj', 'state'), { includeMetadataChanges: true }, (snap) => 
   if (ready) updateConnectionStatus();
   else document.getElementById('app').innerHTML = '<div class="gh-loading">No se pudo conectar. Revisá tu conexión a internet.</div>';
 });
-
-onSnapshot(doc(db, 'ndj', 'finalPublic'), snap => {
-  if (!snap.exists()) return;
-  try { latestFinal = JSON.parse(snap.data().data) || { final: {}, tercero: {} }; if (ready) render(); }
-  catch (e) { console.warn('Cuadro final:', e); }
-}, err => console.warn('Cuadro final:', err));
 
 // Apuestas en vivo: las escriben los propios invitados, no vienen en `state`
 onSnapshot(doc(db, 'ndj', 'bets'), (snap) => {
