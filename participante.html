@@ -725,6 +725,7 @@ body { animation: appEnter .32s ease-out both; }
 <script type="module">
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
 import { getFirestore, doc, onSnapshot, getDoc, setDoc, runTransaction } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+import { getDatabase, ref as dbRef, onValue } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js';
 
 const firebaseConfig = {
   apiKey: "AIzaSyB-1B426OH2ZYKHT1n8VVzmv0h_10186Zo",
@@ -736,6 +737,13 @@ const firebaseConfig = {
 };
 const app = initializeApp(firebaseConfig, 'guest');
 const db  = getFirestore(app);
+const fixtureApp = initializeApp({
+  apiKey: 'AIzaSyB37WkRQqBWVYkZ84AE2u17pAOs_9ZCgCg',
+  authDomain: 'guessmovie-905e2.firebaseapp.com',
+  databaseURL: 'https://guessmovie-905e2-default-rtdb.firebaseio.com',
+  projectId: 'guessmovie-905e2',
+  appId: '1:313601369235:web:f8b28a2ec187a934fa1966'
+}, 'guest-fixture');
 
 // Lee → modifica → escribe de forma ATÓMICA. Antes era getDoc + setDoc: si dos
 // invitados guardaban a la vez (típico cuando se abren las apuestas), el
@@ -777,10 +785,7 @@ async function saveBetAtomically(type, key, myName, pick) {
 }
 
 // ── Roster / fixture: llegan del conductor, nunca de una lista local fija. ──
-const FULL_NAMES = {
-  'Risu':'Risu','Totti':'Totti','Thiago':'Thiago C.','Mica':'Micaela B.','Valentín':'Valentín A.',
-  'Laza':'Lázaro G.','Lara':'Lara M.','Martín':'Martín H.','Cori':'Coral O.','Flor':'Florencia L.','Tomás':'Tomás P.'
-};
+let FULL_NAMES = {};
 const GAMES_F1_DEFAULT = ['Curling','100 Argentinos Dicen','UNO','Palabras a Tiempo','Carrera de Mentes','Spot It'];
 const GAMES_F2_DEFAULT = ['Mario Party',"Time's Up",'Beer Pong','Guess Movie/Song','El Erudito','Jenga'];
 
@@ -790,6 +795,7 @@ let TEAMS = [];
 // No inventar cruces antes de recibir el fixture real del conductor.
 let F1_FIXTURE = [];
 let F2_FIXTURE = [];
+let fixtureRosterPublished = false;
 
 let latestState = { f1: {}, f2: {}, impostor: { rounds: [] } };
 let latestRules = null;
@@ -1525,7 +1531,7 @@ function renderPhaseCard(type, myIdx, myName) {
   const rankingRows = list.map((e, i) => `
     <tr class="${e.i === myIdx ? 'me' : ''}">
       <td class="pos">${ordinal(i + 1)}</td>
-      <td><span class="ranking-name">${avatarHtml(e.n, 24)}<span>${escapeHtml(e.n)}${e.i === myIdx ? '<span class="ranking-you">VOS</span>' : ''}</span></span></td>
+      <td><span class="ranking-name">${avatarHtml(e.n, 24)}<span>${escapeHtml(e.n)}${e.i === myIdx ? `<span class="ranking-you">${isF1 ? 'VOS' : 'USTEDES'}</span>` : ''}</span></span></td>
       <td class="pts">${e.total}</td>
     </tr>`).join('');
 
@@ -3306,17 +3312,34 @@ function render() {
 }
 
 // ── Firebase: solo lectura, en vivo ──────────────────────────
+// El conductor publica el roster que usa cada fase junto a su fixture. Ese
+// canal prevalece sobre un snapshot viejo del estado de Firestore.
+onValue(dbRef(getDatabase(fixtureApp), 'velada/fixture'), snap => {
+  const data = snap.val();
+  if (!data || !Array.isArray(data.f1?.players) || !Array.isArray(data.f2?.teams) ||
+      !data.f1.players.length || !data.f2.teams.length) return;
+  PLAYERS = data.f1.players.slice();
+  TEAMS = data.f2.teams.slice();
+  F1_FIXTURE = Array.isArray(data.f1.fixture) ? data.f1.fixture : [];
+  F2_FIXTURE = Array.isArray(data.f2.fixture) ? data.f2.fixture : [];
+  FULL_NAMES = data.f2.fullNames || {};
+  fixtureRosterPublished = true;
+  if (ready) render();
+}, err => console.warn('No se pudo leer el roster de las fases:', err));
+
 onSnapshot(doc(db, 'ndj', 'state'), { includeMetadataChanges: true }, (snap) => {
   if (snap.exists()) {
     try {
       const raw = snap.data().data;
       const parsed = Object.assign({ f1: {}, f2: {}, impostor: { rounds: [] } }, JSON.parse(raw));
       latestState = parsed;
-      if (Array.isArray(parsed.playersSnapshot) && parsed.playersSnapshot.length) PLAYERS = parsed.playersSnapshot.slice();
-      if (Array.isArray(parsed.teamsSnapshot) && parsed.teamsSnapshot.length) TEAMS = parsed.teamsSnapshot.slice();
+      if (!fixtureRosterPublished) {
+        if (Array.isArray(parsed.playersSnapshot) && parsed.playersSnapshot.length) PLAYERS = parsed.playersSnapshot.slice();
+        if (Array.isArray(parsed.teamsSnapshot) && parsed.teamsSnapshot.length) TEAMS = parsed.teamsSnapshot.slice();
+        F1_FIXTURE = Array.isArray(parsed.f1FixtureSnapshot?.fixture) ? parsed.f1FixtureSnapshot.fixture : [];
+        F2_FIXTURE = Array.isArray(parsed.f2FixtureSnapshot?.fixture) ? parsed.f2FixtureSnapshot.fixture : [];
+      }
       latestFinal = parsed.finalPublic || { final: {}, tercero: {} };
-      F1_FIXTURE = Array.isArray(parsed.f1FixtureSnapshot?.fixture) ? parsed.f1FixtureSnapshot.fixture : [];
-      F2_FIXTURE = Array.isArray(parsed.f2FixtureSnapshot?.fixture) ? parsed.f2FixtureSnapshot.fixture : [];
     } catch (e) { console.warn('Error al parsear estado:', e); }
   }
   liveFromCache = snap.metadata.fromCache;
