@@ -3736,6 +3736,40 @@ body.solo-impostor #tv-btn{ opacity:.42 }
   color:var(--muted); font-family:inherit; font-size:11px; font-weight:700;
   padding:.3rem .7rem; cursor:pointer }
 .dia-dl:hover{ border-color:var(--accent); color:var(--accent) }
+
+/* Mesa de edición: los controles quedan fuera de la imagen descargada. */
+.dia-editor{ margin:.7rem 0 1rem; padding:1rem; border:1px solid var(--border2);
+  border-radius:12px; background:var(--surface); color:var(--text) }
+.dia-editor-head{ display:flex; align-items:center; justify-content:space-between; gap:.7rem; margin-bottom:.5rem }
+.dia-editor-head strong{ font-size:14px }
+.dia-editor p{ font-size:11px; color:var(--muted); line-height:1.5; margin-bottom:.8rem }
+.dia-edit-grid{ display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:.65rem }
+.dia-edit-grid .wide{ grid-column:1/-1 }
+.dia-editor label{ display:block; font-size:10px; font-weight:800; letter-spacing:.07em;
+  text-transform:uppercase; color:var(--muted); margin-bottom:.2rem }
+.dia-editor input,.dia-editor textarea,.dia-editor select{ width:100%; padding:.55rem .65rem;
+  border:1px solid var(--border2); border-radius:7px; background:var(--surface2);
+  color:var(--text); font:12px/1.4 inherit; font-family:inherit }
+.dia-editor textarea{ min-height:65px; resize:vertical }
+.dia-edit-notas{ display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:.65rem; margin-top:.85rem }
+.dia-edit-nota{ border:1px solid var(--border2); padding:.7rem; border-radius:9px; min-width:0 }
+.dia-edit-nota label:not(:first-child){ margin-top:.55rem }
+@media(max-width:680px){ .dia-edit-notas{ grid-template-columns:1fr } }
+@media(max-width:420px){ .dia-edit-grid{ grid-template-columns:1fr } }
+
+/* Más jerarquía y líneas de imprenta en la portada. */
+.diario{ max-width:760px; margin:auto; padding:2rem clamp(1rem,4vw,2.6rem) 1.4rem;
+  border:1px solid #c6bda9 }
+.dia-cab{ border-top:1px solid #16150f; padding-top:.55rem }
+.dia-nombre{ font-size:clamp(39px,10vw,76px); letter-spacing:-.045em; white-space:nowrap }
+.dia-lema{ letter-spacing:.14em; text-transform:uppercase; font-style:normal }
+.dia-kicker{ border-bottom:1px solid #c9c3b2; padding-bottom:.5rem }
+.dia-notas{ grid-template-columns:repeat(3,minmax(0,1fr)); gap:0 }
+.dia-nota{ border-top:0; border-left:1px solid #c9c3b2; padding:.1rem .7rem }
+.dia-nota:first-child{ border-left:0; padding-left:0 }
+.dia-nota:last-child{ padding-right:0 }
+@media(max-width:450px){ .dia-notas{ grid-template-columns:1fr }
+  .dia-nota{ border-left:0; border-top:1px solid #c9c3b2; padding:.75rem 0 } }
 .dia-dl:hover{ border-color:var(--accent); color:var(--accent) }
 
 /* ── Modo pánico: estado real y etapas especiales ── */
@@ -4611,7 +4645,7 @@ function renderReglas() {
         <div class="card" id="prensa-card">
           <div class="control-panel-section-title">📰 Fotos para el periódico</div>
           <p style="font-size:12.5px;color:var(--muted);line-height:1.55;margin-bottom:0.9rem">
-            Fotos en alta para la portada de <b>El Velado</b>. Son aparte de las de perfil:
+            Fotos en alta para la portada de <b>La Velada</b>. Son aparte de las de perfil:
             acá conviene una foto vertical y bien iluminada, que se recorta sola en formato retrato.
             Si alguien no tiene una cargada, el diario usa su foto de perfil.
           </p>
@@ -13111,7 +13145,17 @@ function armarDiario() {
   if (imp && imp.total) franja.push({ n: imp.total, v: imp.total === 1 ? 'impostor' : 'impostores' });
   if (timing && timing.durText) franja.push({ n: timing.durText, v: 'de velada' });
 
-  return { titular, bajada, notas: notas.slice(0, 3), fechaTxt, campeon,
+  // Se conserva el catálogo completo para que el editor pueda elegir cualquier
+  // mención, incluso si no entró en el primer borrador automático.
+  if (nocheJugada && motes.length > 2) motes.slice(2).forEach((m, i) => {
+    if (m && m.player) notas.push({
+      vol: 'PERSONAJES',
+      tit: (m.emoji ? m.emoji + ' ' : '') + (m.title || m.name || 'Mención de la noche'),
+      txt: punto(full(m.player) + (m.reason ? ' — ' + m.reason : ''))
+    });
+  });
+
+  return { titular, bajada, notas: notas.slice(0, 3), candidatas: notas, fechaTxt, campeon,
            franja: franja.slice(0, 5) };
 }
 
@@ -13245,12 +13289,53 @@ function renderPrensaGrid() {
     </div>`;
 }
 
+const DIARIO_BORRADOR_KEY = 'velada_diario_borrador_v1';
+let _diarioBorrador = null;
+try { _diarioBorrador = JSON.parse(localStorage.getItem(DIARIO_BORRADOR_KEY) || 'null'); } catch (e) {}
+const escDiarioAttr = s => _escC(s).replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+function guardarBorradorDiario() {
+  try { localStorage.setItem(DIARIO_BORRADOR_KEY, JSON.stringify(_diarioBorrador)); } catch (e) {}
+}
+function reiniciarBorradorDiario() {
+  _diarioBorrador = null;
+  try { localStorage.removeItem(DIARIO_BORRADOR_KEY); } catch (e) {}
+  renderDiario();
+}
+function editarTextoDiario(campo, valor, indice) {
+  if (!_diarioBorrador) return;
+  if (indice == null) _diarioBorrador[campo] = valor;
+  else _diarioBorrador.notas[indice][campo] = valor;
+  const destino = document.querySelector(indice == null
+    ? `[data-diario-preview="${campo}"]`
+    : `[data-diario-preview="nota-${indice}-${campo}"]`);
+  if (destino) destino.textContent = valor;
+  guardarBorradorDiario();
+}
+function elegirNotaDiario(indice, valor) {
+  const catalogo = armarDiario().candidatas;
+  _diarioBorrador.notas[indice] = valor === 'propia'
+    ? { fuente: 'propia', vol: 'LA NOCHE', tit: '', txt: '' }
+    : { fuente: valor, ...catalogo[Number(valor)] };
+  guardarBorradorDiario();
+  renderDiario();
+}
+
 function renderDiario() {
   const root = document.getElementById('diario-root');
   if (!root) return;
   let d;
   try { d = armarDiario(); } catch (e) { root.innerHTML = ''; return; }
   if (!d) { root.innerHTML = ''; return; }
+  if (!_diarioBorrador || !Array.isArray(_diarioBorrador.notas)) {
+    _diarioBorrador = {
+      titular: d.titular, bajada: d.bajada,
+      notas: d.notas.map((n, i) => ({ fuente: String(i), ...n }))
+    };
+    guardarBorradorDiario();
+  }
+  while (_diarioBorrador.notas.length < 3)
+    _diarioBorrador.notas.push({ fuente: 'propia', vol: 'LA NOCHE', tit: '', txt: '' });
+  const b = _diarioBorrador;
 
   // Fotos del campeón: si es equipo, las dos caras; si es individual, una.
   const fotosCampeon = [];
@@ -13274,18 +13359,38 @@ function renderDiario() {
 
   root.innerHTML = `
     <div class="section-header">
-      <span class="section-title"><span class="dot-indicator final"></span>El diario de mañana</span>
+      <span class="section-title"><span class="dot-indicator final"></span>La Velada · portada</span>
       <button class="dia-dl" onclick="descargarDiario()">⬇️ Descargar</button>
     </div>
     ${avisoFotos}
+    <div class="dia-editor">
+      <div class="dia-editor-head"><strong>Editar portada</strong>
+        <button class="dia-dl" onclick="reiniciarBorradorDiario()">↺ Generar nuevo borrador</button></div>
+      <p>El titular, la bajada y tres notas salen de los resultados. Elegí otras menciones o escribí una anécdota. Los cambios se ven abajo y quedan guardados en este navegador.</p>
+      <div class="dia-edit-grid">
+        <div class="wide"><label for="dia-edit-titular">Titular</label><input id="dia-edit-titular" value="${escDiarioAttr(b.titular)}" oninput="editarTextoDiario('titular',this.value)"></div>
+        <div class="wide"><label for="dia-edit-bajada">Bajada</label><textarea id="dia-edit-bajada" oninput="editarTextoDiario('bajada',this.value)">${_escC(b.bajada)}</textarea></div>
+      </div>
+      <div class="dia-edit-notas">${b.notas.slice(0,3).map((n,i) => `
+        <div class="dia-edit-nota">
+          <label for="dia-fuente-${i}">Nota ${i+1}</label>
+          <select id="dia-fuente-${i}" onchange="elegirNotaDiario(${i},this.value)">
+            ${d.candidatas.map((c,j) => `<option value="${j}" ${n.fuente === String(j) ? 'selected' : ''}>${_escC(c.vol + ' · ' + c.tit)}</option>`).join('')}
+            <option value="propia" ${n.fuente === 'propia' ? 'selected' : ''}>✎ Nota propia / anécdota</option>
+          </select>
+          <label for="dia-vol-${i}">Sección</label><input id="dia-vol-${i}" value="${escDiarioAttr(n.vol)}" oninput="editarTextoDiario('vol',this.value,${i})">
+          <label for="dia-tit-${i}">Título</label><input id="dia-tit-${i}" value="${escDiarioAttr(n.tit)}" oninput="editarTextoDiario('tit',this.value,${i})">
+          <label for="dia-txt-${i}">Texto</label><textarea id="dia-txt-${i}" oninput="editarTextoDiario('txt',this.value,${i})">${_escC(n.txt)}</textarea>
+        </div>`).join('')}</div>
+    </div>
     <div class="card" style="padding:0;overflow:hidden;margin-bottom:1.25rem">
       <div class="diario" id="diario-hoja">
         <!-- Cabecera con los datos de imprenta a los costados, como un diario real -->
         <div class="dia-cab">
           <div class="dia-cab-lado izq">Año I<br>Nº 1</div>
           <div class="dia-cab-centro">
-            <div class="dia-nombre">EL VELADO</div>
-            <div class="dia-lema">— La noticia de la noche, al día siguiente —</div>
+            <div class="dia-nombre">LA VELADA</div>
+            <div class="dia-lema">La noticia de la noche, al día siguiente</div>
           </div>
           <div class="dia-cab-lado der">Edición<br>única</div>
         </div>
@@ -13297,8 +13402,8 @@ function renderDiario() {
         <div class="dia-regla fina"></div>
 
         <div class="dia-kicker">Edición especial · Cierre de la velada</div>
-        <div class="dia-titular">${_escC(d.titular)}</div>
-        <div class="dia-bajada">${_escC(d.bajada)}</div>
+        <div class="dia-titular" data-diario-preview="titular">${_escC(b.titular)}</div>
+        <div class="dia-bajada" data-diario-preview="bajada">${_escC(b.bajada)}</div>
 
         ${fotosCampeon.length ? `<div class="dia-foto${fotosCampeon.length === 2 ? ' duo' : (fotosCampeon.length > 2 ? ' grupo' : '')}">
           <div class="dia-fotos">
@@ -13313,10 +13418,10 @@ function renderDiario() {
         <div class="dia-regla doble"></div>
 
         <div class="dia-notas">
-          ${d.notas.map(n => `<div class="dia-nota">
-            <div class="dia-vol">${_escC(n.vol)}</div>
-            <div class="dia-nt">${_escC(n.tit)}</div>
-            <div class="dia-nx">${_escC(n.txt)}</div>
+          ${b.notas.slice(0,3).map((n,i) => `<div class="dia-nota">
+            <div class="dia-vol" data-diario-preview="nota-${i}-vol">${_escC(n.vol)}</div>
+            <div class="dia-nt" data-diario-preview="nota-${i}-tit">${_escC(n.tit)}</div>
+            <div class="dia-nx" data-diario-preview="nota-${i}-txt">${_escC(n.txt)}</div>
           </div>`).join('')}
         </div>
 
@@ -13354,7 +13459,7 @@ function descargarDiario() {
         if (!blob) { showToast('⚠️', 'No se pudo generar la imagen', true); return; }
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
-        a.download = 'el-velado.png';
+        a.download = 'la-velada.png';
         a.href = url;
         document.body.appendChild(a); a.click(); a.remove();
         setTimeout(() => URL.revokeObjectURL(url), 4000);
