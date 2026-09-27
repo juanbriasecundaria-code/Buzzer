@@ -59,7 +59,7 @@
     // The activated match remains on screen after its result is captured.
     // Only a new explicit activation from the fixture changes it.
     match=manualRaw;
-    if(match&&match.active)manualOffline=false; // ya hay un cruce real: se sale del modo manual solo
+    if(match&&match.active&&connected)manualOffline=false; // se sale del modo manual al recibir un cruce real conectado
     window._palabrasCurrentMatch=match;
     applyMatchIfNew(match);
     render();
@@ -88,7 +88,16 @@
     }
     // Old links cannot keep operating the next duel.
     enabled=!!((valid&&!stale&&connected)||(manualOffline&&!visitor));
-    document.querySelectorAll('#main-screen button').forEach(b=>{
+    const namesButton=document.querySelector('#main-screen .sb-controls button');
+    if(namesButton){
+      namesButton.disabled=!!(valid&&connected)||stale;
+      namesButton.textContent=namesButton.disabled?'🔒 nombres del fixture':'✏️ nombres';
+      namesButton.title=namesButton.disabled?'Los nombres vienen del cruce activado. Cambialos desde el fixture del conductor.':'';
+    }
+    document.querySelectorAll('#main-screen .footer-links button').forEach(b=>{b.disabled=!!stale;});
+    // Solo las acciones de partida necesitan un cruce. Los ajustes, el
+    // reinicio y el propio acceso al modo manual tienen que seguir activos.
+    document.querySelectorAll('#scoreboard button,#reveal-btn,#var-section button').forEach(b=>{
       if(!enabled){if(!disabledByGate.has(b))disabledByGate.set(b,b.disabled);b.disabled=true;}
       else if(disabledByGate.has(b)){b.disabled=disabledByGate.get(b);disabledByGate.delete(b);}
     });
@@ -114,5 +123,6 @@
   ['addPoint','revealCategory','requestVAR','varVerdict','applyComodinTeam','rerollShared'].forEach(name=>{
     const original=window[name];if(typeof original==='function')window[name]=function(...args){if(enabled)return original.apply(this,args);};
   });
+  window.palabrasGateRefresh=render;
   render();window.addEventListener('palabras-db-ready',start);start();
 })();

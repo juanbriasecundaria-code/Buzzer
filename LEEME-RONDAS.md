@@ -83,4 +83,6 @@ Publicá únicamente las fotos de los cuatro equipos que obtuvieron puestos en l
 
 `participante.html` toma el roster y el fixture publicados por el conductor. Muestra arriba el próximo duelo de cada persona; «Cruce activado» aparece únicamente cuando el conductor activa de verdad ese cruce digital desde el fixture. En la pestaña Final del conductor, elegí el compañero de cada clasificado individual y, si un equipo tiene tres integrantes, la dupla que juega el 2v2. Esa información y los resultados de la final se publican en el cuadro del participante. Las clasificaciones figuran como provisorias mientras haya partidos pendientes.
 
+En **Palabras a Tiempo**, sin cruce activado siguen disponibles «Nombres», «Editar mazo», «PIN», «Reiniciar todo» y «Jugar sin cruce asignado (manual)». El marcador, el VAR y la revelación de categorías esperan a que se active un cruce o se elija el modo manual. Con un cruce activado, los nombres quedan fijados por el fixture del conductor y el botón lo indica.
+
 Las apuestas se validan en Firebase al guardarse: si la ronda ya se cerró, la elección no queda registrada. El celular distingue datos en vivo de datos guardados mientras está sin conexión. Para probarlo, publicá el fixture, activá un cruce, abrí el panel en otro dispositivo y comprobá la apuesta antes y después del cierre.

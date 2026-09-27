@@ -224,6 +224,7 @@
   }
   .reset-link:hover { opacity: 1; }
   .reset-link:active { opacity: 1; }
+  .reset-link:disabled { opacity: .5; cursor: not-allowed; text-decoration: none; }
 
   /* ── COVER OVERLAY (roulette) ── */
   .cover-overlay {
@@ -2209,6 +2210,7 @@ function resetAll() {
   saveState();
   syncUI();
   syncScoreUI();
+  if (typeof window.palabrasGateRefresh === 'function') window.palabrasGateRefresh();
   if (navigator.vibrate) navigator.vibrate(25);
   });
 }
