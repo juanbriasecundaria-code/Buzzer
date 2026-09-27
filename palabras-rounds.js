@@ -1,11 +1,7 @@
 /* Palabras remains a physical game: only names/round are synchronized.
-   Además del sistema manual existente (velada/palabras, activado con
-   "▶ Activar ronda N" desde velada.html), esta página ahora se auto-asigna
-   el próximo cruce pendiente leyendo velada/fixture + velada/resultados:
-     · Si hay un cruce activado a mano y todavía no tiene resultado
-       cargado en velada/resultados, ese manda (el botón manual no se toca).
-     · Si no, se juega solo el próximo cruce de "Palabras a Tiempo" (en
-       orden de ronda) que no tenga resultado cargado.
+   La asignación inicial se guarda en velada/palabras. Al capturar un resultado
+   se mantiene ese cruce y su marcador. El conductor activa la ronda siguiente
+   desde velada.html cuando decide empezar otra partida.
    Si Firebase no responde o no hay ningún cruce disponible, un botón de
    respaldo deja jugar en modo manual/offline (solo scoreboard local, sin
    escribir a velada/resultados). */
@@ -18,9 +14,7 @@
   const gate=document.createElement('div');gate.id='round-entry';gate.style.cssText='padding:16px;text-align:center';banner.after(gate);
 
   // ── AUTO-DESCUBRIMIENTO ──────────────────────────────────────────
-  // Recorre F1/F2 del fixture publicado por velada.html (velada/fixture) y
-  // devuelve el primer cruce de "Palabras a Tiempo" (en orden de ronda,
-  // f1 antes que f2) que todavía no tiene resultado en velada/resultados.
+  // Encuentra el primer cruce pendiente solo para asignar una estación vacía.
   function nextAutoMatch(){
     if(!fixtureRaw) return null;
     const resultados=resultadosRaw||{};
@@ -62,10 +56,9 @@
 
   // Recalcula el cruce "efectivo" combinando activación manual + auto-descubrimiento.
   function recompute(){
-    const auto=nextAutoMatch();
-    const manualActive=manualRaw&&manualRaw.active;
-    const manualDone=manualActive && !!((resultadosRaw||{})[manualRaw.phase+'-'+manualRaw.key]);
-    match=(manualActive && !manualDone)?manualRaw:auto;
+    // The activated match remains on screen after its result is captured.
+    // Only a new explicit activation from the fixture changes it.
+    match=manualRaw;
     if(match&&match.active)manualOffline=false; // ya hay un cruce real: se sale del modo manual solo
     window._palabrasCurrentMatch=match;
     applyMatchIfNew(match);

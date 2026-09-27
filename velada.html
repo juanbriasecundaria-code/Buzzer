@@ -5174,7 +5174,7 @@ function generateCoverageFixture(n, numStations, forbiddenStationPairs) {
 
     const needy = [];
     for (let t = 0; t < n; t++) if (!isDone(t)) needy.push(t);
-    needy.sort((a, b) => (remaining[b].size - remaining[a].size) || (byeCount[b] - byeCount[a]) || (Math.random() - 0.5));
+    needy.sort((a, b) => (remaining[b].size - remaining[a].size) || (byeCount[b] - byeCount[a]) || (a - b));
 
     // 1) Emparejar "necesitados" entre sí sólo cuando comparten estación.
     for (const a of needy) {
@@ -5361,6 +5361,22 @@ function restoreRosterAndFixtures() {
     F2_BYES = state.f2FixtureSnapshot.byes;
   } else {
     regenerateF2Fixture();
+  }
+  // Persist the first generated fixture immediately. Without a snapshot, a
+  // refresh generated a different random F1 pairing and published it to RTDB.
+  let created = false;
+  if (!state.f1FixtureSnapshot) {
+    state.f1FixtureSnapshot = { fixture: F1_FIXTURE.map(m => m.slice()), byes: Object.assign({}, F1_BYES) };
+    created = true;
+  }
+  if (!state.f2FixtureSnapshot) {
+    state.f2FixtureSnapshot = { fixture: F2_FIXTURE.map(m => m.slice()), byes: Object.assign({}, F2_BYES) };
+    created = true;
+  }
+  if (created) {
+    try { localStorage.setItem('ndj_state', JSON.stringify(state)); } catch(e) {
+      console.warn('No se pudo fijar el fixture localmente',e);
+    }
   }
 }
 
@@ -7796,18 +7812,26 @@ async function openAutoResultadosModal() {
       const live = liveSnap.val() || {};
       const results = resultSnap.val() || {};
       const updates = {};
-      const valid = new Set();
+      const valid = new Map();
       ['f1','f2'].forEach(phase => {
         const fixture = phase === 'f1' ? F1_FIXTURE : F2_FIXTURE;
         const games = phase === 'f1' ? GAMES_F1 : GAMES_F2;
         fixture.forEach(([r,a,b,g]) => {
           const gid = BuzzerRounds.gameId(games[g]);
-          if (gid) valid.add(phase+'-'+r+'-'+a+'-'+b+':'+gid);
+          if (gid) {
+            const roster = phase === 'f1' ? PLAYERS : TEAMS;
+            valid.set(phase+'-'+r+'-'+a+'-'+b+':'+gid, {a:roster[a],b:roster[b]});
+          }
         });
       });
+      let mismatched = 0;
       Object.keys(live).forEach(id => {
         const d = live[id], m = d && d.marcador;
-        if (results[id] || !d || d.matchId !== id || !valid.has(id+':'+d.game) ||
+        const expected = d && valid.get(id+':'+d.game);
+        if (d && d.names && expected && (d.names.a !== expected.a || d.names.b !== expected.b)) {
+          mismatched++; return;
+        }
+        if (results[id] || !d || d.matchId !== id || !expected ||
             !m || !Number.isFinite(m.a) || !Number.isFinite(m.b)) return;
         updates[id] = {winner:m.a>m.b?'a':m.b>m.a?'b':'empate',
           marcador:{a:m.a,b:m.b},bonusInfo:d.bonusInfo||{},t:Date.now()};
@@ -7816,11 +7840,12 @@ async function openAutoResultadosModal() {
         await window._rtdb.ref('velada/resultados').update(updates);
         Object.assign(results,updates);
       }
+      if (mismatched) showToast('⚠️', mismatched+' marcador(es) pertenecen a otros participantes: activá el cruce correcto desde el fixture',false);
       window._autoResultados = results;
     } catch(e) {
       console.warn('No se pudieron leer los marcadores en vivo',e);
       window._autoResultados = {};
-      showToast('⚠️','No se pudieron leer los marcadores; podés cargarlos a mano',false);
+      showToast('⚠️','No se pudieron leer los marcadores ('+(e.code||e.message||'error de conexión')+'); podés cargarlos a mano',false);
     }
   }
   if (!bg.classList.contains('open')) return;
@@ -7886,6 +7911,7 @@ function renderAutoResultadosModal() {
           <button class="modal-player-btn${selB}" style="flex:1;min-width:90px" onclick="setAutoManualWinner('${row.matchId}',${row.b})">${firstName(row.nameB)}</button>
           <button class="modal-player-btn${m.bonus ? ' selected' : ''}" style="flex:0 0 auto;min-width:70px" onclick="toggleAutoManualBonus('${row.matchId}')" ${m.winner === 'empate' || m.winner == null ? 'disabled' : ''}>+bonus</button>
         </div>
+        ${row.gid ? '<div style="font-size:11px;color:var(--muted)">Sin marcador digital para este cruce. Revisá el modo conductor, la conexión y los participantes activos.</div>' : ''}
       </div>`;
     }).join('');
   }

@@ -28,14 +28,16 @@
       });
       candidates.sort((a,b)=>a.match.round-b.match.round || a.match.phase.localeCompare(b.match.phase));
       selected=candidates[0]||null;
-      status.textContent=selected ? 'Cruce asignado: '+selected.match.names.a+' vs. '+selected.match.names.b :
+      const active=options.getMatch();
+      status.textContent=active&&active.active ?
+        'Cruce activo: '+active.names.a+' vs. '+active.names.b+' · El conductor cambia la ronda desde el fixture.' : selected ? 'Cruce asignado: '+selected.match.names.a+' vs. '+selected.match.names.b :
         'Sin cruce pendiente. Podés usar los nombres y el marcador manualmente.';
       if(selected && options.legacyPath){
         const ref=db.ref(options.legacyPath);
-        // A manual activation by the organizer has priority.
+        // Assign only an empty station. A captured result never advances the game.
+        // The organizer explicitly activates the following round from the fixture.
         ref.transaction(cur=>{
-          if(cur && cur.fixture && cur.fixture.active && !String(cur.fixture.id).startsWith('auto-'))return;
-          if(cur && cur.fixture && cur.fixture.id===selected.match.id)return;
+          if(cur && cur.fixture)return;
           return BuzzerRounds.initial(selected.match);
         },undefined,false).catch(e=>console.warn('No se pudo asignar el cruce',e));
       }
@@ -55,7 +57,7 @@
       try{data=options.getScore();}catch(e){return;}
       if(!data || !Number.isFinite(data.a) || !Number.isFinite(data.b))return;
       const id=match.phase+'-'+match.key;
-      const payload={game,matchId:id,matchFixtureId:match.id,marcador:{a:data.a,b:data.b},
+      const payload={game,matchId:id,matchFixtureId:match.id,names:match.names,marcador:{a:data.a,b:data.b},
         bonusInfo:data.bonusInfo||{},t:Date.now()};
       const signature=JSON.stringify({id,a:data.a,b:data.b,bonusInfo:payload.bonusInfo});
       if(signature===last)return;

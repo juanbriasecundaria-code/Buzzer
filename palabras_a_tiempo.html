@@ -2222,10 +2222,17 @@ function computeBonusInfo() {
   }
   return { sinPerderRonda: { a: log.every(r => r.winner !== 'b'), b: log.every(r => r.winner !== 'a') } };
 }
-window.addEventListener('palabras-db-ready', () => BuzzerAutoLive.start({
-  db:window._palabrasDb,game:'palabras',getMatch:()=>window._palabrasCurrentMatch,
-  getScore:()=>({a:score.a||0,b:score.b||0,bonusInfo:computeBonusInfo()})
-}));
+let palabrasLiveStarted=false;
+function startPalabrasLive(){
+  if(palabrasLiveStarted||!window._palabrasDb)return;
+  palabrasLiveStarted=true;
+  BuzzerAutoLive.start({
+    db:window._palabrasDb,game:'palabras',legacyPath:'velada/palabras',getMatch:()=>window._palabrasCurrentMatch,
+    getScore:()=>({a:score.a||0,b:score.b||0,bonusInfo:computeBonusInfo()})
+  });
+}
+window.addEventListener('palabras-db-ready',startPalabrasLive);
+startPalabrasLive();
 
 // ── INIT ─────────────────────────────────────
 loadState();

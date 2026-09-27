@@ -39,4 +39,18 @@ Pruebas ejecutadas con base simulada: asignación del primer cruce, marcador en 
 
 **Pendiente para usar en el evento:** prueba real con el Firebase configurado, sus reglas y dos dispositivos; comprobar el resultado final en la tabla. Si Firebase se corta durante El Erudito, la pantalla no ofrece una partida local equivalente: habrá que llevar el marcador por separado y cargar el cruce manualmente desde `velada.html`. La prueba simulada no valida la latencia ni los permisos reales.
 
+## Corrección tras prueba con el modo conductor
+
+Los botones de puntuación del modo conductor actualizan el marcador interno; la página publica ese marcador en `velada/enVivo` mientras está conectada. Se corrigió la publicación de 100 Argentinos para que solo la haga el conductor y se aseguró el inicio del publicador de Palabras aunque Firebase cargue antes que el resto de la página.
+
+**Abrir «Cargar resultados automáticamente» ya no cambia la ronda del juego.** El resultado capturado queda en `velada/resultados` y el marcador y los participantes actuales se mantienen. Para continuar, el conductor pulsa **Activar ronda N** desde el fixture; esa activación reinicia los marcadores de los juegos de la ronda. El panel rechaza marcadores publicados con nombres distintos de los participantes actuales del fixture y muestra un aviso para activar el cruce correcto. Si el panel no logra leer Firebase, ahora muestra el motivo del error en el aviso y permite la carga manual.
+
+En las capturas de la prueba recibida, 100 Argentinos mostraba **Lara vs. Flor** y el fixture mostraba **Laza vs. Risu**. Antes de importar ese marcador hay que activar en el fixture el cruce que corresponda, porque los participantes de esas dos pantallas no coinciden. También se vio el aviso de error de lectura, por lo que esa sesión no confirmó una captura real.
+
+## Fixture estable tras refrescar
+
+Se corrigió otra causa de cruces cambiantes: cuando aún no había un snapshot del fixture, la Fase 1 se volvía a generar con un desempate aleatorio en cada carga. Ahora se guarda inmediatamente el primer fixture generado y el desempate es estable. Palabras no elige por su cuenta otro cruce al refrescar o al capturar resultados: lee el cruce activado y almacenado en Firebase. Las pruebas simuladas comprobaron que dos restauraciones consecutivas conservan el mismo fixture y que la captura mantiene la estación hasta la activación explícita de otra ronda.
+
+Si ya había un cruce activo de una versión anterior con participantes distintos de los del fixture, activá una vez la ronda correcta desde `velada.html` tras publicar esta versión. No se ha probado esta migración contra la base Firebase real.
+
 Antes del evento, probá una ronda con el panel y dos celulares conectados a tu Firebase real. La publicación, reglas de acceso y latencia reales no se validaron desde aquí.
