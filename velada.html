@@ -2620,6 +2620,8 @@ body.started .velada-bg-scrim { display: block; }
   background:linear-gradient(to top,rgba(7,7,11,.92) 0%,rgba(7,7,11,.35) 34%,rgba(7,7,11,0) 62%)}
 .tr-mode-bleed .tr-cap{position:absolute;left:min(6vw,64px);right:min(6vw,64px);
   bottom:min(9vh,80px);z-index:2;text-align:left}
+.tr-mode-bleed.tr-variant-center .tr-cap{text-align:center;bottom:10vh}
+.tr-mode-bleed.tr-variant-center .tr-cap-rule{margin-inline:auto}
 .tr-stage.go .tr-media .tr-img,.tr-stage.go .tr-tint{animation:trZoom 3.2s ease-out both}
 @keyframes trZoom{from{transform:scale(1.09)}to{transform:scale(1)}}
 
@@ -2718,15 +2720,6 @@ body.started .velada-bg-scrim { display: block; }
 .tr-mode-final .tr-cap-rule{margin:1.2rem auto 0}
 .tr-mode-final .tr-final-emblem{position:absolute;z-index:2;top:19vh;left:50%;transform:translateX(-50%);
   color:rgba(242,206,124,.8);font-size:clamp(35px,5vw,70px);text-shadow:0 0 35px #000}
-/* Un póster viejo de 520 px no se agranda a pantalla completa. El fondo
-   gráfico llena el plano hasta que se cargue una imagen de mayor resolución. */
-.tr-mode-final .tr-media.tr-lowres .tr-img{inset:auto;top:12%;left:50%;width:min(42vw,520px);height:auto;
-  max-height:43vh;object-fit:contain;transform:translateX(-50%);animation:none!important;
-  border:1px solid rgba(242,206,124,.55);border-radius:12px;box-shadow:0 18px 65px #000}
-.tr-mode-final .tr-media.tr-lowres::after{background:linear-gradient(to top,rgba(6,6,10,.98),transparent 74%)}
-.tr-mode-final .tr-media.tr-lowres .tr-emoji,
-.tr-mode-final .tr-media.tr-lowres .tr-graphic-word{display:none}
-.tr-mode-final:has(.tr-lowres) .tr-final-emblem{display:none}
 .tr-flash{background:#f2ce7c}
 @keyframes trFlash{0%{opacity:.22}100%{opacity:0}}
 @media(max-width:650px){.tr-hud{left:5vw;right:5vw;letter-spacing:.08em;gap:1rem}.tr-mode-frame .tr-shot{width:90vw}}
@@ -3224,6 +3217,72 @@ body:has(.pc-overlay) .hub-link,body:has(.tr-overlay) .hub-link{display:none}
   filter: drop-shadow(0 14px 26px rgba(0,0,0,0.55));
 }
 .op-playercard .op-fig svg { width: auto; height: 100%; max-width: 100%; max-height: 100%; }
+
+/* Escenario de TV: escala con los píxeles CSS (también cubre 4K a 200 %). */
+@media (min-width: 1600px) and (min-height: 850px) {
+  .pc-stage { width: 49vw; }
+  .pc-main { height: 14.6vw; }
+  .pc-g span { font-size: 14vw; }
+  .pc-label { padding-inline: 2vw; }
+  .pc-label b { font-size: 3.35vw; }
+  .pc-bar { padding: 1.2vw 1.5vw; }
+  .pc-bar em { font-size: 1.85vw; }
+  .pc-clap { width: 2.6vw; }
+  .pc-foot { padding-inline: 14vw; }
+  .pc-foot p { font-size: 1.5vw; }
+  .pc-seal { gap: 1.2vw; }
+  .pc-seal svg { width: 2.9vw; }
+  .pc-seal b { font-size: 1.9vw; }
+  .pc-seal small { font-size: .72vw; }
+
+  .tr-tint .tr-emoji { font-size: 12vw; }
+  .tr-graphic-word { font-size: 7vw; }
+  .tr-watermark { font-size: 42vw; }
+  .tr-hud { font-size: 1.25vw; }
+  .tr-cap-kicker, .tr-overname small { font-size: 1.3vw; }
+  .tr-name { font-size: 4.4vw; }
+  .tr-mode-over .tr-overname { font-size: 8.5vw; }
+  .tr-mode-frame .tr-shot { width: 72vw; gap: 1.6vh; }
+  .tr-mode-frame .tr-tint .tr-emoji { font-size: 13vw; }
+  .tr-card-title { padding: 3vw; }
+  .tr-kicker { font-size: 1.7vw; }
+  .tr-card-title .tr-big { font-size: 8vw; }
+  .tr-card-title .tr-big.tr-huge { font-size: 11vw; }
+  .tr-card-title .tr-sub { font-size: 2.4vw; }
+  .tr-title-footer { font-size: 1.2vw; }
+  .tr-mode-final .tr-name { font-size: 6vw; }
+  .tr-mode-final .tr-cap { bottom: 12vh; }
+  .tr-mode-final .tr-final-emblem { font-size: 5vw; }
+
+  .op-eyebrow { font-size: 1.05vw; margin-bottom: 1vw; }
+  .op-bigtitle { font-size: 6vw; }
+  .op-cta { font-size: 1.2vw; padding: .85vw 1.8vw; }
+  .op-progress { gap: .6vw; margin-top: 1vw; }
+  .op-dot { width: .6vw; height: .6vw; }
+  .op-dot.current { width: 1.45vw; }
+  .op-playercard { width: min(23.5vw, 850px); padding: 1.1vw .9vw 1.3vw; border-radius: 1.4vw; }
+  .op-playercard.past { width: min(10.3vw, 350px); padding: .5vw .4vw .6vw; }
+  .op-rail { gap: 1.1vw; padding: .5vw 2vw 1vw; }
+  .op-team-kicker { width: 85vw; top: 5vh; }
+  .op-team-kicker b { font-size: 1.8vw; padding: .4vw 1.25vw; }
+  .op-team-kicker span { font-size: 1.25vw; }
+  .op-pcard-badge { font-size: .75vw; }
+  .op-pcard-num { font-size: 1.7vw; }
+  .op-pcard-bignum { font-size: 16vw; }
+  .op-playercard .op-names { width: calc(100% + 1.8vw); margin-inline: -.9vw; padding: .6vw .4vw .25vw; }
+  .op-playercard .op-member { font-size: 1.65vw; overflow-wrap: anywhere; }
+  .op-playercard .op-label-tag { font-size: .9vw; padding: .3vw .9vw; }
+  .op-playercard.past .op-member { font-size: 1vw; }
+  .op-playercard.past .op-pcard-num { font-size: .9vw; }
+  .op-rail.all-in .op-playercard { width: min(8.5vw, 300px); padding: .45vw .35vw .55vw; }
+  .op-rail.all-in .op-playercard .op-member { font-size: .85vw; }
+  .op-rail.all-in .op-playercard .op-pcard-num { font-size: .75vw; }
+  .op-rail.all-in.wrap-rows { grid-template-columns: repeat(var(--allin-cols, 5), min(8.5vw, 300px)); row-gap: 1.2vw; }
+  .op-rail.all-in.grouped { gap: 1.3vw 1vw; }
+  .op-team-group-label { font-size: .9vw; }
+  .op-team-group-cards { gap: .5vw; }
+  .op-playercard.past .op-pcard-bignum, .op-rail.all-in .op-playercard .op-pcard-bignum { font-size: 5vw; }
+}
 
 /* Equipo: dos o más figuras abrazadas, solapadas */
 .op-duo { display: flex; align-items: flex-end; justify-content: center; width: 100%; height: 100%; }
@@ -12377,16 +12436,21 @@ function finalPosterPickFile() {
 function finalPosterFileChosen(input) {
   const f = input && input.files && input.files[0];
   if (!f) return;
-  _tercerCompressImg(f, (dataUrl) => {
+  const prev = FINAL_CONFIG.poster;
+  const sizes = [3840, 2560, 1600];
+  const trySize = (index) => _tercerCompressImg(f, (dataUrl) => {
     if (!dataUrl) { showToast('⚠️', 'No se pudo leer esa imagen', false); return; }
-    const prev = FINAL_CONFIG.poster;
     FINAL_CONFIG.poster = dataUrl;
-    try { saveFinalConfig(); } catch (e) {
+    try {
+      saveFinalConfig();
+      _finalPosterRefreshRow();
+    } catch (e) {
       FINAL_CONFIG.poster = prev;
-      showToast('⚠️', 'No entró: la imagen es muy pesada', false);
+      if (index + 1 < sizes.length) trySize(index + 1);
+      else showToast('⚠️', 'No entró: la imagen es muy pesada. Probá con un enlace.', false);
     }
-    _finalPosterRefreshRow();
-  }, 1600, 0.86);
+  }, sizes[index], 0.82);
+  trySize(0);
 }
 function finalPosterSetUrl(v) {
   const url = (v || '').trim();
@@ -15846,7 +15910,7 @@ function runTrailer(done, host) {
     return `<div class="tr-tint" style="background:${_trailerTint(fase)}">
         <div class="tr-graphic-ring"></div><div class="tr-graphic-lines"></div>
         <span class="tr-graphic-word">${_escC(nombre)}</span><span class="tr-emoji">${icono}</span><span class="tr-watermark">LV</span>
-      </div>${poster ? `<img class="tr-img" src="${_escT(poster)}" alt="" onload="if(this.naturalWidth<1000)this.closest('.tr-media').classList.add('tr-lowres')" onerror="this.closest('.tr-media').classList.add('tr-noimg')">` : ''}`;
+      </div>${poster ? `<img class="tr-img" src="${_escT(poster)}" alt="" onerror="this.closest('.tr-media').classList.add('tr-noimg')">` : ''}`;
   }
 
   function hudHtml(p) {
@@ -15881,7 +15945,12 @@ function runTrailer(done, host) {
 
     if (p.t === 'final') {
       stage.classList.add('tr-mode-bleed', 'tr-mode-final');
-      stage.innerHTML = `<div class="tr-media">${medioHtml(p.g, 0, FINAL_CONFIG && FINAL_CONFIG.poster)}</div>
+      // Arte horizontal exclusivo del tráiler: evita ampliar el afiche vertical
+      // y pequeño guardado en el navegador. Los créditos conservan ese afiche.
+      const posterFinal = /keep\s*talk/i.test(p.g)
+        ? 'keep-talking-trailer-4k.jpg'
+        : (FINAL_CONFIG && FINAL_CONFIG.poster);
+      stage.innerHTML = `<div class="tr-media">${medioHtml(p.g, 0, posterFinal)}</div>
         ${hudHtml(p)}<div class="tr-final-emblem">★</div>
         <div class="tr-cap">
           <div class="tr-kicker gold">La gran final</div>
@@ -15891,17 +15960,15 @@ function runTrailer(done, host) {
       return;
     }
 
-    // Juego: tres tipos de plano rotando (a sangre / con marco / nombre encima)
+    // Cada juego llena la pantalla; la posición del título varía con el pulso.
     if (p.plano === 0) {
       stage.classList.add('tr-mode-bleed');
       stage.innerHTML = `<div class="tr-media">${medioHtml(p.g, p.fase)}</div>
         ${hudHtml(p)}<div class="tr-cap"><div class="tr-cap-kicker">DESAFÍO ${String(p.numero).padStart(2, '0')}</div><div class="tr-name">${_escC(p.g)}</div><div class="tr-cap-rule"></div></div>`;
     } else if (p.plano === 1) {
-      stage.classList.add('tr-mode-frame');
-      stage.innerHTML = `${hudHtml(p)}<div class="tr-shot">
-          <div class="tr-frame tr-media">${medioHtml(p.g, p.fase)}</div>
-          <div class="tr-cap-kicker">DESAFÍO ${String(p.numero).padStart(2, '0')}</div><div class="tr-name">${_escC(p.g)}</div>
-        </div>`;
+      stage.classList.add('tr-mode-bleed', 'tr-variant-center');
+      stage.innerHTML = `<div class="tr-media">${medioHtml(p.g, p.fase)}</div>
+        ${hudHtml(p)}<div class="tr-cap"><div class="tr-cap-kicker">DESAFÍO ${String(p.numero).padStart(2, '0')}</div><div class="tr-name">${_escC(p.g)}</div><div class="tr-cap-rule"></div></div>`;
     } else {
       stage.classList.add('tr-mode-over');
       stage.innerHTML = `<div class="tr-media">${medioHtml(p.g, p.fase)}</div>
