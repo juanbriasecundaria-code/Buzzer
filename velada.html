@@ -2940,33 +2940,33 @@ body.started .velada-bg-scrim { display: block; }
   background: rgba(6,6,10,0.93); backdrop-filter: blur(6px); }
 .ruleta-overlay.open { display: flex; }
 .ruleta-box { position: relative; width: 100%; max-width: 560px; max-height: calc(100dvh - 2rem); overflow-y: auto; text-align: center;
-  background: radial-gradient(circle at 50% 25%, #272332, var(--surface) 72%); border: 1px solid rgba(245,200,66,0.42); border-radius: 24px;
-  padding: 1.5rem clamp(1rem, 4vw, 2rem) 1.3rem; box-shadow: 0 28px 90px rgba(0,0,0,0.72), 0 0 50px rgba(245,200,66,0.08); }
+  background: radial-gradient(circle at 50% 16%, #24283a, #141720 74%); border: 1px solid rgba(229,191,111,0.28); border-radius: 24px;
+  padding: 1.5rem clamp(1rem, 4vw, 2rem) 1.3rem; box-shadow: 0 28px 90px rgba(0,0,0,0.72), 0 0 36px rgba(130,151,207,0.08); }
 .ruleta-close { position: absolute; top: 0.6rem; right: 0.7rem; background: none; border: none;
   color: var(--muted); font-size: 18px; cursor: pointer; padding: 0.2rem 0.4rem; }
 .ruleta-eyebrow { font-size: clamp(12px, 2.5vw, 15px); font-weight: 900; letter-spacing: 0.2em; text-transform: uppercase;
-  color: var(--gold); margin-bottom: 1.2rem; text-shadow: 0 0 20px rgba(245,200,66,0.35); }
+  color: #f2d795; margin-bottom: 1.4rem; text-shadow: 0 0 20px rgba(242,215,149,0.2); }
 .ruleta-wheel-area { position: relative; width: min(84vw, 420px, 56dvh); aspect-ratio: 1 / 1; margin: 0 auto 0.2rem; }
 .ruleta-pointer { position: absolute; top: -13px; left: 50%; transform: translateX(-50%); width: 0; height: 0;
-  border-left: 16px solid transparent; border-right: 16px solid transparent; border-top: 28px solid var(--gold);
+  border-left: 13px solid transparent; border-right: 13px solid transparent; border-top: 23px solid #f3d486;
   z-index: 6; filter: drop-shadow(0 2px 5px rgba(0,0,0,0.55)); }
-.ruleta-wheel-outer { position: absolute; inset: 0; border-radius: 50%; padding: 4%;
-  background: conic-gradient(from 15deg, #ffe487, #9b6b0e, #f6c943, #74500d, #ffe487);
-  box-shadow: 0 0 0 5px rgba(245,200,66,0.12), 0 20px 52px rgba(0,0,0,0.65), inset 0 0 12px rgba(0,0,0,0.4); }
+.ruleta-wheel-outer { position: absolute; inset: 0; border-radius: 50%; padding: 2.8%; border: 2px solid #bd9b55;
+  background: linear-gradient(135deg, #f1d894, #886c37 45%, #e3bd70 80%, #967746);
+  box-shadow: 0 0 0 5px rgba(189,155,85,0.08), 0 20px 52px rgba(0,0,0,0.65), inset 0 0 0 2px rgba(20,23,32,0.75); }
 .ruleta-wheel-svg { display: block; width: 100%; height: 100%; border-radius: 50%;
   transform: rotate(0deg); transition: transform 3.7s cubic-bezier(0.13,0.7,0.18,1);
   filter: drop-shadow(0 6px 16px rgba(0,0,0,0.5)); }
-.ruleta-hub { position: absolute; top: 50%; left: 50%; width: 16%; height: 16%; transform: translate(-50%,-50%);
-  border-radius: 50%; background: radial-gradient(circle at 34% 28%, #fff2ca, var(--gold) 55%, #a97e12 100%);
-  box-shadow: 0 0 0 3px rgba(0,0,0,0.42), 0 4px 10px rgba(0,0,0,0.5);
+.ruleta-hub { position: absolute; top: 50%; left: 50%; width: 14%; height: 14%; transform: translate(-50%,-50%);
+  border-radius: 50%; background: radial-gradient(circle at 35% 25%, #fff3d0, #dfbb69 65%, #8d6b32);
+  box-shadow: 0 0 0 3px #12151f, 0 0 0 5px rgba(242,215,149,0.75), 0 5px 14px rgba(0,0,0,0.55);
   display: flex; align-items: center; justify-content: center; font-size: clamp(18px, 4vw, 26px); z-index: 4; }
-.ruleta-result-name { margin-top: 0.9rem; min-height: 1.5em; font-size: clamp(1.6rem, 7.5vw, 2.6rem);
+.ruleta-result-name { margin-top: 0; height: 0; overflow: hidden; font-size: clamp(1.6rem, 7.5vw, 2.6rem);
   font-weight: 900; color: var(--gold); overflow-wrap: anywhere; letter-spacing: -0.01em; line-height: 1.1;
   opacity: 0; transform: translateY(6px); transition: opacity 0.35s ease, transform 0.35s ease; }
-.ruleta-result-name.show { opacity: 1; transform: none; }
-.ruleta-card { margin-top: 1rem; opacity: 0; transform: translateY(14px) scale(0.95);
+.ruleta-result-name.show { margin-top: 0.8rem; height: auto; overflow: visible; opacity: 1; transform: none; }
+.ruleta-card { margin-top: 0; opacity: 0; transform: translateY(14px) scale(0.95);
   transition: opacity 0.4s, transform 0.45s cubic-bezier(.2,1.2,.35,1); }
-.ruleta-card.show { opacity: 1; transform: none; border-radius: 16px; padding: 1.1rem 0.9rem;
+.ruleta-card.show { margin-top: 1rem; opacity: 1; transform: none; border-radius: 16px; padding: 1.1rem 0.9rem;
   border: 1.5px solid; }
 .ruleta-card.good { border-color: var(--success); background: rgba(78,203,126,0.09); }
 .ruleta-card.bad  { border-color: var(--danger);  background: rgba(255,95,95,0.09); }
@@ -8592,9 +8592,9 @@ function buildWheelSVG(names) {
   const n = names.length;
   const cx = 100, cy = 100, r = 96;
   const seg = 360 / n;
-  const palette = ['#272b42', '#592438', '#213d4a', '#654019'];
-  const fontSize = n > 12 ? 9.5 : n > 9 ? 11 : n > 7 ? 12 : n > 5 ? 13 : 15;
-  const textR = r * 0.65;
+  const palette = ['#263249', '#3b2e4a', '#273b50', '#382e48'];
+  const baseFontSize = n > 12 ? 9 : n > 9 ? 10.5 : n > 7 ? 11.5 : n > 5 ? 13 : 15;
+  const textR = 71;
   const pt = (radius, angleDeg) => {
     const rad = angleDeg * Math.PI / 180;
     return { x: cx + radius * Math.sin(rad), y: cy - radius * Math.cos(rad) };
@@ -8606,13 +8606,17 @@ function buildWheelSVG(names) {
     const p1 = pt(r, start), p2 = pt(r, end);
     const largeArc = (end - start) > 180 ? 1 : 0;
     const fill = palette[i % palette.length];
-    paths += `<path d="M ${cx} ${cy} L ${p1.x.toFixed(2)} ${p1.y.toFixed(2)} A ${r} ${r} 0 ${largeArc} 1 ${p2.x.toFixed(2)} ${p2.y.toFixed(2)} Z" fill="${fill}" stroke="rgba(255,224,143,0.65)" stroke-width="0.9"/>`;
+    paths += `<path d="M ${cx} ${cy} L ${p1.x.toFixed(2)} ${p1.y.toFixed(2)} A ${r} ${r} 0 ${largeArc} 1 ${p2.x.toFixed(2)} ${p2.y.toFixed(2)} Z" fill="${fill}" stroke="rgba(231,206,150,0.55)" stroke-width="0.75"/>`;
     const tp = pt(textR, mid);
-    const short = esc(String(names[i]).split(' ')[0]);
-    texts += `<text x="${tp.x.toFixed(2)}" y="${tp.y.toFixed(2)}" transform="rotate(${(mid > 90 && mid < 270 ? mid + 180 : mid).toFixed(2)} ${tp.x.toFixed(2)} ${tp.y.toFixed(2)})" text-anchor="middle" dominant-baseline="middle" style="font-size:${fontSize}px;font-weight:900;fill:#fff9ed;paint-order:stroke;stroke:rgba(0,0,0,0.55);stroke-width:1.5px;stroke-linejoin:round;letter-spacing:0.1px">${short}</text>`;
+    const label = String(names[i]).trim().split(/\s+/)[0];
+    // El texto queda dentro de la franja radial: ni toca el centro ni invade el gajo vecino.
+    const maxTextLength = 43;
+    const fontSize = Math.min(baseFontSize, maxTextLength / Math.max(1, [...label].length * 0.62));
+    const short = esc(label);
+    texts += `<text x="${tp.x.toFixed(2)}" y="${tp.y.toFixed(2)}" transform="rotate(${(mid > 90 && mid < 270 ? mid + 180 : mid).toFixed(2)} ${tp.x.toFixed(2)} ${tp.y.toFixed(2)})" text-anchor="middle" dominant-baseline="middle" style="font-size:${fontSize}px;font-weight:850;fill:#fff8e8;paint-order:stroke;stroke:rgba(6,11,24,0.55);stroke-width:0.75px;stroke-linejoin:round;letter-spacing:0px">${short}</text>`;
   }
   return `<svg id="ruleta-wheel-svg" class="ruleta-wheel-svg" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
-    <circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="rgba(245,200,66,0.45)" stroke-width="1.5"/>
+    <circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="rgba(246,218,152,0.7)" stroke-width="1"/>
     ${paths}${texts}
   </svg>`;
 }
@@ -8770,6 +8774,7 @@ function revealComodin(player, cm) {
     window._ruletaConfirm = () => finish({});
   }
   goBtn.style.display = 'none';
+  requestAnimationFrame(() => cardEl.scrollIntoView({ block: 'nearest', behavior: 'smooth' }));
 }
 function applyComodin(player, cm, extra) {
   const phase = _ruletaPhase;

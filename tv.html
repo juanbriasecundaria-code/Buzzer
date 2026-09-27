@@ -992,7 +992,7 @@
   .tv-ruleta-overlay.open{ display:flex; }
   .tv-ruleta-box{
     display:flex; flex-direction:column; align-items:center;
-    gap:clamp(10px,1.6vh,22px);
+    gap:clamp(10px,1.6vh,22px); max-height:94vh; overflow-y:auto; padding:1rem;
   }
   .tv-ruleta-eyebrow{
     font-size:clamp(12px,1.3vw,17px); font-weight:900; letter-spacing:0.32em;
@@ -1000,7 +1000,7 @@
     text-shadow:0 0 18px rgba(245,200,66,0.5);
   }
   .tv-ruleta-wheel-area{
-    position:relative; width:min(52vw,65vh); aspect-ratio:1/1;
+    position:relative; width:min(50vw,54vh); aspect-ratio:1/1;
   }
   .tv-ruleta-pointer{
     position:absolute; top:-3%; left:50%; transform:translateX(-50%); z-index:3;
@@ -1011,9 +1011,9 @@
     filter:drop-shadow(0 3px 8px rgba(0,0,0,0.55));
   }
   .tv-ruleta-wheel-outer{
-    position:absolute; inset:0; border-radius:50%; padding:3%;
-    background:conic-gradient(from 0deg, var(--gold), #6b4e0e, var(--gold));
-    box-shadow:0 0 0 6px rgba(245,200,66,0.14), 0 22px 70px rgba(0,0,0,0.6);
+    position:absolute; inset:0; border-radius:50%; padding:2.8%;
+    border:2px solid #bd9b55; background:linear-gradient(135deg, #f1d894, #886c37 45%, #e3bd70 80%, #967746);
+    box-shadow:0 0 0 6px rgba(189,155,85,0.09), 0 22px 70px rgba(0,0,0,0.6);
   }
   .tv-ruleta-wheel-svg{
     display:block; width:100%; height:100%; border-radius:50%;
@@ -2972,9 +2972,9 @@ function tvBuildRuletaWheelSVG(names) {
   const n = names.length;
   const cx = 100, cy = 100, r = 96;
   const seg = 360 / n;
-  const palette = ['#272b42', '#592438', '#213d4a', '#654019'];
-  const fontSize = n > 12 ? 9.5 : n > 9 ? 11 : n > 7 ? 12 : n > 5 ? 13 : 15;
-  const textR = r * 0.65;
+  const palette = ['#263249', '#3b2e4a', '#273b50', '#382e48'];
+  const baseFontSize = n > 12 ? 9 : n > 9 ? 10.5 : n > 7 ? 11.5 : n > 5 ? 13 : 15;
+  const textR = 71;
   const pt = function (radius, angleDeg) {
     const rad = angleDeg * Math.PI / 180;
     return { x: cx + radius * Math.sin(rad), y: cy - radius * Math.cos(rad) };
@@ -2990,14 +2990,16 @@ function tvBuildRuletaWheelSVG(names) {
     const fill = palette[i % palette.length];
     paths += '<path d="M ' + cx + ' ' + cy + ' L ' + p1.x.toFixed(2) + ' ' + p1.y.toFixed(2)
       + ' A ' + r + ' ' + r + ' 0 ' + largeArc + ' 1 ' + p2.x.toFixed(2) + ' ' + p2.y.toFixed(2)
-      + ' Z" fill="' + fill + '" stroke="rgba(255,224,143,0.65)" stroke-width="0.9"/>';
+      + ' Z" fill="' + fill + '" stroke="rgba(231,206,150,0.55)" stroke-width="0.75"/>';
     const tp = pt(textR, mid);
-    const short = esc(String(names[i]).split(' ')[0]);
+    const label = String(names[i]).trim().split(/\s+/)[0];
+    const fontSize = Math.min(baseFontSize, 43 / Math.max(1, [...label].length * 0.62));
+    const short = esc(label);
     texts += '<text x="' + tp.x.toFixed(2) + '" y="' + tp.y.toFixed(2) + '" transform="rotate(' + (mid > 90 && mid < 270 ? mid + 180 : mid).toFixed(2)
       + ' ' + tp.x.toFixed(2) + ' ' + tp.y.toFixed(2) + ')" text-anchor="middle" dominant-baseline="middle" '
-      + 'style="font-size:' + fontSize + 'px;font-weight:900;fill:#fff9ed;paint-order:stroke;stroke:rgba(0,0,0,0.55);stroke-width:1.5px;stroke-linejoin:round;letter-spacing:0.1px">' + short + '</text>';
+      + 'style="font-size:' + fontSize + 'px;font-weight:850;fill:#fff8e8;paint-order:stroke;stroke:rgba(6,11,24,0.55);stroke-width:0.75px;stroke-linejoin:round;letter-spacing:0px">' + short + '</text>';
   }
-  return '<circle cx="' + cx + '" cy="' + cy + '" r="' + r + '" fill="none" stroke="rgba(245,200,66,0.5)" stroke-width="1.5"/>'
+  return '<circle cx="' + cx + '" cy="' + cy + '" r="' + r + '" fill="none" stroke="rgba(246,218,152,0.7)" stroke-width="1"/>'
     + paths + texts;
 }
 
