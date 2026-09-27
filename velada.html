@@ -2594,7 +2594,7 @@ body.started .velada-bg-scrim { display: block; }
    Cortes en el beat, cartelones entre fases, negro antes del golpe final
    y tres tipos de plano rotando para que no sea un catálogo.
    ============================================================ */
-.tr-overlay{position:fixed;inset:0;z-index:9700;background:#07070b;overflow:hidden;
+.tr-overlay{position:fixed;inset:0;z-index:20000;background:#07070b;overflow:hidden;
   opacity:0;transition:opacity .35s ease}
 .tr-overlay.on{opacity:1}
 .tr-overlay.out{opacity:0;transition:opacity .6s ease}
@@ -2672,17 +2672,77 @@ body.started .velada-bg-scrim { display: block; }
   color:#8a8a8a;font-family:system-ui,-apple-system,sans-serif;font-size:12px;letter-spacing:.04em;cursor:pointer}
 @media (prefers-reduced-motion: reduce){ .tr-overlay *{animation:none!important} }
 
+/* Identidad editorial del tráiler: gráfica de respaldo cuando falta un póster. */
+.tr-mode-title{background:radial-gradient(ellipse 65% 65% at 50% 50%,#202536 0%,#0d1019 58%,#07080d 100%)}
+.tr-title-lines{position:absolute;inset:8%;pointer-events:none;opacity:.5;
+  background:linear-gradient(90deg,transparent 0 9.9%,rgba(224,190,110,.35) 10%,transparent 10.1% 89.9%,rgba(224,190,110,.35) 90%,transparent 90.1%),
+             linear-gradient(0deg,transparent 0 15%,rgba(224,190,110,.25) 15.1%,transparent 15.2% 84.8%,rgba(224,190,110,.25) 84.9%,transparent 85%)}
+.tr-card-title{position:relative;z-index:2}
+.tr-card-title .tr-kicker{color:#e2be75;font-weight:800}
+.tr-card-title .tr-sub{color:#c8cad2}
+.tr-title-footer{position:absolute;bottom:6vh;left:0;right:0;text-align:center;
+  color:#8d91a2;font:800 clamp(10px,1.2vw,14px)/1.3 system-ui,sans-serif;letter-spacing:.28em}
+.tr-media .tr-tint{position:absolute;inset:0;overflow:hidden}
+.tr-media .tr-img{position:absolute;inset:0;z-index:1;object-position:center;width:100%;height:100%}
+.tr-graphic-ring{position:absolute;width:min(72vw,75vh);aspect-ratio:1;border:1px solid rgba(255,255,255,.18);
+  border-radius:50%;box-shadow:0 0 0 min(7vw,70px) rgba(255,255,255,.035),0 0 0 min(15vw,145px) rgba(255,255,255,.025);
+  transform:rotate(-20deg)}
+.tr-graphic-ring::after{content:'';position:absolute;inset:14%;border:1px solid rgba(255,255,255,.1);border-radius:50%}
+.tr-graphic-lines{position:absolute;inset:0;opacity:.45;
+  background:repeating-linear-gradient(145deg,transparent 0 44px,rgba(255,255,255,.075) 45px,transparent 46px 90px)}
+.tr-graphic-word{position:absolute;z-index:1;top:45%;left:50%;width:85%;max-height:55vh;overflow:hidden;
+  transform:translate(-50%,-50%) rotate(-8deg);text-align:center;text-transform:uppercase;word-break:break-word;
+  color:transparent;-webkit-text-stroke:1px rgba(255,255,255,.2);
+  font:900 clamp(48px,7vw,108px)/.94 system-ui,sans-serif;letter-spacing:-.06em}
+.tr-tint .tr-emoji{position:relative;z-index:1;font-size:clamp(72px,12vw,160px);
+  transform:rotate(-8deg);filter:drop-shadow(0 18px 35px rgba(0,0,0,.7))}
+.tr-watermark{position:absolute;right:3vw;bottom:-7vh;color:rgba(255,255,255,.075);
+  font:900 min(42vw,540px)/.8 system-ui,sans-serif;letter-spacing:-.12em;pointer-events:none}
+.tr-hud{position:absolute;z-index:3;top:5vh;left:5vw;right:5vw;display:flex;justify-content:space-between;gap:2rem;
+  color:#fff;font:800 clamp(10px,1.25vw,15px)/1.3 system-ui,sans-serif;letter-spacing:.18em;text-transform:uppercase;
+  text-shadow:0 2px 12px #000}
+.tr-hud span:last-child{text-align:right}
+.tr-hud i{color:#f2ce7c;font-style:normal;margin:0 .35em}
+.tr-cap-kicker,.tr-overname small{display:block;color:#f2ce7c;font:900 clamp(11px,1.3vw,16px)/1.3 system-ui,sans-serif;
+  letter-spacing:.26em;text-transform:uppercase;margin-bottom:.7rem}
+.tr-cap-rule{width:min(18vw,170px);height:3px;background:#f2ce7c;margin-top:1.2rem;border-radius:3px}
+.tr-mode-frame{background:radial-gradient(ellipse at center,#202739,#090b11 72%)}
+.tr-mode-frame .tr-shot{width:min(72vw,850px);gap:clamp(7px,1.6vh,16px)}
+.tr-mode-frame .tr-frame{aspect-ratio:16/9;border:2px solid rgba(242,206,124,.5)}
+.tr-mode-frame .tr-tint .tr-emoji{font-size:clamp(90px,13vw,170px)}
+.tr-mode-frame .tr-cap-kicker{margin:0}
+.tr-mode-over .tr-overname{display:flex;flex-direction:column;align-items:center;max-width:90vw;word-break:break-word}
+.tr-mode-over .tr-overname small{font-size:clamp(11px,1.5vw,18px)}
+.tr-mode-final .tr-media::after{background:linear-gradient(to top,rgba(6,6,10,.98),rgba(6,6,10,.28) 65%,rgba(6,6,10,.1))}
+.tr-mode-final .tr-cap{text-align:center;bottom:min(12vh,100px)}
+.tr-mode-final .tr-cap-rule{margin:1.2rem auto 0}
+.tr-mode-final .tr-final-emblem{position:absolute;z-index:2;top:19vh;left:50%;transform:translateX(-50%);
+  color:rgba(242,206,124,.8);font-size:clamp(35px,5vw,70px);text-shadow:0 0 35px #000}
+/* Un póster viejo de 520 px no se agranda a pantalla completa. El fondo
+   gráfico llena el plano hasta que se cargue una imagen de mayor resolución. */
+.tr-mode-final .tr-media.tr-lowres .tr-img{inset:auto;top:12%;left:50%;width:min(42vw,520px);height:auto;
+  max-height:43vh;object-fit:contain;transform:translateX(-50%);animation:none!important;
+  border:1px solid rgba(242,206,124,.55);border-radius:12px;box-shadow:0 18px 65px #000}
+.tr-mode-final .tr-media.tr-lowres::after{background:linear-gradient(to top,rgba(6,6,10,.98),transparent 74%)}
+.tr-mode-final .tr-media.tr-lowres .tr-emoji,
+.tr-mode-final .tr-media.tr-lowres .tr-graphic-word{display:none}
+.tr-mode-final:has(.tr-lowres) .tr-final-emblem{display:none}
+.tr-flash{background:#f2ce7c}
+@keyframes trFlash{0%{opacity:.22}100%{opacity:0}}
+@media(max-width:650px){.tr-hud{left:5vw;right:5vw;letter-spacing:.08em;gap:1rem}.tr-mode-frame .tr-shot{width:90vw}}
+body:has(.pc-overlay) .hub-link,body:has(.tr-overlay) .hub-link{display:none}
+
 /* ============================================================
    PLACA DE CLASIFICACIÓN — la que abre la noche, estilo INCAA.
    Proporciones y colores sacados del video: fondo #f5f5f5, verde
    #92BE1E, azul #2A2E44. La tarjeta va un poco arriba del centro y
    la franja legal ocupa el tercio inferior, como en el original.
    ============================================================ */
-.pc-overlay{position:fixed;inset:0;z-index:9700;background:#000;overflow:hidden;opacity:0;
+.pc-overlay{position:fixed;inset:0;z-index:20000;background:#000;overflow:hidden;opacity:0;
   transition:opacity .45s ease;font-family:Georgia,'Times New Roman',serif}
 .pc-overlay.on{opacity:1}
 .pc-overlay.out{opacity:0;transition:opacity .6s ease}
-.pc-bg{position:absolute;inset:0;background:#f5f5f5;opacity:0;transition:opacity .7s ease}
+.pc-bg{position:absolute;inset:1.5vh 0;background:#f5f5f5;opacity:0;transition:opacity .7s ease}
 .pc-overlay.lit .pc-bg{opacity:1}
 /* Barras grises que cruzan el fondo antes de que se arme la placa */
 .pc-bars{position:absolute;inset:0;overflow:hidden}
@@ -2695,25 +2755,25 @@ body.started .velada-bg-scrim { display: block; }
 @keyframes pcBar{to{opacity:1;transform:translateX(0)}}
 /* Tarjeta: arriba del centro, como en el video */
 .pc-stage{position:absolute;left:50%;top:39%;transform:translate(-50%,-50%);
-  width:min(60vw,700px);opacity:0;transition:opacity .5s ease}
+  width:min(49vw,700px);opacity:0;transition:opacity .5s ease}
 .pc-overlay.lit .pc-stage{opacity:1}
 .pc-card{position:relative;box-shadow:0 18px 50px rgba(0,0,0,.14)}
 .pc-main{display:flex;align-items:stretch;background:#e6e6e6;overflow:hidden;position:relative;
-  height:min(13.5vw,155px)}
-.pc-g{flex:0 0 20%;background:#92be1e;display:flex;align-items:center;justify-content:center;
+  height:min(14.6vw,190px)}
+.pc-g{flex:0 0 30%;background:#92be1e;display:flex;align-items:center;justify-content:center;
   overflow:hidden;position:relative}
-.pc-g span{color:#fff;font-size:min(10.5vw,124px);line-height:.82;font-weight:400;
+.pc-g span{color:#fff;font-size:min(14vw,180px);line-height:.82;font-weight:400;
   transform:scale(2.6) translateY(6%);opacity:.3;
   transition:transform 1s cubic-bezier(.16,.9,.3,1),opacity .9s ease}
 .pc-overlay.lit .pc-g span{transform:scale(1) translateY(0);opacity:1}
-.pc-label{flex:1;display:flex;flex-direction:column;justify-content:center;
-  padding:0 min(2.6vw,30px);gap:.04em;overflow:hidden}
+.pc-label{flex:1;display:flex;flex-direction:column;justify-content:center;align-items:center;
+  padding:0 min(2vw,24px);gap:.04em;overflow:hidden}
 .pc-label b{display:block;color:#92be1e;font-family:system-ui,-apple-system,'Segoe UI',sans-serif;
-  font-weight:700;letter-spacing:.005em;font-size:min(3.7vw,43px);line-height:1.12;
+  font-weight:700;letter-spacing:.005em;font-size:min(3.35vw,43px);line-height:1.12;
   opacity:0;transform:translateX(45%)}
 .pc-overlay.lit .pc-label b{animation:pcSlide .8s cubic-bezier(.16,.9,.3,1) forwards}
 .pc-label b:nth-child(1){animation-delay:.26s}
-.pc-label b:nth-child(2){animation-delay:.42s;align-self:flex-end}
+.pc-label b:nth-child(2){animation-delay:.42s}
 @keyframes pcSlide{to{opacity:1;transform:translateX(0)}}
 /* Brillo fijo: el vidrio de la placa */
 .pc-gloss{position:absolute;inset:0;pointer-events:none;
@@ -2721,7 +2781,7 @@ body.started .velada-bg-scrim { display: block; }
     rgba(255,255,255,.06) 70%,rgba(255,255,255,0) 78%)}
 /* Barra azul con la bajada + claqueta */
 .pc-bar{background:#2a2e44;display:flex;align-items:center;justify-content:space-between;
-  padding:min(1.35vw,16px) min(2.2vw,26px);overflow:hidden;position:relative}
+  padding:min(1.2vw,14px) min(1.5vw,18px);overflow:hidden;position:relative}
 .pc-bar em{font-style:normal;color:#fff;font-family:system-ui,-apple-system,sans-serif;
   font-weight:600;font-size:min(1.85vw,21px);letter-spacing:.01em;clip-path:inset(0 100% 0 0)}
 .pc-overlay.lit .pc-bar em{animation:pcWipe .95s cubic-bezier(.2,.8,.3,1) .9s forwards}
@@ -2737,16 +2797,16 @@ body.started .velada-bg-scrim { display: block; }
 @keyframes pcShine{to{transform:rotate(17deg) translateX(620%)}}
 /* Franjas del tercio inferior: gris finita, banda azul, gris finita */
 .pc-strip{position:absolute;left:0;right:0;background:#c8c8c8;opacity:0;transform:translateY(60%)}
-.pc-strip.a{top:68.1%;height:2.2%}
-.pc-strip.b{top:88.6%;height:2.4%;background:#d1d2db}
+.pc-strip.a{top:72%;height:2.2%}
+.pc-strip.b{top:93%;height:2.4%;background:#d1d2db}
 .pc-overlay.lit .pc-strip{animation:pcFoot .7s cubic-bezier(.16,.9,.3,1) 1.05s forwards}
-.pc-foot{position:absolute;left:0;right:0;top:70.3%;height:18.3%;background:#272442;
+.pc-foot{position:absolute;left:0;right:0;top:74.2%;height:18.8%;background:#272442;
   display:flex;align-items:center;justify-content:space-between;gap:3vw;
-  padding:0 min(7vw,90px);opacity:0;transform:translateY(45%)}
+  padding:0 min(14vw,185px);opacity:0;transform:translateY(45%)}
 .pc-overlay.lit .pc-foot{animation:pcFoot .8s cubic-bezier(.16,.9,.3,1) 1.15s forwards}
 @keyframes pcFoot{to{opacity:1;transform:translateY(0)}}
 .pc-foot p{margin:0;color:#fff;font-family:system-ui,-apple-system,sans-serif;
-  font-size:min(1.5vw,17px);line-height:1.6;max-width:62%}
+  font-size:min(1.5vw,18px);line-height:1.45;max-width:68%}
 .pc-seal{display:flex;align-items:center;gap:min(1.2vw,14px);color:#fff;flex:0 0 auto;
   opacity:0;transition:opacity .8s ease 2.05s}
 .pc-overlay.lit .pc-seal{opacity:1}
@@ -2759,6 +2819,20 @@ body.started .velada-bg-scrim { display: block; }
   cursor:pointer;opacity:0;transition:opacity .4s ease 2.6s}
 .pc-overlay.lit .pc-skip{opacity:.6}
 .pc-skip:hover{opacity:1}
+@media(max-width:700px){
+  .pc-stage{width:86vw;top:39%}
+  .pc-main{height:25vw}
+  .pc-g span{font-size:23vw}
+  .pc-label b{font-size:6vw}
+  .pc-bar{padding:1.5vw 2.5vw}
+  .pc-bar em{font-size:3vw}
+  .pc-clap{width:4vw}
+  .pc-foot{padding:0 5vw;gap:2vw}
+  .pc-foot p{font-size:clamp(9px,2vw,13px);max-width:72%}
+  .pc-seal b{font-size:3vw}
+  .pc-seal small{font-size:1.3vw}
+  .pc-seal svg{width:4vw}
+}
 @media (prefers-reduced-motion: reduce){
   .pc-overlay *,.pc-overlay *::after{animation:none!important;transition:none!important;
     opacity:1!important;transform:none!important;clip-path:none!important}
@@ -3088,6 +3162,23 @@ body.started .velada-bg-scrim { display: block; }
   overflow: visible;
 }
 .op-team-group { display: flex; flex-direction: column; align-items: center; }
+.op-team-kicker {
+  position: fixed; top: clamp(2rem, 5vh, 4rem); left: 50%; z-index: 5;
+  transform: translate(-50%, -10px); opacity: 0; pointer-events: none;
+  display: flex; flex-direction: column; align-items: center; gap: 0.3rem;
+  width: min(92vw, 720px); text-align: center;
+  transition: opacity .35s ease, transform .35s ease;
+}
+.op-team-kicker.show { opacity: 1; transform: translate(-50%, 0); }
+.op-team-kicker b {
+  border: 1px solid color-mix(in srgb, var(--team) 72%, white 10%);
+  border-radius: 99px; padding: .38rem 1.15rem;
+  background: color-mix(in srgb, var(--team) 18%, #090b13);
+  color: #fff; font-size: clamp(13px, 1.8vw, 20px); font-weight: 900;
+  letter-spacing: .19em; text-transform: uppercase;
+  box-shadow: 0 0 30px color-mix(in srgb, var(--team) 30%, transparent);
+}
+.op-team-kicker span { color: rgba(255,255,255,.7); font-size: clamp(11px, 1.25vw, 15px); font-weight: 700; }
 .op-team-group-label {
   font-size: 10px; font-weight: 900; letter-spacing: 0.12em; text-transform: uppercase;
   color: var(--accent); margin-bottom: 0.35rem; white-space: nowrap;
@@ -12255,7 +12346,7 @@ function saveFinalEdits() {
 // ── PÓSTER DEL JUEGO DE LA FINAL ──────────────────────────────────────────
 // El 3er puesto ya elige entre juegos con póster (TERCER_CONFIG.opciones).
 // La final se define a dedo, así que le damos su propio póster: se sube acá
-// y sale en los créditos junto al nombre del juego.
+// y sale en el tráiler y los créditos junto al nombre del juego.
 function finalPosterRowHtml() {
   const p = (FINAL_CONFIG && FINAL_CONFIG.poster) || '';
   return `
@@ -12269,7 +12360,7 @@ function finalPosterRowHtml() {
       <div class="tj-mini">
         ${p
           ? `<span style="color:var(--accent)">✓ con póster</span> · <a href="javascript:void(0)" style="color:var(--muted);text-decoration:underline" onclick="finalPosterQuitar()">quitar</a>`
-          : 'Tocá el recuadro para subir el póster. Sale en los créditos junto al nombre.'}
+          : 'Tocá el recuadro para subir una imagen nítida. Se verá en el tráiler y los créditos.'}
       </div>
     </div>`;
 }
@@ -12295,7 +12386,7 @@ function finalPosterFileChosen(input) {
       showToast('⚠️', 'No entró: la imagen es muy pesada', false);
     }
     _finalPosterRefreshRow();
-  });
+  }, 1600, 0.86);
 }
 function finalPosterSetUrl(v) {
   const url = (v || '').trim();
@@ -12375,7 +12466,7 @@ function gamePosterFileChosen(input) {
     GAME_POSTERS[name] = dataUrl;
     if (!saveGamePosters()) { if (prev) GAME_POSTERS[name] = prev; else delete GAME_POSTERS[name]; }
     renderGamePostersEditor();
-  });
+  }, 1600, 0.84);
 }
 function gamePosterSetUrl(name, v) {
   const url = (v || '').trim();
@@ -12537,13 +12628,13 @@ function tercerOpcionPickFile(id) {
   if (inp) { inp.value = ''; inp.click(); }
 }
 // Achica y comprime la imagen antes de guardarla, para que entren muchas.
-function _tercerCompressImg(file, cb) {
+function _tercerCompressImg(file, cb, maxSize = 520, quality = 0.72) {
   const fr = new FileReader();
   fr.onload = () => {
     const img = new Image();
     img.onload = () => {
       try {
-        const MAX = 520;
+        const MAX = maxSize;
         let w = img.naturalWidth || img.width, h = img.naturalHeight || img.height;
         const sc = Math.min(1, MAX / Math.max(w, h));
         w = Math.max(1, Math.round(w * sc));
@@ -12554,7 +12645,7 @@ function _tercerCompressImg(file, cb) {
         ctx.fillStyle = '#111';
         ctx.fillRect(0, 0, w, h);
         ctx.drawImage(img, 0, 0, w, h);
-        cb(c.toDataURL('image/jpeg', 0.72));
+        cb(c.toDataURL('image/jpeg', quality));
       } catch (e) { cb(null); }
     };
     img.onerror = () => cb(null);
@@ -15201,6 +15292,7 @@ function _runCeremony(opts) {
     + '    <div class="op-eyebrow">' + (groups[0].eyebrow || eyebrow || '') + '</div>'
     + '    <div class="op-bigtitle">' + (groups[0].title || title || '') + '</div>'
     + '  </div>'
+    + '  <div class="op-team-kicker" id="op-team-kicker"></div>'
     + '</div>'
     + '<div class="op-progress" id="op-progress">'
     + items.map(function(_, i) { return '<span class="op-dot" data-i="' + i + '"></span>'; }).join('')
@@ -15237,6 +15329,17 @@ function _runCeremony(opts) {
     const color = g.colorFn(flat[i].ii);
     const label = g.labelFn(flat[i].ii, g.items.length);
     const fig   = g.figFn(name, color, flat[i].ii);
+    const teamIdx = g.teamIdxOf && g.teamIdxOf[flat[i].ii];
+    const teamKicker = stage.querySelector('#op-team-kicker');
+    if (teamKicker) {
+      if (teamIdx != null && teamIdx >= 0) {
+        teamKicker.innerHTML = '<b>Equipo ' + (teamIdx + 1) + '</b><span>' + _escC(TEAMS[teamIdx] || '') + '</span>';
+        teamKicker.style.setProperty('--team', entityColor(TEAMS[teamIdx], teamIdx));
+        teamKicker.classList.add('show');
+      } else {
+        teamKicker.classList.remove('show');
+      }
+    }
     const parts = String(name).split('/').map(function(s) { return s.trim(); }).filter(Boolean);
     // La apertura usa los apodos (los mismos que las tablas de Fase 1 y 2);
     // los créditos siguen usando los nombres completos.
@@ -15341,6 +15444,8 @@ function _runCeremony(opts) {
   function finishCeremony() {
     clearPhaseTimers();
     phase = 99;
+    const teamKicker = stage.querySelector('#op-team-kicker');
+    if (teamKicker) teamKicker.classList.remove('show');
     hint.style.display = 'none';
     overlay.classList.remove('op-bg-on');
     prog.querySelectorAll('.op-dot').forEach(function(d) { d.classList.remove('current'); });
@@ -15498,16 +15603,15 @@ const PLACA_TEXTO = {
   sello: 'INJAC',
   selloSub: 'INSTITUTO NACIONAL DE<br>JUEGOS Y ARTES COMPETITIVAS',
 };
-const PLACA_HOLD_MS = 6200;   // cuánto queda en pantalla una vez armada
+const PLACA_HOLD_MS = 9400;   // duración cercana a la referencia de 10 segundos
 
 // Claqueta: la misma marca aparece en la barra azul de la placa y en el sello.
 function _clapSVG(cls) {
-  return `<svg class="${cls}" viewBox="0 0 40 34" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-    <rect x="2" y="12" width="36" height="20" rx="1.5" fill="#fff"/>
-    <path d="M2 12 L6.5 2 L14 2 L9.5 12 Z" fill="#fff"/>
-    <path d="M12 12 L16.5 2 L24 2 L19.5 12 Z" fill="#fff"/>
-    <path d="M22 12 L26.5 2 L34 2 L29.5 12 Z" fill="#fff"/>
-    <rect x="2" y="12" width="36" height="20" rx="1.5" stroke="#2a2e44" stroke-width="1.4"/>
+  return `<svg class="${cls}" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+    <g transform="rotate(13 20 20)" stroke="#fff" stroke-width="3.3" stroke-linejoin="round">
+      <path d="M6 34 13 5l22 5-7 27"/>
+      <path d="M12 10l-3 13M18 7l-3 13M25 9l-3 13M32 11l-3 13" stroke-width="2.5"/>
+    </g>
   </svg>`;
 }
 
@@ -15662,16 +15766,16 @@ function buildTrailerPlan() {
   const pasos = [];
   let variante = 0;   // rota el tipo de plano para que no sean todos iguales
 
-  pasos.push({ t: 'title', big: 'UNA NOCHE', sub: 'Doce juegos', beats: 4 });
+  pasos.push({ t: 'title', big: 'LA VELADA', sub: (f1.length + f2.length) + ' juegos · una sola noche', beats: 4 });
   if (f1.length) {
     pasos.push({ t: 'title', big: 'FASE 1', sub: 'Todos contra todos', beats: 3, fase: 1 });
     const ritmo = [3, 3, 3, 2, 2, 2];
-    f1.forEach((g, i) => pasos.push({ t: 'game', g, fase: 1, beats: ritmo[i] != null ? ritmo[i] : 2, plano: (variante++) % 3 }));
+    f1.forEach((g, i) => pasos.push({ t: 'game', g, fase: 1, numero: i + 1, beats: ritmo[i] != null ? ritmo[i] : 2, plano: (variante++) % 3 }));
   }
   if (f2.length) {
-    pasos.push({ t: 'title', big: 'FASE 2', sub: 'En parejas', beats: 3, fase: 2 });
+    pasos.push({ t: 'title', big: 'FASE 2', sub: 'En equipos', beats: 3, fase: 2 });
     const ritmo = [3, 2, 2, 2, 2, 2];
-    f2.forEach((g, i) => pasos.push({ t: 'game', g, fase: 2, beats: ritmo[i] != null ? ritmo[i] : 2, plano: (variante++) % 3 }));
+    f2.forEach((g, i) => pasos.push({ t: 'game', g, fase: 2, numero: i + 1, beats: ritmo[i] != null ? ritmo[i] : 2, plano: (variante++) % 3 }));
   }
   pasos.push({ t: 'title', big: 'UN SOLO CAMPEÓN', beats: 4 });
   pasos.push({ t: 'black', beats: 1.5 });            // el silencio antes del golpe
@@ -15697,6 +15801,7 @@ function trailerPlanMs() {
 // Color de respaldo de un juego sin póster: en vez de un emoji flotando sobre
 // negro (que se ve como un hueco), un fondo del color de su fase.
 function _trailerTint(fase) {
+  if (fase === 0) return 'radial-gradient(circle at 50% 42%,#534019 0%,#241b12 38%,#08090d 78%)';
   return fase === 2
     ? 'linear-gradient(150deg,#123049,#0b1c2c)'
     : 'linear-gradient(150deg,#2b3a12,#141d08)';
@@ -15733,12 +15838,21 @@ function runTrailer(done, host) {
   };
   ov.addEventListener('click', cerrar);
 
-  // Imagen del juego: póster si tiene, si no el emoji sobre el color de la fase.
-  function medioHtml(nombre, fase) {
-    const poster = (typeof gamePosterFor === 'function') ? gamePosterFor(nombre, '') : '';
+  // Cada juego tiene una gráfica completa aunque todavía no tenga póster.
+  // En la final se usa primero su póster propio, el mismo que se ve en el editor.
+  function medioHtml(nombre, fase, explicito) {
+    const poster = (typeof gamePosterFor === 'function') ? gamePosterFor(nombre, explicito || '') : '';
     const icono = (typeof gameIconFor === 'function') ? gameIconFor(nombre) : '🎲';
-    if (poster) return `<img class="tr-img" src="${_escT(poster)}" alt="" onerror="this.closest('.tr-media').classList.add('tr-noimg')">`;
-    return `<div class="tr-tint" style="background:${_trailerTint(fase)}"><span class="tr-emoji">${icono}</span></div>`;
+    return `<div class="tr-tint" style="background:${_trailerTint(fase)}">
+        <div class="tr-graphic-ring"></div><div class="tr-graphic-lines"></div>
+        <span class="tr-graphic-word">${_escC(nombre)}</span><span class="tr-emoji">${icono}</span><span class="tr-watermark">LV</span>
+      </div>${poster ? `<img class="tr-img" src="${_escT(poster)}" alt="" onload="if(this.naturalWidth<1000)this.closest('.tr-media').classList.add('tr-lowres')" onerror="this.closest('.tr-media').classList.add('tr-noimg')">` : ''}`;
+  }
+
+  function hudHtml(p) {
+    const phase = p.t === 'final' ? 'GRAN FINAL' : `FASE ${p.fase}`;
+    const number = p.t === 'final' ? 'ÚLTIMO DESAFÍO' : `JUEGO ${String(p.numero).padStart(2, '0')}`;
+    return `<div class="tr-hud"><span>LA VELADA DEL AÑO <i>✦</i> 2026</span><span>${phase} <i>/</i> ${number}</span></div>`;
   }
 
   function pintar(p) {
@@ -15747,28 +15861,32 @@ function runTrailer(done, host) {
 
     if (p.t === 'title') {
       stage.classList.add('tr-mode-title');
-      stage.innerHTML = `<div class="tr-card-title">
+      stage.innerHTML = `<div class="tr-title-lines" aria-hidden="true"></div><div class="tr-card-title">
+          <div class="tr-kicker">LA VELADA DEL AÑO · 2026</div>
           <div class="tr-big">${_escC(p.big)}</div>
           ${p.sub ? `<div class="tr-sub">${_escC(p.sub)}</div>` : ''}
-        </div>`;
+        </div><div class="tr-title-footer">UNA NOCHE · UN CAMPEÓN</div>`;
       return;
     }
 
     if (p.t === 'end') {
       stage.classList.add('tr-mode-title');
-      stage.innerHTML = `<div class="tr-card-title">
-          <div class="tr-kicker">La Velada del Año</div>
+      stage.innerHTML = `<div class="tr-title-lines" aria-hidden="true"></div><div class="tr-card-title">
+          <div class="tr-kicker">LA VELADA DEL AÑO · EDICIÓN 2026</div>
           <div class="tr-big tr-huge">ESTA NOCHE</div>
-        </div>`;
+          <div class="tr-sub">Conocé a los protagonistas</div>
+        </div><div class="tr-title-footer">QUE EMPIECE EL JUEGO</div>`;
       return;
     }
 
     if (p.t === 'final') {
       stage.classList.add('tr-mode-bleed', 'tr-mode-final');
-      stage.innerHTML = `<div class="tr-media">${medioHtml(p.g, 0)}</div>
+      stage.innerHTML = `<div class="tr-media">${medioHtml(p.g, 0, FINAL_CONFIG && FINAL_CONFIG.poster)}</div>
+        ${hudHtml(p)}<div class="tr-final-emblem">★</div>
         <div class="tr-cap">
           <div class="tr-kicker gold">La gran final</div>
           <div class="tr-name">${_escC(p.g)}</div>
+          <div class="tr-cap-rule"></div>
         </div>`;
       return;
     }
@@ -15777,17 +15895,17 @@ function runTrailer(done, host) {
     if (p.plano === 0) {
       stage.classList.add('tr-mode-bleed');
       stage.innerHTML = `<div class="tr-media">${medioHtml(p.g, p.fase)}</div>
-        <div class="tr-cap"><div class="tr-name">${_escC(p.g)}</div></div>`;
+        ${hudHtml(p)}<div class="tr-cap"><div class="tr-cap-kicker">DESAFÍO ${String(p.numero).padStart(2, '0')}</div><div class="tr-name">${_escC(p.g)}</div><div class="tr-cap-rule"></div></div>`;
     } else if (p.plano === 1) {
       stage.classList.add('tr-mode-frame');
-      stage.innerHTML = `<div class="tr-shot">
+      stage.innerHTML = `${hudHtml(p)}<div class="tr-shot">
           <div class="tr-frame tr-media">${medioHtml(p.g, p.fase)}</div>
-          <div class="tr-name">${_escC(p.g)}</div>
+          <div class="tr-cap-kicker">DESAFÍO ${String(p.numero).padStart(2, '0')}</div><div class="tr-name">${_escC(p.g)}</div>
         </div>`;
     } else {
       stage.classList.add('tr-mode-over');
       stage.innerHTML = `<div class="tr-media">${medioHtml(p.g, p.fase)}</div>
-        <div class="tr-overname">${_escC(p.g)}</div>`;
+        ${hudHtml(p)}<div class="tr-overname"><small>DESAFÍO ${String(p.numero).padStart(2, '0')}</small>${_escC(p.g)}</div>`;
     }
   }
 
