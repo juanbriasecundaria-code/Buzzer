@@ -6125,7 +6125,7 @@ function markLocalTs(key, ts) {
     const V = 'https://www.gstatic.com/firebasejs/10.12.0/';
     const { initializeApp } = await import(V + 'firebase-app.js');
     const { getFirestore, doc, setDoc, getDoc } = await import(V + 'firebase-firestore.js');
-    const { getDatabase, ref: dbRef, onValue, get: dbGet, set: dbSet, update: dbUpdate } = await import(V + 'firebase-database.js');
+    const { getDatabase, ref: dbRef, onValue, get: dbGet, set: dbSet, update: dbUpdate, runTransaction } = await import(V + 'firebase-database.js');
 
     const firebaseConfig = {
       apiKey: "AIzaSyB-1B426OH2ZYKHT1n8VVzmv0h_10186Zo",
@@ -6156,7 +6156,8 @@ function markLocalTs(key, ts) {
         on: (ev, cb) => onValue(dbRef(rtdb, path), cb),
         once: (ev) => ev === 'value' ? dbGet(dbRef(rtdb, path)) : Promise.reject(new Error('Evento no admitido: ' + ev)),
         set: (v) => dbSet(dbRef(rtdb, path), v),
-        update: (v) => dbUpdate(dbRef(rtdb, path), v)
+        update: (v) => dbUpdate(dbRef(rtdb, path), v),
+        transaction: (fn) => runTransaction(dbRef(rtdb, path), fn, { applyLocally: false })
       })
     };
 
@@ -9052,10 +9053,49 @@ function applyRestoredBackup(payload) {
 // ============================================================
 // ADMINISTRACIÓN — reinicio total
 // ============================================================
+function resetDigitalGameScores() {
+  const token=Date.now().toString(36)+'-'+Math.random().toString(36).slice(2);
+  try {
+    localStorage.setItem('cad_score',JSON.stringify({a:0,b:0}));
+    localStorage.setItem('pat_score',JSON.stringify({a:0,b:0}));
+    localStorage.setItem('pat_rounds','[]');
+    localStorage.removeItem('pat_round_base');
+    localStorage.setItem('gms_score',JSON.stringify({a:0,b:0}));
+    localStorage.setItem('ndj_game_score_reset',token);
+  } catch(e) { console.warn('No se pudieron reiniciar los marcadores locales',e); }
+  window._autoResultados={};
+  if (!window._rtdb) {
+    showToast('⚠️','Puntajes locales reiniciados; Firebase no está disponible para limpiar los otros dispositivos',false);
+    return;
+  }
+  (async()=>{
+    try {
+      await window._rtdb.ref().update({
+        'velada/resultados':null,
+        'velada/enVivo':null,
+        'velada/config/scoreReset':{token,t:Date.now()}
+      });
+      await window._rtdb.ref('velada/erudito').transaction(cur=>{
+        if(!cur || !cur.teams || !cur.teams.a || !cur.teams.b)return;
+        const next=Object.assign({},cur,{phase:'answering',round:1,winner:null,
+          correct:{value:null,lockedBy:null}});
+        next.teams={
+          a:Object.assign({},cur.teams.a,{score:0,answer:null,ready:false,next:false}),
+          b:Object.assign({},cur.teams.b,{score:0,answer:null,ready:false,next:false})
+        };
+        return next;
+      });
+      showToast('✅','También se reiniciaron los marcadores de los juegos digitales',false);
+    }catch(e){
+      console.warn('No se pudieron reiniciar todos los marcadores remotos',e);
+      showToast('⚠️','No se reiniciaron todos los juegos en Firebase: '+(e.code||e.message),false);
+    }
+  })();
+}
 function resetEverything() {
   showConfirmModal(
     '¿Reiniciar los puntos de la noche?',
-    'Pone en 0 los puntos de todos los jugadores y equipos (Fase 1, Fase 2, Impostor, comodines, apuestas y ajustes manuales). NO toca el roster, los fixtures, las estaciones/colores ni las reglas configuradas. No se puede deshacer.',
+    'Pone en 0 los puntos de la velada y los marcadores de 100 Argentinos, Palabras a Tiempo, Guess Movie/Song y El Erudito. También borra los resultados automáticos de prueba. Conserva roster, fixtures, estaciones y reglas. No se puede deshacer.',
     () => {
       // Resultados de partidos (de acá sale el puntaje de Fase 1 / Fase 2)
       state.f1 = {};
@@ -9082,6 +9122,7 @@ function resetEverything() {
       state.autoResultadosAplicados = {};
       state.lastTab = 'reglas';
       saveState();
+      resetDigitalGameScores();
       // Ver comentario en resetBets(): las apuestas de los invitados también
       // viven en documentos Firebase aparte, hay que limpiarlos acá también.
       if (window._fbReady && window._fbWrite) {

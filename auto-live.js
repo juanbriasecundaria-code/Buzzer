@@ -65,5 +65,28 @@
       db.ref('velada/enVivo/'+id).set(payload).catch(()=>{last='';});
     },750);
   }
-  root.BuzzerAutoLive={start};
+  function watchReset(game,getDb,onReset){
+    const marker='buzzer_score_reset_seen_'+game;
+    function apply(token){
+      if(!token)return;
+      try{
+        if(localStorage.getItem(marker)===token)return;
+        localStorage.setItem(marker,token);
+      }catch(e){}
+      onReset();
+    }
+    root.addEventListener('storage',e=>{
+      if(e.key==='ndj_game_score_reset')apply(e.newValue);
+    });
+    try{apply(localStorage.getItem('ndj_game_score_reset'));}catch(e){}
+    const timer=setInterval(()=>{
+      const db=getDb();
+      if(!db)return;
+      clearInterval(timer);
+      db.ref('velada/config/scoreReset').on('value',s=>{
+        const v=s.val();apply(v&&v.token);
+      },e=>console.warn('No se pudo recibir el reinicio de puntajes',e));
+    },500);
+  }
+  root.BuzzerAutoLive={start,watchReset};
 })(window);

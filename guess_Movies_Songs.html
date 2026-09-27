@@ -206,7 +206,10 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
 .cond-bonus-opts{display:flex;flex-direction:column;gap:.3rem;margin-bottom:.6rem}
 .cond-bonus-opt{font-size:13px;padding:.4rem .6rem;border-radius:8px;border:1.5px solid var(--border2);background:var(--surface2);color:var(--muted)}
 .cond-bonus-opt.correct{border-color:var(--green);background:var(--green-dim);color:var(--green);font-weight:800}
-.cond-bonus-row{display:flex;gap:.4rem}
+.cond-bonus-row{display:flex;flex-wrap:wrap;gap:.4rem}
+.cond-bonus-row .bonus-visibility{flex:1 1 100%;justify-content:center}
+.cond-bonus-row .bonus-visibility .cta-btn{width:100%;justify-content:center}
+.cond-bonus-row .bonus-team-btn{flex:1 1 calc(50% - .2rem);min-width:0;justify-content:center;text-align:center;white-space:normal;overflow-wrap:anywhere;line-height:1.25}
 .cond-bonus-verdict{font-size:13px;font-weight:800;color:var(--accent);background:var(--accent-dim);border:1px solid var(--accent);border-radius:8px;padding:.5rem .7rem;text-align:center}
 .bo-row{display:flex;align-items:center;gap:.45rem;margin-bottom:.35rem}
 .bo-row input[type=radio]{flex:0 0 auto;width:18px;height:18px;accent-color:var(--green)}
@@ -1927,7 +1930,7 @@ function renderCondCard(){
       actionsHtml=`<div class="cond-bonus-verdict">✅ ${bonusAwardTeam?('Punto para '+esc(who)):'Nadie sumó'} · pasando a la próxima…</div>`;
     } else {
       const toggleBtn=bonusShown?`<button class="cta-btn" style="border-color:rgba(232,96,96,.4);color:var(--red)" onclick="toggleBonusShown()">🙈 Ocultar a participantes</button>`:`<button class="cta-btn" style="border-color:rgba(200,240,96,.4);color:var(--accent)" onclick="toggleBonusShown()">📣 Mostrar a participantes</button>`;
-      actionsHtml=`<div class="cond-bonus-row">${toggleBtn}<button class="cta-btn" style="border-color:rgba(96,180,240,.4);color:var(--blue)" onclick="bonusAnswer('a')">✓ Acertó ${esc(nameA)}</button><button class="cta-btn" style="border-color:rgba(245,200,66,.4);color:var(--gold)" onclick="bonusAnswer('b')">✓ Acertó ${esc(nameB)}</button></div><div class="cond-bonus-row"><button class="cta-btn" style="border-color:var(--border2);color:var(--muted);flex:1" onclick="bonusAnswer(null)">✕ Nadie acertó</button></div>`;
+      actionsHtml=`<div class="cond-bonus-row"><span class="bonus-visibility">${toggleBtn}</span><button class="cta-btn bonus-team-btn" style="border-color:rgba(96,180,240,.4);color:var(--blue)" onclick="bonusAnswer('a')">✓ Acertó ${esc(nameA)}</button><button class="cta-btn bonus-team-btn" style="border-color:rgba(245,200,66,.4);color:var(--gold)" onclick="bonusAnswer('b')">✓ Acertó ${esc(nameB)}</button></div><div class="cond-bonus-row"><button class="cta-btn" style="border-color:var(--border2);color:var(--muted);flex:1" onclick="bonusAnswer(null)">✕ Nadie acertó</button></div>`;
     }
     bonusHtml=`<div class="cond-bonus"><div class="cond-bonus-label">🎯 Pregunta bonus (extra si aciertan)</div><div class="cond-bonus-q">${esc(c.bonusQ)}</div><div class="cond-bonus-opts">${optsHtml}</div>${actionsHtml}</div>`;
   }
@@ -3610,6 +3613,11 @@ window.veladaConn = function(estado){
   }
   setTimeout(function(){ esperarReacciones(intentos + 1); }, 500);
 })(0);
+
+BuzzerAutoLive.watchReset('movies',()=>fbDb,()=>{
+  scoreA=0;scoreB=0;saveScore();
+  if(MODE==='conductor'){syncScoreUI();sendState();}
+});
 
 </script>
 <script>

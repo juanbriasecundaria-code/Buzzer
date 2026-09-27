@@ -53,4 +53,14 @@ Se corrigió otra causa de cruces cambiantes: cuando aún no había un snapshot 
 
 Si ya había un cruce activo de una versión anterior con participantes distintos de los del fixture, activá una vez la ronda correcta desde `velada.html` tras publicar esta versión. No se ha probado esta migración contra la base Firebase real.
 
+## Reiniciar puntajes para pruebas
+
+El botón **Reglas → Reiniciar puntajes** ahora también pone en 0 los marcadores de 100 Argentinos Dicen, Palabras a Tiempo, Guess Movie/Song y El Erudito. Borra `velada/resultados` y `velada/enVivo` para que los resultados capturados durante las pruebas no vuelvan a importarse. Publica una señal de reinicio que reciben las pestañas de juegos abiertas; las páginas que se abran después la aplican una sola vez. Se conservan el fixture, los participantes y los mazos. En El Erudito vuelve a la primera pregunta con los mismos equipos.
+
+Si el panel está sin conexión a Firebase, reinicia los marcadores guardados en ese navegador y avisa que no pudo limpiar los dispositivos remotos. Se comprobó con una base simulada el borrado local y remoto, el cruce preservado de El Erudito y la aplicación única de la señal. Falta la prueba con la base y los dispositivos reales.
+
+## Ajustes visuales
+
+El splash inicial de El Erudito tiene un fondo opaco y queda por encima de la barra y la selección de participantes: antes se transparentaba el contenido de la pantalla siguiente. En Guess Movie/Song, la acción de mostrar la pregunta bonus ocupa su propia fila y los dos botones «Acertó» comparten otra fila con nombres que pueden ocupar varias líneas. Así se evita el recorte del segundo equipo en la tarjeta del conductor.
+
 Antes del evento, probá una ronda con el panel y dos celulares conectados a tu Firebase real. La publicación, reglas de acceso y latencia reales no se validaron desde aquí.

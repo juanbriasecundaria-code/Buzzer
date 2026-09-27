@@ -3706,6 +3706,14 @@ window.veladaConn = function(estado){
   setTimeout(function(){ esperarReacciones(intentos + 1); }, 500);
 })(0);
 
+BuzzerAutoLive.watchReset('argentinos',()=>fbDb,()=>{
+  score={a:0,b:0};fmDuelScore=null;fmLiveWinner=null;
+  if(fm)fmClose();
+  if(winState)closeWin();
+  saveScore();syncScoreUI();
+  if(MODE==='conductor')writeSync();
+});
+
 </script>
 <script>
 // ── Pantalla siempre encendida ─────────────────────────────────────────

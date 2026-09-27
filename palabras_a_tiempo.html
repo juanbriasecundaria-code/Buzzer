@@ -2712,5 +2712,11 @@ window.veladaConn = function(estado){
 })();
 </script>
 <script src="palabras-rounds.js"></script>
+<script>
+BuzzerAutoLive.watchReset('palabras',()=>window._palabrasDb,()=>{
+  score={a:0,b:0};roundsLog=[];roundBaseline=null;
+  saveScore();saveState();syncScoreUI();syncUI();
+});
+</script>
 </body>
 </html>
