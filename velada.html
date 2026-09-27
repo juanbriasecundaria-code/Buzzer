@@ -174,7 +174,8 @@
   .pos-badge.silver { background: var(--silver-dim); color: var(--silver); }
   .pos-badge.accent { background: var(--accent-dim); color: var(--accent); }
 
-  .player-name { font-weight: 500; font-size: 14px; display: flex; align-items: center; gap: 0.5rem; }
+  .player-name { font-weight: 500; font-size: 14px; }
+  .player-name-inner { display: flex; align-items: center; gap: 0.5rem; }
   .player-avatar-img { width: 26px; height: 26px; border-radius: 50%; object-fit: cover; flex-shrink: 0; border: 1px solid var(--border2); }
   .player-avatar-fallback { width: 26px; height: 26px; border-radius: 50%; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; color: var(--text); opacity: 0.85; }
 
@@ -546,7 +547,8 @@
     transition: border-color 0.15s, background 0.15s, color 0.15s;
   }
   .imp-cat-btn:hover { border-color: var(--danger); }
-  .imp-cat-btn.sel { border-color: var(--danger); background: rgba(255,95,95,0.1); color: var(--danger); }
+  .imp-cat-btn.sel { border-color: var(--danger); background: rgba(255,95,95,0.12); color: var(--text); box-shadow: inset 0 0 0 1px rgba(255,95,95,0.3); }
+  .imp-cat-btn.sel::before { content: "✓"; font-weight: 900; color: var(--danger); }
   .imp-cat-btn { display: inline-flex; align-items: center; gap: 6px; }
   .imp-cat-count { font-size: 10px; font-weight: 700; opacity: 0.6; }
   .imp-cat-btn.exhausted { opacity: 0.5; }
@@ -6783,7 +6785,7 @@ function renderFase1() {
         : `<td class="round-pts pending${betsOv ? ' overridden' : ''}" onclick="editBetsPts('${nSafe}')" style="cursor:pointer" title="Tocá para editar los puntos de apuestas">—</td>`;
     return `<tr class="${rowClass}">
       <td><div class="pos-badge ${badgeClass}">${pos+1}</div></td>
-      <td class="player-name">${playerAvatarHtml(n, i)}<span>${n}</span>${classificaTag}</td>
+      <td class="player-name"><div class="player-name-inner">${playerAvatarHtml(n, i)}<span>${n}</span>${classificaTag}</div></td>
       ${rounds}
       ${special}
       ${bmCell}
@@ -7420,7 +7422,7 @@ function renderFase2() {
       : `<td class="round-pts pending${betsOvF2 ? ' overridden' : ''}" onclick="editBetsPtsF2('${nSafe}')" style="cursor:pointer" title="Tocá para editar los puntos de apuestas">—</td>`;
     return `<tr class="${rowClass}">
       <td><div class="pos-badge ${badgeClass}">${pos+1}</div></td>
-      <td class="player-name" style="font-size:12px">${playerAvatarHtml(n, i)}<span>${n}</span>${classificaTag}</td>
+      <td class="player-name" style="font-size:12px"><div class="player-name-inner">${playerAvatarHtml(n, i)}<span>${n}</span>${classificaTag}</div></td>
       ${rounds}
       ${qldCell}
       ${betsCell}
@@ -9758,7 +9760,8 @@ function defaultImpGame() {
   return {
     phase: 'setup',           // 'setup' | 'cards' | 'result'
     players: [...PLAYERS],    // editable roster just for the Impostor mini-game (puede incluir invitados extra)
-    activeCategory: null,
+    activeCategory: null,   // compatibilidad con partidas guardadas antiguas
+    activeCategories: [],    // selección de categorías para esta partida
     customWords: [],
     customCatWords: {},
     excludedWords: [],
@@ -9787,6 +9790,7 @@ function saveImpGame() {
     phase: impGame.phase,
     players: impGame.players,
     activeCategory: impGame.activeCategory,
+    activeCategories: impGame.activeCategories,
     customWords: impGame.customWords,
     customCatWords: impGame.customCatWords,
     excludedWords: impGame.excludedWords,
@@ -9823,6 +9827,14 @@ function saveImpGame() {
 function restoreImpGame() {
   if (state.impGame) {
     impGame = Object.assign(defaultImpGame(), state.impGame);
+    // Las partidas anteriores guardaban una sola categoría.
+    const savedCats = Array.isArray(state.impGame.activeCategories)
+      ? state.impGame.activeCategories
+      : (state.impGame.activeCategory ? [state.impGame.activeCategory] : []);
+    const knownCats = new Set([...Object.keys(IMP_WORDS), ...(impGame.userCats || [])]);
+    impGame.activeCategories = [...new Set(savedCats.filter(c => knownCats.has(c)))];
+    if (impGame.activeCategories.includes('Todas juntas 🎲')) impGame.activeCategories = ['Todas juntas 🎲'];
+    impGame.activeCategory = impGame.activeCategories.length === 1 ? impGame.activeCategories[0] : null;
     // Migración: el formato viejo guardaba un único impostorIdx (number) en vez
     // de impostorIdxs (array). Si no hay impostorIdxs pero sí el campo viejo, migramos.
     if (!Array.isArray(impGame.impostorIdxs) || !impGame.impostorIdxs.length) {
@@ -9900,30 +9912,30 @@ function impAvatar(name, size) {
 
 function allImpWords(catOverride) {
   const TODAS = 'Todas juntas 🎲';
-  const cat = catOverride !== undefined ? catOverride : impGame.activeCategory;
-  let list = cat ? (IMP_WORDS[cat] ? [...IMP_WORDS[cat]] : []) : [];
-  const excluded = impGame.excludedWords || [];
-  list = list.filter(w => !excluded.includes(w));
-
-  if (impGame.customCatWords) {
+  const cats = catOverride !== undefined
+    ? (Array.isArray(catOverride) ? catOverride : [catOverride])
+    : (impGame.activeCategories || []);
+  const excluded = new Set(impGame.excludedWords || []);
+  const custom = impGame.customCatWords || {};
+  const pool = [];
+  const seen = new Set();
+  const add = w => {
+    if (!excluded.has(w) && !seen.has(w)) { seen.add(w); pool.push(w); }
+  };
+  for (const cat of cats) {
+    (IMP_WORDS[cat] || []).forEach(add);
     if (cat === TODAS) {
-      // Todas juntas: reúne todo (base + custom de cada cat + userCats)
-      const seen = new Set(list);
-      for (const [c, words] of Object.entries(impGame.customCatWords)) {
-        if (c === TODAS || c === '➕ Palabras propias') continue;
-        for (const w of words) { if (!seen.has(w) && !excluded.includes(w)) { seen.add(w); list.push(w); } }
+      // El mazo completo incluye categorías base, creadas y palabras propias.
+      for (const [name, words] of Object.entries(custom)) {
+        if (name !== '➕ Palabras propias') words.forEach(add);
       }
-      if (impGame.customCatWords[TODAS]) {
-        for (const w of impGame.customCatWords[TODAS]) { if (!seen.has(w) && !excluded.includes(w)) { seen.add(w); list.push(w); } }
-      }
-    } else if (cat && impGame.customCatWords[cat]) {
-      list = [...list, ...impGame.customCatWords[cat].filter(w => !excluded.includes(w))];
+    } else {
+      (custom[cat] || []).forEach(add);
     }
   }
-
-  // Si la categoría activa es una userCat, sus palabras ya están en customCatWords arriba.
-  // Palabras propias globales (legacy) — cuentan para cualquier categoría, como en el pool real.
-  return [...list, ...(impGame.customWords || [])];
+  // Las palabras propias antiguas sin categoría entran solo en el mazo general.
+  if (!cats.length || cats.includes(TODAS)) (impGame.customWords || []).forEach(add);
+  return pool;
 }
 
 // Disponibilidad de una categoría puntual (para el badge en su chip), sin
@@ -10062,7 +10074,8 @@ function renderImpSetup() {
   const catHtml = cats.map(c => {
     const av = categoryAvailability(c);
     const exhausted = av.total > 0 && av.available <= 0;
-    return `<button onclick="toggleCat(this,'${c}')" data-cat="${c}" class="imp-cat-btn ${impGame.activeCategory===c?'sel':''}${exhausted?' exhausted':''}">
+    const selected = (impGame.activeCategories || []).includes(c);
+    return `<button type="button" onclick="toggleCat(this,'${c}')" data-cat="${c}" aria-pressed="${selected}" class="imp-cat-btn ${selected?'sel':''}${exhausted?' exhausted':''}">
       <span>${c}</span><span class="imp-cat-count">${av.available}/${av.total}</span>
     </button>`;
   }).join('');
@@ -10078,11 +10091,13 @@ function renderImpSetup() {
     </span>
   `).join('');
 
-  const wordCount = allImpWords().length;
-  const usedCount = (impGame.usedWords || []).filter(w => allImpWords().includes(w)).length;
+  const selectedCats = impGame.activeCategories || [];
+  const selectedPool = allImpWords();
+  const wordCount = selectedPool.length;
+  const usedCount = selectedPool.filter(w => (impGame.usedWords || []).includes(w)).length;
   const availableCount = wordCount - usedCount;
   const poolExhausted = wordCount > 0 && availableCount <= 0;
-  const canStart = (impGame.activeCategory || impGame.customWords.length > 0) && impGame.players.length >= 3 && availableCount > 0;
+  const canStart = (selectedCats.length > 0 || impGame.customWords.length > 0) && impGame.players.length >= 3 && availableCount > 0;
   const canDouble = impGame.players.length >= 6;
   const doubleToggleHtml = `
     <div style="display:flex;align-items:center;justify-content:space-between;gap:0.75rem;padding:0.85rem 1rem;background:var(--surface2);border-radius:var(--radius);margin-bottom:1.5rem;opacity:${canDouble?1:0.55}">
@@ -10110,9 +10125,10 @@ function renderImpSetup() {
 
       ${pastImpostorsHtml}
 
-      <div style="font-size:11px;font-weight:600;letter-spacing:0.07em;text-transform:uppercase;color:var(--muted);margin-bottom:0.15rem">Categoría de palabras</div>
-      <div style="font-size:11px;color:var(--muted);margin-bottom:0.75rem">De acá sale la palabra de esta ronda</div>
+      <div style="font-size:11px;font-weight:600;letter-spacing:0.07em;text-transform:uppercase;color:var(--muted);margin-bottom:0.15rem">Categorías de palabras</div>
+      <div style="font-size:11px;color:var(--muted);margin-bottom:0.75rem">Elegí una o varias. “Todas juntas” usa el mazo general.</div>
       <div style="display:flex;flex-wrap:wrap;gap:0.5rem;margin-bottom:0.5rem">${catHtml}</div>
+      <div style="font-size:11px;color:${selectedCats.length ? 'var(--text)' : 'var(--muted)'};margin-bottom:0.8rem">${selectedCats.length ? `${selectedCats.length === 1 ? selectedCats[0] : selectedCats.length + ' categorías seleccionadas'} · ${availableCount} palabras disponibles` : 'Seleccioná las categorías para jugar'}</div>
 
       <div style="display:flex;align-items:center;justify-content:space-between;gap:0.75rem;margin-bottom:1.25rem">
         <div style="font-size:10.5px;color:var(--muted);line-height:1.5">
@@ -10210,7 +10226,16 @@ function resetWordPool() {
 }
 
 function toggleCat(btn, cat) {
-  impGame.activeCategory = impGame.activeCategory === cat ? null : cat;
+  const TODAS = 'Todas juntas 🎲';
+  const selected = impGame.activeCategories || [];
+  if (selected.includes(cat)) {
+    impGame.activeCategories = selected.filter(c => c !== cat);
+  } else if (cat === TODAS) {
+    impGame.activeCategories = [TODAS];
+  } else {
+    impGame.activeCategories = [...selected.filter(c => c !== TODAS), cat];
+  }
+  impGame.activeCategory = impGame.activeCategories.length === 1 ? impGame.activeCategories[0] : null;
   saveImpGame();
   renderImpSetup();
 }
@@ -10303,7 +10328,8 @@ function removeCustomWord(cat, word) {
       if ((impGame.userCats||[]).includes(cat) && impGame.customCatWords[cat].length === 0) {
         impGame.userCats = impGame.userCats.filter(c => c !== cat);
         delete impGame.customCatWords[cat];
-        if (impGame.activeCategory === cat) impGame.activeCategory = null;
+        impGame.activeCategories = (impGame.activeCategories || []).filter(c => c !== cat);
+        impGame.activeCategory = impGame.activeCategories.length === 1 ? impGame.activeCategories[0] : null;
         if (impGame._manageCat === cat) impGame._manageCat = Object.keys(IMP_WORDS)[0];
       }
     }
@@ -10607,7 +10633,11 @@ function nextCard() {
 function getImpCategoryHint() {
   const w = impGame.selectedWord;
   const TODAS = 'Todas juntas 🎲';
-  let hint = (impGame.activeCategory && impGame.activeCategory !== TODAS) ? impGame.activeCategory : null;
+  const selected = (impGame.activeCategories || []).filter(c => c !== TODAS);
+  let hint = selected.length === 1 ? selected[0] : null;
+  if (!hint && w) {
+    hint = selected.find(cat => (IMP_WORDS[cat] || []).includes(w) || (impGame.customCatWords[cat] || []).includes(w)) || null;
+  }
   if (!hint && w) {
     for (const [cat, words] of Object.entries(IMP_WORDS)) {
       if (cat === TODAS) continue;
