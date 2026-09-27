@@ -3967,7 +3967,6 @@ window.VarSwitch = (function () {
     <div class="control-panel-body">
       <div id="f1-roster-admin"></div>
       <div id="bonus-manual-f1"></div>
-      <button class="fixture-edit-toggle" style="margin-top:0.75rem" onclick="openAutoResultadosModal()">🔄 Cargar resultados automáticamente</button>
     </div>
   </details>
 
@@ -4027,7 +4026,6 @@ window.VarSwitch = (function () {
     </summary>
     <div class="control-panel-body">
       <div id="f2-roster-admin"></div>
-      <button class="fixture-edit-toggle" style="margin-top:0.75rem" onclick="openAutoResultadosModal()">🔄 Cargar resultados automáticamente</button>
     </div>
   </details>
 
@@ -6765,12 +6763,15 @@ function renderFixtureF1() {
 
   // Edit toggle button header
   const canEdit = Object.keys(state.f1).length === 0;
-  const toggleHtml = `<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.75rem">
+  const toggleHtml = `<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.75rem;gap:0.5rem;flex-wrap:wrap">
     <span style="font-size:11px;font-weight:600;letter-spacing:0.07em;text-transform:uppercase;color:var(--muted)">Fixture</span>
-    ${canEdit
-      ? `<button class="fixture-edit-toggle ${editing ? 'active' : ''}" onclick="toggleFixtureEdit('f1')">${editing ? '✓ Cerrar editor' : '✏️ Editar enfrentamientos'}</button>`
-      : `<span style="font-size:11px;color:var(--muted);opacity:0.6">🔒 Fijo (hay resultados)</span>`
-    }
+    <div style="display:flex;align-items:center;gap:0.5rem;flex-wrap:wrap">
+      <button class="fixture-edit-toggle" onclick="openAutoResultadosModal()">🔄 Cargar resultados automáticamente</button>
+      ${canEdit
+        ? `<button class="fixture-edit-toggle ${editing ? 'active' : ''}" onclick="toggleFixtureEdit('f1')">${editing ? '✓ Cerrar editor' : '✏️ Editar enfrentamientos'}</button>`
+        : `<span style="font-size:11px;color:var(--muted);opacity:0.6">🔒 Fijo (hay resultados)</span>`
+      }
+    </div>
   </div>`;
 
   const numRoundsF1 = F1_FIXTURE.reduce((m, x) => Math.max(m, x[0]), 0);
@@ -7349,12 +7350,15 @@ function renderFixtureF2() {
   const editing = _fixtureEditMode['f2'];
   const canEdit = Object.keys(state.f2).length === 0;
 
-  const toggleHtml = `<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.75rem">
+  const toggleHtml = `<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.75rem;gap:0.5rem;flex-wrap:wrap">
     <span style="font-size:11px;font-weight:600;letter-spacing:0.07em;text-transform:uppercase;color:var(--muted)">Fixture</span>
-    ${canEdit
-      ? `<button class="fixture-edit-toggle ${editing ? 'active' : ''}" onclick="toggleFixtureEdit('f2')">${editing ? '✓ Cerrar editor' : '✏️ Editar enfrentamientos'}</button>`
-      : `<span style="font-size:11px;color:var(--muted);opacity:0.6">🔒 Fijo (hay resultados)</span>`
-    }
+    <div style="display:flex;align-items:center;gap:0.5rem;flex-wrap:wrap">
+      <button class="fixture-edit-toggle" onclick="openAutoResultadosModal()">🔄 Cargar resultados automáticamente</button>
+      ${canEdit
+        ? `<button class="fixture-edit-toggle ${editing ? 'active' : ''}" onclick="toggleFixtureEdit('f2')">${editing ? '✓ Cerrar editor' : '✏️ Editar enfrentamientos'}</button>`
+        : `<span style="font-size:11px;color:var(--muted);opacity:0.6">🔒 Fijo (hay resultados)</span>`
+      }
+    </div>
   </div>`;
 
   let html = '';
