@@ -4003,6 +4003,7 @@ window.VarSwitch = (function () {
 
   <div class="section-header" style="margin-top:1.5rem">
     <span class="section-title"><span class="dot-indicator fase1"></span>Fixture</span>
+    <button class="fixture-edit-toggle" onclick="openAutoLoadModal('f1')">⚡ Cargar resultados automáticamente</button>
   </div>
   <div class="card" id="fixture-fase1" style="padding:0.75rem"></div>
 </div>
@@ -4057,6 +4058,7 @@ window.VarSwitch = (function () {
 
   <div class="section-header" style="margin-top:1.5rem">
     <span class="section-title"><span class="dot-indicator fase2"></span>Fixture grupal</span>
+    <button class="fixture-edit-toggle" onclick="openAutoLoadModal('f2')">⚡ Cargar resultados automáticamente</button>
   </div>
   <div class="card" id="fixture-fase2" style="padding:0.75rem"></div>
 </div>
@@ -5309,12 +5311,38 @@ function regenerateF1Fixture() {
   const { fixture, byes } = generateF1Fixture(PLAYERS.length);
   F1_FIXTURE = fixture;
   F1_BYES = computeF1Byes(F1_FIXTURE, PLAYERS.length);
+  syncFixtureToFirebase();
 }
 
 function regenerateF2Fixture() {
   const { fixture, byes } = generateF2Fixture(TEAMS.length);
   F2_FIXTURE = fixture;
   F2_BYES = byes;
+  syncFixtureToFirebase();
+}
+
+// ============================================================
+// AUTO-DESCUBRIMIENTO DE MATCH — publicación del fixture completo
+// ============================================================
+// Vuelca a `velada/fixture` todo lo que un juego digital necesita para
+// autodetectar solo su próximo cruce pendiente, sin depender de que el
+// conductor lo active a mano (ver auto-load / velada/resultados más abajo).
+// No reemplaza el sistema de activación manual ("▶ Activar ronda N"), que
+// sigue funcionando igual que antes — esto es un canal adicional de lectura.
+function syncFixtureToFirebase() {
+  try {
+    if (!window._rtdb) return;
+    window._rtdb.ref('velada/fixture').set({
+      f1: F1_FIXTURE,
+      f2: F2_FIXTURE,
+      players: PLAYERS,
+      teams: TEAMS,
+      fullNames: FULL_NAMES,
+      gamesF1: GAMES_F1,
+      gamesF2: GAMES_F2,
+      updated: Date.now()
+    });
+  } catch (e) { console.warn('No se pudo sincronizar el fixture a Firebase', e); }
 }
 
 // Al cargar la página, si en algún momento se agregó/eliminó gente o
@@ -5349,6 +5377,9 @@ function restoreRosterAndFixtures() {
   } else {
     regenerateF2Fixture();
   }
+  // Publicamos el fixture restaurado — cubre el caso de recargar la página
+  // (F5) con snapshots ya guardados, que no pasa por regenerateF1/F2Fixture().
+  syncFixtureToFirebase();
 }
 
 function resetRosterAndFixtures() {
@@ -5372,6 +5403,7 @@ function resetRosterAndFixtures() {
   GAME_COLORS_F2.length = 0; ORIGINAL_GAME_COLORS_F2.forEach(c => GAME_COLORS_F2.push(c.slice()));
   syncRulestoRuntime();
   saveRulesConfig();
+  syncFixtureToFirebase();
 }
 
 // ---- FASE 1: agregar jugador ----
@@ -6181,6 +6213,20 @@ function markLocalTs(key, ts) {
       // Queda accesible para republicar cuando se editan jugadores o equipos
       window._pushQldTeams = pushQldTeams;
 
+      // Publicamos el fixture ahora que hay conexión — restoreRosterAndFixtures()
+      // pudo haber corrido antes de que window._rtdb existiera, así que esta es
+      // la garantía de que se sincroniza al menos una vez por sesión.
+      try { syncFixtureToFirebase(); } catch (e) { console.warn('sync fixture inicial', e); }
+
+      // Resultados que van dejando los juegos digitales en velada/resultados/<matchId>
+      // (auto-descubrimiento). Se guardan en window._veladaResultados para que el
+      // modal de "Cargar resultados automáticamente" los lea sin tener que releer
+      // Firebase cada vez que se abre.
+      window._veladaResultados = {};
+      qldDb.ref('velada/resultados').on('value', snap => {
+        window._veladaResultados = snap.val() || {};
+      });
+
       // Leemos el resultado ya finalizado de la ronda (1°/2°/3° puesto → 3/2/1 pts)
       qldDb.ref('velada/qld/result').on('value', snap => {
         const d = snap.val() || {};
@@ -6696,6 +6742,7 @@ function saveFixtureMatch(phase, matchIdx, selectA, selectB, selectG) {
     state.f2FixtureSnapshot = { fixture: F2_FIXTURE, byes: F2_BYES };
   }
   saveState();
+  syncFixtureToFirebase();
   showToast('✓', 'Enfrentamiento actualizado', false);
   if (phase === 'f1') renderFase1();
   else renderFase2();
@@ -7574,6 +7621,370 @@ function resolvePendingComodines(phase, key, winner, bonus) {
     }
   });
   return msgs;
+}
+
+// ============================================================
+// AUTO-CARGA DE RESULTADOS — botón "Cargar resultados automáticamente"
+// ============================================================
+// Contrato de `velada/resultados/<matchId>` que van a ir escribiendo los
+// juegos digitales (Pasos 2 a 5). matchId = fase + '-' + key, key = la MISMA
+// clave que ya usa el fixture (`${round}-${a}-${b}`).
+//
+//   erudito / movies (Guess Movies & Songs):
+//     { scoreA:number, scoreB:number, t:number }
+//   palabras:
+//     { scoreA:number, scoreB:number, winnerWonAllRounds:boolean, t:number }
+//     (winnerWonAllRounds lo calcula el propio juego, que es quien sabe
+//      round a round quién ganó cada categoría)
+//   argentinos (100 Argentinos Dicen):
+//     { duelo: { winnerSide:'a'|'b'|'empate', t:number },
+//       dineroRapido: { winnerSide:'a'|'b', t:number } | null }
+//     (dineroRapido puede llegar después que duelo, o no llegar nunca si no
+//      se alcanzó a jugar; 'a'/'b' se corresponden con names.a/names.b, es
+//      decir con los índices a/b de la entrada del fixture)
+//
+// Este nodo es inmutable desde el punto de vista del juego (siempre pisa el
+// mismo matchId, nunca guarda historial de intentos — ver spec).
+
+const AUTO_LOAD_BONUS_DIFF = { erudito: 3, movies: 5, palabras: 2 };
+
+// Calcula ganador/bonus para un cruce digital a partir de lo que el juego
+// dejó en velada/resultados/<matchId>. Devuelve null si todavía no hay nada
+// (juego offline, no llegó a jugarse, o el juego no es de tipo "digital").
+function autoLoadComputeResult(gid, entry, matchId) {
+  const a = entry[1], b = entry[2];
+  const res = (window._veladaResultados || {})[matchId];
+  if (!res) return null;
+
+  if (gid === 'erudito' || gid === 'movies') {
+    if (typeof res.scoreA !== 'number' || typeof res.scoreB !== 'number') return null;
+    const diff = res.scoreA - res.scoreB;
+    const winner = diff === 0 ? 'empate' : (diff > 0 ? a : b);
+    const bonus = diff !== 0 && Math.abs(diff) >= AUTO_LOAD_BONUS_DIFF[gid];
+    return { winner, bonus, scoreA: res.scoreA, scoreB: res.scoreB, effectiveT: res.t || 0 };
+  }
+
+  if (gid === 'palabras') {
+    if (typeof res.scoreA !== 'number' || typeof res.scoreB !== 'number') return null;
+    const diff = res.scoreA - res.scoreB;
+    const winner = diff === 0 ? 'empate' : (diff > 0 ? a : b);
+    const bonus = diff !== 0 && (!!res.winnerWonAllRounds || Math.abs(diff) >= AUTO_LOAD_BONUS_DIFF.palabras);
+    return { winner, bonus, scoreA: res.scoreA, scoreB: res.scoreB, effectiveT: res.t || 0 };
+  }
+
+  if (gid === 'argentinos') {
+    const duelo = res.duelo;
+    if (!duelo || !duelo.winnerSide) return null;
+    const dinero = res.dineroRapido || null;
+    const effectiveT = Math.max(duelo.t || 0, dinero ? (dinero.t || 0) : 0);
+    if (duelo.winnerSide === 'empate') {
+      return { winner: 'empate', bonus: false, dineroPending: !dinero, effectiveT };
+    }
+    const winnerIdx = duelo.winnerSide === 'a' ? a : b;
+    const loserIdx  = duelo.winnerSide === 'a' ? b : a;
+    let bonus = false, adjust = null;
+    if (dinero && dinero.winnerSide) {
+      const fmWinnerIdx = dinero.winnerSide === 'a' ? a : b;
+      if (fmWinnerIdx === winnerIdx) bonus = true;
+      else adjust = { idx: loserIdx, pts: 1, label: 'Dinero Rápido' };
+    }
+    return { winner: winnerIdx, bonus, adjust, dineroPending: !dinero, effectiveT };
+  }
+
+  return null;
+}
+
+// Arma la lista de filas a mostrar en el modal: una por cada cruce del
+// fixture de esa fase que todavía no tenga un resultado aplicado (o que lo
+// tenga pero fue un auto-cargado cuyo dato en la nube cambió — re-jugado).
+function autoLoadBuildRows(phase) {
+  const fixture = phase === 'f1' ? F1_FIXTURE : F2_FIXTURE;
+  const games = phase === 'f1' ? GAMES_F1 : GAMES_F2;
+  const store = phase === 'f1' ? state.f1 : state.f2;
+  const rows = [];
+
+  fixture.forEach(entry => {
+    const [round, a, b, g] = entry;
+    const key = `${round}-${a}-${b}`;
+    const matchId = phase + '-' + key;
+    const gameName = games[g];
+    const gid = BuzzerRounds.gameId(gameName);
+    const existing = store[key];
+    const computed = gid ? autoLoadComputeResult(gid, entry, matchId) : null;
+
+    if (existing) {
+      // Ya tiene un resultado aplicado. Solo lo volvemos a mostrar si fue
+      // auto-cargado y el dato en la nube cambió desde entonces (re-jugado) —
+      // así nunca se duplican puntos si se corre el botón de nuevo sin que
+      // haya nada nuevo.
+      if (existing.auto && computed && existing.sourceT !== computed.effectiveT) {
+        rows.push({ type: 'auto', phase, matchId, key, round, a, b, gameName, gid, computed, bonusOverride: computed.bonus });
+      }
+      return;
+    }
+
+    if (computed) {
+      rows.push({ type: 'auto', phase, matchId, key, round, a, b, gameName, gid, computed, bonusOverride: computed.bonus });
+    } else {
+      rows.push({ type: 'manual', phase, matchId, key, round, a, b, gameName, gid, manualWinner: null, manualBonus: false });
+    }
+  });
+
+  rows.sort((x, y) => x.round - y.round);
+  return rows;
+}
+
+let _autoLoadCtx = null;
+
+function openAutoLoadModal(phase) {
+  _autoLoadCtx = { phase, rows: autoLoadBuildRows(phase) };
+  const bg = document.getElementById('modal-bg');
+  const modal = bg.querySelector('.modal');
+  modal._savedHTML = modal.innerHTML;
+  modal.classList.toggle('f2', phase === 'f2');
+  modal.style.maxHeight = '85vh';
+  modal.style.overflowY = 'auto';
+  modal.innerHTML = autoLoadModalHtml();
+  bg.classList.add('open');
+}
+
+function closeAutoLoadModal() {
+  const modal = document.querySelector('.modal');
+  if (modal) { modal.style.maxHeight = ''; modal.style.overflowY = ''; }
+  restoreModalHTML();
+  document.getElementById('modal-bg').classList.remove('open');
+  _autoLoadCtx = null;
+}
+
+function autoLoadRefresh() {
+  if (!_autoLoadCtx) return;
+  _autoLoadCtx.rows = autoLoadBuildRows(_autoLoadCtx.phase);
+  const modal = document.querySelector('.modal');
+  if (modal) modal.innerHTML = autoLoadModalHtml();
+}
+
+function autoLoadRefreshAdjustOnly(phase) {
+  const el = document.getElementById('autoload-adjust-section');
+  if (el) el.innerHTML = autoLoadAdjustHtml(phase);
+}
+
+function autoLoadModalHtml() {
+  const phase = _autoLoadCtx.phase;
+  const rows = _autoLoadCtx.rows;
+  const auto = [], manual = [];
+  rows.forEach((r, i) => (r.type === 'auto' ? auto : manual).push(i));
+
+  const autoHtml = auto.length
+    ? auto.map(i => autoLoadAutoRowHtml(rows[i], i)).join('')
+    : '<div style="font-size:12px;color:var(--muted);padding:0.4rem 0 0.8rem">Todavía no hay resultados digitales nuevos para cargar.</div>';
+  const manualHtml = manual.length
+    ? manual.map(i => autoLoadManualRowHtml(rows[i], i)).join('')
+    : '<div style="font-size:12px;color:var(--muted);padding:0.4rem 0 0.8rem">No falta cargar nada a mano. 🎉</div>';
+
+  return `
+    <div class="modal-title">⚡ Cargar resultados automáticamente</div>
+    <div class="modal-sub">Revisá los resultados automáticos y completá los que falten (físicos, o juegos que no se pudieron leer). Al confirmar se aplica todo junto — comodines, apuestas y ajustes incluidos.</div>
+
+    <div style="font-size:11px;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;color:var(--muted);margin:0.5rem 0 0.35rem">Automáticos</div>
+    ${autoHtml}
+
+    <div style="font-size:11px;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;color:var(--muted);margin:0.75rem 0 0.35rem">Faltan cargar</div>
+    ${manualHtml}
+
+    <div style="font-size:11px;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;color:var(--muted);margin:0.75rem 0 0.35rem">Ajustes manuales (ej. Dinero Rápido)</div>
+    <div id="autoload-adjust-section">${autoLoadAdjustHtml(phase)}</div>
+
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeAutoLoadModal()">Cancelar</button>
+      <button class="btn btn-primary" onclick="confirmAutoLoad()">✓ Confirmar y aplicar</button>
+    </div>
+  `;
+}
+
+function autoLoadAutoRowHtml(r, i) {
+  const roster = r.phase === 'f1' ? PLAYERS : TEAMS;
+  const nameA = String(roster[r.a] || '?').split('/')[0].trim();
+  const nameB = String(roster[r.b] || '?').split('/')[0].trim();
+  const c = r.computed;
+  const winnerName = c.winner === 'empate' ? 'Empate' : String(roster[c.winner] || '?').split('/')[0].trim();
+  const scoreTxt = (typeof c.scoreA === 'number') ? `${c.scoreA} – ${c.scoreB} · ` : '';
+  let extraNote = '';
+  if (r.gid === 'argentinos') {
+    if (c.dineroPending) extraNote = ' · Dinero Rápido pendiente';
+    else if (c.adjust) extraNote = ` · +1 manual a ${String(roster[c.adjust.idx] || '?').split('/')[0].trim()} (Dinero Rápido)`;
+  }
+  const bonusToggle = (r.gid !== 'argentinos' && c.winner !== 'empate')
+    ? `<label style="display:flex;align-items:center;gap:4px;font-size:11px;color:var(--muted);white-space:nowrap"><input type="checkbox" ${r.bonusOverride ? 'checked' : ''} onchange="autoLoadToggleBonus(${i})"> bonus</label>`
+    : '';
+  return `
+    <div class="match-row done" style="flex-direction:column;align-items:stretch;gap:2px;margin-bottom:0.4rem">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:0.4rem">
+        <span class="match-game-badge" style="font-weight:600">${r.gameName}</span>
+        <span style="font-size:12px;flex:1;text-align:center">${nameA} vs ${nameB}</span>
+        <button title="Limpiar resultado de la nube (para volver a jugar)" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:14px" onclick="autoLoadClearResultado(${i})">🗑</button>
+      </div>
+      <div style="font-size:12px;display:flex;justify-content:space-between;align-items:center;gap:0.4rem">
+        <span>${scoreTxt}Gana: <b>${winnerName}</b>${r.gid === 'argentinos' && c.bonus ? ' +bonus' : ''}${extraNote}</span>
+        ${bonusToggle}
+      </div>
+    </div>`;
+}
+
+function autoLoadManualRowHtml(r, i) {
+  const roster = r.phase === 'f1' ? PLAYERS : TEAMS;
+  const nameA = String(roster[r.a] || '?').split('/')[0].trim();
+  const nameB = String(roster[r.b] || '?').split('/')[0].trim();
+  const sel = r.manualWinner;
+  const bonusDisabled = (!sel || sel === 'empate');
+  return `
+    <div class="fixture-edit-row" style="flex-wrap:wrap">
+      <span class="match-game-badge" style="font-weight:600">${r.gameName}</span>
+      <select class="fixture-edit-select" style="flex:2;min-width:140px" onchange="autoLoadManualWinner(${i}, this.value)">
+        <option value="" ${!sel ? 'selected' : ''}>— elegir ganador —</option>
+        <option value="a" ${sel === 'a' ? 'selected' : ''}>${nameA} gana</option>
+        <option value="b" ${sel === 'b' ? 'selected' : ''}>${nameB} gana</option>
+        <option value="empate" ${sel === 'empate' ? 'selected' : ''}>Empate</option>
+      </select>
+      <label style="display:flex;align-items:center;gap:4px;font-size:11px;color:var(--muted);white-space:nowrap">
+        <input type="checkbox" ${r.manualBonus ? 'checked' : ''} ${bonusDisabled ? 'disabled' : ''} onchange="autoLoadManualBonus(${i}, this.checked)"> bonus
+      </label>
+    </div>`;
+}
+
+function autoLoadToggleBonus(i) {
+  if (!_autoLoadCtx) return;
+  const r = _autoLoadCtx.rows[i];
+  r.bonusOverride = !r.bonusOverride;
+}
+
+function autoLoadManualWinner(i, val) {
+  if (!_autoLoadCtx) return;
+  const r = _autoLoadCtx.rows[i];
+  r.manualWinner = val || null;
+  if (!val || val === 'empate') r.manualBonus = false;
+  // Re-renderizamos solo esta fila para reflejar el estado del checkbox de bonus.
+  autoLoadRefresh();
+}
+
+function autoLoadManualBonus(i, checked) {
+  if (!_autoLoadCtx) return;
+  _autoLoadCtx.rows[i].manualBonus = checked;
+}
+
+function autoLoadClearResultado(i) {
+  if (!_autoLoadCtx) return;
+  const r = _autoLoadCtx.rows[i];
+  if (!window._rtdb) { showToast('⚠️', 'Sin conexión con Firebase todavía', false); return; }
+  if (!confirm('¿Limpiar el resultado de la nube de este cruce?\n\nEl juego lo vuelve a detectar como pendiente. No borra nada que ya esté aplicado al fixture (eso se sigue editando desde el cruce, como siempre).')) return;
+  window._rtdb.ref('velada/resultados/' + r.matchId).set(null)
+    .then(() => { showToast('🗑', 'Resultado de la nube limpiado', false); autoLoadRefresh(); })
+    .catch(e => showToast('⚠️', 'No se pudo limpiar: ' + e.message, false));
+}
+
+function autoLoadAdjustHtml(phase) {
+  if (!state.adjust) state.adjust = { f1: [], f2: [] };
+  const roster = phase === 'f1' ? PLAYERS : TEAMS;
+  const list = state.adjust[phase] || [];
+  const rows = list.map(a => `
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:0.35rem 0;border-bottom:0.5px solid var(--border2);font-size:12px">
+      <span>${a.name} <b>${a.pts >= 0 ? '+' : ''}${a.pts}</b> <span style="opacity:.6">· ${a.label || ''}</span></span>
+      <button style="background:none;border:none;color:var(--danger);cursor:pointer;font-size:13px" onclick="autoLoadRemoveAdjust('${phase}','${a.id}')">✕</button>
+    </div>`).join('');
+  const options = roster.map((n, idx) => `<option value="${idx}">${String(n).split('/')[0].trim()}</option>`).join('');
+  return `
+    <div>
+      ${rows || '<div style="font-size:12px;color:var(--muted)">Sin ajustes manuales todavía.</div>'}
+      <div style="display:flex;gap:0.4rem;margin-top:0.5rem;flex-wrap:wrap">
+        <select id="adjust-who-${phase}" class="fixture-edit-select" style="flex:1;min-width:110px">${options}</select>
+        <input id="adjust-pts-${phase}" type="number" value="1" class="fixture-edit-select" style="width:60px;flex:0 0 60px">
+        <input id="adjust-label-${phase}" type="text" placeholder="Motivo (ej. Dinero Rápido)" class="fixture-edit-select" style="flex:2;min-width:110px">
+        <button class="fixture-edit-toggle" onclick="autoLoadAddAdjust('${phase}')">+ Agregar</button>
+      </div>
+    </div>`;
+}
+
+function autoLoadAddAdjust(phase) {
+  const whoSel = document.getElementById('adjust-who-' + phase);
+  const ptsInp = document.getElementById('adjust-pts-' + phase);
+  const labelInp = document.getElementById('adjust-label-' + phase);
+  if (!whoSel || !ptsInp || !labelInp) return;
+  const idx = parseInt(whoSel.value, 10);
+  const pts = parseInt(ptsInp.value, 10);
+  const label = labelInp.value.trim();
+  if (isNaN(idx) || isNaN(pts) || pts === 0) { showToast('⚠️', 'Completá jugador/equipo y puntos (distinto de 0)', false); return; }
+  const roster = phase === 'f1' ? PLAYERS : TEAMS;
+  if (!state.adjust) state.adjust = { f1: [], f2: [] };
+  if (!Array.isArray(state.adjust[phase])) state.adjust[phase] = [];
+  state.adjust[phase].push({
+    id: 'adj-' + Date.now() + '-' + Math.floor(Math.random() * 1000),
+    name: String(roster[idx] || '?').split('/')[0].trim(),
+    pts, label, ts: Date.now()
+  });
+  saveState();
+  labelInp.value = '';
+  autoLoadRefreshAdjustOnly(phase);
+  showToast('✓', 'Ajuste agregado', false);
+}
+
+function autoLoadRemoveAdjust(phase, id) {
+  if (!state.adjust || !Array.isArray(state.adjust[phase])) return;
+  state.adjust[phase] = state.adjust[phase].filter(a => a.id !== id);
+  saveState();
+  autoLoadRefreshAdjustOnly(phase);
+}
+
+// Aplica de una todo lo que haya quedado armado en el modal: los cruces
+// automáticos (con el bonus que haya quedado tildado), los manuales que se
+// hayan completado, y los ajustes especiales (ej. Dinero Rápido) que salen
+// de un resultado automático. Un solo resumen al final, sin un toast por
+// cruce (a diferencia de saveResult(), que sí lo hace para carga individual).
+function confirmAutoLoad() {
+  if (!_autoLoadCtx) return;
+  const phase = _autoLoadCtx.phase;
+  const store = phase === 'f1' ? state.f1 : state.f2;
+  const roster = phase === 'f1' ? PLAYERS : TEAMS;
+  let countAuto = 0, countManual = 0, countAdjust = 0;
+  const comodinMsgs = [];
+
+  _autoLoadCtx.rows.forEach(r => {
+    if (r.type === 'auto') {
+      const c = r.computed;
+      const bonus = (r.gid === 'argentinos') ? c.bonus : (c.winner === 'empate' ? false : !!r.bonusOverride);
+      store[r.key] = { winner: c.winner, bonus, t: Date.now(), auto: true, matchId: r.matchId, sourceT: c.effectiveT };
+      comodinMsgs.push.apply(comodinMsgs, resolvePendingComodines(phase, r.key, c.winner, bonus));
+      if (r.gid === 'argentinos' && c.adjust) {
+        if (!state.adjust) state.adjust = { f1: [], f2: [] };
+        if (!Array.isArray(state.adjust[phase])) state.adjust[phase] = [];
+        state.adjust[phase].push({
+          id: 'adj-' + Date.now() + '-' + Math.floor(Math.random() * 1000),
+          name: String(roster[c.adjust.idx] || '?').split('/')[0].trim(),
+          pts: c.adjust.pts, label: c.adjust.label, ts: Date.now()
+        });
+        countAdjust++;
+      }
+      countAuto++;
+    } else if (r.type === 'manual' && r.manualWinner) {
+      const winner = r.manualWinner === 'empate' ? 'empate' : (r.manualWinner === 'a' ? r.a : r.b);
+      const bonus = r.manualWinner === 'empate' ? false : !!r.manualBonus;
+      store[r.key] = { winner, bonus, t: Date.now(), auto: false };
+      comodinMsgs.push.apply(comodinMsgs, resolvePendingComodines(phase, r.key, winner, bonus));
+      countManual++;
+    }
+  });
+
+  saveState();
+  closeAutoLoadModal();
+  if (phase === 'f1') renderFase1(); else renderFase2();
+  updateNavProgress();
+
+  const parts = [];
+  if (countAuto) parts.push(countAuto + ' automático' + (countAuto === 1 ? '' : 's'));
+  if (countManual) parts.push(countManual + ' manual' + (countManual === 1 ? '' : 'es'));
+  if (!parts.length) { showToast('ℹ️', 'No había nada nuevo para cargar', false); return; }
+  let msg = 'Cargados: ' + parts.join(' · ');
+  if (countAdjust) msg += ' · ' + countAdjust + ' ajuste' + (countAdjust === 1 ? '' : 's') + ' manual' + (countAdjust === 1 ? '' : 'es');
+  showToast('✓', msg, true);
+  if (comodinMsgs.length) setTimeout(() => showToast('🎰', comodinMsgs.join(' · '), false), 1400);
 }
 
 // ── SONIDOS DE LA RULETA ─────────────────────────────────────────────
