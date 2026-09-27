@@ -64,3 +64,11 @@ Si el panel está sin conexión a Firebase, reinicia los marcadores guardados en
 El splash inicial de El Erudito tiene un fondo opaco y queda por encima de la barra y la selección de participantes: antes se transparentaba el contenido de la pantalla siguiente. En Guess Movie/Song, la acción de mostrar la pregunta bonus ocupa su propia fila y los dos botones «Acertó» comparten otra fila con nombres que pueden ocupar varias líneas. Así se evita el recorte del segundo equipo en la tarjeta del conductor.
 
 Antes del evento, probá una ronda con el panel y dos celulares conectados a tu Firebase real. La publicación, reglas de acceso y latencia reales no se validaron desde aquí.
+
+## Ensayo guiado con dispositivos
+
+En `velada.html` abrí **Reglas → Panel de control → Ensayo guiado con dispositivos**. Elegí un cruce digital del fixture, descargá antes un backup completo y usá **Activar este cruce**. El asistente abre el juego del conductor y ofrece un QR directo al HUB para que dos celulares elijan los participantes del cruce.
+
+Tocá **Comprobar estado** después de cada paso. El asistente lee la conexión, el fixture publicado, el cruce activo, el buzzer (en los juegos que lo usan), un marcador distinto de 0–0, la captura en Firebase y el resultado aplicado a la tabla. La selección correcta en ambos celulares y el cambio visible en la TV se confirman manualmente: esas dos observaciones no se deducen de la base. Para las mesas sin buzzer, comprobá la selección de participantes desde los celulares.
+
+Terminá la partida antes de abrir **Cargar resultados automáticamente**: abrir ese modal toma una copia del marcador en vivo. Tras revisar y confirmar, volvé al ensayo y comprobá que el resultado figure en la tabla. El ensayo usa resultados reales y no crea puntajes de ejemplo por sí mismo. Al terminar, descargá un backup si querés conservar la prueba y usá **Reiniciar puntos de la noche** para dejar los marcadores en cero. El simulacro aleatorio es otra función separada.

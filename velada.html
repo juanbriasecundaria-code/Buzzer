@@ -4134,7 +4134,7 @@ window.VarSwitch = (function () {
 <div class="modal-bg" id="auto-modal-bg">
   <div class="modal" style="max-width:640px;width:94vw;max-height:88vh;overflow-y:auto">
     <div class="modal-title">🔄 Cargar resultados automáticamente</div>
-    <div class="modal-sub">Revisá lo que ya cargaron los juegos digitales y completá a mano lo que falte (juegos físicos o sin conexión). No se aplica nada hasta que confirmes.</div>
+    <div class="modal-sub">Al abrir, se toma una copia de los marcadores digitales actuales. Revisá ganador y bonus, completá los juegos físicos y confirmá para aplicar los puntos a la tabla. Abrilo cuando las partidas hayan terminado.</div>
     <div id="auto-modal-body"></div>
     <div class="modal-actions">
       <button class="btn btn-ghost" onclick="closeAutoResultadosModal()">Cancelar</button>
@@ -4668,6 +4668,13 @@ function renderReglas() {
           <div style="font-size:10.5px;color:var(--muted);margin-top:0.6rem;line-height:1.5">
             "Solo puntajes" no incluye las fotos del muro ni las fotos de jugadores — pesa mucho menos y es lo que más vas a necesitar si hay que recuperarse rápido.
           </div>
+        </div>
+
+        <!-- ── ENSAYO REAL ── -->
+        <div class="card" style="border-color:rgba(96,180,240,0.4)">
+          <div class="control-panel-section-title" style="color:var(--info)">🧪 Ensayo guiado con dispositivos</div>
+          <p class="rules-intro" style="margin-bottom:1rem">Probá un cruce real con el conductor, dos celulares y la TV. El asistente verifica conexión, fixture, marcador y resultado, y te muestra qué falta comprobar en persona.</p>
+          <button class="final-end-btn" style="width:100%;border-color:var(--info);color:var(--info);background:rgba(96,180,240,.1)" onclick="openEnsayoGuiado()">Empezar ensayo guiado</button>
         </div>
 
         <!-- ── SIMULACRO ── -->
@@ -17200,7 +17207,16 @@ function openMotesRevealWindow() {
   <div id="done-screen">
     <div class="big">✉️ Eso es todo</div>
     <div style="color:var(--muted);font-size:clamp(14px,1.6vw,18px)">Ya se revelaron todos los motes de la noche.</div>
+</div>
+
+<!-- El ensayo solo lee el estado; sus botones de juego reutilizan los flujos existentes. -->
+<div class="modal-bg" id="ensayo-modal-bg" role="dialog" aria-modal="true" aria-label="Ensayo guiado">
+  <div class="modal" style="max-width:720px;width:96vw;max-height:90vh;overflow-y:auto">
+    <div class="modal-title">🧪 Ensayo guiado</div>
+    <div id="ensayo-modal-body"></div>
+    <div class="modal-actions"><button class="btn btn-ghost" onclick="closeEnsayoGuiado()">Cerrar</button></div>
   </div>
+</div>
 
 <script>
   const MOTES = ${motesJson};
@@ -17352,15 +17368,17 @@ function openGuestQR() {
   renderGuestQRCode(guestUrl);
 }
 
-function renderGuestQRCode(url) {
-  const el = document.getElementById('guest-qr-canvas');
+function renderGuestQRCode(url, targetId = 'guest-qr-canvas') {
+  const el = document.getElementById(targetId);
   if (!el) return;
   function draw() {
-    el.innerHTML = '';
+    const target = document.getElementById(targetId);
+    if (!target) return;
+    target.innerHTML = '';
     try {
-      new QRCode(el, { text: url, width: 200, height: 200, colorDark: '#0f0f13', colorLight: '#ffffff' });
+      new QRCode(target, { text: url, width: 200, height: 200, colorDark: '#0f0f13', colorLight: '#ffffff' });
     } catch(e) {
-      el.innerHTML = '<div style="padding:1rem;color:#888;font-size:11px">Error generando el QR</div>';
+      target.innerHTML = '<div style="padding:1rem;color:#888;font-size:11px">Error generando el QR</div>';
     }
   }
   if (window.QRCode) { draw(); return; }
@@ -18172,3 +18190,4 @@ document.addEventListener('keydown', function(e) {
   }
 })();
 </script>
+<script src="ensayo-guiado.js"></script>
