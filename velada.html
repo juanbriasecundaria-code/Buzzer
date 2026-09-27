@@ -2720,6 +2720,11 @@ body.started .velada-bg-scrim { display: block; }
 .tr-mode-final .tr-cap-rule{margin:1.2rem auto 0}
 .tr-mode-final .tr-final-emblem{position:absolute;z-index:2;top:19vh;left:50%;transform:translateX(-50%);
   color:rgba(242,206,124,.8);font-size:clamp(35px,5vw,70px);text-shadow:0 0 35px #000}
+/* Adaptación horizontal del afiche: logo, nombre y arte a pantalla completa. */
+.tr-mode-poster .tr-media{background:#090909}
+.tr-mode-poster .tr-media .tr-img{object-fit:cover;animation:none!important}
+.tr-mode-poster .tr-media::after{display:none}
+.tr-mode-poster .tr-hud{display:none}
 .tr-flash{background:#f2ce7c}
 @keyframes trFlash{0%{opacity:.22}100%{opacity:0}}
 @media(max-width:650px){.tr-hud{left:5vw;right:5vw;letter-spacing:.08em;gap:1rem}.tr-mode-frame .tr-shot{width:90vw}}
@@ -15945,11 +15950,15 @@ function runTrailer(done, host) {
 
     if (p.t === 'final') {
       stage.classList.add('tr-mode-bleed', 'tr-mode-final');
-      // Arte horizontal exclusivo del tráiler: evita ampliar el afiche vertical
-      // y pequeño guardado en el navegador. Los créditos conservan ese afiche.
-      const posterFinal = /keep\s*talk/i.test(p.g)
-        ? 'keep-talking-trailer-4k.jpg'
-        : (FINAL_CONFIG && FINAL_CONFIG.poster);
+      // Keep Talking conserva el afiche completo, incluido el logo y los textos.
+      // El póster configurado por el usuario sigue usándose en los créditos.
+      if (/keep\s*talk/i.test(p.g)) {
+        const poster = 'keep-talking-poster-4k.jpg';
+        stage.classList.add('tr-mode-poster');
+        stage.innerHTML = `<div class="tr-media"><img class="tr-img" src="${poster}" alt="Póster de Keep Talking and Nobody Explodes"></div>${hudHtml(p)}`;
+        return;
+      }
+      const posterFinal = FINAL_CONFIG && FINAL_CONFIG.poster;
       stage.innerHTML = `<div class="tr-media">${medioHtml(p.g, 0, posterFinal)}</div>
         ${hudHtml(p)}<div class="tr-final-emblem">★</div>
         <div class="tr-cap">
