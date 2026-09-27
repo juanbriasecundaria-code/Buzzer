@@ -33,6 +33,10 @@
         if(game==='movies' || game==='argentinos'){updates[p+'/state']='locked';updates[p+'/winner']=null;}
       });
       await db.ref().update(updates);
+      // El panel del participante solo avisa «te toca ahora» por cruces
+      // realmente activados por el conductor, no por inferencia del fixture.
+      state.activeMatches = filtered.map(m => ({ phase, key: m[0]+'-'+m[1]+'-'+m[2] }));
+      saveState();
       showToast('🔔','Ronda '+filtered[0][0]+' publicada. Los celulares ya pueden elegir su nombre.',false);
     }catch(e){showToast('⚠️','No se pudo activar: '+e.message,false);}
     finally{busy=false;if(button)button.disabled=false;}

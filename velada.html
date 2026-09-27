@@ -6043,6 +6043,8 @@ function saveState() {
   try {
     if (Array.isArray(PLAYERS) && PLAYERS.length) state.playersSnapshot = PLAYERS.slice();
     if (Array.isArray(TEAMS)   && TEAMS.length)   state.teamsSnapshot   = TEAMS.slice();
+    state.f1FixtureSnapshot = { fixture: F1_FIXTURE.map(m => m.slice()), byes: Object.assign({}, F1_BYES) };
+    state.f2FixtureSnapshot = { fixture: F2_FIXTURE.map(m => m.slice()), byes: Object.assign({}, F2_BYES) };
     state.rosterTs = Date.now();
   } catch (e) {}
   // "¿Quién lo dijo?" y el HUB leen los equipos de otro canal (RTDB), que solo
@@ -6087,6 +6089,7 @@ function saveState() {
     try { window._ltCloudSig = JSON.stringify(state.liveTotals || null); } catch (e) {}
   }
   syncFixtureToFirebase();
+  publishFinalPublic();
 }
 
 // ============================================================
@@ -6245,6 +6248,7 @@ function markLocalTs(key, ts) {
       return null;
     };
     window._fbReady = true;
+    try { publishFinalPublic(); } catch (e) { console.warn('Cuadro final:', e); }
     console.log('Firebase listo ✓');
   `;
   document.head.appendChild(script);
@@ -6344,7 +6348,16 @@ function resetBuzzers(){
   let ok = 0, fail = 0;
   ['velada/buzzer', 'argentinos/buzzer'].forEach(p => {
     db.ref(p).set(payload)
-      .then(() => { ok++; if(ok + fail === 2) showToast('↺', 'Buzzers restablecidos. Activá un cruce desde el fixture.', false); })
+      .then(() => { ok++; if(ok === 2) {
+        state.activeMatches = (state.activeMatches || []).filter(active => {
+          const fixture = active.phase === 'f1' ? F1_FIXTURE : F2_FIXTURE;
+          const games = active.phase === 'f1' ? GAMES_F1 : GAMES_F2;
+          const match = fixture.find(m => m[0]+'-'+m[1]+'-'+m[2] === active.key);
+          return match && !['movies', 'argentinos'].includes(BuzzerRounds.gameId(games[match[3]]));
+        });
+        saveState();
+        showToast('↺', 'Buzzers restablecidos. Activá un cruce desde el fixture.', false);
+      } })
       .catch(e => { fail++; console.warn('reset', p, e); showToast('⚠️', 'No se pudo restablecer ' + p, false); });
   });
 }
@@ -9147,6 +9160,7 @@ function resetEverything() {
       // Resultados de partidos (de acá sale el puntaje de Fase 1 / Fase 2)
       state.f1 = {};
       state.f2 = {};
+      state.activeMatches = [];
       state.sd = {};
       state.sd2 = {};
       // Historial de rondas del Impostor (no tocamos impGame: si hay una ronda
@@ -12132,6 +12146,7 @@ const FINAL_CONFIG_DEFAULT = {
   nota: 'El formato de la final lo define el organizador. Sugerencias: trivia con buzzer, Kahoot, Carrera de Mentes grupal o desafío especial.',
   ganador: '',
   companero: '',
+  duplaEquipo: '',
   poster: '',   // póster/captura del juego de la final (aparece en los créditos)
 };
 let FINAL_CONFIG = null;
@@ -12148,6 +12163,7 @@ function loadFinalConfig() {
 
 function saveFinalConfig() {
   localStorage.setItem('ndj_final_config', JSON.stringify(FINAL_CONFIG));
+  publishFinalPublic();
 }
 
 function toggleFinalEdit() {
@@ -12182,11 +12198,13 @@ function saveFinalEdits() {
   const puntos = document.getElementById('final-edit-puntos')?.value?.trim();
   const nota = document.getElementById('final-edit-nota')?.value?.trim();
   const companero = document.getElementById('final-edit-companero')?.value?.trim();
+  const duplaEquipo = document.getElementById('final-edit-dupla-equipo')?.value?.trim();
   if (juego !== undefined) FINAL_CONFIG.juego = juego;
   if (formato) FINAL_CONFIG.formato = formato;
   if (puntos) FINAL_CONFIG.puntos = puntos;
   if (nota) FINAL_CONFIG.nota = nota;
   if (companero !== undefined) FINAL_CONFIG.companero = companero;
+  if (duplaEquipo !== undefined) FINAL_CONFIG.duplaEquipo = duplaEquipo;
   saveFinalConfig();
   _finalEditMode = false;
   showToast('✓', 'Final guardada', false);
@@ -12369,6 +12387,7 @@ const TERCER_CONFIG_DEFAULT = {
   puntos: 'El puntaje del 3er puesto se define según el juego elegido. El primero en llegar al objetivo se queda con el bronce.',
   nota: 'El 2° de la fase individual elige compañero (no puede ser alguien que juegue la final). Pelea contra el 2° equipo de la fase grupal.',
   companero: '',
+  duplaEquipo: '',
   ganador: '',
   opciones: [],   // [{id, nombre, img}] — juegos entre los que eligen, con póster
 };
@@ -12386,6 +12405,7 @@ function loadTercerConfig() {
 function saveTercerConfig() {
   try {
     localStorage.setItem('ndj_tercer_config', JSON.stringify(TERCER_CONFIG));
+    publishFinalPublic();
     return true;
   } catch (e) {
     // Sin espacio: casi siempre por imágenes muy pesadas o demasiadas.
@@ -12403,11 +12423,13 @@ function saveTercerEdits() {
   const puntos = document.getElementById('tercer-edit-puntos')?.value?.trim();
   const nota = document.getElementById('tercer-edit-nota')?.value?.trim();
   const companero = document.getElementById('tercer-edit-companero')?.value?.trim();
+  const duplaEquipo = document.getElementById('tercer-edit-dupla-equipo')?.value?.trim();
   if (juego !== undefined) TERCER_CONFIG.juego = juego;
   if (formato) TERCER_CONFIG.formato = formato;
   if (puntos) TERCER_CONFIG.puntos = puntos;
   if (nota) TERCER_CONFIG.nota = nota;
   if (companero !== undefined) TERCER_CONFIG.companero = companero;
+  if (duplaEquipo !== undefined) TERCER_CONFIG.duplaEquipo = duplaEquipo;
   saveTercerConfig();
   _tercerEditMode = false;
   showToast('🥉', '3er puesto guardado', false);
@@ -12634,6 +12656,7 @@ function loadSegundoConfig() {
 }
 function saveSegundoConfig() {
   localStorage.setItem('ndj_segundo_config', JSON.stringify(SEGUNDO_CONFIG));
+  publishFinalPublic();
 }
 
 // ============================================================
@@ -12651,6 +12674,27 @@ function loadCuartoConfig() {
 }
 function saveCuartoConfig() {
   localStorage.setItem('ndj_cuarto_config', JSON.stringify(CUARTO_CONFIG));
+  publishFinalPublic();
+}
+
+// Datos livianos del cuadro para el celular; los pósters y fotos quedan locales.
+let _finalPublicSignature = '';
+let _finalPublishQueue = Promise.resolve();
+function publishFinalPublic() {
+  if (!window._fbReady || !window._fbWrite || !FINAL_CONFIG || !TERCER_CONFIG) return;
+  const data = {
+    final: { companero: FINAL_CONFIG.companero || '', duplaEquipo: FINAL_CONFIG.duplaEquipo || '', juego: FINAL_CONFIG.juego || '',
+      ganador: FINAL_CONFIG.ganador || '', segundo: SEGUNDO_CONFIG?.ganador || '' },
+    tercero: { companero: TERCER_CONFIG.companero || '', duplaEquipo: TERCER_CONFIG.duplaEquipo || '', juego: TERCER_CONFIG.juego || '',
+      ganador: TERCER_CONFIG.ganador || '', cuarto: CUARTO_CONFIG?.ganador || '' }
+  };
+  const json = JSON.stringify(data);
+  if (json === _finalPublicSignature) return;
+  _finalPublicSignature = json;
+  _finalPublishQueue = _finalPublishQueue.catch(() => {}).then(() => window._fbWrite('finalPublic', json)).catch(e => {
+    if (_finalPublicSignature === json) _finalPublicSignature = '';
+    console.warn('No se pudo publicar el cuadro final:', e);
+  });
 }
 
 // ============================================================
@@ -13626,6 +13670,20 @@ function renderBracket() {
     </div>`;
 }
 
+function teamDuoPickerHtml(id, teamName, selected) {
+  const members = entityMembers(teamName || '');
+  if (members.length <= 2) return '';
+  const pairs = [];
+  members.forEach((a, i) => members.slice(i + 1).forEach(b => pairs.push(a + ' / ' + b)));
+  return `<div class="final-edit-field">
+    <label class="final-edit-label">Quiénes juegan el 2v2 por ${_escC(teamName)}</label>
+    <select class="final-edit-input" id="${id}">
+      <option value="">Todavía sin elegir</option>
+      ${pairs.map(pair => `<option value="${_escC(pair)}"${pair === selected ? ' selected' : ''}>${_escC(pair)}</option>`).join('')}
+    </select>
+  </div>`;
+}
+
 function renderFinal() {
   renderBracket();
   renderDiario();
@@ -13743,6 +13801,9 @@ function renderFinal() {
          <span style="font-size:11px;color:var(--muted);font-style:italic">invitado</span>
        </div>`
     : '';
+  const finalTeamDuoHtml = fc => fc.duplaEquipo && sortedT[0] &&
+    entityMembers(fc.duplaEquipo).every(n => entityMembers(sortedT[0].n).includes(n))
+      ? `<div class="final-player" style="border-style:dashed">2v2 del equipo: ${_escC(fc.duplaEquipo)}</div>` : '';
 
   // ---- EDIT MODE ----
   const fc = FINAL_CONFIG;
@@ -13763,6 +13824,7 @@ function renderFinal() {
       <label class="final-edit-label">Compañero del 1° individual</label>
       <input class="final-edit-input" id="final-edit-companero" placeholder="Nombre del compañero elegido…" value="${(fc.companero||'').replace(/"/g,'&quot;')}">
     </div>
+    ${teamDuoPickerHtml('final-edit-dupla-equipo', sortedT[0]?.n, fc.duplaEquipo)}
     <div class="final-edit-field">
       <label class="final-edit-label">Juego de la final</label>
       <input class="final-edit-input" id="final-edit-juego" placeholder="ej: Carrera de Mentes, Kahoot, Trivia…" value="${(fc.juego||'').replace(/"/g,'&quot;')}">
@@ -13850,6 +13912,7 @@ function renderFinal() {
       <label class="final-edit-label">Compañero del 2° individual</label>
       <input class="final-edit-input" id="tercer-edit-companero" placeholder="Nombre del compañero elegido…" value="${(tc.companero||'').replace(/"/g,'&quot;')}">
     </div>
+    ${teamDuoPickerHtml('tercer-edit-dupla-equipo', sortedT[1]?.n, tc.duplaEquipo)}
     <div class="final-edit-field">
       <label class="final-edit-label">Juego del 3er puesto</label>
       <input class="final-edit-input" id="tercer-edit-juego" placeholder="ej: Keep Talking, Trivia, Kahoot…" value="${(tc.juego||'').replace(/"/g,'&quot;')}">
@@ -13908,7 +13971,7 @@ function renderFinal() {
     <div class="card">
       <div style="font-size:15px;font-weight:600;margin-bottom:${fc.juego ? '0.5rem' : '1rem'}"><span class="dot-indicator final"></span>Clasificados a la final</div>
       ${fc.juego ? `<div style="margin-bottom:1rem"><span class="match-game-badge" style="font-size:12px;padding:3px 10px;border-radius:99px;background:var(--gold-dim);color:var(--gold);font-weight:600">🏆 ${fc.juego}</span></div>` : ''}
-      <div class="final-players">${clasificadosHtml}${finalCompaneroHtml}</div>
+      <div class="final-players">${clasificadosHtml}${finalCompaneroHtml}${finalTeamDuoHtml(fc)}</div>
       <div style="font-size:12px;color:var(--muted);padding-top:0.75rem;border-top:0.5px solid var(--border)">${fc.nota}</div>
     </div>
 
@@ -13916,7 +13979,7 @@ function renderFinal() {
     <div class="card">
       <div style="font-size:15px;font-weight:600;margin-bottom:${tc.juego ? '0.5rem' : '1rem'}"><span class="dot-indicator" style="background:#cd7f32;box-shadow:0 0 8px rgba(205,127,50,0.6)"></span>Clasificados al 3er puesto</div>
       ${tc.juego ? `<div style="margin-bottom:1rem"><span class="match-game-badge" style="font-size:12px;padding:3px 10px;border-radius:99px;background:var(--accent-dim,rgba(200,240,96,.13));color:var(--accent);font-weight:600">🥉 ${tc.juego}</span></div>` : ''}
-      <div class="final-players">${tercerClasificadosHtml}${companeroHtml}</div>
+      <div class="final-players">${tercerClasificadosHtml}${companeroHtml}${tc.duplaEquipo && sortedT[1] && entityMembers(tc.duplaEquipo).every(n => entityMembers(sortedT[1].n).includes(n)) ? `<div class="final-player" style="border-style:dashed">2v2 del equipo: ${_escC(tc.duplaEquipo)}</div>` : ''}</div>
       ${tercerOpciones().length ? `<button class="tj-open-btn" onclick="openTercerGallery()">🎮 Ver las ${tercerOpciones().length} opciones de juego</button>` : ''}
       <div style="font-size:12px;color:var(--muted);padding-top:0.75rem;border-top:0.5px solid var(--border);margin-top:0.85rem">${tc.nota}</div>
     </div>
