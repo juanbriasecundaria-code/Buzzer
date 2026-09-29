@@ -3993,6 +3993,52 @@ body.solo-impostor #tv-btn{ opacity:.42 }
 <script src="velada-rounds.js"></script>
 </head>
 <body>
+<script>
+/* Ventana de cierre (?cierre=1): la pantalla con el botón ▶ Comenzar se monta ANTES
+   que cualquier otra cosa de la página, así ningún error o render posterior puede
+   dejar al usuario mirando la pestaña principal en vez del Play de la ceremonia. */
+(function () {
+  function esCierre() { try { return new URLSearchParams(location.search).get('cierre') === '1'; } catch (e) { return false; } }
+  window.__esVentanaCierre = esCierre;
+  window.__mountCierreGate = function () {
+    if (!esCierre()) return null;
+    var prev = document.getElementById('cierre-gate');
+    if (prev) return prev;
+    var gate = document.createElement('div');
+    gate.id = 'cierre-gate';
+    gate.style.cssText = 'position:fixed;inset:0;z-index:2147483000;background:#07070b;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1.4rem;color:#f0efe8;text-align:center;padding:2rem;font-family:inherit';
+    gate.innerHTML =
+      '<div style="font-size:12px;letter-spacing:0.3em;text-transform:uppercase;color:#f5c842">La Velada del Año</div>' +
+      '<div style="font-size:15px;color:#999;max-width:420px;line-height:1.6">Acomodá esta ventana en la TV y ponela en pantalla completa. Cuando estés listo, arrancá la ceremonia — música, podios, resumen y créditos corren solos de ahí en más.</div>' +
+      '<button id="cierre-play-btn" style="margin-top:0.5rem;padding:1rem 2.4rem;border-radius:99px;border:none;background:#f5c842;color:#1a1305;font-weight:800;font-size:16px;cursor:pointer;letter-spacing:0.02em">▶ Comenzar</button>';
+    (document.body || document.documentElement).appendChild(gate);
+    var started = false;
+    gate.querySelector('#cierre-play-btn').addEventListener('click', function () {
+      started = true;
+      gate.remove();
+      if (window.__cierreObs) { try { window.__cierreObs.disconnect(); } catch (e) {} }
+      // Si la ceremonia todavía no terminó de cargar, esperamos a que esté lista.
+      var tries = 0;
+      (function lanzar() {
+        if (typeof window._runGrandFinale === 'function') { window._runGrandFinale(); return; }
+        if (tries++ < 100) setTimeout(lanzar, 100);
+      })();
+    });
+    // Si algo saca la pantalla sin que se haya tocado Comenzar, la volvemos a poner.
+    try {
+      var obs = new MutationObserver(function () {
+        if (!started && !document.getElementById('cierre-gate')) {
+          (document.body || document.documentElement).appendChild(gate);
+        }
+      });
+      obs.observe(document.documentElement, { childList: true, subtree: true });
+      window.__cierreObs = obs;
+    } catch (e) {}
+    return gate;
+  };
+  window.__mountCierreGate();
+})();
+</script>
 <script>window.VAR_SWITCH_MANUAL = true;</script>
 <!-- ══════════════════════════════════════════════════════════════════
      INTERRUPTOR GLOBAL DEL VAR
@@ -16184,8 +16230,12 @@ function openCierreWindow() {
   const url = new URL(location.href);
   url.searchParams.set('cierre', '1');
   const win = window.open(url.href, '_blank', 'width=1280,height=720');
-  if (!win) { alert('Permití las ventanas emergentes para abrir el cierre de la noche'); return; }
+  if (!win) {
+    if (confirm('El navegador bloqueó la ventana emergente.\n\n¿Abrir el cierre en esta misma pestaña?')) location.href = url.href;
+    return;
+  }
   window._cierreWin = win;
+  try { win.focus(); } catch (e) {}
 }
 
 // En la ventana de cierre (?cierre=1), tapa la app con una pantalla de espera
@@ -16196,25 +16246,13 @@ function initCierreGate() {
   if (params.get('cierre') !== '1') return;
 
   // La ventana de cierre carga la página de cero, así que el splash original
-  // de "La Velada del Año" también está montado debajo del gate. Como acá
-  // nadie toca el botón del splash (solo el del gate), quedaba sin cerrar y
-  // reaparecía por encima del podio al arrancar _runGrandFinale(). Lo sacamos
+  // de "La Velada del Año" también está montado debajo del gate. Lo sacamos
   // ya mismo (el gate lo tapa igual mientras tanto).
   if (typeof forceHideSplash === 'function') forceHideSplash();
 
-  const gate = document.createElement('div');
-  gate.id = 'cierre-gate';
-  gate.style.cssText = 'position:fixed;inset:0;z-index:999999;background:#07070b;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1.4rem;color:var(--text,#f0efe8);text-align:center;padding:2rem;font-family:inherit';
-  gate.innerHTML = `
-    <div style="font-size:12px;letter-spacing:0.3em;text-transform:uppercase;color:var(--gold,#f5c842)">La Velada del Año</div>
-    <div style="font-size:15px;color:var(--muted,#999);max-width:420px;line-height:1.6">Acomodá esta ventana en la TV y ponela en pantalla completa. Cuando estés listo, arrancá la ceremonia — música, podios, resumen y créditos corren solos de ahí en más.</div>
-    <button id="cierre-play-btn" style="margin-top:0.5rem;padding:1rem 2.4rem;border-radius:99px;border:none;background:var(--gold,#f5c842);color:#1a1305;font-weight:800;font-size:16px;cursor:pointer;letter-spacing:0.02em">▶ Comenzar</button>
-  `;
-  document.body.appendChild(gate);
-  document.getElementById('cierre-play-btn').addEventListener('click', () => {
-    gate.remove();
-    if (typeof _runGrandFinale === 'function') _runGrandFinale();
-  });
+  // El gate real ya se montó al principio del <body> (ver script inicial);
+  // acá solo nos aseguramos de que siga puesto.
+  if (typeof window.__mountCierreGate === 'function') window.__mountCierreGate();
 }
 
 function _runGrandFinale() {
