@@ -5545,8 +5545,27 @@ function computeGenericByes(fixture, numEntities) {
 
 // Fixture individual (Fase 1): cada jugador tiene que pasar por las 6
 // estaciones. No hay restricción de TV entre juegos de Fase 1.
+// Palabras a Tiempo como bloque final: sus partidas van en las últimas rondas,
+// solo con Palabras, y el resto de los juegos termina antes.
+// Con un número impar de jugadores, el último vuelve a jugar Palabras
+// contra alguien que ya jugó (una revancha en la ronda siguiente).
+function generateF1FixtureBloquePalabras(n) {
+  const PAL = GAMES_F1.indexOf('Palabras a Tiempo');
+  if (PAL < 0 || n < 2) return generateCoverageFixture(n, GAMES_F1.length, []);
+  const otros = GAMES_F1.map((_, i) => i).filter(i => i !== PAL);
+  const base = generateCoverageFixture(n, otros.length, []);
+  // Los demás juegos van primero (rondas 1..K); Palabras cierra la fase.
+  const resto = base.fixture.map(([r, a, b, g]) => [r, a, b, otros[g]]);
+  const ultima = resto.reduce((m, x) => Math.max(m, x[0]), 0);
+  const bloque = [];
+  for (let i = 0; i + 1 < n; i += 2) bloque.push([ultima + 1, i, i + 1, PAL]);
+  if (n % 2 === 1) bloque.push([ultima + 2, n - 1, 0, PAL]);
+  const fixture = resto.concat(bloque);
+  return { fixture, byes: computeGenericByes(fixture, n) };
+}
+
 function generateF1Fixture(n) {
-  return generateCoverageFixture(n, GAMES_F1.length, []);
+  return generateF1FixtureBloquePalabras(n);
 }
 
 function computeF2Byes(fixture, numTeams) {
