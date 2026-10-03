@@ -5371,7 +5371,7 @@ function shuffleArr(a) {
 // 3) Último recurso: emparejar sin estación en común (avanza uno solo).
 // 4) Rellenar con partidos "de relleno" entre los que sobraron, para que el
 //    número de gente descansando por ronda sea el mínimo físico posible.
-function generateCoverageFixture(n, numStations, forbiddenStationPairs) {
+function generateCoverageFixture(n, numStations, forbiddenStationPairs, descansos) {
   if (n < 2) return { fixture: [], byes: {} };
 
   const G = numStations;
@@ -5429,6 +5429,8 @@ function generateCoverageFixture(n, numStations, forbiddenStationPairs) {
     round++;
     const usedStations = new Set();
     const played = new Set();
+    // Descansos forzados: el jugador queda fuera de todos los cruces de esa ronda.
+    if (descansos) for (const t of Object.keys(descansos)) if (round <= descansos[t]) played.add(Number(t));
     const roundMatches = [];
 
     const needy = [];
@@ -5547,6 +5549,9 @@ function computeGenericByes(fixture, numEntities) {
 
 // Fixture individual (Fase 1): cada jugador tiene que pasar por las 6
 // estaciones. No hay restricción de TV entre juegos de Fase 1.
+// [nombre, última ronda en la que descansa] — Fase 1.
+const DESCANSO_INICIAL_F1 = [['Lara', 3]];
+
 // Palabras a Tiempo como bloque final: sus partidas van en las últimas rondas,
 // solo con Palabras, y el resto de los juegos termina antes.
 // Con un número impar de jugadores, el último vuelve a jugar Palabras
@@ -5555,7 +5560,13 @@ function generateF1FixtureBloquePalabras(n) {
   const PAL = GAMES_F1.indexOf('Palabras a Tiempo');
   if (PAL < 0 || n < 2) return generateCoverageFixture(n, GAMES_F1.length, []);
   const otros = GAMES_F1.map((_, i) => i).filter(i => i !== PAL);
-  const base = generateCoverageFixture(n, otros.length, []);
+  // Jugadores que descansan las primeras rondas (nombre => última ronda de descanso).
+  const descansos = {};
+  DESCANSO_INICIAL_F1.forEach(([nombre, hasta]) => {
+    const idx = PLAYERS.indexOf(nombre);
+    if (idx >= 0) descansos[idx] = hasta;
+  });
+  const base = generateCoverageFixture(n, otros.length, [], descansos);
   // Los demás juegos van primero (rondas 1..K); Palabras cierra la fase.
   const resto = base.fixture.map(([r, a, b, g]) => [r, a, b, otros[g]]);
   const ultima = resto.reduce((m, x) => Math.max(m, x[0]), 0);
@@ -7070,6 +7081,28 @@ function saveFixtureMatch(phase, matchIdx, selectA, selectB, selectG) {
 
 // Rearma solo el fixture de Fase 1 (el guardado en localStorage y Firebase
 // conserva el orden viejo hasta que se regenera). No toca roster, reglas ni F2.
+// Publica el fixture a Firebase de forma explícita y avisa si falló.
+// Lo que leen participantes.html y los juegos digitales es velada/fixture.
+function publicarFixtureAhora() {
+  if (!window._rtdb) {
+    showToast('⚠️', 'Sin conexión a Firebase: el fixture nuevo no llegó a los celulares', false);
+    return;
+  }
+  const payload = {
+    f1: { fixture: F1_FIXTURE.map(m => m.slice()), players: PLAYERS.slice(), games: GAMES_F1.slice() },
+    f2: { fixture: F2_FIXTURE.map(m => m.slice()), teams: TEAMS.slice(), fullNames: FULL_NAMES, games: GAMES_F2.slice() },
+    updated: Date.now()
+  };
+  window._fixtureFirma = JSON.stringify({ f1: payload.f1, f2: payload.f2 });
+  Promise.resolve(window._rtdb.ref('velada/fixture').set(payload)).then(() => {
+    showToast('✓', 'Fixture publicado a los celulares', false);
+  }).catch(e => {
+    window._fixtureFirma = null;
+    console.warn('Publicación del fixture falló', e);
+    showToast('⚠️', 'No se publicó el fixture: revisá la conexión o las reglas de Firebase', false);
+  });
+}
+
 function regenerarFixtureF1() {
   if (Object.keys(state.f1 || {}).length) {
     showToast('⚠️', 'Hay resultados de Fase 1 cargados: reiniciá los puntos primero', false);
@@ -7085,7 +7118,7 @@ function regenerarFixtureF1() {
       saveState();
       closeModal();
       renderFase1();
-      showToast('✓', 'Fixture de Fase 1 regenerado', false);
+      publicarFixtureAhora();
     }
   );
 }
