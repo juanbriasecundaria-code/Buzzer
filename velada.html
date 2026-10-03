@@ -4907,6 +4907,8 @@ function renderReglas() {
           <button class="btn btn-danger" style="width:100%;padding:0.875rem;font-size:14px;border-color:var(--danger)" onclick="resetEverything()">🔄 Reiniciar puntos de la noche</button>
           <p class="rules-intro" style="margin:1rem 0 0.6rem">Esto borra solo las apuestas de los invitados (Fase 1 y Fase 2) y cierra la ventana de apuestas abierta. No toca los resultados de los partidos ni el resto de los puntajes — útil si hubo que reiniciar una ronda de apuestas o hacer una prueba.</p>
           <button class="btn btn-danger" style="width:100%;padding:0.7rem;font-size:13px" onclick="resetBets()">🃏 Reiniciar apuestas</button>
+          <p class="rules-intro" style="margin:1rem 0 0.6rem">Rearma el fixture de Fase 1 con el orden actual (Palabras a Tiempo al final). Los participantes no cambian. Solo funciona si no hay resultados de Fase 1 cargados: primero usá «Reiniciar puntos de la noche».</p>
+          <button class="btn btn-danger" style="width:100%;padding:0.7rem;font-size:13px" onclick="regenerarFixtureF1()">🔁 Regenerar fixture de Fase 1</button>
           ${editing ? `<button class="btn btn-danger" style="width:100%;padding:0.6rem;font-size:13px;margin-top:0.6rem" onclick="resetRulesConfig()">↩️ Restaurar reglas a los valores originales</button>` : ''}
         </div>
       </div>
@@ -7064,6 +7066,28 @@ function saveFixtureMatch(phase, matchIdx, selectA, selectB, selectG) {
   showToast('✓', 'Enfrentamiento actualizado', false);
   if (phase === 'f1') renderFase1();
   else renderFase2();
+}
+
+// Rearma solo el fixture de Fase 1 (el guardado en localStorage y Firebase
+// conserva el orden viejo hasta que se regenera). No toca roster, reglas ni F2.
+function regenerarFixtureF1() {
+  if (Object.keys(state.f1 || {}).length) {
+    showToast('⚠️', 'Hay resultados de Fase 1 cargados: reiniciá los puntos primero', false);
+    return;
+  }
+  showConfirmModal(
+    '¿Regenerar el fixture de Fase 1?',
+    'Se reemplaza el cruce guardado por el nuevo orden: primero las rondas de los demás juegos y al final Palabras a Tiempo. Los participantes no cambian.',
+    () => {
+      regenerateF1Fixture();
+      F1_BYES = computeF1Byes(F1_FIXTURE, PLAYERS.length);
+      state.f1FixtureSnapshot = { fixture: F1_FIXTURE.map(m => m.slice()), byes: Object.assign({}, F1_BYES) };
+      saveState();
+      closeModal();
+      renderFase1();
+      showToast('✓', 'Fixture de Fase 1 regenerado', false);
+    }
+  );
 }
 
 function renderFixtureF1() {
